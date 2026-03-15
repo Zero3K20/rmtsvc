@@ -172,7 +172,8 @@ long socketBase :: getLocalHostIP(vector<string> &vec)
 	gethostname(buf,sizeof(buf));
 	struct hostent * p=gethostbyname(buf);
 	if(p==NULL) return 0;
-	for(int i=0;p->h_addr_list[i];i++)
+	int i;
+	for(i=0;p->h_addr_list[i];i++)
 		vec.push_back( (char *)inet_ntoa(*((struct in_addr *)p->h_addr_list[i])) );
 	return i;
 }
@@ -332,9 +333,10 @@ SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const c
 	if(endport<startport){ int iswap=startport; startport=endport; endport=iswap; }
 	
 	int icount=endport-startport;
+	int i;
 	if(icount<10)
 	{
-		for(int i=0;i<=icount;i++)
+		for(i=0;i<=icount;i++)
 		{
 			addr.sin_port=htons(startport+i);
 			if (bind(m_sockfd, (struct sockaddr *) &addr, sizeof(addr)) != SOCKET_ERROR )
@@ -344,7 +346,7 @@ SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const c
 	}
 	else
 	{
-		for(int i=1;i<=10;i++)
+		for(i=1;i<=10;i++)
 		{
 			int port=startport+rand()*icount/RAND_MAX;
 			addr.sin_port=htons(port);
