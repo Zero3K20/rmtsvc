@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="legacy_stdio_compat.cpp" />
     <ClCompile Include="cInjectDll.cpp" />
     <ClCompile Include="execCommand.cpp" />
     <ClCompile Include="other\findpassword.cpp" />
