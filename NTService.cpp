@@ -246,7 +246,7 @@ BOOL CNTService :: EndService()
 	_tprintf(TEXT("Stopping %s."), m_lpDisplayName);
 	if(::ControlService(schService, SERVICE_CONTROL_STOP_REQUEST, &m_ssStatus))
 	{
-		int iCount=0;//发送服务停止请求
+		int iCount=0;//send stop service request
 		while( ::QueryServiceStatus(schService, &m_ssStatus) )
 		{
 			if(m_ssStatus.dwControlsAccepted & SERVICE_ACCEPT_STOP) break;

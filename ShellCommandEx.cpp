@@ -56,7 +56,7 @@ BOOL doCommandEx(const char *strCmd,const char *strParam,std::string &strRet)
 		bRet=docmd_vidcs(strParam,strRet);
 	else if(strcasecmp(strCmd,"www")==0)
 		bRet=docmd_websvc(strParam,strRet,NULL,"");
-	else if(strcasecmp(strCmd,"telnet")==0) //开启telnet
+	else if(strcasecmp(strCmd,"telnet")==0) //enable telnet
 		bRet=docmd_telnet(strParam,strRet);
 	else if(strcasecmp(strCmd,"fpas")==0)
 	{
@@ -70,9 +70,9 @@ BOOL doCommandEx(const char *strCmd,const char *strParam,std::string &strRet)
 			*(char *)ptr=0; strCmd=strParam; strParam=ptr+1;
 		}else{ strCmd=strParam; strParam=NULL; }
 		bRet=upnp_cmd(strCmd,strParam,strRet);
-	}else if(strcasecmp(strCmd,"keys")==0) //模拟按键或字符串输入
+	}else if(strcasecmp(strCmd,"keys")==0) //simulate key presses or string input
 	{
-		if(strParam) //yyc modify 2008-03-25支持按键的mime编码
+		if(strParam) //yyc modify 2008-03-25 support MIME encoding for key presses
 			cCoder::mime_decode(strParam,strlen(strParam),(char *)strParam);
 		bRet=Wutils::sendKeys(strParam);
 	}
@@ -85,11 +85,11 @@ BOOL doCommandEx(const char *strCmd,const char *strParam,std::string &strRet)
 	else strRet.append("unknowed command.\r\n");
 	return bRet;
 }
-//设置接收文件的保存路径 
+//set the save path for received files 
 BOOL setSavePath(const char *spath,std::string &strRet)
 {
 	char buf[MAX_PATH]; int slen;
-	if(spath && spath[0]!=0) //设置存储路径
+	if(spath && spath[0]!=0) //set storage path
 	{
 		if(strcmp(spath,".")==0)
 		{
@@ -109,11 +109,11 @@ BOOL setSavePath(const char *spath,std::string &strRet)
 	slen=sprintf(buf,"current saving path is %s!\r\n",g_savepath.c_str());
 	strRet.append(buf); return TRUE;
 }
-//设置cmd.exe的路径
+//set the path to cmd.exe
 BOOL SetCmdPath(const char *spath,std::string &strRet)
 {
 	char buf[MAX_PATH]; int slen;
-	if(spath && spath[0]!=0) //设置cmd.exe路径
+	if(spath && spath[0]!=0) //set cmd.exe path
 	{
 		if( _access(spath,0)==-1)
 		{
@@ -125,7 +125,7 @@ BOOL SetCmdPath(const char *spath,std::string &strRet)
 	slen=sprintf(buf,"cmd path is %s!\r\n",cCmdShell::staCmdPath.c_str());
 	strRet.append(buf); return TRUE;
 }
-//获取系统的状态信息
+//get system status information
 BOOL sysStatus(std::string &strRet)
 {
 	char buf[MAX_PATH];
@@ -158,7 +158,7 @@ BOOL sysStatus(std::string &strRet)
 	return TRUE;
 }
 
-//支持*?通配符号
+//supports * ? wildcards
 BOOL listProcess(const char *filter,std::string &strRet)
 {
 	std::vector<std::pair<DWORD,std::string> > vecList;
@@ -182,9 +182,9 @@ void GetBindIPAddr(std::string &bindip,const char *strParam)
 {
 	if(strParam==NULL) return;
 	const char *p=strstr(strParam," bindip=");
-	if(p){ //指定了启动服务要绑定的IP
-			p+=8; while(*p==' ') p++; //指向绑定的IP，并去掉空格
-			if(*p==0) p=socketBase::getLocalHostIP(); //没有指定IP,自动获取本机第一个IP
+	if(p){ //specified the IP to bind when starting the service
+			p+=8; while(*p==' ') p++; //point to the bound IP and remove spaces
+			if(*p==0) p=socketBase::getLocalHostIP(); //no IP specified, automatically get the first local IP
 			if(p) bindip.assign(p); else bindip="";
 		}else bindip="";
 	return;
@@ -196,23 +196,23 @@ BOOL docmd_telnet(const char *strParam,std::string &strRet)
 	telServerEx *psvc=&ptrService->m_telsvr;
 	BOOL bRet=TRUE; char s[256];
 	if(strParam && strcasecmp(strParam,"stop")==0)
-		psvc->Stop(); //停止tel远程访问服务
+		psvc->Stop(); //stop telnet remote access service
 	else if(strParam && strncasecmp(strParam,"start",5)==0 
 		   && psvc->status()!=SOCKS_LISTEN )
-	{//启动Telnet远程访问服务
+	{//start Telnet remote access service
 		const char *p=strParam+5; while(*p==' ') p++;
 		if(*p>='0' && *p<='9'){ psvc->m_svrport=atoi(p); p=strchr(p,' ');}
-		psvc->docmd_sets(p); //获取绑定帐号信息
+		psvc->docmd_sets(p); //get bound account information
 		GetBindIPAddr(psvc->m_bindip,p);
-		if(psvc->m_svrport==0) psvc->m_svrport=23; //设成默认Telnet端口
+		if(psvc->m_svrport==0) psvc->m_svrport=23; //set to default Telnet port
 		bRet=(psvc->Start())?TRUE:FALSE;
 	}
 	else if(strParam && strncasecmp(strParam,"iprules ",8)==0)
 		psvc->docmd_iprules(strParam+8); 
-	else if(strParam && strncasecmp(strParam,"-r ",3)==0) //反向telnet连接
+	else if(strParam && strncasecmp(strParam,"-r ",3)==0) //reverse telnet connection
 	{
 		const char *p=strParam+3; while(*p==' ') p++;
-		int iport=0;  //获取反向连接的host
+		int iport=0;  //get the host for reverse connection
 		const char *pos=strchr(p,':');
 		if(pos){ iport=atoi(pos+1); *(char *)pos=0; }
 		SOCKSRESULT sr=psvc->revConnect(p,iport,-1);
@@ -250,27 +250,27 @@ BOOL docmd_telnet(const char *strParam,std::string &strRet)
 	return bRet;
 }
 
-//启动或停止rmtsvc远程控制管理服务
+//start or stop rmtsvc remote control management service
 BOOL docmd_websvc(const char *strParam,std::string &strRet,const char *strIP,const char *urlparam)
 {
 	MyService *ptrService=MyService::GetService();
-	webServer *pwwwSvc=&ptrService->m_websvr;//指向www服务的指针
+	webServer *pwwwSvc=&ptrService->m_websvr;//pointer to the www service
 	BOOL bRet=TRUE;
 	if(strParam && strcasecmp(strParam,"stop")==0)
-		pwwwSvc->Stop(); //停止web远程访问服务
+		pwwwSvc->Stop(); //stop web remote access service
 	else if(strParam && strncasecmp(strParam,"start",5)==0 
 		   && pwwwSvc->status()!=SOCKS_LISTEN )
-	{//启动web远程访问服务
+	{//start web remote access service
 		const char *p=strParam+5; while(*p==' ') p++;
 		if(*p>='0' && *p<='9'){ pwwwSvc->m_svrport=atoi(p); p=strchr(p,' ');}
 		GetBindIPAddr(pwwwSvc->m_bindip,p);
-		if(pwwwSvc->m_svrport==0) pwwwSvc->m_svrport=-1; //设成以随机端口启动服务
+		if(pwwwSvc->m_svrport==0) pwwwSvc->m_svrport=-1; //set to start service with a random port
 		bRet=(pwwwSvc->Start())?TRUE:FALSE;
 	}
 	else if(strParam && strncasecmp(strParam,"iprules ",8)==0)
 		pwwwSvc->docmd_webiprules(strParam+8); 
 
-	char s[128];//返回web远程访问服务的状态
+	char s[128];//return the status of the web remote access service
 	if(pwwwSvc->status()==SOCKS_LISTEN)
 	{
 		sprintf(s,"Remote Service has been started at %s:%d %s\r\n",pwwwSvc->getLocalIP(),pwwwSvc->getLocalPort(),
@@ -302,21 +302,21 @@ BOOL docmd_websvc(const char *strParam,std::string &strRet,const char *strIP,con
 	sprintf(s,"******Total %d IP Rule******\r\n",c); strRet.append(s);
 	return bRet;
 }
-//启动或停止FTP服务
+//start or stop FTP service
 BOOL docmd_ftpsvc(const char *strParam,std::string &strRet)
 {
 	MyService *ptrService=MyService::GetService();
 	ftpsvrEx *pftp=&ptrService->m_ftpsvr;
 	BOOL bRet=TRUE;
 	if(strParam && strcasecmp(strParam,"stop")==0)
-		pftp->Stop();  //停止FTP服务
+		pftp->Stop();  //stop FTP service
 	else if(strParam && strncasecmp(strParam,"start",5)==0 
 		   && pftp->status()!=SOCKS_LISTEN )
-	{//启动FTP服务
+	{//start FTP service
 		const char *p=strParam+5; while(*p==' ') p++;
 		if(*p>='0' && *p<='9'){ pftp->m_settings.svrport=atoi(p); p=strchr(p,' ');}
 		GetBindIPAddr(pftp->m_settings.bindip,p);
-		pftp->Start(); //启动ftp服务
+		pftp->Start(); //start FTP service
 	}
 	else if(strParam && strncasecmp(strParam,"iprules ",8)==0)
 	{
@@ -328,14 +328,14 @@ BOOL docmd_ftpsvc(const char *strParam,std::string &strRet)
 			if( (it=maps.find("access"))!=maps.end())
 				ipaccess=atoi((*it).second.c_str());
 			if( (it=maps.find("ipaddr"))!=maps.end()) ipRules=(*it).second;
-			//设置IP过滤规则
+			//set IP filter rules
 			if(ipRules=="")
 				pftp->rules().addRules_new(RULETYPE_TCP,1,NULL);
 			else  pftp->rules().addRules_new(RULETYPE_TCP,ipaccess,ipRules.c_str());
 		}
 	}
 
-	char s[128]; //返回FTP服务的状态
+	char s[128]; //return FTP service status
 	if(pftp->status()==SOCKS_LISTEN)
 		#ifdef _SURPPORT_OPENSSL_
 		sprintf(s,"FTP Service %s has been started at %s:%d %s\r\n",((pftp->ifSSL())?"(SSL)":""),
@@ -362,21 +362,21 @@ BOOL docmd_ftpsvc(const char *strParam,std::string &strRet)
 	sprintf(s,"******Total %d IP Rule******\r\n",c); strRet.append(s);
 	return bRet;
 }
-//启动或停止Proxy服务
+//start or stop Proxy service
 BOOL docmd_proxysvc(const char *strParam,std::string &strRet)
 {
 	MyService *ptrService=MyService::GetService();
 	proxysvrEx *psvr=&ptrService->m_proxysvr;
 	BOOL bRet=TRUE;
 	if(strParam && strcasecmp(strParam,"stop")==0)
-		psvr->Stop(); //停止服务
+		psvr->Stop(); //stop service
 	else if(strParam && strncasecmp(strParam,"start",5)==0 
 		   && psvr->status()!=SOCKS_LISTEN )
-	{//启动服务
+	{//start service
 		const char *p=strParam+5; while(*p==' ') p++;
 		if(*p>='0' && *p<='9'){ psvr->m_settings.svrport=atoi(p); p=strchr(p,' ');}
 		GetBindIPAddr(psvr->m_settings.bindip,p);
-		psvr->Start(); //启动服务
+		psvr->Start(); //start service
 	}
 	else if(strParam && strncasecmp(strParam,"iprules ",8)==0)
 	{
@@ -388,14 +388,14 @@ BOOL docmd_proxysvc(const char *strParam,std::string &strRet)
 			if( (it=maps.find("access"))!=maps.end())
 				ipaccess=atoi((*it).second.c_str());
 			if( (it=maps.find("ipaddr"))!=maps.end()) ipRules=(*it).second;
-			//设置IP过滤规则
+			//set IP filter rules
 			if(ipRules=="")
 				psvr->rules().addRules_new(RULETYPE_TCP,1,NULL);
 			else  psvr->rules().addRules_new(RULETYPE_TCP,ipaccess,ipRules.c_str());
 		}
 	}
 
-	char s[128]; //返回服务的状态
+	char s[128]; //return service status
 	if(psvr->status()==SOCKS_LISTEN)
 		sprintf(s,"Proxy Service has been started at %s:%d %s\r\n",psvr->getLocalIP(),
 		psvr->getLocalPort(),((psvr->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:"") );
@@ -407,7 +407,7 @@ BOOL docmd_proxysvc(const char *strParam,std::string &strRet)
 	strRet.append("\r\n"); return bRet;
 }
 
-//启动或停止vIDCs服务
+//start or stop vIDCs service
 BOOL docmd_vidcs(const char *strParam,std::string &strRet)
 {
 	MyService *ptrService=MyService::GetService();
@@ -415,14 +415,14 @@ BOOL docmd_vidcs(const char *strParam,std::string &strRet)
 	vidcServerEx &vidcsvr=pvidc->m_vidcsvr;
 	BOOL bRet=TRUE;
 	if(strParam && strcasecmp(strParam,"stop")==0)
-		vidcsvr.Stop(); //停止vIDCs服务
+		vidcsvr.Stop(); //stop vIDCs service
 	else if(strParam && strncasecmp(strParam,"start",5)==0 
 		   && vidcsvr.status()!=SOCKS_LISTEN )
-	{//启动vIDCs服务
+	{//start vIDCs service
 		const char *p=strParam+5; while(*p==' ') p++;
 		if(*p>='0' && *p<='9'){ vidcsvr.m_svrport=atoi(p); p=strchr(p,' ');}
 		GetBindIPAddr(vidcsvr.m_bindip,p);
-		vidcsvr.Start(); //启动vIdcs服务
+		vidcsvr.Start(); //start vIDCs service
 	}
 	else if(strParam && strncasecmp(strParam,"iprules ",8)==0)
 	{
@@ -437,12 +437,12 @@ BOOL docmd_vidcs(const char *strParam,std::string &strRet)
 				vidcsvr.m_ipRules=(*it).second;
 			else vidcsvr.m_ipRules="";
 			if(vidcsvr.m_ipRules=="") vidcsvr.m_ipaccess=1;
-			//设置IP过滤规则
+			//set IP filter rules
 			vidcsvr.rules().addRules_new(RULETYPE_TCP,vidcsvr.m_ipaccess,vidcsvr.m_ipRules.c_str());
 		}
 	}
 
-	char s[128]; //返回vIDCs服务的状态
+	char s[128]; //return vIDCs service status
 	if(vidcsvr.status()==SOCKS_LISTEN)
 		sprintf(s,"vIDCs Service has been started at %s:%d %s\r\n",vidcsvr.getLocalIP(),vidcsvr.getLocalPort(),
 				((vidcsvr.GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:""));
@@ -453,8 +453,8 @@ BOOL docmd_vidcs(const char *strParam,std::string &strRet)
 	strRet.append("\r\n"); return bRet;
 }
 
-//远程端口映射，格式:
-//mtcpr vidcs=<host:port@pswd> appsvr=<appsvr:appport> mport=<映射端口>[+-ssl]
+//remote port mapping, format:
+//mtcpr vidcs=<host:port@pswd> appsvr=<appsvr:appport> mport=<mapped port>[+-ssl]
 BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 {
 	char buf[256]; const char *ptr,*ptr_vname;
@@ -478,9 +478,9 @@ BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 			vidcs_host.assign(vname.c_str(),ptr-vname.c_str());
 			vidcs_pswd.assign(ptr+1);
 		}else vidcs_host=vname;
-		if(vname.length()>64) return FALSE; //保护缓冲区
+		if(vname.length()>64) return FALSE; //protect buffer
 		sprintf(buf,"vname=%s vhost=%s vpswd=%s autorun=0",vname.c_str(),vidcs_host.c_str(),vidcs_pswd.c_str());
-		//添加或修改一个vidcc连接客户连接指定的vidcs
+		//add or modify a vidcc client connection to the specified vidcs
 		pvidcM->docmd_vidcc(buf);
 		pvidcc=pvidcM->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		if(pvidcc==NULL){
@@ -513,8 +513,8 @@ BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 	for(;it!=maps.end();it++)
 	{
 		if((*it).first!="vidcs" && (*it).first!="name" && (*it).first!="appsvr")
-		{ //去除已经处理过的
-			if( (int)((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //缓冲区保护
+		{ //remove already-processed entries
+			if( (int)((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //buffer protection
 			buflen+=sprintf(buf+buflen,"%s=%s ",(*it).first.c_str(),(*it).second.c_str());
 		}
 	}
@@ -534,7 +534,7 @@ BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 	strRet.append(buf); return TRUE;
 }
 
-//--------------------UPnP 相关处理------------------------------------------------
+//--------------------UPnP related processing------------------------------------------------
 BOOL upnp_cmd(const char *strCmd,const char *strParam,std::string &strRet)
 {
 	MyService *ptrService=MyService::GetService();
@@ -544,17 +544,17 @@ BOOL upnp_cmd(const char *strCmd,const char *strParam,std::string &strRet)
 	{	u.Search(); Sleep(2000); }
 	else if(strCmd && strcasecmp(strCmd,"stop")==0)
 		u.Close();
-	else if(strCmd && strcasecmp(strCmd,"add")==0) //添加UPnP映射
-	{//格式 : upnp add type=[TCP|UDP] appsvr=<应用服务> mport=<外网端口> appdesc=<描述>"
+	else if(strCmd && strcasecmp(strCmd,"add")==0) //add UPnP mapping
+	{//format: upnp add type=[TCP|UDP] appsvr=<app_service> mport=<external_port> appdesc=<description>"
 		if(strParam) pvidc->docmd_upnp(strParam);
 	}
-	else if(strCmd && strcasecmp(strCmd,"delete")==0) //删除UPnP映射
-	{//格式 : upnp delete <外网端口> <TCP|UDP>
+	else if(strCmd && strcasecmp(strCmd,"delete")==0) //delete UPnP mapping
+	{//format: upnp delete <external_port> <TCP|UDP>
 		if(strParam){
-			while(*strParam==' ') strParam++; //去掉空格
+			while(*strParam==' ') strParam++; //remove spaces
 			int wport=atoi(strParam);
 			const char *ptr=strchr(strParam,' ');
-			if(ptr) while(*ptr==' ') ptr++; //去掉空格
+			if(ptr) while(*ptr==' ') ptr++; //remove spaces
 			bool btcp=(ptr && strcasecmp(ptr,"UDP")==0)?false:true;
 			u.DeletePortMapping(btcp,wport);
 		}//?if(strParam)
@@ -586,30 +586,30 @@ BOOL upnp_cmd(const char *strCmd,const char *strParam,std::string &strRet)
 extern bool writeParamintofile(const char *strexefile,const char *param,long paramlen);
 extern bool readParamfromfile(std::string &strret,const char *strexefile);
 
-//导出配置参数
+//export configuration parameters
 BOOL ExportSetting(std::string &strRet)
 {
 	MyService *ptrService=MyService::GetService();
-	//导出vidc的配置参数
+	//export vidc configuration parameters
 	strRet.append("!========vidc settings========\r\n");	
 	vidcManager *pvidc=&ptrService->m_vidcManager;
 	pvidc->saveAsstring(strRet);
-	//导出proxy的配置参数
+	//export proxy configuration parameters
 	strRet.append("\r\n!========Proxy settings========\r\n");
 	proxysvrEx *psvr=&ptrService->m_proxysvr;
 	psvr->saveAsstring(strRet);
-	//导出ftp的配置参数
+	//export ftp configuration parameters
 	strRet.append("\r\n!========FTP settings========\r\n");
 	ftpsvrEx *pftp=&ptrService->m_ftpsvr;
 	pftp->saveAsstring(strRet);	
 	
-	//导出exe的配置参数
+	//export exe configuration parameters
 	strRet.append("\r\n!========EXE settings========\r\n");
 	readParamfromfile(strRet,NULL);
 	return TRUE;
 }
-//导入配置参数并写入注册表
-//格式: import [ftp|proxy|vidc]<[filename]
+//import configuration parameters and write to registry
+//format: import [ftp|proxy|vidc]<[filename]
 BOOL ImportSetting(const char *strParam,std::string &strRet)
 {
 	if(strParam)
@@ -632,7 +632,7 @@ BOOL ImportSetting(const char *strParam,std::string &strRet)
 					filelen=::fread(buf,sizeof(char),filelen,fp);
 					buf[filelen]=0; ::fclose(fp); fp=NULL;
 					if(strcasecmp(strParam,"ftp")==0)
-					{//读入FTP服务的配置，并写入注册表
+					{//read FTP service configuration and write to registry
 						MyService *ptrService=MyService::GetService();
 						ftpsvrEx *pftpsvr=&ptrService->m_ftpsvr;
 						pftpsvr->initSetting();
@@ -642,7 +642,7 @@ BOOL ImportSetting(const char *strParam,std::string &strRet)
 						delete[] buf; return TRUE;
 					}
 					else if(strcasecmp(strParam,"proxy")==0)
-					{//读入Proxy服务的配置，并写入注册表
+					{//read Proxy service configuration and write to registry
 						MyService *ptrService=MyService::GetService();
 						proxysvrEx *psvr=&ptrService->m_proxysvr;
 						psvr->initSetting();
@@ -652,12 +652,12 @@ BOOL ImportSetting(const char *strParam,std::string &strRet)
 						delete[] buf; return TRUE;
 					}
 					else if(strcasecmp(strParam,"vidc")==0)
-					{//读入vidc服务的配置，并写入注册表
+					{//read vidc service configuration and write to registry
 						MyService *ptrService=MyService::GetService();
 						vidcManager *pvidc=&ptrService->m_vidcManager;
 						pvidc->initSetting();
 						pvidc->parseIni(buf,filelen);
-						pvidc->saveIni(); //保存vidc配置参数
+						pvidc->saveIni(); //save vidc configuration parameters
 						delete[] buf; return TRUE;
 					}
 					delete[] buf;
@@ -670,37 +670,37 @@ BOOL ImportSetting(const char *strParam,std::string &strRet)
 	return FALSE;
 }
 
-//自动升级rmtsvc
+//auto-upgrade rmtsvc
 BOOL updateRV(const char *strParam,std::string &strRet)
 {
 	const char *strUpdatefile=strParam;
-	//检测本地升级文件是否存在
+	//check if the local upgrade file exists
 	if(strUpdatefile==NULL || _access(strUpdatefile,0)==-1)
 	{
 		strRet.append("\r\nNot find update file!\r\n");
 		return FALSE;
 	}
-	//检测是否更新新的exe配置参数
-	//如果新的exe已经配置了参数，则启用新exe里的参数，否则如果被更新的exe里写入了参数
-	//则将被更新exe里的参数写入到新的exe中
+	//check if the new exe configuration parameters need to be updated
+	//if the new exe already has configured parameters, use them; otherwise if the updated exe has parameters
+	//write the parameters from the updated exe to the new exe
 	std::string strini;
 	if(!readParamfromfile(strini,strUpdatefile))
-	{//新的exe没有配置参数
-        strini="";//判断被更新的exe有没有配置参数
-		if(readParamfromfile(strini,NULL)) //读取原exe配置参数
+	{//new exe has no configured parameters
+        strini="";//check if the updated exe has configuration parameters
+		if(readParamfromfile(strini,NULL)) //read original exe configuration parameters
 		{
-			//将配置参数写入新的exe中
+			//write configuration parameters to new exe
 			writeParamintofile(strUpdatefile,strini.c_str(),strini.length());
 		}//?if(readParamfromfile
 	}//?if(!readParamfromfile
-	//将原exe文件改名
-	char srcname[MAX_PATH];//获取本程序的路径和名称
+	//rename the original exe file
+	char srcname[MAX_PATH];//get this program's path and name
 	::GetModuleFileName(NULL,srcname,MAX_PATH-1);
 	std::string tmpname(srcname); tmpname.append(".tmp");
 	if(::MoveFile(srcname,tmpname.c_str()))
 	{
 		if(::MoveFile(strUpdatefile,srcname)){
-			DWORD pid=::GetCurrentProcessId(); // 杀调当前进程
+			DWORD pid=::GetCurrentProcessId(); // kill the current process
 			HANDLE hProcess=::OpenProcess(PROCESS_ALL_ACCESS,TRUE,pid);
 			if(hProcess) ::TerminateProcess(hProcess,0);
 			::CloseHandle(hProcess); return TRUE;
@@ -720,7 +720,7 @@ BOOL downfile_http(const char *httpurl,const char *strSaveas,clsOutput &sout)
 	socketBase *pevent=(psvr)?psvr->GetSockEvent():NULL;
 	httpClient httpc; httpc.setParent(pevent);
 	SOCKSRESULT sr=httpc.send_httpreq(httpurl);
-	while(sr==302){//转向
+	while(sr==302){//redirect
 		std::map<std::string,std::string> &rspheader=httpc.Response().Header();
 		std::string newUrl=rspheader["Location"];
 		httpc.cls_httpreq(); httpurl=newUrl.c_str();

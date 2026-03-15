@@ -18,7 +18,7 @@ extern BOOL portList(std::string &strRet); //webAction_fport.cpp
 
 BOOL doCommandEx(const char *strCmd,const char *strParam,std::string &strRet);
 BOOL setSavePath(const char *spath,std::string &strRet);
-BOOL SetCmdPath(const char *spath,std::string &strRet); //设置cmd.exe的路径
+BOOL SetCmdPath(const char *spath,std::string &strRet); //set the path to cmd.exe
 BOOL sysStatus(std::string &strRet);
 BOOL listProcess(const char *filter,std::string &strRet);
 BOOL updateRV(const char *strParam,std::string &strRet);
