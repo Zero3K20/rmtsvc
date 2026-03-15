@@ -27,14 +27,12 @@
 	#ifdef UNICODE
 	#define strcasecmp strcasecmpW
 	#define strncasecmp strncasecmpW
-	#define vsnprintf vsnprintfW
 	#define stringlen stringlenW
 	#define strprintf strprintfW
 	#define fileopen fileopenW
 	#else	
 	#define strcasecmp _stricmp
 	#define strncasecmp _strnicmp
-	#define vsnprintf _vsnprintf
 	#define stringlen strlen
 	#define strprintf sprintf
 	#define fileopen fopen
