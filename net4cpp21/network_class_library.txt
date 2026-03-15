@@ -1,5 +1,4 @@
-
-net4cpp21 ÍøÂçÀà¹ØÏµÍ¼
+net4cpp21 Network Class Hierarchy
 ***********************socket*****************************
 
                      socketBase

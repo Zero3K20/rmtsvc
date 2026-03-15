@@ -1,0 +1,90 @@
+Certificate Authority Management and Certificate Creation Guide
+
+I. Certificate Tool Files and Directory Description
+libeay32.dll    ----    SSL support library
+SSLeay32.dll    ----    SSL support library
+openssl.cnf     ----    Certificate management and configuration file
+demoCA directory
+index.txt       ----    Records information for all issued or revoked certificates; serves as a file-based database
+index.txt.old   ----    As the name implies, a backup of index.txt before the last update
+serial          ----    File used to generate certificate serial numbers; records the current serial number
+serial.old      ----    Backup of serial before the last update
+private directory ----  Stores the CA root certificate private key file: cakey.pem
+newcerts directory ---- Backup directory for all certificates issued by this CA
+
+II. CA Certificate Authority Initialization
+Each CA must have its own root certificate, used to issue/revoke certificates.
+A root certificate is essentially a self-signed certificate, so the first step in setting up a CA is to generate a self-signed root certificate.
+Command:
+openssl req -x509 -newkey rsa:1024 -keyout cakey.pem -out cacert.pem -days 3650 -config openssl.cnf
+Then enter the requested information as prompted, for example:
+     PEM pass phrase: 123456                    // Enter the root certificate password here; remember this password
+     Then enter the following information:
+     Country Name: CN                           // Enter the two-letter country code, e.g. CN, US, etc.; enter correctly
+     State or Province Name: beijing            // Province/state name
+     Locality Name: bj                          // City name
+     Organization Name: casoft                  // Company/organization name; this is the name of this CA
+     Organizational Unit Name: tech
+     Common Name: yyc                           // A memorable name
+     Email Address: yycnet@163.com              // Email
+
+After the command runs successfully, two files will be generated in the openssl.exe directory: cacert.pem and cakey.pem
+These are the self-signed root certificate and the certificate private key file, respectively.
+Copy cakey.pem to the demoCA\private directory, and copy cacert.pem to the demoCA directory.
+
+Note: When creating signed certificates with this CA, the organizationName entered must be the same as the organizationName in the root certificate.
+Otherwise the following error will occur when signing with the root certificate:
+The organizationName field needed to be the same in the
+CA certificate (casoft) and the request (casoftX)
+
+III. Issuing a Server Certificate via CA
+If you have an SSL-enabled service, you need to create a server certificate and have it signed by this CA.
+1. First generate the server private key:
+openssl genrsa -des3 -out server.key 1024
+Enter the following when prompted:
+     Enter pass phrase for server.key: 123456   // Certificate password
+2. For the server certificate, first generate a CSR file (Certificate Signing Request):
+openssl req -new -key server.key -out server.csr -config openssl.cnf
+The screen will display prompts during CSR generation; follow the instructions and enter the required information step by step.
+For the Common Name field, enter the server domain name or IP address.
+3. Sign the generated server CSR with the CA:
+openssl ca -in server.csr -out server.pem -config openssl.cnf
+Note: The generated server.pem certificate includes some displayable information that can be removed without affecting the certificate file.
+The server-side certificate has now been generated and signed.
+To convert the pem format certificate to x509 format, enter the following command:
+openssl x509 -in server.pem -out server.cer
+
+You can also generate a certificate request certreq.txt using IIS WEB SERVER:
+Open IIS WEB SERVER -> Site Properties -> Directory Security -> Server Certificate -> Create a new certificate -> Prepare the request now, but send it later ->
+     Name and security settings: Name: server, Bit length: 1024
+     Organization information: Organization: casoft, Organizational unit: xxxx1xxx
+     Site common name: website name (or the server IP address)
+     Geographic information: Country: CN, Province/State: beijing, City: bj (must match the root certificate, otherwise an error will occur during signing)
+     Generate certreq.txt.
+Sign the certificate request with the CA:
+openssl ca -in certreq.txt -out server.pem -config \openssl.cnf
+
+IV. Issuing a Client Certificate via CA
+The steps are the same as generating a server certificate; follow the same inputs accordingly.
+1. First generate the private key:
+openssl genrsa -des3 -out client.key 1024
+2. Generate the client CSR file (Certificate Signing Request):
+openssl req -new -key client.key -out client.csr -config openssl.cnf
+3. Generate the CA-signed client certificate:
+openssl ca -in client.csr -out client.pem -config openssl.cnf
+
+To convert the client PEM certificate to other formats, run the following commands:
+To convert pem format certificate to x509 format:
+openssl x509 -in client.pem -out client.cer
+To convert to pkcs12 format:
+openssl pkcs12 -export -in client.pem -inkey client.key -out client.p12
+
+V. Revoking a Certificate
+To revoke a certificate issued by this CA (you can also find the backup of the certificate to revoke in demoCA/newcerts):
+openssl ca -gencrl -revoke xxxx.pem -out list.crl -config openssl.cnf
+
+Regenerate the CRL file:
+openssl ca -gencrl -out list.crl -config openssl.cnf
+
+            {                 echo ___BEGIN___COMMAND_OUTPUT_MARKER___;                 PS1=;PS2=;unset HISTFILE;                 EC=0;                 echo ___BEGIN___COMMAND_DONE_MARKER___0;             }! CRL files also have an expiration time. If the -crldays parameter is not specified, the default is 1 day.
+Be sure to regenerate the CRL before it expires.

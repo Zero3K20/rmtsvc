@@ -1,0 +1,122 @@
+rmtsvc2.5.x build101105 Usage Instructions (MSN remote control is no longer supported in this version)
+Program Introduction:
+	1. Remote host monitoring/surveillance
+	2. Remote file/service/registry/process/telnet management
+	3. Powerful FTP server
+	4. Powerful proxy service, supports secondary proxy, supports HTTPS/SOCKS4/SOCKS5
+	4. Comprehensive vIDC management configuration, supports local port mapping, remote port mapping, intranet proxy, proxy services, etc.
+	5. SSL VPN functionality, provides secure access protection for your intranet application services
+	6. Supports UPnP, directly perform port mapping on UPnP-capable gateways or routers (new, added 20070806)
+
+[Program Execution]:
+	rmtsvc is a console application that can run as a system service. Supported command-line arguments are as follows:
+-i [DisplayName] [ServiceDesc] --- Install service
+	Example: rmtsvc.exe -i
+	         rmtsvc.exe -i test "Test Service"
+-u --- Uninstall service
+	Example: rmtsvc.exe -u
+-s --- Start service
+	Example: rmtsvc.exe -s
+-e --- Stop service
+	Example: rmtsvc.exe -e
+-d --- Run in debug mode; -d0 ~ -d4 specifies different debug information levels; closing the console window will terminate the program
+	Example: rmtsvc.exe -d4
+-f filename  Specifies the configuration file name for this program. If not specified, the default configuration file name is the same as the program name but with an .ini extension
+	Example: rmtsvc.exe -d4 -f aa.ini
+-c saveasfile --- Write current ini configuration parameters into the exe file itself and save as the specified file
+-C saveasfile --- Write current ini configuration parameters into the exe file itself and save as the specified file; EXE saved with this parameter will not support ini configuration files at runtime
+	Note: -c/-C parameters must be used together with the -d parameter
+	Example: rmtsvc.exe -d4 -c rmtsvc1.exe
+	         rmtsvc.exe -d4 -c rmtsvc1.exe -f aaa.ini
+	         rmtsvc.exe -d4 -C rmtsvc2.exe
+
+
+[About Configuration Files]:
+rmtsvc supports ini configuration files. Users can specify the configuration file name with the -f parameter. If not specified, the program reads the default configuration file with the same name as the program but with an .ini extension.
+For example, if the program name is rmtsvc.exe, the default configuration file is rmtsvc.ini.
+The order in which the program reads configuration information is: first reads configuration commands saved in the exe itself, then reads the ini configuration file, and finally reads special command-line parameters.
+For exe files saved using the -C parameter, the program will not read ini configuration files, even if an ini configuration file is specified at runtime.
+The ini configuration file consists of a series of configuration commands supported by the program; each line is one configuration command.
+
+[ini Configuration Commands]:
+Note: In the command descriptions below, <> represents user input; [] means the item is optional; | means one of the listed options can be entered.
+	In the configuration commands below, if a value on the right side of an = sign contains spaces, the value must be enclosed in quotes, e.g.: sets log="c:\program files\aaa.log"
+
+Set service information
+Command format:
+	sets [spyself=FALSE] [stop_pswd=<service stop password>] [log=<log output file>] [opentype=APPEND] [loglevel=DEBUG|INFO|WARN|ERROR]
+spyself=FALSE      : Disable crash-exit monitoring. If not set, crash-exit monitoring is enabled by default; if the program crashes or is illegally terminated, it will restart automatically.
+stop_pswd=<service stop password> : Set the password to stop the service. If a password is set, the service cannot be stopped without entering the password.
+		If a password is set, users can only stop the service via the command line with -e <password>, and cannot stop it through the SCM service console or net stop command.
+		For example, if the program name is xx.exe and the stop password is set to 123, enter xx.exe -e 123 on the command line to stop the service.
+log=<log output file> : Set whether the program outputs a log file. If not specified, no log is output; otherwise the specified log file is used.
+opentype=APPEND    : Set whether the program appends to or overwrites the log file on startup. If not set, the file is overwritten.
+loglevel=DEBUG|INFO|WARN|ERROR : Set the log output level; the default is INFO level.
+faceless=TRUE : If started in non-service mode and the -d parameter is not specified at runtime, run the program without a window.
+	For example, when double-clicking to run the program directly, if this option is set, it runs without a window; closing the console window will not terminate the program.
+	Otherwise it runs with a window, and pressing Ctrl+C or closing the window will terminate the program.
+install=TRUE : If this option is set, the program will automatically install itself as a service after running.
+Example: sets stop_pswd=1234
+
+Set web service information
+Command format:
+	webs [port=<web service port>] [bindip=<local IP to bind>] [ssl_enabled=true] [ssl_verify=true]
+port=<service port>    : Set the service port; if not set, the default is 7778. Set to 0 to disable the web service; negative value assigns a random port.
+bindip=<local IP to bind> : Set the local IP to bind for this service. If not set, defaults to binding all local IPs.
+ssl_enabled=true: Indicates this service uses SSL encryption; if not configured, it is a plain service.
+ssl_verify=true: Only valid when ssl_enabled=true is specified. Indicates that this SSL service requires client certificate verification; not required by default.
+poweroff=ANYONE: Whether remote shutdown or restart can be performed without authentication. By default, login to the rmtsvc management interface is required. Command format:
+                 <HOST>/command?cmd=[ShDw|ReSt|Lock|LgOf]
+		ShDw: Shutdown  ReSt: Restart  Lock: Lock  LgOf: Logoff
+Example: webs port=7779
+
+Set web service IP filter rules or per-account IP filter rules
+Command format:
+	webiprules [access=0|1] ipaddr="<IP>,<IP>,..."
+access=0|1     : Whether to deny or allow matching IPs
+Example: webiprules access=0 ipaddr="192.168.0.*,192.168.1.10"
+
+Set visitor account permissions
+Command format:
+	user account=<account> [pswd=<account password>] access=<account access permissions>
+account=<access account> : Required. The rmtsvc visitor account to add.
+pswd=<account password>  : Required. The password for the specified account.
+access=<account access permissions>
+	If not set, defaults to ACCESS_NONE permissions. The format and meanings are as follows:
+		ACCESS_ALL=ACCESS_SCREEN_ALL|ACCESS_FILE_ALL|ACCESS_REGIST_ALL|ACCESS_SERVICE_ALL|ACCESS_TELNET_ALL|ACCESS_FTP_ADMIN|ACCESS_VIDC_ADMIN
+		ACCESS_SCREEN_ALL: Full remote screen control permission
+		ACCESS_SCREEN_VIEW: Remote screen view-only permission
+		ACCESS_FILE_ALL  : Remote file management operations; read, write, delete, etc.
+		ACCESS_FILE_VIEW : Remote file management read-only; download only
+		ACCESS_REGIST_ALL: Remote registry management; read, write, add, delete, etc.
+		ACCESS_REGIST_VIEW: View-only access to registry information
+		ACCESS_SERVICE_ALL: Remote service management; full control
+		ACCESS_SERVICE_VIEW: Remote service access; view only
+		ACCESS_TELNET_ALL:  Remote telnet management
+		ACCESS_FTP_ADMIN : Remote FTP service configuration management
+		ACCESS_VIDC_ADMIN : Remote vIDC management configuration
+! Multiple accounts can be configured, one account per line
+
+Example: user account=aa pswd=bb access=ACCESS_ALL
+
+rmtsvc.ini file example
+sets
+webs port=7779
+user account=aa pswd=1234 access=ACCESS_ALL
+
+
+//===========ini configuration file extended commands========================================
+kill - Terminate the specified process
+   Usage: kill <process name or PID>,<process name or PID>,<process name or PID>...
+   Example: kill 345,aaa.exe
+
+exec - Start the specified process
+   Usage: exec [-hide] [-shell] [-check <programname>] [-user <[Domain\]account:password>] [-wait <dwMilliseconds>] <full path program>
+   -hide  - Whether to run the specified program in the background
+   -check <programname> - Before executing the specified program, check whether <programname> is already running; <programname> is case-insensitive.
+			If already running, the specified program will not be executed.
+   -shell - Open the specified file using shellExecute; does not support the -user option.
+   -user <[Domain\]account:password> - Start the specified program using the given account; only valid when this program runs as a service.
+			The Domain can be omitted; if omitted, defaults to a local account.
+   -wait <dwMilliseconds> - After successfully starting the process, whether to wait for it to finish: ==0 do not wait, <0 wait for process to finish, >0 wait the specified milliseconds.
+   <full path program>  - Specifies the program to execute and its runtime parameters.
