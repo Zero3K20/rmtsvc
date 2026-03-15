@@ -9,7 +9,7 @@
 static CNTService * gpTheService = 0;			// the one and only instance
 CNTService * AfxGetService() { return gpTheService; }
 
-#define SERVICE_CONTROL_STOP_REQUEST 0x00000080 //∑¢ÀÕÕ£÷π∑˛ŒÒ«Î«Û
+#define SERVICE_CONTROL_STOP_REQUEST 0x00000080 //send stop service request
 
 /////////////////////////////////////////////////////////////////////////////
 // class CNTService -- construction/destruction
@@ -92,16 +92,16 @@ BOOL CNTService :: RegisterService( int argc, char ** argv )
 #endif
 	
 	if(fnc==&CNTService::StartDispatcher)
-	{//»Áπ˚“‘∑˛ŒÒ∑Ω Ω∆Ù∂Ø ß∞‹,‘ÚDebug∑Ω Ω∆Ù∂Ø
+	{//if failed to start as service, start in debug mode
 		if(CNTService::StartDispatcher()) return TRUE;
 		return DebugService(argc, argv);
-	}//?≥¢ ‘“‘∑˛ŒÒ∑Ω Ω∆Ù∂Ø
+	}//?try to start as service
 	return (this->*fnc)();
 }
-//÷ÿ–¬…Ë÷√∑˛ŒÒ¿‡–Õ∫Õ∆Ù∂Ø¿‡–Õ
+//reset service type and startup type
 BOOL CNTService :: SetServiceConfig()
 {
-	if( !m_bWinNT ) return FALSE; //≤ª÷ß≥÷win95
+	if( !m_bWinNT ) return FALSE; //not supported on win95
 	SC_HANDLE schSCManager=NULL,schService=NULL;
 	if(!OpenNTService(schSCManager,schService)) return FALSE;
 	
@@ -112,36 +112,36 @@ BOOL CNTService :: SetServiceConfig()
 	CloseNTService(schSCManager,schService);
 	return bRet;
 }
-//ªÒ»°∑˛ŒÒ◊¥Ã¨
+//get service status
 BOOL CNTService :: GetServiceConfig(QUERY_SERVICE_CONFIG *psc)
 {
 	if( !m_bWinNT ) return FALSE;
 	SC_HANDLE schSCManager =OpenSCManager(0,0,SC_MANAGER_ALL_ACCESS);
 	if( schSCManager==NULL ) return FALSE;
 	SC_HANDLE schService =::OpenService(schSCManager,m_lpServiceName,SERVICE_ALL_ACCESS);
-	//bRet==TRUE ,∑˛ŒÒ“—∞≤◊∞
+	//bRet==TRUE, service is installed
 	BOOL bRet=(schService || GetLastError()!=ERROR_SERVICE_DOES_NOT_EXIST);
 	if(psc){
 		if(schService){
-			DWORD bytesNeeded=0;//Ω¯“ª≤ΩªÒ»°–≈œ¢
+			DWORD bytesNeeded=0;//get further information
 			QueryServiceConfig( schService, NULL, 0, &bytesNeeded);
 			DWORD lpqscBuf_Size=bytesNeeded;
 			LPQUERY_SERVICE_CONFIG lpqscBuf=(LPQUERY_SERVICE_CONFIG)::malloc(lpqscBuf_Size);
 			if(lpqscBuf && QueryServiceConfig( schService, lpqscBuf, lpqscBuf_Size,&bytesNeeded))
 				bRet=TRUE,::CopyMemory((VOID *)psc,lpqscBuf,sizeof(QUERY_SERVICE_CONFIG));
-			else bRet=FALSE; //ªÒ»° ˝æ› ß∞‹
+			else bRet=FALSE; //failed to get data
 			if(lpqscBuf) ::free(lpqscBuf);
-		}else bRet=FALSE; //ªÒ»° ˝æ› ß∞‹
+		}else bRet=FALSE; //failed to get data
 	}//?if(psc)
 	::CloseServiceHandle(schService);
 	::CloseServiceHandle(schSCManager);
 	return bRet;
 }
 
-//∞≤◊∞∑˛ŒÒ
+//install service
 BOOL CNTService :: InstallService() 
 {
-	if( !m_bWinNT ) return FALSE; //≤ª÷ß≥÷win95
+	if( !m_bWinNT ) return FALSE; //not supported on win95
 	SC_HANDLE schSCManager =OpenSCManager(0,0,SC_MANAGER_ALL_ACCESS);
 	if( !schSCManager ) return FALSE;
 
@@ -169,10 +169,10 @@ BOOL CNTService :: InstallService()
 
 BOOL CNTService :: RemoveService() 
 {
-	if( !m_bWinNT ) return TRUE; //≤ª÷ß≥÷win95
+	if( !m_bWinNT ) return TRUE; //not supported on win95
 	SC_HANDLE schSCManager=NULL,schService=NULL;
 	if(!OpenNTService(schSCManager,schService)) return FALSE;
-	//œ»≥¢ ‘Õ£÷π∑˛ŒÒ£¨“‘√‚∑˛ŒÒ’˝‘⁄‘À––
+	//try to stop service first in case it is running
 	BOOL bRet=::ControlService(schService, SERVICE_CONTROL_STOP, &m_ssStatus);
 	if(bRet)
 	{
@@ -188,9 +188,9 @@ BOOL CNTService :: RemoveService()
             _tprintf(TEXT("\n%s failed to stop.\n"), m_lpDisplayName);
 	}else{
 		DWORD dwErr=GetLastError();
-		if(dwErr==ERROR_INVALID_SERVICE_CONTROL) //–Ë“™√‹¬Îøÿ÷∆£¨≤ª‘ –Ì…æ≥˝∑˛ŒÒ
+		if(dwErr==ERROR_INVALID_SERVICE_CONTROL) //password control required, cannot delete service
 			_tprintf(TEXT("%s forbid stopping\n"), m_lpDisplayName);
-		else bRet=TRUE; //‘ –Ì…æ≥˝∑˛ŒÒ
+		else bRet=TRUE; //allow delete service
 	}
 	if(bRet)
 	{	// now remove the service
@@ -246,7 +246,7 @@ BOOL CNTService :: EndService()
 	_tprintf(TEXT("Stopping %s."), m_lpDisplayName);
 	if(::ControlService(schService, SERVICE_CONTROL_STOP_REQUEST, &m_ssStatus))
 	{
-		int iCount=0;//∑¢ÀÕ∑˛ŒÒÕ£÷π«Î«Û
+		int iCount=0;//ÂèëÈÄÅÊúçÂä°ÂÅúÊ≠¢ËØ∑Ê±Ç
 		while( ::QueryServiceStatus(schService, &m_ssStatus) )
 		{
 			if(m_ssStatus.dwControlsAccepted & SERVICE_ACCEPT_STOP) break;
@@ -286,8 +286,8 @@ BOOL CNTService :: EndService()
 BOOL CNTService :: StartDispatcher() 
 {
 	if( GetStdHandle(STD_OUTPUT_HANDLE) )
-		return FALSE; //»Áπ˚StartService∆Ù∂Øµƒ≥Ã–Úøœ∂®√ª”–øÿ÷∆Ã®
-	if(!GetServiceConfig(NULL)) return FALSE; //Œ¥∞≤◊∞Œ™∑˛ŒÒ
+		return FALSE; //if started by StartService, the program has no console
+	if(!GetServiceConfig(NULL)) return FALSE; //not installed as service
     // Default implementation creates a single threaded service.
 	// Override this method and provide more table entries for
 	// a multithreaded service (one entry for each thread).

@@ -1,5 +1,5 @@
 /*******************************************************************
-   *	webAction_upnp.cpp web请求处理 - upnp管理
+   *	webAction_upnp.cpp web request processing - UPnP management
    *    DESCRIPTION:
    *
    *    AUTHOR:yyc
@@ -23,7 +23,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
 	if(strcasecmp(ptr_cmd,"find")==0)
-	{ //查找UPnP设备
+	{ //search for UPnP devices
 		u.Search(); Sleep(2000);
 	}
 	else if(strcasecmp(ptr_cmd,"stop")==0)
@@ -46,7 +46,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	if(u.status()==SOCKS_OPENED)
 		 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>1</status>");
 	else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>0</status>");
-	//返回UPnP设备情况
+	//return UPnP device status
 	if(u.bFound()){
 		std::string strIP; u.GetWanIP(strIP);
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<wanip>%s</wanip>",strIP.c_str());
@@ -70,7 +70,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<wport>%d</wport>", p->mapport );
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<lport>%d</lport>", p->appport );
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<laddr>%s</laddr>", p->appsvr.c_str() );
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<result>%s</result>", ((p->bsuccess)?"成功":"失败") );
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<result>%s</result>", ((p->bsuccess)?"success":"failure") );
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<desc><![CDATA[%s]]></desc>", p->appdesc.c_str() );
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<error><![CDATA[%s]]></error>", p->retmsg.c_str());
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</upnpinfo>");
@@ -80,9 +80,9 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</upnplist></xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//璁剧疆鍝嶅簲鍐呭闀垮害
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
@@ -90,7 +90,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	return true;
 }
 
-//获取upnp设备的xml信息
+//鑾峰彇upnp璁惧鐨剎ml淇℃伅
 bool webServer::httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -100,9 +100,9 @@ bool webServer::httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpRespon
 	u.GetDevXML(strXml);
 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//璁剧疆鍝嶅簲鍐呭闀垮害
 	httprsp.lContentLength(strXml.length());
 	httprsp.send_rspH(psock,200,"OK");
 	

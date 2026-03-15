@@ -1,6 +1,6 @@
 /*******************************************************************
    *	proxyserver.h 
-   *    DESCRIPTION: Proxy·şÎñ
+   *    DESCRIPTION: Proxy service
    *
    *    AUTHOR:yyc
    *
@@ -32,25 +32,25 @@ void proxysvrEx ::initSetting()
 	m_settings.bLogdatafile=false;
 }
 
-//Æô¶¯·şÎñ
+//start service
 bool proxysvrEx :: Start() 
 {
 	if(this->status()==SOCKS_LISTEN) return true;
 	this->setIfLogdata(m_settings.bLogdatafile);
-	//ÉèÖÃ´úÀí·şÎñµÄ²ÎÊı
+	//set proxy service parameters
 	this->setProxyType(m_settings.svrtype);
 	const char *ptr_casuser=(m_settings.casAuth)?m_settings.casuser.c_str():NULL;
-	//ÉèÖÃ¶ş¼¶´úÀíĞÅÏ¢
+	//set secondary proxy information
 	if(m_settings.bCascade)
 		this->setCascade(m_settings.cassvrip.c_str(),0,m_settings.castype,ptr_casuser,m_settings.caspswd.c_str());
 	else 
 		this->setCascade(NULL,0,m_settings.castype,ptr_casuser,m_settings.caspswd.c_str());
 
-	//ÉèÖÃIP¹ıÂË¹æÔò
+	//set IP filter rules
 	this->rules().addRules_new(RULETYPE_TCP,m_settings.ipaccess,m_settings.ipRules.c_str());
-	//ÅäÖÃproxy·ÃÎÊÕÊºÅĞÅÏ¢
+	//é…ç½®proxyè®¿é—®å¸å·ä¿¡æ¯
 	this->setProxyAuth(m_settings.bAuth);
-	this->delAccount((const char *)-1); //Çå¿ÕËùÓĞÕÊºÅĞÅÏ¢
+	this->delAccount((const char *)-1); //æ¸…ç©ºæ‰€æœ‰å¸å·ä¿¡æ¯
 	std::map<std::string,TProxyUser>::iterator it=m_userlist.begin();
 	for(;it!=m_userlist.end();it++)
 	{
@@ -58,9 +58,9 @@ bool proxysvrEx :: Start()
 		if(proxyuser.forbid==0) modiUser(proxyuser);
 	}
 
-	//Æô¶¯´úÀí·şÎñ
+	//å¯åŠ¨ä»£ç†æœåŠ¡
 	const char *ip=(m_settings.bindip=="")?NULL:m_settings.bindip.c_str();
-	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//°ó¶¨ÁËIPÔòÔÊĞí¶Ë¿ÚÖØÓÃ
+	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//ç»‘å®šäº†IPåˆ™å…è®¸ç«¯å£é‡ç”¨
 	SOCKSRESULT sr=this->Listen( m_settings.svrport ,bReuseAddr,ip);
 
 	return (sr>0)?true:false;
@@ -71,8 +71,8 @@ void proxysvrEx :: Stop()
 	Close();
 	return;
 }
-//É¾³ıÖ¸¶¨µÄÓÃ»§,·µ»Ø0³É¹¦
-//·µ»Ø1ÎŞĞ§µÄÕÊºÅ,·µ»Ø2É¾³ıÊ§°Ü
+//åˆ é™¤æŒ‡å®šçš„ç”¨æˆ·,è¿”å›0æˆåŠŸ
+//è¿”å›1æ— æ•ˆçš„å¸å·,è¿”å›2åˆ é™¤å¤±è´¥
 int proxysvrEx::deleUser(const char *ptr_user)
 {
 	std::map<std::string,TProxyUser>::iterator it=m_userlist.end();
@@ -82,7 +82,7 @@ int proxysvrEx::deleUser(const char *ptr_user)
 	m_userlist.erase(it);
 	return 0;
 }
-//Ìí¼Ó/ĞŞ¸ÄÓÃ»§
+//æ·»åŠ /ä¿®æ”¹ç”¨æˆ·
 bool proxysvrEx::modiUser(TProxyUser &proxyuser)
 {
 	PROXYACCOUNT *ptr_account=this->getAccount(proxyuser.username.c_str());
@@ -92,17 +92,17 @@ bool proxysvrEx::modiUser(TProxyUser &proxyuser)
 	ptr_account->m_maxratio=proxyuser.maxratio;
 	ptr_account->m_maxLoginusers=proxyuser.maxLoginusers;
 	ptr_account->m_limitedTime=proxyuser.limitedTime;
-	ptr_account->m_ipRules.addRules(NULL); //Çå¿ÕËùÓĞ¹ıÂË¹æÔò
+	ptr_account->m_ipRules.addRules(NULL); //æ¸…ç©ºæ‰€æœ‰è¿‡æ»¤è§„åˆ™
 	ptr_account->m_ipRules.addRules_new(RULETYPE_TCP,proxyuser.ipaccess,proxyuser.ipRules.c_str());
 
-	ptr_account->m_dstRules.addRules(NULL); //Çå¿ÕËùÓĞÄ¿µÄ¹ıÂË¹æÔò
+	ptr_account->m_dstRules.addRules(NULL); //æ¸…ç©ºæ‰€æœ‰ç›®çš„è¿‡æ»¤è§„åˆ™
 	ptr_account->m_dstRules.addRules_new(RULETYPE_TCP,proxyuser.bAccessDest,proxyuser.strAccessDest.c_str());
 
 	return true;
 }
 
 //-------------------------------------------------------------
-//´úÀí·şÎñ¹ÜÀí
+//ä»£ç†æœåŠ¡ç®¡ç†
 bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -112,12 +112,12 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	cBuffer buffer(1024);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"run")==0) //ÔËĞĞftp·şÎñ
+	if(strcasecmp(ptr_cmd,"run")==0) //è¿è¡ŒftpæœåŠ¡
 		proxysvr.Start();
 	else if(strcasecmp(ptr_cmd,"stop")==0)
 		proxysvr.Stop();
 	else if(strcasecmp(ptr_cmd,"setting")==0) 
-	{//±£´æ´úÀí·şÎñ²ÎÊı
+	{//ä¿å­˜ä»£ç†æœåŠ¡å‚æ•°
 		if( (ptr=httpreq.Request("svrport")) )
 		{ 
 			if( (settings.svrport=atoi(ptr))<=0 ) settings.svrport=0;
@@ -150,32 +150,32 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 		ptr=httpreq.Request("blogd");
 		if(ptr) settings.bLogdatafile =(atoi(ptr)==1)?true:false;
 
-		proxysvr.saveIni(); //±£´æÅäÖÃ²ÎÊı
+		proxysvr.saveIni(); //ä¿å­˜é…ç½®å‚æ•°
 	}//?else if(strcasecmp(ptr_cmd,"setting")==0) 
 
-	//»ñÈ¡´úÀí·şÎñµÄ²ÎÊıÉèÖÃºÍ×´Ì¬----start---------------------------------------------
+	//è·å–ä»£ç†æœåŠ¡çš„å‚æ•°è®¾ç½®å’ŒçŠ¶æ€----start---------------------------------------------
 	struct tm * ltime=NULL; time_t t;
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<proxy_status>");
-	if(proxysvr.status()==SOCKS_LISTEN) //·şÎñÒÑÔËĞĞ
+	if(proxysvr.status()==SOCKS_LISTEN) //æœåŠ¡å·²è¿è¡Œ
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",proxysvr.getLocalPort());
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>%d</connected>",proxysvr.curConnection());
 		t=proxysvr.getStartTime(); ltime=localtime(&t);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04dÄê%02dÔÂ%02dÈÕ %02d:%02d:%02d</starttime>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04då¹´%02dæœˆ%02dæ—¥ %02d:%02d:%02d</starttime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	}
 	else
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>0</status>");
 	t=time(NULL); ltime=localtime(&t);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04dÄê%02dÔÂ%02dÈÕ %02d:%02d:%02d</curtime>",
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04då¹´%02dæœˆ%02dæ—¥ %02d:%02d:%02d</curtime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrport>%d</svrport>",settings.svrport);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrtype>%d</svrtype>",settings.svrtype);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<autorun>%d</autorun>",(settings.autorun)?1:0);
-	//°ó¶¨±¾»úIP
+	//ç»‘å®šæœ¬æœºIP
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<bindip>%s</bindip><localip>",settings.bindip.c_str());
-	std::vector<std::string> vec;//µÃµ½±¾»úIP£¬·µ»ØµÃµ½±¾»úIPµÄ¸öÊı
+	std::vector<std::string> vec;//å¾—åˆ°æœ¬æœºIPï¼Œè¿”å›å¾—åˆ°æœ¬æœºIPçš„ä¸ªæ•°
 	long n=socketBase::getLocalHostIP(vec);
 	for(int i=0;i<n;i++) buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s ",vec[i].c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</localip>");
@@ -202,16 +202,16 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	if(buffer.Space()<(settings.ipRules.length()+64)) buffer.Resize(buffer.size()+(settings.ipRules.length()+64));
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ipaddr>%s</ipaddr>",settings.ipRules.c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</ipfilter>");
-	//»ñÈ¡´úÀí·şÎñµÄ²ÎÊıÉèÖÃºÍ×´Ì¬---- end ---------------------------------------------
+	//è·å–ä»£ç†æœåŠ¡çš„å‚æ•°è®¾ç½®å’ŒçŠ¶æ€---- end ---------------------------------------------
 
 	if(buffer.Space()<32) buffer.Resize(buffer.size()+32);
 	if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</proxy_status></xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//è®¾ç½®MIMEç±»å‹ï¼Œé»˜è®¤ä¸ºHTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//è®¾ç½®å“åº”å†…å®¹é•¿åº¦
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
@@ -219,7 +219,7 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	return true;
 }
 
-//·µ»ØÓÃ»§ÁĞ±íXML
+//è¿”å›ç”¨æˆ·åˆ—è¡¨XML
 void listuser(cBuffer &buffer,std::map<std::string,TProxyUser> &userlist)
 {
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<userlist>");
@@ -241,22 +241,22 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"list")==0) //ÁĞ³öËùÓĞProxyÕÊºÅ
+	if(strcasecmp(ptr_cmd,"list")==0) //åˆ—å‡ºæ‰€æœ‰Proxyå¸å·
 		listuser(buffer,psvr->m_userlist);
 	else if(strcasecmp(ptr_cmd,"dele")==0)
 	{
 		const char *ptr_user=httpreq.Request("user");
 		int iret=psvr->deleUser(ptr_user);
 		if(iret==1)
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>ÎŞĞ§µÄÕÊºÅ!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>æ— æ•ˆçš„å¸å·!</retmsg>");
 		else if(iret==2)
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>ÔİÊ±ÎŞ·¨É¾³ıÕÊºÅ%s!</retmsg>",ptr_user);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>æš‚æ—¶æ— æ³•åˆ é™¤å¸å·%s!</retmsg>",ptr_user);
 		else{
 			listuser(buffer,psvr->m_userlist);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>É¾³ıÕÊºÅ³É¹¦!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>åˆ é™¤å¸å·æˆåŠŸ!</retmsg>");
 		}
 	}//?else if(strcasecmp(ptr_cmd,"dele")==0)
-	else if(strcasecmp(ptr_cmd,"save")==0) //Ìí¼Ó»òĞŞ¸ÄÕÊºÅ
+	else if(strcasecmp(ptr_cmd,"save")==0) //æ·»åŠ æˆ–ä¿®æ”¹å¸å·
 	{
 		const char *ptr,*ptr_user=httpreq.Request("account");
 		if(ptr_user && ptr_user[0]!=0)
@@ -264,9 +264,9 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 			std::map<std::string,TProxyUser>::iterator it=psvr->m_userlist.end();
 			if(ptr_user) it=psvr->m_userlist.find(ptr_user);
 			TProxyUser *ptr_puser=NULL;
-			if(it!=psvr->m_userlist.end()) //ĞŞ¸ÄÖ¸¶¨ÕÊºÅµÄĞÅÏ¢
+			if(it!=psvr->m_userlist.end()) //ä¿®æ”¹æŒ‡å®šå¸å·çš„ä¿¡æ¯
 				ptr_puser=&(*it).second;
-			else{ //Ìí¼ÓÒ»¸öÕÊºÅ
+			else{ //æ·»åŠ ä¸€ä¸ªå¸å·
 				TProxyUser puser; 
 				puser.username.assign(ptr_user);
 				puser.ipaccess =1;
@@ -289,8 +289,8 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 				else{
 					struct tm ltm; ::memset((void *)&ltm,0,sizeof(ltm));
 					::sscanf(ptr,"%d-%d-%d",&ltm.tm_year,&ltm.tm_mon,&ltm.tm_mday);
-					ltm.tm_year-=1900; //Äê·İ´Ó1900¿ªÊ¼¼ÆÊı
-					ltm.tm_mon-=1;//ÔÂ·İ´Ó0¿ªÊ¼¼ÆÊı
+					ltm.tm_year-=1900; //å¹´ä»½ä»1900å¼€å§‹è®¡æ•°
+					ltm.tm_mon-=1;//æœˆä»½ä»0å¼€å§‹è®¡æ•°
 					if(ltm.tm_year>100 && ltm.tm_year<200 && 
 							ltm.tm_mon>=0 && ltm.tm_mon<=11 && 
 							ltm.tm_mday>=1 && ltm.tm_mday<=31 )
@@ -315,11 +315,11 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 
 			psvr->modiUser(*ptr_puser);
 			listuser(buffer,psvr->m_userlist);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Ìí¼ÓĞŞ¸ÄÕÊºÅ³É¹¦!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>æ·»åŠ ä¿®æ”¹å¸å·æˆåŠŸ!</retmsg>");
 			psvr->saveIni();
 		}//?if(ptr_user && ptr_user[0]!=0)
 		else
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>ÎŞĞ§µÄÕÊºÅ!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>æ— æ•ˆçš„å¸å·!</retmsg>");
 	}//?else if(strcasecmp(ptr_cmd,"save")==0)
 	else if(strcasecmp(ptr_cmd,"info")==0)
 	{
@@ -361,7 +361,7 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"</userinfo>");
 		}//?if(it!=pftpsvr->m_userlist.end())
 		else
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>ÎŞĞ§µÄÕÊºÅ!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>æ— æ•ˆçš„å¸å·!</retmsg>");
 	}
 	
 	
@@ -370,16 +370,16 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//è®¾ç½®MIMEç±»å‹ï¼Œé»˜è®¤ä¸ºHTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//è®¾ç½®å“åº”å†…å®¹é•¿åº¦
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//Proxy·şÎñÅäÖÃµÄµ¼Èëµ¼³ö
+//Proxy serviceé…ç½®çš„å¯¼å…¥å¯¼å‡º
 bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -388,7 +388,7 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	if(strcasecmp(ptr_cmd,"out")==0) //µ¼³öProxy·şÎñÅäÖÃ
+	if(strcasecmp(ptr_cmd,"out")==0) //å¯¼å‡ºProxy serviceé…ç½®
 	{
 		std::string strini;
 		psvr->saveAsstring(strini);
@@ -396,16 +396,16 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 		if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<settings><![CDATA[%s]]></settings>",strini.c_str());
 	}
-	else if(strcasecmp(ptr_cmd,"in")==0) //µ¼ÈëProxy·şÎñÅäÖÃ
+	else if(strcasecmp(ptr_cmd,"in")==0) //å¯¼å…¥Proxy serviceé…ç½®
 	{
 		const char *ptr=httpreq.Request("ini");
 		if(ptr){
 			psvr->initSetting();
 			psvr->m_userlist.clear();
 			psvr->parseIni((char *)ptr,0);
-			psvr->saveIni(); //±£´æÅäÖÃ²ÎÊı
+			psvr->saveIni(); //ä¿å­˜é…ç½®å‚æ•°
 		}//?if(ptr)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>µ¼ÈëÅäÖÃÍê³É!</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>å¯¼å…¥é…ç½®å®Œæˆ!</retmsg>");
 	}//?else if(strcasecmp(ptr_cmd,"in")==0)
 
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
@@ -413,9 +413,9 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//è®¾ç½®MIMEç±»å‹ï¼Œé»˜è®¤ä¸ºHTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//è®¾ç½®å“åº”å†…å®¹é•¿åº¦
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	

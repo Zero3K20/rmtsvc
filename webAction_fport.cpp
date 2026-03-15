@@ -1,11 +1,11 @@
 /*******************************************************************
-   *	webAction_fport.cpp webÇëÇó´¦Àí - Ã¶¾Ù½ø³ÌºÍ¶Ë¿ÚµÄ¹ØÁª
+   *	webAction_fport.cpp web request processing - enumerate process and port associations
    *    DESCRIPTION:
    *
    *    AUTHOR:yyc
    *
-   *    Ô­ÀíÍ¨¹ıµ÷ÓÃIphlpapi.dllÖĞµÄÎ´¹«¿ªº¯ÊıÃ¶¾Ù¹ØÁª
-   *    Iphlpapi.dll¹«¿ªµÄº¯ÊıÖĞÓĞGetTcpTable/GetUdpTable,µ«ÎŞ·¨¹ØÁª½ø³Ì
+   *    approach: enumerate associations by calling undocumented functions in Iphlpapi.dll
+   *    Iphlpapi.dll public functions include GetTcpTable/GetUdpTable, but cannot associate with processes
    *	
    *******************************************************************/
 
@@ -14,17 +14,17 @@
 #include <Iprtrmib.h>
 
 BOOL portList(cBuffer &buffer);
-//buffer - ·µ»ØµÄxmlÎÄµµ,¸ñÊ½:
+//buffer - returned xml document, format:
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<fport>
-//<id>ĞòºÅ</id>
-//<pid>½ø³ÌID</pid>
-//<pname>½ø³ÌÃû</pname>
-//<ptype>ÀàĞÍ</ptype>
-//<laddr>±¾µØµØÖ·</laddr>
-//<raddr>Ô¶³ÌµØÖ·</raddr>
-//<status>×´Ì¬</status>
+//<id>sequence number</id>
+//<pid>è¿›ç¨‹ID</pid>
+//<pname>è¿›ç¨‹å</pname>
+//<ptype>ç±»å‹</ptype>
+//<laddr>æœ¬åœ°åœ°å€</laddr>
+//<raddr>è¿œç¨‹åœ°å€</raddr>
+//<status>çŠ¶æ€</status>
 //</fport>
 //...
 //</xmlroot>
@@ -33,9 +33,9 @@ bool webServer::httprsp_fport(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(2048);
 	portList(buffer);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//è®¾ç½®MIMEç±»å‹ï¼Œé»˜è®¤ä¸ºHTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//è®¾ç½®å“åº”å†…å®¹é•¿åº¦
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -111,8 +111,8 @@ BOOL portList(cBuffer &buffer)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //¼ÓÔØdllÊ§°Ü
-	//»ñÈ¡º¯ÊıÖ¸Õë // XP and later - Êµ¼Ê²âÊÔ2kÒ²ÄÜÓÃ
+	if(hModule==NULL) return FALSE; //åŠ è½½dllå¤±è´¥
+	//è·å–å‡½æ•°æŒ‡é’ˆ // XP and later - å®é™…æµ‹è¯•2kä¹Ÿèƒ½ç”¨
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
@@ -124,7 +124,7 @@ BOOL portList(cBuffer &buffer)
 	DWORD dwLastError,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
-	//Ã¶¾ÙËùÓĞTCP
+	//æšä¸¾æ‰€æœ‰TCP
 	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -158,7 +158,7 @@ BOOL portList(cBuffer &buffer)
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 	
-	//Ã¶¾ÙËùÓĞUDP
+	//æšä¸¾æ‰€æœ‰UDP
 	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -202,8 +202,8 @@ BOOL portList(string &strret)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //¼ÓÔØdllÊ§°Ü
-	//»ñÈ¡º¯ÊıÖ¸Õë // XP and later - Êµ¼Ê²âÊÔ2kÒ²ÄÜÓÃ
+	if(hModule==NULL) return FALSE; //åŠ è½½dllå¤±è´¥
+	//è·å–å‡½æ•°æŒ‡é’ˆ // XP and later - å®é™…æµ‹è¯•2kä¹Ÿèƒ½ç”¨
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
@@ -215,7 +215,7 @@ BOOL portList(string &strret)
 	DWORD dwLastError,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
-	//Ã¶¾ÙËùÓĞTCP
+	//æšä¸¾æ‰€æœ‰TCP
 	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -240,7 +240,7 @@ BOOL portList(string &strret)
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 	
-	//Ã¶¾ÙËùÓĞUDP
+	//æšä¸¾æ‰€æœ‰UDP
 	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{

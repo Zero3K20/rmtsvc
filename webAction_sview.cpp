@@ -1,5 +1,5 @@
 /*******************************************************************
-   *	webAction_sview.cpp webÇëÇó´¦Àí - ·şÎñä¯ÀÀ
+   *	webAction_sview.cpp web request processing - service browser
    *    DESCRIPTION:
    *
    *    AUTHOR:yyc
@@ -11,19 +11,19 @@
    *******************************************************************/
 #include "rmtsvc.h"
 
-//ÁĞ³ö±¾»úËùÓĞ·şÎñ
-//buffer - ·µ»ØµÄxmlÎÄµµ,¸ñÊ½:
+//list all services on local machine
+//buffer - returned xml document, format:
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<service>
-//<id>ĞòºÅ</id>
-//<sname>·şÎñÃû</sname>
-//<status>·şÎñ×´Ì¬</status>
-//<rtype>Æô¶¯ÀàĞÍ</rtype>
-//<stype>·şÎñÀàĞÍ</stype>
-//<sdisp>ÏÔÊ¾Ãû³Æ</sdisp>
-//<sdesc>·şÎñÃèÊö</sdesc>
-//<spath>·şÎñÄ£¿éÂ·¾¶</spath>
+//<id>sequence number</id>
+//<sname>service name</sname>
+//<status>æœåŠ¡çŠ¶æ€</status>
+//<rtype>å¯åŠ¨ç±»å‹</rtype>
+//<stype>æœåŠ¡ç±»å‹</stype>
+//<sdisp>æ˜¾ç¤ºåç§°</sdisp>
+//<sdesc>æœåŠ¡æè¿°</sdesc>
+//<spath>æœåŠ¡æ¨¡å—è·¯å¾„</spath>
 //</service>
 //...
 //</xmlroot>
@@ -33,9 +33,9 @@ bool webServer::httprsp_slist(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(1024);
 	serviceList(buffer);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//è®¾ç½®MIMEç±»å‹ï¼Œé»˜è®¤ä¸ºHTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//è®¾ç½®å“åº”å†…å®¹é•¿åº¦
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -45,7 +45,7 @@ bool webServer::httprsp_slist(socketTCP *psock,httpResponse &httprsp)
 bool webServer::sevent(const char *sname,const char *cmd)
 {
 	if(sname==NULL || sname[0]==0) return false;
-	//´ò¿ªSCM»ñµÃSCM¾ä±ú
+	//æ‰“å¼€SCMè·å¾—SCMå¥æŸ„
 	SC_HANDLE schSCManager =	OpenSCManager(
 			0,						// machine (NULL == local)
 			0,						// database (NULL == default)
@@ -56,11 +56,11 @@ bool webServer::sevent(const char *sname,const char *cmd)
 	if(hService==NULL){ ::CloseServiceHandle(schSCManager); return false; }
 	
 	SERVICE_STATUS	ssStatus; 
-	if(strcmp(cmd,"run")==0) //Æô¶¯Ö¸¶¨µÄ·şÎñ
+	if(strcmp(cmd,"run")==0) //å¯åŠ¨æŒ‡å®šçš„æœåŠ¡
 	{
 		if( ::StartService(hService, 0, 0) ) Sleep(1000);
 	}
-	else if(strcmp(cmd,"stop")==0) //Í£Ö¹Ö¸¶¨µÄ·şÎñ
+	else if(strcmp(cmd,"stop")==0) //åœæ­¢æŒ‡å®šçš„æœåŠ¡
 	{
 		if( ::ControlService(hService, SERVICE_CONTROL_STOP, &ssStatus) )
 		{
@@ -73,7 +73,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 			}//?while
 		}
 	}
-	else if(strcmp(cmd,"delete")==0) //É¾³ıĞ¶ÔØ·şÎñ
+	else if(strcmp(cmd,"delete")==0) //åˆ é™¤å¸è½½æœåŠ¡
 	{
 		if( ::ControlService(hService, SERVICE_CONTROL_STOP, &ssStatus) )
 		{
@@ -87,7 +87,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 		}
 		DeleteService(hService);
 	}
-	else if(strcmp(cmd,"forbid")==0) //½ûÓÃ·şÎñ
+	else if(strcmp(cmd,"forbid")==0) //ç¦ç”¨æœåŠ¡
 	{
 		ChangeServiceConfig(hService,SERVICE_NO_CHANGE,SERVICE_DISABLED,SERVICE_NO_CHANGE,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 	}
@@ -106,7 +106,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 
 DWORD serviceList(cBuffer &buffer)
 {
-	//´ò¿ªSCM»ñµÃSCM¾ä±ú
+	//æ‰“å¼€SCMè·å¾—SCMå¥æŸ„
 	SC_HANDLE schSCManager =	OpenSCManager(
 			0,						// machine (NULL == local)
 			0,						// database (NULL == default)
@@ -137,22 +137,22 @@ DWORD serviceList(cBuffer &buffer)
 		switch(lpservice->ServiceStatus.dwCurrentState)
 		{
 			case SERVICE_RUNNING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÒÑÆô¶¯</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>å·²å¯åŠ¨</status>");
 				break;
 			case SERVICE_STOPPED:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÒÑÍ£Ö¹</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>å·²åœæ­¢</status>");
 				break;
 			case SERVICE_PAUSED:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÒÑÔİÍ£</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>å·²æš‚åœ</status>");
 				break;
 			case SERVICE_STOP_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÕıÍ£Ö¹</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>æ­£åœæ­¢</status>");
 				break;
 			case SERVICE_CONTINUE_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÒÑ¹ÒÆğ</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>å·²æŒ‚èµ·</status>");
 				break;
 			case SERVICE_PAUSE_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>ÒÑ¹ÒÆğ</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>å·²æŒ‚èµ·</status>");
 				break;
 			default:
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>---</status>");
@@ -161,7 +161,7 @@ DWORD serviceList(cBuffer &buffer)
 		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_ALL_ACCESS);
 		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); continue; }
 		
-		bytesNeeded=0;//½øÒ»²½»ñÈ¡ĞÅÏ¢
+		bytesNeeded=0;//è¿›ä¸€æ­¥è·å–ä¿¡æ¯
 		QueryServiceConfig( hService, NULL, 0, &bytesNeeded);
 		DWORD lpqscBuf_Size=bytesNeeded;
 		LPQUERY_SERVICE_CONFIG lpqscBuf=(LPQUERY_SERVICE_CONFIG)::malloc(lpqscBuf_Size);
@@ -169,23 +169,23 @@ DWORD serviceList(cBuffer &buffer)
 		{
 			if(buffer.Space()<(bytesNeeded+100)) buffer.Resize(buffer.size()+(bytesNeeded+100));
 			if( lpqscBuf->dwStartType==SERVICE_AUTO_START)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>×Ô¶¯</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>è‡ªåŠ¨</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DEMAND_START)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>ÊÖ¶¯</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>æ‰‹åŠ¨</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DISABLED)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>½ûÓÃ</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>ç¦ç”¨</rtype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>---</rtype>");
 			
 			if( lpqscBuf->dwServiceType & SERVICE_WIN32_OWN_PROCESS)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>¶ÀÁ¢½ø³Ì·şÎñ%s</stype>",
-				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",¿É½»»¥":"");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>ç‹¬ç«‹è¿›ç¨‹æœåŠ¡%s</stype>",
+				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",å¯äº¤äº’":"");
 			else if( lpqscBuf->dwServiceType & SERVICE_WIN32_SHARE_PROCESS)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>¹²Ïí½ø³Ì·şÎñ%s</stype>",
-				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",¿É½»»¥":"");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>å…±äº«è¿›ç¨‹æœåŠ¡%s</stype>",
+				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",å¯äº¤äº’":"");
 			else if( lpqscBuf->dwServiceType & SERVICE_FILE_SYSTEM_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>ÎÄ¼şÏµÍ³Çı¶¯</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>æ–‡ä»¶ç³»ç»Ÿé©±åŠ¨</stype>");
 			else if( lpqscBuf->dwServiceType & SERVICE_KERNEL_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>ÏµÍ³ÄÚºËÇı¶¯</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>ç³»ç»Ÿå†…æ ¸é©±åŠ¨</stype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>---</stype>");
 			
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp>%s</sdisp>",lpqscBuf->lpDisplayName);

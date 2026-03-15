@@ -13,7 +13,7 @@ class cTelnetEx : public cTelnet
 public:
 	cTelnetEx(){m_cmd_prefix='#';}
 	virtual ~cTelnetEx(){}
-	//当有一个新的客户连接此服务触发此函数
+	//triggered when a new client connects to this service
 	void Attach(socketTCP *psock) { cTelnet::onConnect(psock); }
 protected:
 	void onCommand(const char *strCommand,socketTCP *psock);
@@ -34,7 +34,7 @@ public:
 	void docmd_sets(const char *strParam);
 	void docmd_iprules(const char *strParam);
 protected:
-	//当有一个新的客户连接此服务触发此函数
+	//triggered when a new client connects to this service
 	void onAccept(socketTCP *psock){ cTelnet::onConnect(psock); }
 public:
 	int m_svrport;
