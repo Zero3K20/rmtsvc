@@ -16,13 +16,14 @@
 //   /ALTERNATENAME:__imp___iob=__iob redirects the unresolved __imp___iob to
 //   our pointer variable __iob (== &_iob), satisfying the link.
 //
-//   _iob is initialised to __iob_func() (provided by legacy_stdio_definitions.lib)
-//   so it always points to the CRT's live internal FILE array rather than a copy.
+//   _iob is initialised via __acrt_iob_func(0) which is exported directly from
+//   ucrtbase.dll and requires no additional library.
 
 #include <stdio.h>
 
-// Provided by legacy_stdio_definitions.lib (already linked via other/IPF.cpp).
-extern "C" FILE * __cdecl __iob_func(void);
+// __acrt_iob_func is exported from ucrtbase.dll (always available, no extra lib).
+// Returns a FILE* pointer to the n-th stdio stream in the CRT's internal array.
+extern "C" FILE * __cdecl __acrt_iob_func(unsigned _Ix);
 
 // _iob: pointer to the CRT's internal FILE array.
 // In 32-bit MSVC: C name "_iob" -> COFF name "__iob".
@@ -36,4 +37,4 @@ extern "C" FILE *_iob = NULL;
 #endif
 
 // Point _iob at the CRT's live FILE array (populated before any user code runs).
-static int _iob_init_flag = (_iob = __iob_func(), 0);
+static int _iob_init_flag = (_iob = __acrt_iob_func(0), 0);
