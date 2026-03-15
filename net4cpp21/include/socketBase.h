@@ -1,8 +1,8 @@
 /*******************************************************************
    *	socketBase.h
-   *    DESCRIPTION:socket基类封装类的定义
-   *				支持IPV4和IPV6，如果要支持IPV6需定义IPPROTO_IPV6
-   *				要创建IPV6 socket，需设置SetIpv6(true);
+   *    DESCRIPTION:Base class wrapper definition for socket
+   *				Supports IPV4 and IPV6; define IPPROTO_IPV6 to enable IPV6 support
+   *				To create an IPV6 socket, call SetIpv6(true);
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
@@ -19,7 +19,7 @@
 
 namespace net4cpp21
 {
-	class socketBase //socket操作的基类
+	class socketBase //Base class for socket operations
 	{
 	public:
 		socketBase();
@@ -39,7 +39,7 @@ namespace net4cpp21
 		const char *getRemoteIP() const { return inet_ntoa(m_remoteAddr.sin_addr); }
 		unsigned long getLocalip() const { return m_localAddr.sin_addr.S_un.S_addr; }
 		unsigned long getRemoteip() const { return m_remoteAddr.sin_addr.S_un.S_addr; }
-		time_t getStartTime() const { return m_tmOpened; } //返回socket打开开始时间
+		time_t getStartTime() const { return m_tmOpened; } //Returns the socket open start time
 		SOCKSRESULT setLinger(bool bEnabled,time_t iTimeout=5); //s
 		
 		SOCKSRESULT setRemoteInfo(const char *host,int port);
@@ -51,15 +51,15 @@ namespace net4cpp21
 		
 		unsigned long getMaxSendRatio() const { return m_maxSendRatio; }
 		unsigned long getMaxRecvRatio() const { return m_maxRecvRatio; }
-		//设置发送或接收流量速度 Bytes/s
+		//Set send or receive rate limit in Bytes/s
 		void setSpeedRatio(unsigned long sendRatio,unsigned long recvRatio)
 		{
 			m_maxSendRatio=sendRatio;
 			m_maxRecvRatio=recvRatio;
 			return;
 		}
-		//检查本是否可读/可写。
-		//如果可读或可写则返回1，超时返回0，否则返回错误，如果返回-1则发生系统错误
+		//Check if this socket is readable/writable.
+		//Returns 1 if readable or writable, 0 on timeout, negative on error (-1 means system error)
 		int checkSocket(time_t wait_usec,SOCKETOPMODE opmode)
 		{
 			if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
@@ -70,7 +70,7 @@ namespace net4cpp21
 			if(iret==SOCKET_ERROR) m_errcode=SOCK_M_GETERROR;
 			return iret;
 		}
-		//接收数据(TCP/UDP/RAW),返回接收数据的长度
+		//Receive data (TCP/UDP/RAW); returns the received data length
 		SOCKSRESULT Receive(char *buf,size_t buflen,time_t lWaitout)
 		{
 			return _Receive(buf,buflen,lWaitout,SOCKS_OP_READ);
@@ -79,20 +79,20 @@ namespace net4cpp21
 		{
 			return _Receive(buf,buflen,lWaitout,SOCKS_OP_PEEK);
 		}
-		//接收带外数据
+		//Receive out-of-band data
 		SOCKSRESULT RecvOOB(char *buf,size_t buflen,time_t lWaitout)
 		{
 			return _Receive(buf,buflen,lWaitout,SOCKS_OP_ROOB);
 		}
-		//向目的发送数据,返回发送数据的大小，如果<0则发生错误
+		//Send data to the destination,Returns the size of data sent; if < 0 an error occurred
 		SOCKSRESULT Send(size_t buflen,const char *buf,time_t lWaitout=-1);
 		SOCKSRESULT Send(LPCTSTR fmt,...);
 		SOCKSRESULT SendOOB(size_t buflen,const char *buf);
-		//得到本机IP，返回得到本机IP的个数
+		//Get local host IP; returns the number of local IPs found
 		static long getLocalHostIP(std::vector<std::string> &vec);
 		static const char *getLocalHostIP();
 
-		//解析指定的域名 ,only for IPV4
+		//Resolve the specified domain name, only for IPV4
 		static unsigned long Host2IP(const char *host);
 		static const char *IP2A(unsigned long ipAddr)
 		{
@@ -102,23 +102,23 @@ namespace net4cpp21
 		}
 
 	protected:
-		bool m_ipv6; //是否支持IPV6
-		time_t m_tmOpened;//本socket打开的时间，用于限制流量
+		bool m_ipv6; //Whether IPV6 is supported
+		time_t m_tmOpened;//Time when this socket was opened, used for rate limiting
 
-		socketBase *m_parent; //关联父socket指针
-		long m_errcode;//错误代码 系统错误代码或自定义错误代码
-		int m_sockfd;//socket的访问句柄
-		int m_sockflag; //保留socks的而外标志，位0只是TCP的连接方向
-		SOCKETTYPE m_socktype;//socket句柄的类型
-		SOCKETSTATUS m_sockstatus;//socket句柄的状态
-		SOCKADDR_IN m_localAddr;//本socket绑定的本机端口和ip
-		SOCKADDR_IN m_remoteAddr;//本socket连接的远端端口和ip(only for tcp)
-							//对于非tcp类型的socket，此处保存接收到数据的远端端口和ip
-							//或要发送数据的远端端口和ip
-		unsigned long m_recvBytes;//总接收字节数
-		unsigned long m_sendBytes;//总发送字节数
-		unsigned long m_maxSendRatio;//最大发送流量 Bytes/秒，0-不限流量
-		unsigned long m_maxRecvRatio;//最大接收流量 Bytes/秒，0-不限流量
+		socketBase *m_parent; //Pointer to the associated parent socket
+		long m_errcode;//Error code: system error code or custom error code
+		int m_sockfd;//Socket access handle
+		int m_sockflag; //Additional socket flags; bit 0 indicates TCP connection direction
+		SOCKETTYPE m_socktype;//Socket handle type
+		SOCKETSTATUS m_sockstatus;//Socket handle status
+		SOCKADDR_IN m_localAddr;//Local port and IP bound to this socket
+		SOCKADDR_IN m_remoteAddr;//Remote port and IP this socket is connected to (only for TCP)
+							//For non-TCP sockets, stores the source port and IP of received data
+							//or the destination port and IP for outgoing data
+		unsigned long m_recvBytes;//Total bytes received
+		unsigned long m_sendBytes;//Total bytes sent
+		unsigned long m_maxSendRatio;//Maximum send rate in Bytes/second; 0 means unlimited
+		unsigned long m_maxRecvRatio;//Maximum receive rate in Bytes/second; 0 means unlimited
 
 		int getAF();
 		int getSocketInfo();
@@ -137,7 +137,7 @@ namespace net4cpp21
 		size_t v_writeto(const char *buf,size_t buflen,SOCKADDR_IN &addr);
 	};
 
-	//初始化windows的网络环境----------------------------
+	//Initialize the Windows network environment----------------------------
 	class NetEnv
 	{
 		WSADATA m_wsadata;
@@ -148,7 +148,7 @@ namespace net4cpp21
 		bool getState(){return m_bState;}
 		static NetEnv &getInstance();
 	};
-	//初始化windows的网络环境----------------------------
+	//Initialize the Windows network environment----------------------------
 }//?namespace net4cpp21
 
 #endif

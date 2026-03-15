@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketBase.cpp
-   *    DESCRIPTION:socket基类封装类的定义
+   *    DESCRIPTION:Base class wrapper definition for socket
    *
    *    AUTHOR:yyc
    *
@@ -96,13 +96,13 @@ void socketBase :: Close()
 	m_socktype=SOCKS_NONE;
 	m_sockflag=0;
 	if ( m_sockfd!=INVALID_SOCKET ){
-//若设置了SO_LINGER（亦即linger结构中的l_onoff域设为非零，参见2.4，4.1.7和4.1.21各节），并设置了零超时间隔，
-//则closesocket()不被阻塞立即执行，不论是否有排队数据未发送或未被确认。这种关闭方式称为“强制”或“失效”关闭，
-//因为套接口的虚电路立即被复位，且丢失了未发送的数据。在远端的recv()调用将以WSAECONNRESET出错。
-//若设置了SO_LINGER并确定了非零的超时间隔，则closesocket()调用阻塞进程，直到所剩数据发送完毕或超时。
-//这种关闭称为“优雅的”关闭。请注意如果套接口置为非阻塞且SO_LINGER设为非零超时，则closesocket()调用将
-//以WSAEWOULDBLOCK错误返回。
-//windows系统默认SO_DONTLINGER，，即温和关闭
+//If SO_LINGER is set (i.e., the l_onoff field in the linger struct is non-zero, see sections 2.4, 4.1.7 and 4.1.21) and a zero timeout is configured,
+//closesocket() executes immediately without blocking, regardless of queued data. This is called a "hard" or "abortive" close,
+//because the virtual circuit is reset immediately and unsent data is lost. The remote recv() call will fail with WSAECONNRESET.
+//If SO_LINGER is set with a non-zero timeout, closesocket() blocks until all remaining data is sent or the timeout expires.
+//This is called a "graceful" close. Note that if the socket is non-blocking and SO_LINGER has a non-zero timeout, closesocket() will
+//return with WSAEWOULDBLOCK error.
+//Windows defaults to SO_DONTLINGER, i.e., graceful close
 //		::shutdown(m_sockfd,SD_BOTH); 
 		::closesocket(m_sockfd);
 		m_sockfd=INVALID_SOCKET;
@@ -111,18 +111,18 @@ void socketBase :: Close()
 	m_localAddr.sin_port=0;
 	m_localAddr.sin_addr.s_addr=INADDR_ANY;
 	m_recvBytes=m_sendBytes=0;
-	//yyc remove 2006-02-15,关闭的时候不清空远程地址信息
-	//事先通过setRemoteInfo设置,防止create时清掉
+	//yyc remove 2006-02-15, do not clear remote address info on close
+	//set in advance via setRemoteInfo to prevent it from being cleared on create
 //	m_remoteAddr.sin_port=0;
 //	m_remoteAddr.sin_addr.s_addr=INADDR_ANY;
 	return;
 }
 
-//设置要连接或UPD发送的远程主机信息
+//Set the remote host info for connecting or UDP sending
 SOCKSRESULT socketBase :: setRemoteInfo(const char *host,int port)
 {
 	if(host==NULL || port<=0) return SOCKSERR_PARAM;
-	//判断是否为一个有效的IP
+	//Check if the string is a valid IP address
 	unsigned long ipAddr=socketBase::Host2IP(host);
 	if(ipAddr==INADDR_NONE) return SOCKSERR_HOST;
 	m_remoteAddr.sin_port=htons(port);
@@ -130,7 +130,7 @@ SOCKSRESULT socketBase :: setRemoteInfo(const char *host,int port)
 	return SOCKSERR_OK;
 }
 
-//返回发送数据的大小，如果<0则发生错误
+//Returns the size of data sent; if < 0 an error occurred
 SOCKSRESULT socketBase :: Send(LPCTSTR fmt,...)
 {
 	if(m_sockstatus<SOCKS_CONNECTED) return SOCKSERR_INVALID;
@@ -150,7 +150,7 @@ SOCKSRESULT socketBase :: Send(size_t buflen,const char * buf,time_t lWaitout)
 	if(buflen==0) if( (buflen=strlen(buf))==0) return SOCKSERR_PARAM;
 	return (buflen>0)?_Send((const char *)buf,buflen,lWaitout):0;
 }
-//发送带外数据
+//Send out-of-band data
 SOCKSRESULT socketBase :: SendOOB(size_t buflen,const char *buf)
 {
 	if(m_sockstatus!=SOCKS_CONNECTED) return SOCKSERR_INVALID;
@@ -160,12 +160,12 @@ SOCKSRESULT socketBase :: SendOOB(size_t buflen,const char *buf)
 	if(buflen>=0)  return buflen; 
 	
 	m_errcode=SOCK_M_GETERROR;
-	return SOCKSERR_ERROR;//发生系统错误，通过SOCK_M_GETERROR获得错误代码
+	return SOCKSERR_ERROR;//A system error occurred; use SOCK_M_GETERROR to get the error code
 }
 
 //--------------------------static function---------------------------------------
 
-//得到本机IP，返回得到本机IP的个数
+//Get local host IP; returns the number of local IPs found
 long socketBase :: getLocalHostIP(vector<string> &vec)
 {
 	char buf[64];
@@ -186,33 +186,33 @@ const char *socketBase :: getLocalHostIP()
 	return inet_ntoa(*((struct in_addr *)p->h_addr_list[0]));
 }
 
-//解析指定的域名,only for IPV4
+//Resolve the specified domain name, only for IPV4
 unsigned long socketBase :: Host2IP(const char *host)
 {
 	unsigned long ipAddr=inet_addr(host);
 	if(ipAddr!=INADDR_NONE) return ipAddr;
-	//指定的不是一个有效的ip地址可能是一个主机域名
+	//The specified string is not a valid IP address; may be a hostname
 	struct hostent * p=gethostbyname(host);
 	if(p==NULL) return INADDR_NONE;
 	ipAddr=(*((struct in_addr *)p->h_addr)).s_addr;
 	return ipAddr;
 }
 
-//windows下默认的FD_SETSIZE只有64大小!!!注意checkSocket中待检查的socket不能超过此值的设定
+//On Windows, the default FD_SETSIZE is only 64!!! The number of sockets to check in checkSocket must not exceed this value
 //!!!!!#define FD_SETSIZE      64 
-//检查指定的sockets是否可读或可写
-//sockfds --- 要检查的socket句柄数组，len-sockets句柄的个数
-//wait_usec --- 检查超时等待时间，微秒
-//opmode --- 检查socket是否可读/写/有OOB带外数据
-//返回 --- 返回可读/可写的socket句柄个数
-//	--- 如果返回小于0则说明发生了错误
-//	此函数会改写sockfds数组中的值，如果某个socket句柄可读/可写则置1否则置0
-//windows/linux,unix下FD_SET的实现差别：
-//windows下默认的FD_SETSIZE为64，FD_SET宏遍历SOCKETs数组，如果发现
-//此fd句柄在SOCKETs中已经存在，则退出，否则将fd插入到数组后面，同时计数++
-//linux,unix下默认的FD_SETSIZE为65535，FD_SET宏将socket的句柄值插入到以fd值为下标
-//的SOCKETs的数组位置。因此linux,unix下调用FD_SET宏时要进行fd<FD_SETSIZE检查。
-//在linux,unix下socket的句柄fd的值如果大于＝FD_SETSIZE是无效的
+//Check whether the specified sockets are readable or writable
+//sockfds --- array of socket handles to check; len --- number of socket handles
+//wait_usec --- timeout wait time in microseconds
+//opmode --- check if socket is readable/writable/has OOB data
+//Returns --- the number of readable/writable socket handles
+//	--- if the return value is less than 0, an error occurred
+//	This function modifies the sockfds array: 1 if readable/writable, 0 otherwise
+//Differences in FD_SET implementation between Windows/Linux/Unix:
+//On Windows the default FD_SETSIZE is 64; the FD_SET macro iterates the SOCKETs array: if it finds
+//the fd handle already in SOCKETs it exits; otherwise appends the fd and increments the count
+//On Linux/Unix the default FD_SETSIZE is 65535; the FD_SET macro inserts the socket handle at the index equal to fd
+//in the SOCKETs array. Therefore on Linux/Unix check fd<FD_SETSIZE before calling FD_SET.
+//On Linux/Unix a socket fd value >= FD_SETSIZE is invalid
 int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPMODE opmode)
 {
 	int i,retv=0;
@@ -232,19 +232,19 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 		to.tv_sec = 0;
 		to.tv_usec = 0;
 	}
-	if(opmode<=SOCKS_OP_READ) //判断是否有数据可读
+	if(opmode<=SOCKS_OP_READ) //Check if data is available for reading
 		retv = select(FD_SETSIZE, &fds, NULL, NULL, &to);
-	else if(opmode==SOCKS_OP_WRITE) //判断是否可写
+	else if(opmode==SOCKS_OP_WRITE) //Check if socket is writable
 		retv = select(FD_SETSIZE, NULL, &fds, NULL, &to);
-	else if(opmode==SOCKS_OP_ROOB) //是否有OOB数据可读
+	else if(opmode==SOCKS_OP_ROOB) //Check if OOB data is available
 		retv = select(FD_SETSIZE, NULL, NULL, &fds, &to);
-	else return 1; //其他超作永远为真，例如写带外数据!!!!!
+	else return 1; //Other operations always return true, e.g., writing OOB data!!!!!
 	if(retv==0) return 0; // timeout occured 
-	if(retv==SOCKET_ERROR){ //有错误发生
-		if(SOCK_M_GETERROR==EINPROGRESS) return 0;//正在处理过程中，不算错误
+	if(retv==SOCKET_ERROR){ //An error occurred
+		if(SOCK_M_GETERROR==EINPROGRESS) return 0;//Operation in progress, not an error
 	}
-	//对于其他的错误则直接返回,交由用户处理判断
-	//有句柄可读或可写
+	//For other errors, return directly and let the caller handle them
+	//A handle is readable or writable
 	for(i=0;i<(int)len;i++)
 	{
 		sockfds[i]=(FD_ISSET(sockfds[i], &fds))?1:0;
@@ -263,19 +263,19 @@ inline int socketBase :: getAF()
 	return af;
 }
 
-//获取本socket绑定的本地ip和端口，成功返回绑定的本地端口
-//返回<=0则发生错误
+//Get the local IP and port bound to this socket; returns the bound local port on success
+//Returns <= 0 if an error occurred
 int socketBase :: getSocketInfo()
 {
 //	if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
-	//getsockname()函数用于获取一个套接口的名字。它用于一个已捆绑或已连接套接口s，本地地址将被返回。
-	//本调用特别适用于如下情况：未调用bind()就调用了connect()，
-	//这时唯有getsockname()调用可以获知系统内定的本地地址。
-	//在返回时，namelen参数包含了名字的实际字节数。
-	//若一个套接口与INADDR_ANY捆绑，也就是说该套接口可以用任意主机的地址，
-	//此时除非调用connect()或accept()来连接，否则getsockname()将不会返回主机IP地址的任何信息。
-	//除非套接口被连接，WINDOWS套接口应用程序不应假设IP地址会从INADDR_ANY变成其他地址。
-	//这是因为对于多个主机环境下，除非套接口被连接，否则该套接口所用的IP地址是不可知的。
+	//getsockname() retrieves the local name of a bound or connected socket s; the local address is returned.
+	//This call is especially useful when connect() is called without a prior bind():
+	//only getsockname() can reveal the system-assigned local address.
+	//On return, the namelen parameter contains the actual byte length of the name.
+	//If a socket is bound to INADDR_ANY (meaning it accepts any host address),
+	//getsockname() will not return any host IP address information unless connect() or accept() has been called.
+	//Unless the socket is connected, Windows socket applications must not assume the IP address will change from INADDR_ANY.
+	//In a multi-homed environment, the IP address used by an unconnected socket is indeterminate.
 	int addr_len=sizeof(m_localAddr);
 	m_localAddr.sin_family=getAF();
 	m_localAddr.sin_port=0; m_localAddr.sin_addr.s_addr=0;
@@ -283,25 +283,25 @@ int socketBase :: getSocketInfo()
 	return ntohs(m_localAddr.sin_port);
 }
 
-//绑定指定的端口和IP
-//bReuse -- 指定是否可重用端口 bindip --- 指定要绑定的ip地址，如果为NULL/""则绑定所有的
-//成功返回实际绑定的端口 >0
+//Bind the specified port and IP address
+//bReuse -- specifies whether the port can be reused; bindip --- IP to bind to; NULL/"" binds to all interfaces
+//Returns the actually bound port (>0) on success
 SOCKSRESULT socketBase :: Bind(int port,BOOL bReuseAddr,const char *bindip)
 {
 	if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
-	if(bReuseAddr==SO_REUSEADDR){//可以绑定允许重用的端口
+	if(bReuseAddr==SO_REUSEADDR){//Binding with port reuse allowed
 		int on=1;
 		setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (char *) &on,sizeof(on));
-	}else if(bReuseAddr==SO_EXCLUSIVEADDRUSE){ //绑定的端口禁止重用
+	}else if(bReuseAddr==SO_EXCLUSIVEADDRUSE){ //Binding with port reuse forbidden
 		int on=1;
 		setsockopt(m_sockfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *) &on,sizeof(on));
-	}//否则不可以绑定允许重用的端口,本次绑定的端口允许重用
+	}//Otherwise port reuse is not configured; this binding uses the default reuse setting
 
 	SOCKADDR_IN addr; memset(&addr, 0, sizeof(addr));
 	addr.sin_family = getAF();
 	addr.sin_port =(port<=0)?0:htons(port);
 	if(bindip && bindip[0]!=0) addr.sin_addr.s_addr=inet_addr(bindip);
-	//否则 侦听绑定本机任何地址INADDR_ANY
+	//Otherwise bind to INADDR_ANY (all local interfaces)
 
 	if (bind(m_sockfd, (struct sockaddr *) &addr, sizeof(addr)) == SOCKET_ERROR ) 
 	{
@@ -310,24 +310,24 @@ SOCKSRESULT socketBase :: Bind(int port,BOOL bReuseAddr,const char *bindip)
 	}
 	return getSocketInfo();
 }
-//绑定指定的端口，端口在[startport,endport]之间随机选定
-//startport>=0, endport<=65535.如果endport<=0则=65535
-//返回实际绑定的端口
+//Bind a port randomly selected from [startport, endport]
+//startport>=0, endport<=65535. If endport<=0 then endport=65535
+//Returns the actually bound port
 SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const char *bindip)
 {
 	if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
-	if(bReuseAddr==SO_REUSEADDR){//可以绑定允许重用的端口
+	if(bReuseAddr==SO_REUSEADDR){//Binding with port reuse allowed
 		int on=1;
 		setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (char *) &on,sizeof(on));
-	}else if(bReuseAddr==SO_EXCLUSIVEADDRUSE){ //绑定的端口禁止重用
+	}else if(bReuseAddr==SO_EXCLUSIVEADDRUSE){ //Binding with port reuse forbidden
 		int on=1;
 		setsockopt(m_sockfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *) &on,sizeof(on));
-	}//否则不可以绑定允许重用的端口,本次绑定的端口允许重用
+	}//Otherwise port reuse is not configured; this binding uses the default reuse setting
 	
 	SOCKADDR_IN addr; memset(&addr, 0, sizeof(addr));
 	addr.sin_family = getAF();
 	if(bindip && bindip[0]!=0) addr.sin_addr.s_addr=inet_addr(bindip);
-	//否则 侦听绑定本机任何地址INADDR_ANY
+	//Otherwise bind to INADDR_ANY (all local interfaces)
 	if(startport<1) startport=1;
 	if(endport<1 || endport>65535) endport=65535;
 	if(endport<startport){ int iswap=startport; startport=endport; endport=iswap; }
@@ -357,14 +357,14 @@ SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const c
 	}
 	return getSocketInfo();
 }
-//使能/禁止SO_LINGER，如果使能SO_LINGER，则关闭socket句柄时必须等待缓冲区内数据发送完毕
-//iTimeout 秒--- 如果使能SO_LINGER，则指定如果多长时间内缓冲区内数据如果没有发送完毕则强行关闭
+//Enable/disable SO_LINGER. If enabled, closing the socket must wait until buffered data is sent
+//iTimeout seconds --- if SO_LINGER is enabled, the maximum time to wait before forcing close
 SOCKSRESULT socketBase::setLinger(bool bEnabled,time_t iTimeout)
 {
 	if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
 	if(m_sockstatus<SOCKS_CONNECTED) return SOCKSERR_OK;
 	int sr=SOCKSERR_OK;
-	//使能SO_LINGER
+	//Enable SO_LINGER
 	//When  enabled,  a  close(2) or shutdown(2) will not return until all queued messages for the socket have
     //      been successfully sent or the linger timeout has been reached. Otherwise, the call  returns  immediately
     //     and  the  closing  is  done  in the background.  When the socket is closed as part of exit(2), it always
@@ -374,20 +374,20 @@ SOCKSRESULT socketBase::setLinger(bool bEnabled,time_t iTimeout)
 		lg.l_onoff=1;
 	else
 		lg.l_onoff=0;
-	lg.l_linger=(u_short)iTimeout;//设置超时最大时间s
+	lg.l_linger=(u_short)iTimeout;//Set maximum timeout in seconds
 	if(setsockopt(m_sockfd,SOL_SOCKET,SO_LINGER,(const char *)&lg,sizeof(lg))!=0)
 		return SOCKSERR_SETOPT;
 	return SOCKSERR_OK;
 }
-//设置socket阻塞/非阻塞
-//成功返回SOCKSERR_OK
+//Set socket to blocking/non-blocking mode
+//Returns SOCKSERR_OK on success
 SOCKSRESULT socketBase::setNonblocking(bool bNb)
 {
 	if(m_sockfd==INVALID_SOCKET) return SOCKSERR_INVALID;
 	int sr=SOCKSERR_OK;
 #ifdef WIN32
-	unsigned long l = bNb ? 1 : 0; //1 -- 非阻塞
-	sr=ioctlsocket(m_sockfd,FIONBIO,&l); //设置socket为阻塞/非阻塞方式
+	unsigned long l = bNb ? 1 : 0; //1 -- non-blocking
+	sr=ioctlsocket(m_sockfd,FIONBIO,&l); //Set socket to blocking/non-blocking mode
 	if(sr!=0) sr=SOCKSERR_ERROR;
 #else
 	if (bNb)
@@ -399,13 +399,13 @@ SOCKSRESULT socketBase::setNonblocking(bool bNb)
 		sr=fcntl(s, F_SETFL, 0);
 	}
 #endif
-	//发生系统错误，通过SOCK_M_GETERROR获得错误代码
+	//A system error occurred; use SOCK_M_GETERROR to get the error code
 	if(sr==SOCKSERR_ERROR) m_errcode=SOCK_M_GETERROR;
 	return sr;
 }
 
-//创建指定类型的socket句柄
-//成功返回真否则返回假
+//Create a socket handle of the specified type
+//Returns true on success, false otherwise
 bool socketBase :: create(SOCKETTYPE socktype) 
 {
 	if( type()!=SOCKS_NONE ) Close();
@@ -423,7 +423,7 @@ bool socketBase :: create(SOCKETTYPE socktype)
 			{
 				m_socktype=SOCKS_UDP;
 				int on=1; //Allows transmission of broadcast messages on the socket.
-						// 支持广播发送,目的地址是255.255.255.255,意味着向本网段所有机器发送
+						// Enable broadcast; destination 255.255.255.255 sends to all machines on the local subnet
 				setsockopt(m_sockfd, SOL_SOCKET, SO_BROADCAST, (char *) &on,sizeof(on));
 			}
 			break;
@@ -434,8 +434,8 @@ bool socketBase :: create(SOCKETTYPE socktype)
 	m_tmOpened=time(NULL);
 	return true;
 }
-//注意:对于面向消息socket(message-oriented) 一次发送的数据长度不能大于socket的发送缓冲区的大小，否则返回SOCKET_ERROR
-//一般系统默认的socket的发送缓冲区的SO_MAX_MSG_SIZE 
+//Note: for message-oriented sockets, a single send must not exceed the socket send buffer size, otherwise SOCKET_ERROR is returned
+//The system default socket send buffer size is SO_MAX_MSG_SIZE 
 /*inline size_t socketBase :: v_write(const char *buf,size_t buflen)
 {
 	size_t len=0;
@@ -486,22 +486,22 @@ inline size_t socketBase :: v_peek(char *buf,size_t buflen)
 	return len;
 }
 
-//接收数据包
-//返回接收数据的长度，如果<0则发生错误
-//如果返回==0则表示接收速度超过了设定的流量限制，请暂缓接收
-//bPeek --- 是否只PEEK数据，但不从接收缓冲区中移除
-//==-1说明发生系统错误，通过SOCK_M_GETERROR获得错误代码 SOCKETOPMODE
+//Receive data packet
+//Returns the length of received data; if < 0 an error occurred
+//If return == 0, the receive rate exceeds the configured rate limit; pause receiving
+//bPeek --- whether to only peek at data without removing it from the receive buffer
+//==-1 indicates a system error; use SOCK_M_GETERROR to get the error code. SOCKETOPMODE
 SOCKSRESULT socketBase :: _Receive(char *buf,size_t buflen,time_t lWaitout,SOCKETOPMODE opmode)
 {
 	if(m_sockstatus<SOCKS_CONNECTED) return SOCKSERR_INVALID;
 	if(buf==NULL || buflen==0) return SOCKSERR_PARAM;
-	int iret=1; //是否有数据可读
+	int iret=1; //whether data is available for reading
 	if(lWaitout>=0)
 	{
 		time_t t=time(NULL);
 		while( (iret=checkSocket(SCHECKTIMEOUT,opmode))== 0 )
-		{//检查句柄是否可读
-			if( (time(NULL)-t)>lWaitout ) break; //检查是否超时
+		{//Check if the handle is readable
+			if( (time(NULL)-t)>lWaitout ) break; //Check if timeout has been reached
 			if(m_parent && m_parent->m_sockstatus<=SOCKS_CLOSED) 
 				return SOCKSERR_PARENT;
 		}//?while
@@ -509,79 +509,79 @@ SOCKSRESULT socketBase :: _Receive(char *buf,size_t buflen,time_t lWaitout,SOCKE
 	if(iret!=1)
 	{
 		if(iret==-1) {m_errcode=SOCK_M_GETERROR; return SOCKSERR_ERROR;}
-		return SOCKSERR_TIMEOUT; //超时
+		return SOCKSERR_TIMEOUT; //Timeout
 	}
-	//当对方gracefully closed时,recvfrom立即返回0，不管缓冲区中是否有数据
-	//recv会继续获取缓冲区中的数据，如果缓冲区中有数据的话，否则也返回0
+	//When the peer gracefully closes, recvfrom returns 0 immediately regardless of buffered data
+	//recv continues to retrieve buffered data if available, otherwise also returns 0
 	if(opmode==SOCKS_OP_PEEK)
 		iret=v_peek(buf,buflen);
 	else if(opmode==SOCKS_OP_READ)
 	{
-		if(m_maxRecvRatio!=0) //如果限制了接收流量，则判断是否超过流量
+		if(m_maxRecvRatio!=0) //If receive rate limiting is active, check whether the rate is exceeded
 		{
 			time_t tNow=time(NULL);
-			if( (m_recvBytes/(tNow-m_tmOpened+1))>m_maxRecvRatio) return 0; //流量超限制
+			if( (m_recvBytes/(tNow-m_tmOpened+1))>m_maxRecvRatio) return 0; //Rate limit exceeded
 		}//?if(m_maxRecvRatio!=0)
 		if( (iret=v_read(buf,buflen))>0 ) m_recvBytes+=iret;
 	}
 	else if(opmode==SOCKS_OP_ROOB && m_socktype==SOCKS_TCP) 
-	{//读取带外数据 ,only for TCP
+	{//Read out-of-band data, only for TCP
 		iret=::recv(m_sockfd,buf,buflen,MSG_NOSIGNAL|MSG_OOB);
 	}
 	else return 0;
 	if(iret>0) return iret;
 
-	if(iret==0) return SOCKSERR_CLOSED; //如果返回0则说明本socket连接已经被对方关闭(only for TCP)
+	if(iret==0) return SOCKSERR_CLOSED; //If return value is 0, the connection has been closed by the peer (only for TCP)
 	m_errcode=SOCK_M_GETERROR;
-	return SOCKSERR_ERROR;//发生系统错误，通过SOCK_M_GETERROR获得错误代码 
+	return SOCKSERR_ERROR;//A system error occurred; use SOCK_M_GETERROR to get the error code 
 }
 
-//向目的发送数据
-//返回发送数据的大小，如果<0则发生错误
-//如果返回==0则表示发送速度超过了设定的流量限制，请暂缓发送
-//对于非tcp连接，发送前要调用setRemoteInfo设置发送的目的主机和端口。
-//注意:对于非tcp连接，调用Receive时，会将接收数据的源发送ip和端口写入目的主机和端口。
+//Send data to the destination
+//Returns the size of data sent; if < 0 an error occurred
+//If return == 0, the send rate exceeds the configured rate limit; pause sending
+//For non-TCP connections, call setRemoteInfo to set the destination host and port before sending.
+//Note: for non-TCP connections, Receive writes the source IP and port of received data into the remote address fields.
 //
-//当调用该函数时，send先比较待发送数据的长度len和套接字s的发送缓冲区的长度，
-//如果len大于s的发送缓冲区的长度，该函数返回SOCKET_ERROR；如果len小于或者等于s的发送缓冲区
-//的长度，那么send先检查协议是否正在发送s的发送缓冲中的数据，如果是就等待协议把数据发送完，
-//如果协议还没有开始发送s的发送缓冲中的数据或者s的发送缓冲中没有数据，那么send就比较s的发送
-//缓冲区的剩余空间和len，如果len大于剩余空间大小send就一直等待协议把s的发送缓冲中的数据发送
-//完，如果len小于剩余空间大小send就仅仅把buf中的数据copy到剩余空间里（注意并不是send把s的发
-//送缓冲中的数据传到连接的另一端的，而是协议传的，send仅仅是把buf中的数据copy到s的发送缓冲
-//区的剩余空间里）。如果send函数copy数据成功，就返回实际copy的字节数，如果send在copy数据时
-//出现错误，那么send就返回SOCKET_ERROR；如果send在等待协议传送数据时网络断开的话，那么send
-//函数也返回SOCKET_ERROR。要注意send函数把buf中的数据成功copy到s的发送缓冲的剩余空间里后它
-//就返回了，但是此时这些数据并不一定马上被传到连接的另一端。
-//注意：在Unix系统下，如果send在等待协议传送数据时网络断开的话，调用send的进程会接收到一个
-//SIGPIPE信号，进程对该信号的默认处理是进程终止。
+//When called, send first compares the data length len with the socket s send buffer size,
+//if len exceeds the send buffer size SOCKET_ERROR is returned; if len <= the send buffer size,
+//send checks whether the protocol is currently sending buffered data; if so it waits until done,
+//if the protocol has not started sending or the buffer is empty, send compares the remaining send
+//buffer space with len; if len exceeds remaining space, send waits for the protocol to finish sending
+//the buffer; if len <= remaining space, send copies buf into remaining space (note: send does not
+//transmit data to the other end -- the protocol does; send only copies buf into the send buffer
+//remaining space). If send successfully copies the data, it returns bytes copied; if copy fails,
+//send returns SOCKET_ERROR; if the network disconnects while send waits for the protocol, send
+//also returns SOCKET_ERROR. Note that after send copies buf data into the send buffer remaining space,
+//it returns, but the data is not necessarily transmitted to the other end immediately.
+//Note: on Unix, if the network disconnects while send is waiting for the protocol, the calling process receives a
+//SIGPIPE signal; the default handler for this signal terminates the process.
 inline SOCKSRESULT socketBase :: _Send(const char *buf,size_t buflen,time_t lWaitout)
 {
 	SOCKADDR_IN addr; memcpy((void *)&addr,(const void *)&m_remoteAddr,sizeof(addr));
-	//如果UDP没有指定发送的目的则返回错误
+	//Return error if no destination is specified for UDP
 //	if(m_socktype==SOCKS_UDP && m_remoteAddr.sin_port==0) return SOCKSERR_HOST;
 	
 	time_t tNow=time(NULL);
-	if(m_maxSendRatio!=0) //如果限制了发送流量，则判断是否超过流量
-		if( (m_sendBytes/(tNow-m_tmOpened+1))>m_maxSendRatio) return 0; //流量超限制
+	if(m_maxSendRatio!=0) //If send rate limiting is active, check whether the rate is exceeded
+		if( (m_sendBytes/(tNow-m_tmOpened+1))>m_maxSendRatio) return 0; //Rate limit exceeded
 	while(lWaitout>=0)
 	{
 		int iret=checkSocket(SCHECKTIMEOUT,SOCKS_OP_WRITE);
 		if(iret<0) { m_errcode=SOCK_M_GETERROR; return SOCKSERR_ERROR; }
-		if(iret>0) break; //socket可写
+		if(iret>0) break; //socket is writable
 		if(m_parent && m_parent->m_sockstatus<=SOCKS_CLOSED) 
 			return SOCKSERR_PARENT;
-		if( (time(NULL)-tNow)>lWaitout ) return SOCKSERR_TIMEOUT; //超时
+		if( (time(NULL)-tNow)>lWaitout ) return SOCKSERR_TIMEOUT; //Timeout
 	}//?while
 	
 	int iret=(m_socktype==SOCKS_UDP)?v_writeto(buf,buflen,addr):v_write(buf,buflen);
-	if(iret>=0) { m_sendBytes+=iret; return iret; }//返回实际发送的字节数
+	if(iret>=0) { m_sendBytes+=iret; return iret; }//Return the actual number of bytes sent
 	
 	m_errcode=SOCK_M_GETERROR;
 	if(iret==SOCKET_ERROR && m_errcode==WSAEACCES) 
-		return SOCKSERR_EACCES; //指定的地址是一个广播地址，但没有设置广播标志
-	//否则iret应该等于-1,此时表明send/sendto的用发生了错误
-	return SOCKSERR_ERROR;//发生系统错误，通过SOCK_M_GETERROR获得错误代码 
+		return SOCKSERR_EACCES; //The specified address is a broadcast address but the broadcast flag is not set
+	//Otherwise iret should be -1, indicating send/sendto encountered an error
+	return SOCKSERR_ERROR;//A system error occurred; use SOCK_M_GETERROR to get the error code 
 }
 
 //----------------------------------------------------------------------------------

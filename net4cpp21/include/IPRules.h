@@ -1,6 +1,6 @@
 /*******************************************************************
    *	IPRules.h
-   *    DESCRIPTION: IP应用规则过滤类
+   *    DESCRIPTION: IP application rule filter class
    *
    *    AUTHOR:yyc
    *
@@ -16,7 +16,7 @@
 #include <vector>
 namespace net4cpp21
 {
-	typedef enum //socket句柄的类型
+	typedef enum //Socket handle type
 	{
 		RULETYPE_TCP=1,
 		RULETYPE_UDP=2,
@@ -35,7 +35,7 @@ namespace net4cpp21
 
 		RULETYPE ruleType;
 		bool bEnabled;
-		bool bBidirection; //是否双向验证
+		bool bBidirection; //Whether bidirectional verification is enabled
 
 		struct _IPRule():IPAddr_src(INADDR_NONE),IPMask_src(INADDR_NONE),port_src(0),
 			IPAddr_to(INADDR_ANY),IPMask_to(INADDR_ANY),port_to(0),
@@ -50,9 +50,9 @@ namespace net4cpp21
 		~iprules(){};
 		bool getDefaultEnable() const { return m_defaultEnabled; }
 		void setDefaultEnabled(bool b) { m_defaultEnabled=b; }
-		//返回规则条数
+		//Returns the number of rules
 		int rules() const { return m_rules.size(); }
-		//返回某条IP过滤规则
+		//Returns a specific IP filter rule
 		IPRule &rules(int i) { return m_rules[i]; }
 		bool check(unsigned long ip,unsigned short port,RULETYPE rt);
 		bool check(unsigned long ip_fr,unsigned short port_fr,

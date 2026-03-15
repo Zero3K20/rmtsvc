@@ -1,12 +1,12 @@
 /*******************************************************************
    *	Buffer.h
-   *    DESCRIPTION:Ñ­»·buffer»º³å ºÍ buffer»º³å
+   *    DESCRIPTION:Circular buffer and linear buffer
    *
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
    *
-   *    DATE:2005-08£­19
+   *    DATE:2005-08ï¼19
    *	net4cpp 2.1
    *******************************************************************/
    
@@ -20,9 +20,9 @@ namespace net4cpp21
 	public:
 		explicit cLoopBuffer(size_t size);
 		~cLoopBuffer();
-		//×·¼ÓĞ´Èël×Ö½Úµ½»º³åÇøÖĞ
+		//Append l bytes to the buffer
 		bool Write(const char *p,size_t l);
-		//¶ÁÈ¡l×Ö½Úµ½dest»º³åÇøÖĞ
+		//Read l bytes into the dest buffer
 		bool Read(char *dest,size_t l);
 		/** skip l bytes from buffer */
 		bool Remove(size_t l);
@@ -40,12 +40,12 @@ namespace net4cpp21
 		unsigned long ByteCounter() { return m_count; }
 
 private:
-	char *buf; //»º³åÇø
-	size_t m_max;//»º³åÇø´óĞ¡
-	size_t m_q; //»º³åÇøÊı¾İ´óĞ¡
-	size_t m_b; //»º³åÇøÊı¾İ¶ÁµÄÆğÊ¼Î»ÖÃ
-	size_t m_t; //»º³åÇøÊı¾İĞ´µÄÆğÊ¼Î»ÖÃ
-	unsigned long m_count; //»º³åÇøÖĞ×ÜµÄĞ´ÈëÊı¾İ´óĞ¡
+	char *buf; //Buffer
+	size_t m_max;//Buffer capacity
+	size_t m_q; //Data size in buffer
+	size_t m_b; //Read start position in buffer
+	size_t m_t; //Write start position in buffer
+	unsigned long m_count; //Total bytes written to buffer
 	};
 
 	class cBuffer
@@ -60,13 +60,13 @@ private:
 		size_t &len() { return m_len;}
 		char & operator [] (size_t pos);
 		size_t size() { return m_max; }
-		size_t Space() { return m_max - m_len; } //Ê£Óà¿Õ¼ä
+		size_t Space() { return m_max - m_len; } //Remaining space
 		char * Resize(size_t size);
 		
 	private:
-		char *m_buf; //»º³åÇø
-		size_t m_max;//»º³åÇø´óĞ¡
-		size_t m_len; //»º³åÇøÊı¾İ´óĞ¡
+		char *m_buf; //Buffer
+		size_t m_max;//Buffer capacity
+		size_t m_len; //Data size in buffer
 	};
 }//?namespace net4cpp21
 

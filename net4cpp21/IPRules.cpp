@@ -1,6 +1,6 @@
 /*******************************************************************
    *	IPRules.h
-   *    DESCRIPTION: IP应用规则过滤类
+   *    DESCRIPTION: IP application rule filter class
    *
    *    AUTHOR:yyc
    *
@@ -70,8 +70,8 @@ bool iprules::check(unsigned long ip_fr,unsigned short port_fr,
 }
 
 
-//添加一条过滤规则
-//格式 [ip] [mask] [port] [type] [enabled]
+//Add a single filter rule
+//Format: [ip] [mask] [port] [type] [enabled]
 bool iprules::addRule(const char *strRule)
 {
 	if(strRule==NULL || strRule[0]==0) return false;
@@ -115,8 +115,8 @@ bool iprules::addRule(const char *strRule)
 	m_rules.push_back(iprule);
 	return true;
 }
-//添加多条过滤规则，各条过滤规则之间用,分割
-//格式 [ip] [mask] [port] [type] [enabled],...
+//Add multiple filter rules separated by commas
+//Format: [ip] [mask] [port] [type] [enabled],...
 long iprules::addRules(const char *strRules)
 {
 	m_rules.clear();
@@ -148,9 +148,9 @@ inline void splitIPstr(const char *str,unsigned long &ipaddr,unsigned long &ipma
 		if(*(p1+i)!=0) *(p1+i)=0xff;
 	return;
 }
-//添加一条双向过滤规则
-//格式 [ip:port]<->[ip:port] [type] [enabled]
-//掩码为ip地址中非0的段，例如ip=192.168.1.0 则掩码为255.255.255
+//Add a single bidirectional filter rule
+//Format: [ip:port]<->[ip:port] [type] [enabled]
+//The mask is derived from the non-zero octets of the IP address, e.g., ip=192.168.1.0 yields mask=255.255.255
 bool iprules::addRule_new(const char *strRule)
 {
 
@@ -165,7 +165,7 @@ bool iprules::addRule_new(const char *strRule)
 		if(icount==0)
 		{
 			const char *p0=strstr(ptrBegin,"<->");
-			if(p0){ //双向过滤规则
+			if(p0){ //Bidirectional filter rule
 				*(char *)p0=0;
 				splitIPstr(ptrBegin,iprule.IPAddr_src,iprule.IPMask_src,iprule.port_src);
 				const char *p1=p0+3; while(*p1==' ') p1++;
@@ -228,7 +228,7 @@ bool iprules::addRule_new(const char *strRule)
 	return true;
 }
 
-//添加多条双向过滤规则，各条过滤规则之间用,分割
+//Add multiple bidirectional filter rules separated by commas
 long iprules::addRules_new(const char *strRules)
 {
 	m_rules.clear();
@@ -246,26 +246,26 @@ long iprules::addRules_new(const char *strRules)
 	return m_rules.size();
 }
 
-//解析指定的域名,only for IPV4
+//Resolve the specified domain name, only for IPV4
 unsigned long Host2IP(const char *host)
 {
 	unsigned long ipAddr=inet_addr(host);
 	if(ipAddr!=INADDR_NONE) return ipAddr;
-	//指定的不是一个有效的ip地址可能是一个主机域名
+	//The specified string is not a valid IP address; may be a hostname
 	struct hostent * p=gethostbyname(host);
 	if(p==NULL) return INADDR_NONE;
 	ipAddr=(*((struct in_addr *)p->h_addr)).s_addr;
 	return ipAddr;
 }
-//另外一种添加IP过滤规则的格式
-//ipaccess : strIP指定的IP是否可访问 0:不可访问 1:可访问
-//strIP格式: <ip>[:<端口>],<ip>[:<端口>],<ip>[:<端口>]
-//例如: 192.168.0.12,192.169.1.*,192.166.*.5 
-//          *仅用来匹配IP地址4段号码中的一个段.下列写法不支持192.168.1.1*
+//Alternative format for adding IP filter rules
+//ipaccess: whether the IPs in strIP are accessible; 0=not accessible, 1=accessible
+//strIP format: <ip>[:<port>],<ip>[:<port>],<ip>[:<port>]
+//Example: 192.168.0.12,192.169.1.*,192.166.*.5 
+//          * only matches one octet of the IP address. Notation like 192.168.1.1* is not supported
 //		www.sina.com.cn,192.168.0.3
 long iprules::addRules_new(RULETYPE rt,int ipaccess,const char *strIP)
 {
-	m_rules.clear();//清空所有过滤规则
+	m_rules.clear();//Clear all filter rules
 	m_defaultEnabled=true;
 	if(strIP==NULL || strIP[0]==0) return 0;
 	m_defaultEnabled=(ipaccess==0)?true:false;
@@ -275,19 +275,19 @@ long iprules::addRules_new(RULETYPE rt,int ipaccess,const char *strIP)
 	while(true)
 	{
 		if(p0) *(char *)p0=0;
-		while(*ptrBegin==' ') ptrBegin++; //清除前导空格
-		p4=strchr(ptrBegin,':'); //指向端口
+		while(*ptrBegin==' ') ptrBegin++; //Strip leading spaces
+		p4=strchr(ptrBegin,':'); //Points to the port
 		unsigned long iport=0;
 		if(p4 && atoi(p4+1)>0 ) iport=atoi(p4+1);
 		
 		IPRule iprule; char ipr[64];
-		//判断ptrBegin指向的是否为主机域名
+		//Check whether ptrBegin points to a hostname
 		unsigned long IPAddr=Host2IP(ptrBegin);
-		if(IPAddr!=INADDR_NONE) //指向的是域名
+		if(IPAddr!=INADDR_NONE) //Points to a domain name
 		{
 			iprule.IPAddr_src=IPAddr;
 			iprule.IPMask_src=INADDR_NONE; //255.255.255.255	
-		}else{//指向的可能是IP
+		}else{//May point to an IP address
 			p1=p2=p3=p4=NULL;
 			p1=strchr(ptrBegin,'.');
 			if(p1) p2=strchr(p1+1,'.');
@@ -332,7 +332,7 @@ long iprules::addRules_new(RULETYPE rt,int ipaccess,const char *strIP)
 /*
 long iprules::addRules_new(RULETYPE rt,int ipaccess,const char *strIP)
 {
-	m_rules.clear();//清空所有过滤规则
+	m_rules.clear();//Clear all filter rules
 	m_defaultEnabled=true;
 	if(strIP==NULL || strIP[0]==0) return 0;
 	m_defaultEnabled=(ipaccess==0)?true:false;

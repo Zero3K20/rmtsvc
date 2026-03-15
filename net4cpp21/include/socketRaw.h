@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketRaw.h
-   *    DESCRIPTION:Raw socket 类的定义
+   *    DESCRIPTION:Raw socket class definition
    *
    *    AUTHOR:yyc
    *
@@ -32,33 +32,33 @@ namespace net4cpp21
 			return;
 		}
 		
-		//生成校验和
+		//Generate checksum
 		static unsigned short checksum(unsigned short *buffer, int size);
-	private: //禁止copy和赋值
+	private: //Disable copy and assignment
 		socketRaw(socketRaw &sockRaw){ return; }
 		socketRaw & operator = (socketRaw &sockRaw) { return *this; }
 
 	protected:
-		//解析IP 包,成功返回用户数据的在buf中的指针，错误的ip包则返回NULL
-		//buf --- 收到的IP包字节流，len --- 字节流长度
-		//当数据包解码成功后，包中真正数据的指针有此函数返回，数据的长度可由datalen函数返回
+		//Decode IP packet; returns pointer to user data in buf on success, NULL for invalid packet
+		//buf --- received IP packet byte stream; len --- byte stream length
+		//After successful decoding, this function returns a pointer to the actual data; data length is obtained via the datalen function
 		char * decode_ipv4(char *buf,int len);
 		unsigned short dataLen_ipv4();
-		//将指定的用户数据编码为IP包字节流,返回编码后的字节流大小
-		//data --- 用户数据指针, datalen --- 用户数据长度
-		//encodebuf --- 存放编码后的ip包字节流
+		//Encode user data into an IP packet byte stream; returns the encoded stream size
+		//data --- pointer to user data; datalen --- user data length
+		//encodebuf --- buffer for the encoded IP packet byte stream
 		int encode_ipv4(const char *data,int datalen,char *encodebuf);
 		void ConstructIPV4Header(unsigned char  ucProtocol,unsigned char  ucHeaderLength);
-		//bindip==NULL 绑定所有IP，==""绑定本机第一个ip
-		//否则绑定指定的ip,创建Raw socket
+		//bindip==NULL binds all IPs; =="" binds the first local IP
+		//Otherwise bind to the specified IP and create a Raw socket
 		bool create(int IPPROTO_type,const char *bindip);
-		//设置/清除指定fd的混杂模式
-		//成功返回SOCKSERR_OK(0)否则错误
+		//Set or clear promiscuous mode on the specified fd
+		//Returns SOCKSERR_OK(0) on success, otherwise an error code
 		SOCKSRESULT Set_Promisc(bool b);
 		
 		//Time to live
 		unsigned char m_TTL;
-		std::string m_SourceAddress;//源IP默认为本机第一个IP
+		std::string m_SourceAddress;//Source IP defaults to the first local IP
 		IpV4Header m_IpV4Header;//IP Header
 		union
 		{
@@ -72,7 +72,7 @@ namespace net4cpp21
 #endif
 
 /*
-		//得到IP头结构指针
+		//Get pointer to the IP header structure
 		LPIpV4Header get_ipHeaderPtr()
 		{
 			return &m_IpV4Header;

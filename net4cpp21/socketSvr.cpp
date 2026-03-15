@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketSvr.cpp
-   *    DESCRIPTION:TCP 异步服务类类的实现
+   *    DESCRIPTION:Implementation of the TCP asynchronous server class
    *
    *    AUTHOR:yyc
    *
@@ -21,23 +21,23 @@ using namespace net4cpp21;
 
 socketSvr :: socketSvr()
 {
-	m_strSvrname="Listen-server";//侦听服务
+	m_strSvrname="Listen-server";//Listen server
 	m_curConnection=0;
 	m_maxConnection=0;
-	m_lAcceptTimeOut=500; //500ms 异步Accept超时时间,设置默认accept延时等待时长
-	//==-1则阻塞等待直到一个连接，实际测试发现如果设置为-1,假如Listenning socket有一个
-	//对方未关闭的连接，此时即使关闭了Listen Socket但accept还是会一直阻塞。
-	//因此m_lAcceptTimeOut最好不要设置为-1
+	m_lAcceptTimeOut=500; //500ms async Accept timeout; sets the default accept wait delay
+	//==-1 blocks until a connection arrives; testing shows that with -1, if the listening socket has a
+	//connection that the peer has not closed, closing the Listen Socket still leaves accept blocking.
+	//Therefore m_lAcceptTimeOut should not be set to -1
 	m_bReuseAddr=FALSE;
 }
 
 socketSvr :: ~socketSvr()
 {
 	Close();
-	m_threadpool.join();//不在Close时等待线程结束，防止在回调中调用Close
+	m_threadpool.join();//Do not wait for thread completion at Close to avoid calling Close from within a callback
 }
 
-//启动服务
+//Start the service
 SOCKSRESULT socketSvr::Listen(int port,BOOL bReuseAddr/*=FALSE*/,const char *bindIP/*=NULL*/)
 {
 	m_bReuseAddr=bReuseAddr;
@@ -46,15 +46,15 @@ SOCKSRESULT socketSvr::Listen(int port,BOOL bReuseAddr/*=FALSE*/,const char *bin
 		RW_LOG_DEBUG("Failed to Listen at %d,error=%d\r\n",port,sr);
 		return sr;
 	}
-	//服务端口启动成功，开始启动Accept服务线程
+	//Service port started successfully; launching Accept service thread
 	if( m_threadpool.addTask((THREAD_CALLBACK *)&listenThread,(void *)this,0)!=0 )
 		return sr;
 	
-	Close();//服务线程启动失败
+	Close();//Service thread failed to start
 	return SOCKSERR_THREAD;
 }
 
-//启动服务
+//Start the service
 SOCKSRESULT socketSvr::Listen(int startport,int endport,BOOL bReuseAddr/*=FALSE*/,const char *bindIP/*=NULL*/)
 {
 	m_bReuseAddr=bReuseAddr;
@@ -65,15 +65,15 @@ SOCKSRESULT socketSvr::Listen(int startport,int endport,BOOL bReuseAddr/*=FALSE*
 		RW_LOG_DEBUG("Failed to Listen at %d-%d,error=%d\r\n",startport,endport,sr);
 		return sr;
 	}
-	//服务端口启动成功，开始启动Accept服务线程
+	//Service port started successfully; launching Accept service thread
 	if( m_threadpool.addTask((THREAD_CALLBACK *)&listenThread,(void *)this,0)!=0 )
 		return sr;
 	
-	Close();//服务线程启动失败
+	Close();//Service thread failed to start
 	return SOCKSERR_THREAD;
 }
 
-//侦听线程
+//Listen thread
 void socketSvr :: listenThread(socketSvr *psvr)
 {
 	if(psvr==NULL) return;
@@ -85,9 +85,9 @@ void socketSvr :: listenThread(socketSvr *psvr)
 	RW_LOG_DEBUG("[socketSvr] %s has been started,port=%d\r\n",
 				psvr->m_strSvrname.c_str(),svrPort);
 #endif
-	//yyc add 2007-03-29 如果本服务绑定端口时指定了可重用已绑定端口
-	//并且本服务绑定了某IP,及没有绑定127.0.0.1。那么对不可访问的访问者
-	//重定向到老的服务，即127.0.0.1:<本端口>
+	//yyc add 2007-03-29 If this service bound the port with SO_REUSEADDR
+	//and bound to a specific IP (not 127.0.0.1), redirect inaccessible visitors
+	//to the old service at 127.0.0.1:<local port>
 	bool bReirectOldSvr=( psvr->getLocalip()!=INADDR_ANY && psvr->m_bReuseAddr==SO_REUSEADDR)?true:false;
 	socketTCP *psock=NULL;
 	while(psvr->m_sockstatus==SOCKS_LISTEN)
@@ -101,8 +101,8 @@ void socketSvr :: listenThread(socketSvr *psvr)
 			}
 		}
 		SOCKSRESULT sr=psvr->Accept(psvr->m_lAcceptTimeOut,psock);
-		if(sr==SOCKSERR_TIMEOUT){ psvr->onIdle(); continue; } //超时
-		if(sr<0) break; //发生错误
+		if(sr==SOCKSERR_TIMEOUT){ psvr->onIdle(); continue; } //Timeout
+		if(sr<0) break; //An error occurred
 
 		RW_LOG_DEBUG("[socketSvr] one connection (%s:%d) coming in\r\n",psock->getRemoteIP(),psock->getRemotePort());
 		if(psvr->m_srcRules.check(psock->getRemoteip(),psock->getRemotePort(),RULETYPE_TCP))
@@ -110,7 +110,7 @@ void socketSvr :: listenThread(socketSvr *psvr)
 			if( psvr->m_threadpool.addTask((THREAD_CALLBACK *)&doacceptTask,(void *)psock,THREADLIVETIME)!=0 )
 			{	psock=NULL; continue; }
 		}
-		else if(bReirectOldSvr) //将指定得请求重新定向到重用得服务上
+		else if(bReirectOldSvr) //Redirect the specified request to the reused service
 		{
 			if( psvr->m_threadpool.addTask((THREAD_CALLBACK *)&doRedirectTask,(void *)psock,THREADLIVETIME)!=0 )
 			{	psock=NULL; continue; }
@@ -123,7 +123,7 @@ void socketSvr :: listenThread(socketSvr *psvr)
 	RW_LOG_DEBUG("[socketSvr] %s has been ended,port=%d!\r\n",psvr->m_strSvrname.c_str(),svrPort);
 }
 
-//新连接到达处理任务
+//Task for handling a new incoming connection
 void socketSvr :: doacceptTask(socketTCP *psock)
 {
 	if(psock==NULL) return;
@@ -142,14 +142,14 @@ void socketSvr :: doacceptTask(socketTCP *psock)
 	delete psock; return;
 }
 
-//yyc add 2007-03-29 允许对系统得某个服务端口进行重用
+//yyc add 2007-03-29 Allow reuse of a system service port
 #define MAX_TRANSFER_BUFFER 2048
 #define MAX_CONNECT_TIMEOUT 5
 void socketSvr :: doRedirectTask(socketTCP *psock)
 {
 	if(psock==NULL) return;
 	socketSvr *psvr=(socketSvr *)psock->parent();
-	//连接重被复用的服务端口地址:127.0.0.1
+	//Connect to the reused service port at address: 127.0.0.1
 	socketTCP *ppeer=new socketTCP;
 	if(ppeer==NULL) { delete psock; return; }
 	if( ppeer->Connect("127.0.0.1",psvr->getLocalPort(),MAX_CONNECT_TIMEOUT)>0)
@@ -164,27 +164,27 @@ void socketSvr :: doRedirectTask(socketTCP *psock)
 		return;
 	}
 
-	char buf[MAX_TRANSFER_BUFFER]; //开始转发
+	char buf[MAX_TRANSFER_BUFFER]; //Start forwarding
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读客户端发送的数据
+		//Read data sent by the client
 		iret=psock->Receive(buf,MAX_TRANSFER_BUFFER-1,-1);
-		if(iret<0) break; //==0表明接收数据流量超过限制
+		if(iret<0) break; //==0 indicates the receive rate exceeds the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		iret=ppeer->Send(iret,buf,-1);
 		if(iret<0) break;
 	}//?while
-	ppeer->Close(); //等待transThread线程结束
+	ppeer->Close(); //Wait for the transThread thread to finish
 	while(ppeer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
 	
 	delete psock; delete ppeer;
 	return;
 }
 
-//转发线程
+//Forwarding thread
 void socketSvr :: transThread(socketTCP *psock)
 {
 	if(psock==NULL) return;
@@ -192,20 +192,20 @@ void socketSvr :: transThread(socketTCP *psock)
 	if(ppeer==NULL) return;
 //	socketSvr *psvr=(socketSvr *)ppeer->parent();
 
-	char buf[MAX_TRANSFER_BUFFER]; //开始转发
+	char buf[MAX_TRANSFER_BUFFER]; //Start forwarding
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读客户端发送的数据
+		//Read data sent by the client
 		iret=psock->Receive(buf,MAX_TRANSFER_BUFFER-1,-1);
-		if(iret<0) break; //==0表明接收数据流量超过限制
+		if(iret<0) break; //==0 indicates the receive rate exceeds the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		iret=ppeer->Send(iret,buf,-1);
 		if(iret<0) break;
 	}//?while
 	ppeer->Close(); 
-	psock->setParent(NULL); //用于此判断转发线程是否结束
+	psock->setParent(NULL); //Used to determine whether the forwarding thread has ended
 	return;
 }
