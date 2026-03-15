@@ -36,6 +36,7 @@ CNTService :: CNTService( LPCTSTR lpServiceName, LPCTSTR lpDisplayName )
 
 	OSVERSIONINFO vi;
 	vi.dwOSVersionInfoSize=sizeof(vi);  // init this.
+#pragma warning(suppress: 4996)
 	GetVersionEx(&vi);      //lint !e534
 	m_bWinNT = (vi.dwPlatformId == VER_PLATFORM_WIN32_NT);
 }

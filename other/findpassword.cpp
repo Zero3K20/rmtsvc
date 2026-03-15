@@ -102,20 +102,20 @@ BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 	memset(UserName, 0, sizeof(UserName));
 	memset(UserDomain, 0, sizeof(UserDomain));
 	if(strDomain)
-		swprintf(UserDomain,L"%S",strDomain);
+		swprintf_s(UserDomain, _countof(UserDomain), L"%S", strDomain);
 	else
 	{
 		//以服务方式运行时将不能获得用户名和域名，因为服务和用户无关
 		//通过环境变量获得用户名和域名
 		if(::GetEnvironmentVariableW(L"USERDOMAIN", UserDomain, 0x400)==0)
-			swprintf(UserDomain,L"%S",Wutils::computeName());
+			swprintf_s(UserDomain, _countof(UserDomain), L"%S", Wutils::computeName());
 	}
 	if(strAccount)
-		swprintf(UserName,L"%S",strAccount);
+		swprintf_s(UserName, _countof(UserName), L"%S", strAccount);
 	else
 	{	//此时如果用::GetUserName获取得到的是SYSTEM
 		if(::GetEnvironmentVariableW(L"USERNAME", UserName, 0x400)==0)
-			swprintf(UserName,L"%S","Administrator");
+			swprintf_s(UserName, _countof(UserName), L"%S", "Administrator");
 	}//?if(strAccount)...else
 
 	BOOL FoundPasswordPage=FALSE;
