@@ -738,6 +738,7 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 	
 	//开始进行邮件附件的处理
 	int fileAttachs=0;//有效附件数
+	int i;
 	for(i=0; i<m_attachs.size();i++)
 	{//如果附件文件名的开头为<>,则<>中的类容代表contentID
 		const char *ptr=m_attachs[i].c_str();
