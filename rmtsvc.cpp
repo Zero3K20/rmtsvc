@@ -95,7 +95,8 @@ bool readParamfromfile(std::string &strret,const char *strexefile)
 	//读出配置参数的长度，不包含标志字符和本域长度
 	::fseek(fp,0-sizeof(long),SEEK_END);
 	::fread((void *)modalname,sizeof(long),1,fp);
-	for(int i=0;i<sizeof(long);i++)
+	int i;
+	for(i=0;i<sizeof(long);i++)
 		modalname[i]^=*( (char *)&fileparam_flags+i );
 	long paramlen=*((long *)modalname); //获取参数长度
 	bool b=false;
@@ -142,7 +143,8 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 	memcpy((void *)pstart,(const void *)&fileparam_flags,sizeof(fileparam_flags));
 	pstart+=sizeof(fileparam_flags);
 	paramlen=cCoder::base64_encode((char *)param,paramlen,pstart);
-	for(int i=0;i<paramlen;i++)
+	int i;
+	for(i=0;i<paramlen;i++)
 		pstart[i]^=*( (char *)&fileparam_flags+i%sizeof(fileparam_flags) );
 	pstart+=paramlen;
 	for(i=0;i<sizeof(long);i++)

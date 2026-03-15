@@ -247,7 +247,11 @@ bool webServer::httprsp_ftpsets(socketTCP *psock,httpRequest &httpreq,httpRespon
 	if(pftpsvr->status()==SOCKS_LISTEN) //服务已运行
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",pftpsvr->getLocalPort());
+#ifdef _SURPPORT_OPENSSL_
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ifssl>%d</ifssl>",pftpsvr->ifSSL());
+#else
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ifssl>0</ifssl>");
+#endif
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>%d</connected>",pftpsvr->curConnection());
 		t=pftpsvr->getStartTime(); ltime=localtime(&t);
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d年%02d月%02d日 %02d:%02d:%02d</starttime>",

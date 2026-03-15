@@ -40,7 +40,8 @@ httpSession::httpSession()
 bool httpSession::SetSessionID(const char *strID)
 {
 	if(strID==NULL || strID[0]==0) return false;
-	for(int i=0;i<23,*strID;i++) m_sessionID[i]=*strID++;
+	int i;
+	for(i=0;i<23 && *strID;i++) m_sessionID[i]=*strID++;
 	m_sessionID[i]=0; return true;
 }
 

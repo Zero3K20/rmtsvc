@@ -173,12 +173,14 @@ void mportTCP :: onAccept(socketTCP *psock)
 	RW_LOG_DEBUG("Success to connect Mapped server(%s)\r\n",strHost);
 	if(m_ssltype==SSLSVR_TCPSVR)
 	{//如果应用服务是SSL加密服务且映射后为普通服务,加载客户端证书
+#ifdef _SURPPORT_OPENSSL_
 		ppeer->setCacert(this,true); //从server复制客户端证书
 		ppeer->initSSL(false,NULL); //初始化SSL客户端
 		if(!ppeer->SSL_Associate()){ 
 			RW_LOG_DEBUG("Failed to SSL_Associate,Mapped server(%s)\r\n",strHost);
 			ppeer->Close(); delete ppeer; return; 
 		}
+#endif
 	}//?else if(m_ssltype==SSLSVR_TCPSVR)
 	//设置限制带宽
 	psock->setSpeedRatio(m_maxratio*1024,m_maxratio*1024);
@@ -410,8 +412,13 @@ void mportTCP :: xml_info_mtcp(cBuffer &buffer)
 	if(buffer.str()==NULL) return;
 	if(this->status()==SOCKS_LISTEN)
 	{
+#ifdef _SURPPORT_OPENSSL_
+		int bssl=((this->ifSSL())?1:0), bsslv=((this->ifSSLVerify())?1:0);
+#else
+		int bssl=0, bsslv=0;
+#endif
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrport>%d</svrport><ifssl>%d</ifssl><ifsslv>%d</ifsslv>",
-			this->getLocalPort(),((this->ifSSL())?1:0),((this->ifSSLVerify())?1:0) );
+			this->getLocalPort(),bssl,bsslv);
 	}else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrport>0</svrport>");
 	
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>%d</connected>",this->curConnection());
@@ -423,7 +430,8 @@ void mportTCP :: xml_info_mtcp(cBuffer &buffer)
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<appsvr>");
 	if(m_appSvr.size()>0){
 		int oldLen=buffer.len();
-		for(int i=0;i<m_appSvr.size()-1;i++)
+		int i;
+		for(i=0;i<(int)m_appSvr.size()-1;i++)
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s:%d,",m_appSvr[i].first.c_str(),m_appSvr[i].second);
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s:%d",m_appSvr[i].first.c_str(),m_appSvr[i].second);
 		appsvr.assign(buffer.str()+oldLen);

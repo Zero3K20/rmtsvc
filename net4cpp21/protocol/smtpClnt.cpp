@@ -69,7 +69,8 @@ MXINFO *dnsMX(const char *dnssvr,int dnsport,const char *domainMX)
 		if(sr==DNS_RCODE_ERR_OK) //解析MX邮箱域名成功
 		{
 			if( pdnsh->answers<=0) continue; //继续尝试
-			for(int i=0;i<pdnsh->answers;i++)
+			int i;
+			for(i=0;i<pdnsh->answers;i++)
 			{
 				PDNS_RESPONSE pdnsr=dnsc.resp_dnsr(i);
 				if(pdnsr->type==T_MX)

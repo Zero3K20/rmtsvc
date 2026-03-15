@@ -49,7 +49,9 @@ void vidcManager :: mtcpl_Start()
 			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL解密服务,设置客户端证书
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
+#ifdef _SURPPORT_OPENSSL_
 				ptr_mtcp->setCacert(clicert.c_str(),clikey.c_str(),p->clikeypswd.c_str(),false,NULL,NULL);
+#endif
 			}
 			SOCKSRESULT sr=ptr_mtcp->Start(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),
 				g_strCaCert.c_str(),g_strCaCRL.c_str());
@@ -146,7 +148,9 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL解密服务,设置客户端证书
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
+#ifdef _SURPPORT_OPENSSL_
 				ptr_mtcp->setCacert(clicert.c_str(),clikey.c_str(),p->clikeypswd.c_str(),false,NULL,NULL);
+#endif
 			}
 		}
 		SOCKSRESULT sr=ptr_mtcp->Start(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),

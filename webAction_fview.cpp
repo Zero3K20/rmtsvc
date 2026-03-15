@@ -660,7 +660,7 @@ const char * getFileType(const char *filename)
 {
 	static string ftype; ftype="文件";
 	if(filename==NULL || filename[0]==0) return ftype.c_str();
-	char *ptr=strrchr(filename,'.');
+	const char *ptr=strrchr(filename,'.');
 	if(ptr==NULL) return ftype.c_str();
 	ftype.assign(ptr+1); ftype.append(" 文件");
 	HKEY  hKEY; char regPath[255]; regPath[0]=0;
@@ -690,7 +690,7 @@ const char * getFileOpmode(const char *filename)
 {
 	static string fopmode; fopmode="未知应用程序";
 	if(filename==NULL || filename[0]==0) return fopmode.c_str();
-	char *ptr=strrchr(filename,'.');
+	const char *ptr=strrchr(filename,'.');
 	if(ptr==NULL) return fopmode.c_str();
 	HKEY  hKEY; char regPath[255]; regPath[0]=0;
 	if(::RegOpenKeyEx(HKEY_CLASSES_ROOT, (LPCTSTR)ptr, 0, KEY_READ, &hKEY)==ERROR_SUCCESS)

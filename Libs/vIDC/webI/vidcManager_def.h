@@ -56,8 +56,10 @@ public:
 		//设置vIDCs的SSL证书信息，远程映射的服务需要证书信息，将从此对象获取
 		//因此vIDCs服务无法启用SSL加密，如果启用了必将根据证书设置情况要么是需要证书验证的
 		//要么是无需证书验证的，程序将不能动态决定
+#ifdef _SURPPORT_OPENSSL_
 		this->setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false
 					,g_strCaCert.c_str(),g_strCaCRL.c_str());
+#endif
 		
 		//设置IP过滤规则
 		this->rules().addRules_new(RULETYPE_TCP,m_ipaccess,m_ipRules.c_str());

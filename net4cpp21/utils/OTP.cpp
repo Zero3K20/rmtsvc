@@ -12,6 +12,7 @@
 
 //#include "../include/sysconfig.h"  
 #include "OTP.h"
+#include <cstdlib>
 
 #ifndef _NOSSL_D
 #include <openssl/crypto.h>
