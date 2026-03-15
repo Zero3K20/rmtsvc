@@ -241,7 +241,7 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 		{
 			l=(*it).first.length()+(*it).second.length()+4;
 			if(l<128) l=128; //总是保留一定的空间免得频繁分配并移动
-			if(contentBuffer.Space()<l)
+			if((int)contentBuffer.Space()<l)
 				if(contentBuffer.Resize(contentBuffer.size()+l)==NULL) break;
 			l=sprintf(contentBuffer.str()+contentBuffer.len(),"%s: %s\r\n",
 				(*it).first.c_str(),(*it).second.c_str());
@@ -353,7 +353,7 @@ bool httpRequest::recv_remainder(socketTCP *psock,long receiveBytes)
 	long l,remainBytes=receiveBytes;
 	while(	!m_httpreq_bReceiveALL )
 	{
-		if(m_httpreq_lContentlen>m_httpreq_postdata.len())
+		if(m_httpreq_lContentlen>(long)m_httpreq_postdata.len())
 		{
 			if(m_httpreq_postdata.Space()<1024) //预分配一定的空间
 				if( m_httpreq_postdata.Resize(m_httpreq_postdata.size()+1024)==NULL ) 
@@ -638,7 +638,7 @@ inline void httpRequest::encodeURL(cBuffer &buf)
 {
 	int l=cCoder::MimeEncodeSize(m_httpreq_strUrl.length());
 	if(l<128) l=128; //总是保留一定的空间免得频繁分配并移动
-	if(buf.Space()<l)
+	if((int)buf.Space()<l)
 		if(buf.Resize(buf.size()+l)==NULL) return;
 	l=cCoder::mime_encodeURL(m_httpreq_strUrl.c_str(),m_httpreq_strUrl.length(),
 		buf.str()+buf.len());
@@ -711,7 +711,7 @@ void httpRequest::encodeParam(cBuffer &buf,char delm,
 		int l=cCoder::MimeEncodeSize((*it).first.length())+
 			cCoder::MimeEncodeSize((*it).second.length())+4; //+1;
 		if(l<128) l=128; //总是保留一定的空间免得频繁分配并移动
-		if(buf.Space()<l)
+		if((int)buf.Space()<l)
 			if(buf.Resize(buf.size()+l)==NULL) break;
 
 		if(it!=maps.begin()) 

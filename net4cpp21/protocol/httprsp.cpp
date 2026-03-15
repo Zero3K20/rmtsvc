@@ -138,7 +138,7 @@ bool httpResponse::recv_remainderX(socketTCP *psock,long receiveBytes,time_t tim
 	long l,remainBytes=receiveBytes;
 	while(	!m_httprsp_bReceiveALL )
 	{
-		if(m_httprsp_lContentlen>m_httprsp_data.len())
+		if(m_httprsp_lContentlen>(long)m_httprsp_data.len())
 		{
 			if(m_httprsp_data.Space()<1024) //预分配一定的空间
 				if( m_httprsp_data.Resize(m_httprsp_data.size()+4096)==NULL ) 
@@ -678,7 +678,7 @@ void httpResponse::encodeParam(cBuffer &buf,char delm,
 		int l=cCoder::MimeEncodeSize((*it).first.length())+
 			cCoder::MimeEncodeSize((*it).second.length())+1;
 		if(l<128) l=128; //总是保留一定的空间免得频繁分配并移动
-		if(buf.Space()<l)
+		if((int)buf.Space()<l)
 			if(buf.Resize(buf.size()+l)==NULL) break;
 
 		if(it!=maps.begin()) { buf[buf.len()]=delm; buf.len()++; }

@@ -151,9 +151,9 @@ BOOL portList(cBuffer &buffer)
 					lpBuffer->table[dwSize].dwProcessId,
 					((szProcessName)?szProcessName:"OS kernel"),
 					socketBase::IP2A(lpBuffer->table[dwSize].dwLocalAddr),
-					ntohs(lpBuffer->table[dwSize].dwLocalPort),
+					ntohs((u_short)lpBuffer->table[dwSize].dwLocalPort),
 					strRemoteAddr,
-					ntohs(lpBuffer->table[dwSize].dwRemotePort),
+					ntohs((u_short)lpBuffer->table[dwSize].dwRemotePort),
 					TCP_STATE[dwState] );
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
@@ -181,7 +181,7 @@ BOOL portList(cBuffer &buffer)
 					lpBuffer1->table[dwSize].dwProcessId,
 					((szProcessName)?szProcessName:"OS kernel"),
 					socketBase::IP2A(lpBuffer1->table[dwSize].dwLocalAddr),
-					ntohs(lpBuffer1->table[dwSize].dwLocalPort) );
+					ntohs((u_short)lpBuffer1->table[dwSize].dwLocalPort) );
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 
@@ -231,9 +231,9 @@ BOOL portList(string &strret)
 			const char *szProcessName=Wutils::GetNameFromPID(lpBuffer->table[dwSize].dwProcessId);
 			len=sprintf(stmp,"%d\tTCP\t%s:%d\t%s:%d\t%s\t%s\r\n",++dwCount,
 						socketBase::IP2A(lpBuffer->table[dwSize].dwLocalAddr),
-					ntohs(lpBuffer->table[dwSize].dwLocalPort),
+					ntohs((u_short)lpBuffer->table[dwSize].dwLocalPort),
 					strRemoteAddr,
-					ntohs(lpBuffer->table[dwSize].dwRemotePort),
+					ntohs((u_short)lpBuffer->table[dwSize].dwRemotePort),
 					TCP_STATE[dwState],
 						((szProcessName)?szProcessName:"OS kernel") );
 			strret.append(stmp,len);
@@ -252,7 +252,7 @@ BOOL portList(string &strret)
 			const char *szProcessName=Wutils::GetNameFromPID(lpBuffer1->table[dwSize].dwProcessId);
 			len=sprintf(stmp,"%d\tUDP\t%s:%d\t*.*\t \t%s\r\n",++dwCount,
 						socketBase::IP2A(lpBuffer1->table[dwSize].dwLocalAddr),
-					ntohs(lpBuffer1->table[dwSize].dwLocalPort),
+					ntohs((u_short)lpBuffer1->table[dwSize].dwLocalPort),
 					((szProcessName)?szProcessName:"OS kernel") );
 			strret.append(stmp,len);
 		}//?for

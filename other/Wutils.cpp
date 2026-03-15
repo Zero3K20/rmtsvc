@@ -68,6 +68,7 @@ MSOSTYPE Wutils::winOsType()
 	MSOSTYPE ostype=MSOS_TYPE_UNKNOWED;
 	OSVERSIONINFO vi;
 	vi.dwOSVersionInfoSize=sizeof(vi);  // init this.
+#pragma warning(suppress: 4996)
 	GetVersionEx(&vi);      //lint !e534
 	sprintf(m_buffer,"Unknowed OS");
 	if(vi.dwPlatformId == VER_PLATFORM_WIN32_NT)

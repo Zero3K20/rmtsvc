@@ -57,7 +57,7 @@ void cThread::join(time_t timeout)//停止线程并等待线程结束才返回
 	if(m_thrid==0) return;
 #ifdef WIN32 //windows系统平台
 	DWORD dwMilliseconds=INFINITE;
-	if(timeout>=0) dwMilliseconds=timeout*1000;
+	if(timeout>=0) dwMilliseconds=(DWORD)(timeout*1000);
 	int res=WaitForSingleObject((HANDLE)m_thrid, dwMilliseconds);
 	if(res==WAIT_TIMEOUT) ::TerminateThread((HANDLE)m_thrid,0);
 //	if(res==WAIT_TIMEOUT){printf("aaaaaaqqqq\r\n"); ::TerminateThread((HANDLE)m_thrid,0);}
@@ -117,7 +117,7 @@ void cThreadPool :: join(time_t timeout)
 	//等待所有正执行的工作线程结束
 	if(!vec.empty()){
 		DWORD dwMilliseconds=INFINITE;
-		if(timeout>=0) dwMilliseconds=timeout*1000;
+		if(timeout>=0) dwMilliseconds=(DWORD)(timeout*1000);
 		vector<pthread_t>::iterator itVec=vec.begin();
 		for(;itVec!=vec.end();itVec++)
 		{

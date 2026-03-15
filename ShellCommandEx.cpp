@@ -171,7 +171,7 @@ BOOL listProcess(const char *filter,std::string &strRet)
 	char s[256]; int slen;
 	slen=sprintf(s,"plst - total %d process, filter: %s\r\n",vecList.size(),((filter)?filter:"") );
 	strRet.append(s); strRet.append("id\tPID\tname\r\n");
-	for(int i=0;i<vecList.size();i++)
+	for(int i=0;i<(int)vecList.size();i++)
 	{
 		slen=sprintf(s,"%d\t%u\t%s\r\n",i+1,vecList[i].first,vecList[i].second.c_str());
 		strRet.append(s);
@@ -277,7 +277,11 @@ BOOL docmd_websvc(const char *strParam,std::string &strRet,const char *strIP,con
 				((pwwwSvc->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:""));
 		if(strIP){ 
 			strRet.append(s);
+			#ifdef _SURPPORT_OPENSSL_
 			sprintf(s,"http%s://%s:%d/login?%s\r\n",(pwwwSvc->ifSSL()?"s":""),strIP,pwwwSvc->getLocalPort(),urlparam);
+#else
+			sprintf(s,"http://%s:%d/login?%s\r\n",strIP,pwwwSvc->getLocalPort(),urlparam);
+#endif
 		}
 	}
 	else sprintf(s,"Remote Service has been stopped at %s:%d\r\n",pwwwSvc->m_bindip.c_str(),pwwwSvc->m_svrport);
@@ -333,8 +337,13 @@ BOOL docmd_ftpsvc(const char *strParam,std::string &strRet)
 
 	char s[128]; //返回FTP服务的状态
 	if(pftp->status()==SOCKS_LISTEN)
+		#ifdef _SURPPORT_OPENSSL_
 		sprintf(s,"FTP Service %s has been started at %s:%d %s\r\n",((pftp->ifSSL())?"(SSL)":""),
 			pftp->getLocalIP(),pftp->getLocalPort(),((pftp->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:"") );
+#else
+		sprintf(s,"FTP Service has been started at %s:%d %s\r\n",
+			pftp->getLocalIP(),pftp->getLocalPort(),((pftp->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:"") );
+#endif
 	else sprintf(s,"FTP Service has been stopped at %s:%d\r\n",pftp->m_settings.bindip.c_str(),pftp->m_settings.svrport);
 	strRet.append(s);
 
@@ -505,7 +514,7 @@ BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 	{
 		if((*it).first!="vidcs" && (*it).first!="name" && (*it).first!="appsvr")
 		{ //去除已经处理过的
-			if( ((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //缓冲区保护
+			if( (int)((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //缓冲区保护
 			buflen+=sprintf(buf+buflen,"%s=%s ",(*it).first.c_str(),(*it).second.c_str());
 		}
 	}

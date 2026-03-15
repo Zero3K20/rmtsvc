@@ -142,8 +142,8 @@ namespace net4cpp21
 			else
 			{
                 struct  timespec t;
-				t.tv_sec = time(NULL) + seconds;
-				t.tv_nsec = seconds;//windows 系统下通过tv_nsec取得定时秒数!!!
+				t.tv_sec = (unsigned int)(time(NULL) + seconds);
+				t.tv_nsec = (long)seconds;//windows 系统下通过tv_nsec取得定时秒数!!!
 				pthread_cond_timedwait(&m_cond,m_mutex.address(),&t);
 			}
             m_mutex.unlock();

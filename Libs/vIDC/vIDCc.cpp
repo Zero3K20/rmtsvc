@@ -197,12 +197,12 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射指定的服务
 			}//?if(sbuf)
 		}//?if(pinfo->m_ssltype==SSLSVR_TCPSVR && pinfo->m_clicert!="")
 		int i;//发送修改HTTP请求头和响应头规则
-		for(i=0;i<pinfo->m_hrspRegCond.size();i++)
+		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(m_szLastResponse,"HRSP name=%s %s\r\n",mapname,pinfo->m_hrspRegCond[i].c_str());
 			sendCommand(200,m_szLastResponse,buflen);
 		}//?for(i=0;
-		for(i=0;i<pinfo->m_hreqRegCond.size();i++)
+		for(i=0;i<(int)pinfo->m_hreqRegCond.size();i++)
 		{
 			buflen=sprintf(m_szLastResponse,"HREQ name=%s %s\r\n",mapname,pinfo->m_hreqRegCond[i].c_str());
 			sendCommand(200,m_szLastResponse,buflen);
@@ -275,13 +275,13 @@ void vidcClient :: str_list_mapped(const char *vname,std::string &strini)
 			vname,(*it).first.c_str(),pinfo->m_ipaccess,pinfo->m_ipRules.c_str());
 		strini.append(buf,buflen);
 		int i;//发送修改HTTP请求头和响应头规则
-		for(i=0;i<pinfo->m_hrspRegCond.size();i++)
+		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhrsp vname=%s name=%s %s\r\n",vname,
 				(*it).first.c_str(),pinfo->m_hrspRegCond[i].c_str());
 			strini.append(buf,buflen);
 		}//?for(i=0;
-		for(i=0;i<pinfo->m_hreqRegCond.size();i++)
+		for(i=0;i<(int)pinfo->m_hreqRegCond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhrsp vname=%s name=%s %s\r\n",vname,
 				(*it).first.c_str(),pinfo->m_hreqRegCond[i].c_str());

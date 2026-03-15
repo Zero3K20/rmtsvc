@@ -62,7 +62,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	std::vector<UPnPInfo *> ::iterator it_upnpsets=upnpsets.begin();
 	for(;it_upnpsets!=upnpsets.end();it_upnpsets++){	
 		int l=(*it_upnpsets)->appdesc.length()+(*it_upnpsets)->retmsg.length();
-		if(buffer.Space()<256+l) buffer.Resize(buffer.size()+256+l);
+		if((int)buffer.Space()<256+l) buffer.Resize(buffer.size()+256+l);
 		if(buffer.str()==NULL) break;
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<upnpinfo>");
 		UPnPInfo *p=*it_upnpsets;

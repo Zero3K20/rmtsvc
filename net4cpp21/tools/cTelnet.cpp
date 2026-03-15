@@ -80,7 +80,7 @@ bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 				}//?if(buf[0]=='D'){
 				else if(buf[0]=='C' && strRet.length()>0){
 					if(curpos==-1) curpos=strRet.length();
-					if(curpos<strRet.length()){ curpos++; send_RArrow(psock); } 
+					if(curpos<(int)strRet.length()){ curpos++; send_RArrow(psock); } 
 				}//?else if(buf[0]=='C') 
 			bESC=0; }//?else if(bESC==2)
 		}else{ // yyc add 2005-06-113 //解析ESC序列 end.................
@@ -100,7 +100,7 @@ bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 			}//?else if(buf[i]=='\r'){ //收到一个换行符号
 			else if(buf[0]!='\r') { //如果=='\r'则eat it，什么都不作
 				if(buf[0]==27) bESC=1;
-				else if(curpos>=0 && curpos<strRet.length())
+				else if(curpos>=0 && curpos<(int)strRet.length())
 					strRet[curpos++]=buf[0];
 				else{ strRet.append(buf); curpos=strRet.length(); }
 				if(bEcho){ if(bEcho>0) buf[0]=bEcho; psock->Send(1,buf,-1); }

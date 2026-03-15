@@ -23,6 +23,7 @@ namespace net4cpp21
 
 	class cFtpsvr
 	{
+	public:
 		class cFtpSession //一个ftp客户端会话信息对象
 		{
 			cFtpsvr *m_psvr; //指向cFtpsvr的指针

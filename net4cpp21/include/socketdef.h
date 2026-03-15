@@ -18,10 +18,18 @@
 
 #ifdef WIN32 //windows系统平台
 	//socket errno
+	#ifndef ENOTSOCK
 	#define        ENOTSOCK        WSAEOPNOTSUPP
+	#endif
+	#ifndef ECONNRESET
 	#define        ECONNRESET      WSAECONNRESET
+	#endif
+	#ifndef ENOTCONN
 	#define        ENOTCONN        WSAENOTCONN
+	#endif
+	#ifndef EINPROGRESS
 	#define	       EINPROGRESS	WSAEINPROGRESS
+	#endif
 	//#define      EBADF           WSAENOTSOCK
 	//#define      EPIPE            WSAESHUTDOWN
 	//#define	       MSG_NOSIGNAL    0  //windows下没有此定义  //在sysconfig.h中定义

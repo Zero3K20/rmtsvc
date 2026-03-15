@@ -222,14 +222,20 @@ void vidccSession :: docmd_bind(const char *strParam)
 	ptr_mtcp->setAppsvr(ptr_appsvr,0,ptr_appdesc,apptype);
 	//从vIDCs服务获取SSL证书配置信息
 	socketTCP * ptr_vidcsSocket=(socketTCP *)m_psock_command->parent();
+#ifdef _SURPPORT_OPENSSL_
 	if(ptr_vidcsSocket) ptr_mtcp->setCacert(ptr_vidcsSocket,((bSSLVerify)?false:true) );
+#endif
 	SOCKSRESULT sr=ptr_mtcp->StartX(); //启动映射服务
 	if(sr<=0){ //启动映射服务失败
 		m_psock_command->Send(msg_err_504,sr);
 		delete ptr_mtcp; return;
 	}
 	m_tcpsets[mapname]=ptr_mtcp;
+#ifdef _SURPPORT_OPENSSL_
 	m_psock_command->Send(msg_err_ok,sr,((ptr_mtcp->ifSSLVerify())?"sslv=1":"") );
+#else
+	m_psock_command->Send(msg_err_ok,sr,"");
+#endif
 	return;
 }
 //指定映射端口的客户端验证证书 //2.5新版命令
@@ -279,8 +285,10 @@ long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long re
 		const char *ptr_key=ptr_cert+certlen;
 		const char *ptr_keypswd=ptr_key+keylen;
 		mportTCP_vidcs *ptr_mtcp=(*it_mtcp).second;
+#ifdef _SURPPORT_OPENSSL_
 		if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR)
 			ptr_mtcp->setCacert(ptr_cert,ptr_key,ptr_keypswd,true,NULL,NULL);
+#endif
 		m_psock_command->Send(sizeof(msg_ok_200)-1,msg_ok_200,-1); 
 	}else m_psock_command->Send(sizeof(msg_err_501)-1,msg_err_501,-1);
 	if(lpCertBuf!=received) delete[] lpCertBuf;

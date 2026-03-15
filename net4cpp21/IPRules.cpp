@@ -317,7 +317,7 @@ long iprules::addRules_new(RULETYPE rt,int ipaccess,const char *strIP)
 			}
 		}//?...else
 		
-		iprule.port_src=iport;
+		iprule.port_src=(unsigned short)iport;
 		iprule.ruleType=rt;
 		iprule.bEnabled=(ipaccess==0)?false:true;
 		if(iprule.IPAddr_src!=INADDR_NONE) m_rules.push_back(iprule);

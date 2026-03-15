@@ -172,7 +172,8 @@ long socketBase :: getLocalHostIP(vector<string> &vec)
 	gethostname(buf,sizeof(buf));
 	struct hostent * p=gethostbyname(buf);
 	if(p==NULL) return 0;
-	for(int i=0;p->h_addr_list[i];i++)
+	int i;
+	for(i=0;p->h_addr_list[i];i++)
 		vec.push_back( (char *)inet_ntoa(*((struct in_addr *)p->h_addr_list[i])) );
 	return i;
 }
@@ -217,13 +218,13 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	int i,retv=0;
 	struct timeval to;
 	fd_set fds; FD_ZERO(&fds);
-	for(i=0;i<len;i++)
+	for(i=0;i<(int)len;i++)
 	{
 		FD_SET(sockfds[i], &fds);
 	}
 	if ( wait_usec>0)
     {
-		to.tv_sec =wait_usec/1000000L;
+		to.tv_sec =(long)(wait_usec/1000000L);
 		to.tv_usec =wait_usec%1000000L;
     }
 	else
@@ -244,7 +245,7 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	}
 	//对于其他的错误则直接返回,交由用户处理判断
 	//有句柄可读或可写
-	for(i=0;i<len;i++)
+	for(i=0;i<(int)len;i++)
 	{
 		sockfds[i]=(FD_ISSET(sockfds[i], &fds))?1:0;
 	}
@@ -332,9 +333,10 @@ SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const c
 	if(endport<startport){ int iswap=startport; startport=endport; endport=iswap; }
 	
 	int icount=endport-startport;
+	int i;
 	if(icount<10)
 	{
-		for(int i=0;i<=icount;i++)
+		for(i=0;i<=icount;i++)
 		{
 			addr.sin_port=htons(startport+i);
 			if (bind(m_sockfd, (struct sockaddr *) &addr, sizeof(addr)) != SOCKET_ERROR )
@@ -344,7 +346,7 @@ SOCKSRESULT socketBase :: Bind(int startport,int endport,BOOL bReuseAddr,const c
 	}
 	else
 	{
-		for(int i=1;i<=10;i++)
+		for(i=1;i<=10;i++)
 		{
 			int port=startport+rand()*icount/RAND_MAX;
 			addr.sin_port=htons(port);
@@ -372,7 +374,7 @@ SOCKSRESULT socketBase::setLinger(bool bEnabled,time_t iTimeout)
 		lg.l_onoff=1;
 	else
 		lg.l_onoff=0;
-	lg.l_linger=iTimeout;//设置超时最大时间s
+	lg.l_linger=(u_short)iTimeout;//设置超时最大时间s
 	if(setsockopt(m_sockfd,SOL_SOCKET,SO_LINGER,(const char *)&lg,sizeof(lg))!=0)
 		return SOCKSERR_SETOPT;
 	return SOCKSERR_OK;

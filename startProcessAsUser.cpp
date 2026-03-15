@@ -347,8 +347,8 @@ BOOL AddAceToWindowStation(HWINSTA hwinsta, PSID psid)
       pace->Header.AceType  = ACCESS_ALLOWED_ACE_TYPE;
       pace->Header.AceFlags = CONTAINER_INHERIT_ACE |
                    INHERIT_ONLY_ACE | OBJECT_INHERIT_ACE;
-      pace->Header.AceSize  = sizeof(ACCESS_ALLOWED_ACE) +
-                   GetLengthSid(psid) - sizeof(DWORD);
+      pace->Header.AceSize  = (WORD)(sizeof(ACCESS_ALLOWED_ACE) +
+                   GetLengthSid(psid) - sizeof(DWORD));
       pace->Mask            = GENERIC_ACCESS;
 
       if (!CopySid(GetLengthSid(psid), &pace->SidStart, psid))

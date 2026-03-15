@@ -325,7 +325,7 @@ int cCoder::UU_encode(char *pSrc, unsigned int nSize, char *pDest)
 			OutPtr[1] = (unsigned int) (B[0] << 4 & 0x30) + (unsigned int) (B[1] >> 4 & 0x0F);
 			OutPtr[2] = (unsigned int) (B[1] << 2 & 0x3C) + (unsigned int) (B[2] >> 6 & 0x03);
 			OutPtr[3] = B[2] & 0x3F;
-			for (i = 0; i < 4; i++)
+			for (unsigned int i = 0; i < 4; i++)
 			{
 				if (OutPtr[i] == NULL)
 					OutPtr[i] = '`';//(unsigned char) (OutPtr[i] + 0x60);
@@ -622,7 +622,7 @@ int cCoder::utf8_encodeW(const unsigned short *buf,unsigned int nSize,char *pDes
 {
 	unsigned int i=0;
 	int pos=0;
-	if(nSize==0) nSize=stringlenW(buf);
+	if(nSize==0) nSize=stringlenW((const wchar_t *)buf);
 	for(i=0;i<nSize;i++)
 	{
 		if(buf[i]<=0x7f)
@@ -657,7 +657,7 @@ int cCoder::utf8_encode(const char *pSrc,unsigned int nSize,char *pDest)
 	unsigned short *buf=(unsigned short *)::malloc(nSize*sizeof(unsigned short));
 	if(buf==NULL) return 0;
 #ifdef WIN32
-	nSize=MultiByteToWideChar(CP_ACP,0,pSrc,nSize,buf,nSize);
+	nSize=MultiByteToWideChar(CP_ACP,0,pSrc,nSize,(LPWSTR)buf,nSize);
 #else
 	return 0;
 #endif
@@ -742,7 +742,7 @@ int cCoder::utf8_decode(const char *pSrc,unsigned int nSize,char *pDest)
 	if(len>0)
 	{//将unicode编码转化为多字节编码字符集
 #ifdef WIN32
-		len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,buf,-1,(char *)pDest,nSize,NULL,NULL);
+		len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,(LPCWSTR)buf,-1,(char *)pDest,nSize,NULL,NULL);
 		if(len>0) len--;//WideCharToMultiByte返回得长度包含结尾得null
 #else
 		len=0;

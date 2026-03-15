@@ -12,12 +12,15 @@
 
 //#include "../include/sysconfig.h"  
 #include "OTP.h"
+#include <cstdlib>
 
+#ifndef _NOSSL_D
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
    
 using namespace net4cpp21;
 
@@ -286,6 +289,7 @@ char sixword[][5]=
 "YARD",  "YARN",  "YAWL",  "YAWN",  "YEAH",  "YEAR",  "YELL",  "YOGA",
 "YOKE"   };
 
+#ifndef _NOSSL_D
 const char *OTP::md5(const char *seed,const char *passphrase,int count)
 {
 	m_buffer[0]=0; int buflen=0;
@@ -355,3 +359,7 @@ const char *OTP::md4(const char *seed,const char *passphrase,int count)
 	m_buffer[buflen]=0;
 	return m_buffer;
 }
+#else
+const char *OTP::md5(const char * /*seed*/,const char * /*passphrase*/,int /*count*/){ return NULL; }
+const char *OTP::md4(const char * /*seed*/,const char * /*passphrase*/,int /*count*/){ return NULL; }
+#endif

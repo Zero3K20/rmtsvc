@@ -100,7 +100,7 @@ extern "C" {
 # else
 #  if defined(_WIN32) || defined(OPENSSL_SYSNAME_WIN32)
 #   undef OPENSSL_SYS_UNIX
-//#   define OPENSSL_SYS_WIN32
+#   define OPENSSL_SYS_WIN32
 #  endif
 #  if defined(OPENSSL_SYSNAME_WINNT)
 #   undef OPENSSL_SYS_UNIX

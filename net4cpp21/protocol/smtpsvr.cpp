@@ -317,7 +317,7 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 	FILE *fp=::fopen(emlfile.c_str(),"wb");
 	if(fp==NULL){psock->Close(); return; }
 	::fprintf(fp,"Email body is base64 encoded\r\nFROM: %s\r\nTO: ",clientSession.m_fromemail.c_str());
-	for(int i=0;i<clientSession.m_recp.size();i++)
+	for(int i=0;i<(int)clientSession.m_recp.size();i++)
 		::fprintf(fp,"%s,",clientSession.m_recp[i].c_str());
 	::fprintf(fp,"\r\n\r\n");
 	cTime t=cTime::GetCurrentTime();

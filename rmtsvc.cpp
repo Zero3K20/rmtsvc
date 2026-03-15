@@ -95,7 +95,8 @@ bool readParamfromfile(std::string &strret,const char *strexefile)
 	//读出配置参数的长度，不包含标志字符和本域长度
 	::fseek(fp,0-sizeof(long),SEEK_END);
 	::fread((void *)modalname,sizeof(long),1,fp);
-	for(int i=0;i<sizeof(long);i++)
+	int i;
+	for(i=0;i<sizeof(long);i++)
 		modalname[i]^=*( (char *)&fileparam_flags+i );
 	long paramlen=*((long *)modalname); //获取参数长度
 	bool b=false;
@@ -142,7 +143,8 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 	memcpy((void *)pstart,(const void *)&fileparam_flags,sizeof(fileparam_flags));
 	pstart+=sizeof(fileparam_flags);
 	paramlen=cCoder::base64_encode((char *)param,paramlen,pstart);
-	for(int i=0;i<paramlen;i++)
+	int i;
+	for(i=0;i<paramlen;i++)
 		pstart[i]^=*( (char *)&fileparam_flags+i%sizeof(fileparam_flags) );
 	pstart+=paramlen;
 	for(i=0;i<sizeof(long);i++)
@@ -297,7 +299,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	{
 		char commandline[MAX_PATH]; int len=0;
 		if(!m_bDebug) len=sprintf(commandline," -s");
-		for(int i=1;i<argc;i++)
+		for(int i=1;i<(int)argc;i++)
 			len+=sprintf(commandline+len," %s",argv[i]);
 		commandline[len]=0; AutoSpy(commandline);
 	} RW_LOG_PRINT(LOGLEVEL_INFO,0,"program starting up.\r\n");
@@ -363,15 +365,15 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 		{//处理定时执行任务列表
 			time_t tNow=time(NULL);
 			struct tm * ltime=localtime(&tNow);
-			for(int i=0;i<m_tasklist.size();i++)
+			for(int i=0;i<(int)m_tasklist.size();i++)
 			{
 				TaskTimer &task=m_tasklist[i];
 				std::string sTask=task.strTask;
 				if(task.type=='t' && task.h>0)//指定间隔执行
 				{	
-					if(task.flag==0) task.flag=tStartTime;
+					if(task.flag==0) task.flag=(long)tStartTime;
 					if( (tNow-task.flag)>=task.h )
-						task.flag=tNow,parseCommand(sTask.c_str());
+						task.flag=(long)tNow,parseCommand(sTask.c_str());
 				}else if(task.type=='d'){ //每天定时执行
 					if(task.h==ltime->tm_hour && task.m==ltime->tm_min)
 					{	

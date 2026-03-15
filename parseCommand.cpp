@@ -471,7 +471,7 @@ int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxS
 	const char *ptr=strchr(str,delm);
 	while(true)
 	{
-		if(maxSplit>0 && vec.size()>=maxSplit)
+		if(maxSplit>0 && (int)vec.size()>=maxSplit)
 		{
 			vec.push_back(str); break;
 		}

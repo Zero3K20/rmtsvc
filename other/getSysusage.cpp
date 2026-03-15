@@ -62,6 +62,7 @@ int Wutils :: getCPUusage()
 	int retv=0;
 	OSVERSIONINFO vi;
 	vi.dwOSVersionInfoSize=sizeof(vi);
+#pragma warning(suppress: 4996)
 	::GetVersionEx(&vi); 
 	if(vi.dwPlatformId == VER_PLATFORM_WIN32_NT)
 	{//NT/win2000
