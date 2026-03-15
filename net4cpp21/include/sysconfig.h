@@ -5,8 +5,17 @@
 #ifdef WIN32 //windows系统平台
 	#pragma warning(disable:4786)
 	#pragma warning(disable:4503)
-	#include <windows.h> //包含windows的头文件
-	#define	MSG_NOSIGNAL    0  //windows下没有此定义
+	#ifndef _CRT_SECURE_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+	#endif
+	#ifndef _CRT_NONSTDC_NO_WARNINGS
+	#define _CRT_NONSTDC_NO_WARNINGS
+	#endif
+	#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+	#define _WINSOCK_DEPRECATED_NO_WARNINGS
+	#endif
+	#include <windows.h> //锟斤拷锟斤拷windows锟斤拷头锟侥硷拷
+	#define	MSG_NOSIGNAL    0  //windows锟斤拷没锟叫此讹拷锟斤拷
 	
 	#define strcasecmpW _wcsicmp
 	#define strncasecmpW _wcsnicmp
@@ -30,14 +39,14 @@
 	#define strprintf sprintf
 	#define fileopen fopen
 	#endif
-#elif defined MAC //暂时不支持
+#elif defined MAC //锟斤拷时锟斤拷支锟斤拷
 	typedef unsigned short WCHAR;
 	//...
 #else  //unix/linux平台
-	//Sun unix下没有定义此常量，linux下在/usr/include/bits/socket.h中定义有此常量
+	//Sun unix锟斤拷没锟叫讹拷锟斤拷顺锟斤拷锟斤拷锟絣inux锟斤拷锟斤拷/usr/include/bits/socket.h锟叫讹拷锟斤拷锟叫此筹拷锟斤拷
 	//EPIPE  The local end has been shut down on a connection oriented socket.  
 	//In this case the  process  will  also receive a SIGPIPE unless MSG_NOSIGNAL is set.
-	//如不保护，将导致程序发生broken pipe错误
+	//锟界不锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟铰筹拷锟斤拷锟斤拷broken pipe锟斤拷锟斤拷
 	#define MSG_NOSIGNAL 0x4000	
 
 	typedef wchar_t WCHAR;

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="nossl Release|Win32">
+      <Configuration>nossl Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{E02C69C4-B8D9-4889-B3C4-8C349B65856F}</ProjectGuid>
+    <RootNamespace>net4cpp21</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <TargetName>net4cpp21_d</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <TargetName>net4cpp21</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'">
+    <OutDir>.\nossl_Release\</OutDir>
+    <IntDir>.\nossl_Release\</IntDir>
+    <TargetName>net4cpp21_nossl</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <Lib>
+      <OutputFile>..\libs\bin\net4cpp21_d.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <Lib>
+      <OutputFile>..\libs\bin\net4cpp21.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_NOSSL_D;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <Lib>
+      <OutputFile>..\libs\bin\net4cpp21_nossl.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="utils\Buffer.cpp" />
+    <ClCompile Include="utils\cCmdShell.cpp" />
+    <ClCompile Include="utils\cCoder.cpp" />
+    <ClCompile Include="utils\cLogger.cpp" />
+    <ClCompile Include="tools\cTelnet.cpp" />
+    <ClCompile Include="utils\cThread.cpp" />
+    <ClCompile Include="utils\cTime.cpp" />
+    <ClCompile Include="protocol\dnsclnt.cpp" />
+    <ClCompile Include="protocol\ftpclnt.cpp" />
+    <ClCompile Include="protocol\ftpsvr.cpp" />
+    <ClCompile Include="protocol\ftpsvr_docmd.cpp" />
+    <ClCompile Include="protocol\httpclnt.cpp" />
+    <ClCompile Include="protocol\httpreq.cpp" />
+    <ClCompile Include="protocol\httprsp.cpp" />
+    <ClCompile Include="protocol\httpsvr.cpp" />
+    <ClCompile Include="protocol\httpsvr_response.cpp" />
+    <ClCompile Include="IPRules.cpp" />
+    <ClCompile Include="tools\mapport.cpp" />
+    <ClCompile Include="utils\OTP.cpp" />
+    <ClCompile Include="protocol\proxyclnt.cpp" />
+    <ClCompile Include="protocol\proxysvr.cpp" />
+    <ClCompile Include="protocol\proxysvr_https.cpp" />
+    <ClCompile Include="protocol\proxysvr_socks4.cpp" />
+    <ClCompile Include="protocol\proxysvr_socks5.cpp" />
+    <ClCompile Include="protocol\smtpClnt.cpp" />
+    <ClCompile Include="protocol\smtpsvr.cpp" />
+    <ClCompile Include="tools\sniffer.cpp" />
+    <ClCompile Include="protocol\sntpclnt.cpp" />
+    <ClCompile Include="socketBase.cpp" />
+    <ClCompile Include="protocol\socketIcmp.cpp" />
+    <ClCompile Include="socketRaw.cpp" />
+    <ClCompile Include="socketSvr.cpp" />
+    <ClCompile Include="socketTcp.cpp" />
+    <ClCompile Include="socketUdp.cpp" />
+    <ClCompile Include="protocol\upnp.cpp" />
+    <ClCompile Include="utils\utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Buffer.h" />
+    <ClInclude Include="utils\cCmdShell.h" />
+    <ClInclude Include="include\cCoder.h" />
+    <ClInclude Include="include\cLogger.h" />
+    <ClInclude Include="include\cMutex.h" />
+    <ClInclude Include="include\cTelnet.h" />
+    <ClInclude Include="include\cThread.h" />
+    <ClInclude Include="utils\cTime.h" />
+    <ClInclude Include="include\dnsclnt.h" />
+    <ClInclude Include="include\dnsdef.h" />
+    <ClInclude Include="include\ftpclnt.h" />
+    <ClInclude Include="include\ftpdef.h" />
+    <ClInclude Include="include\ftpsvr.h" />
+    <ClInclude Include="include\Handle.h" />
+    <ClInclude Include="include\httpclnt.h" />
+    <ClInclude Include="include\httpdef.h" />
+    <ClInclude Include="include\httpreq.h" />
+    <ClInclude Include="include\httprsp.h" />
+    <ClInclude Include="include\httpsvr.h" />
+    <ClInclude Include="include\icmpdef.h" />
+    <ClInclude Include="include\ipdef.h" />
+    <ClInclude Include="include\IPRules.h" />
+    <ClInclude Include="include\mapport.h" />
+    <ClInclude Include="utils\OTP.h" />
+    <ClInclude Include="include\proxyclnt.h" />
+    <ClInclude Include="include\proxydef.h" />
+    <ClInclude Include="include\proxysvr.h" />
+    <ClInclude Include="include\smtpclnt.h" />
+    <ClInclude Include="include\smtpdef.h" />
+    <ClInclude Include="include\smtpsvr.h" />
+    <ClInclude Include="include\sniffer.h" />
+    <ClInclude Include="include\sntpclnt.h" />
+    <ClInclude Include="include\sntpdef.h" />
+    <ClInclude Include="include\socketBase.h" />
+    <ClInclude Include="include\socketdef.h" />
+    <ClInclude Include="include\socketIcmp.h" />
+    <ClInclude Include="include\socketRaw.h" />
+    <ClInclude Include="include\socketSvr.h" />
+    <ClInclude Include="include\socketTcp.h" />
+    <ClInclude Include="include\socketUdp.h" />
+    <ClInclude Include="include\stundef.h" />
+    <ClInclude Include="include\sysconfig.h" />
+    <ClInclude Include="include\upnp.h" />
+    <ClInclude Include="include\upnpdef.h" />
+    <ClInclude Include="utils\utils.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
