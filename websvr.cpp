@@ -43,14 +43,14 @@ bool webServer :: Start()
 			setCacert(NULL,NULL,NULL,true,NULL,NULL); //use built-in certificate
 		else if(m_bSSLverify)
 			setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,
-			g_strCaCert.c_str(),g_strCaCRL.c_str()); //使用用户指定的证书和CRL
+			g_strCaCert.c_str(),g_strCaCRL.c_str()); //use user-specified certificate and CRL
 		else setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,NULL,NULL);
 		this->initSSL(true,NULL);
 	}
 #endif
 	
 	const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
-	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许端口重用
+	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//allow port reuse if an IP is bound
 	SOCKSRESULT sr=Listen( ((m_svrport<0)?0:m_svrport) ,bReuseAddr,ip);
 	return (sr>0)?true:false;
 }
@@ -76,33 +76,33 @@ void webServer :: setRoot(const char *rpath,long lAccess,const char *defaultPage
 	return;
 }
 
-//如果onHttpReq返回真则表明此请求已经处理了，基类httpsvr无需再处理
-//否则转交给基类httpsvr继续处理
+//If onHttpReq returns true, this request has been handled; base class httpsvr does not need to process it further
+//Otherwise hand off to base class httpsvr to continue processing
 bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &session,
 			std::map<std::string,std::string>& application,httpResponse &httprsp)
 {
 	if(m_bPowerOff && strcasecmp(httpreq.url().c_str(),"/command")==0)
-	{//无需权限任何人都可远程执行关机重启动作
+	{//no permission required; anyone can remotely execute shutdown/restart
 		const char *ptr_cmd=httpreq.Request("cmd");
 		httprsp_command(psock,httprsp,ptr_cmd);
 		return true;
 	}
 	if(strcasecmp(httpreq.url().c_str(),"/checkcode")==0)
-	{//生成数字校验码
+	{//generate numeric verification code
 		httprsp_checkcode(psock,httprsp,session);
 		return true;
 	}
-	if(httpreq.url()=="/login") //用户发送的认证请求
+	if(httpreq.url()=="/login") //user-submitted authentication request
 	{
 		if(httprsp_login(psock,httpreq,httprsp,session)) return true;
 	}//?if(httpreq.url()=="/login")
-	//通过构造得特殊url直接下载文件，可利用下载工具下下载 //yyc add 2007-11-06
+	//download file directly via a specially constructed URL; download tools can be used //yyc add 2007-11-06
 	if(strncasecmp(httpreq.url().c_str(),"/dwfiles/",9)==0)
 	{
 		const char *ptr=strchr(httpreq.url().c_str()+9,'/');
 		if(ptr==NULL) return true; else *(char *)ptr=0;
 		httpSession *psession=this->GetSession(httpreq.url().c_str()+9);
-		if(psession==NULL) return true; else ptr++;//ptr 指向文件名
+		if(psession==NULL) return true; else ptr++;//ptr points to filename
 		long lqx=atol( (*psession)["lAccess"].c_str() );
 		if((lqx & RMTSVC_ACCESS_FILE_VIEW)==0) return true;
 		
@@ -112,7 +112,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		if(filepath[filepath.length()-1]!='\\') filepath.append("\\");
 		filepath.append(ptr);
 
-		long lstartpos,lendpos;//获取文件的范围
+		long lstartpos,lendpos;//get file range
 		int iRangeNums=httpreq.get_requestRange(&lstartpos,&lendpos,0);
 		if(iRangeNums>1){
 			long *lppos=new long[iRangeNums*2];
@@ -125,26 +125,26 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		return true;
 	}
 	
-	//判断用户是否经过认证，并获取权限
+	//check whether the user is authenticated and get their permissions
 	long lAccess=atol(session["lAccess"].c_str());
 	if(lAccess==RMTSVC_ACCESS_NONE){
-		if(m_bAnonymous){//如果当前是匿名登陆模式
+		if(m_bAnonymous){//if currently in anonymous login mode
 			session["user"]=string("Anonymous");
 			session["lAccess"]=string("-1");
 		}else if(strcasecmp(httpreq.url().c_str(),"/login.htm")!=0)
-		{//如果没有访问权限且当前访问的不是登陆页面则跳转到登陆页面
+		{//if no access permission and the current URL is not the login page, redirect to the login page
 			this->httprsp_Redirect(psock,httprsp,"/login.htm"); 
 			return true;
 		}
-	}//没有访问权限
+	}//no access permission
 	
-	if(httpreq.url()=="/"){ //跳转到默认页面
+	if(httpreq.url()=="/"){ //redirect to default page
 		httpreq.url()+=m_defaultPage;
 		this->httprsp_Redirect(psock,httprsp,httpreq.url().c_str());
 		return true;
 	}
 //----------------------------------------------------------------------------
-//-----------------------URL 处理---------------------------------------------
+//-----------------------URL handling---------------------------------------------
 	if(strcasecmp(httpreq.url().c_str(),"/capSetting")==0)
 	{
 		httprsp_capSetting(psock,httpreq,httprsp,session,((lAccess & RMTSVC_ACCESS_SCREEN_ALL)!=0) );
@@ -161,11 +161,11 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		httprsp_cmdpage(psock,httprsp,ptr_cmd);
 		return true;
 	}
-	//如果用户具有屏幕浏览查看权限
+	//if the user has screen view permission
 	if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)!=0)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/capWindow")==0)
-		{//设置是否仅仅捕获指定窗口
+		{//set whether to capture only the specified window
 			httprsp_capWindow(psock,httpreq,httprsp,session);
 			return true;
 		}
@@ -179,7 +179,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			httprsp_capDesktop(psock,httprsp,session);
 			return true;
 		}else if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)==RMTSVC_ACCESS_SCREEN_ALL)
-		{//如果用户具有完全控制权限
+		{//if the user has full control permission
 			if(strcasecmp(httpreq.url().c_str(),"/getclipboard")==0)
 			{
 				httprsp_GetClipBoard(psock,httprsp);
@@ -254,7 +254,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			}
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)!=0)
-	//如果用户具有注册表管理权限
+	//if the user has registry management permission
 	if((lAccess & RMTSVC_ACCESS_REGIST_ALL)!=0)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/reglist")==0)
@@ -309,20 +309,20 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			}
 		}//?else if( (lAccess & RMTSVC_ACCESS_REGIST_ALL)==RMTSVC_ACCESS_REGIST_ALL)
 	}//?if((lAccess & RMTSVC_ACCESS_REGIST_ALL)!=0)
-	//如果用户具有服务管理权限
+	//if the user has service management permission
 	if((lAccess & RMTSVC_ACCESS_SERVICE_ALL)!=0)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/slist")==0)
 		{
 			const char *ptr_sname=httpreq.Request("sname");
-			if(ptr_sname && //?对服务进行动作处理
+			if(ptr_sname && //?perform action on the service
 			  (lAccess & RMTSVC_ACCESS_SERVICE_ALL)==RMTSVC_ACCESS_SERVICE_ALL ) 
 				sevent(ptr_sname,httpreq.Request("cmd"));
 			httprsp_slist(psock,httprsp);
 			return true;
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_SERVICE_ALL)!=0) 
-	//如果用户具有telnet权限
+	//if the user has telnet permission
 	if((lAccess & RMTSVC_ACCESS_TELNET_ALL)==RMTSVC_ACCESS_TELNET_ALL)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/telnet")==0)
@@ -331,7 +331,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			return true;
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_TELNET_ALL)==RMTSVC_ACCESS_TELNET_ALL)
-	//如果用户具有FTP管理配置权限
+	//if the user has FTP management/configuration permission
 	if((lAccess & RMTSVC_ACCESS_FTP_ADMIN)==RMTSVC_ACCESS_FTP_ADMIN)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/ftpsets")==0)
@@ -350,7 +350,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			return true;
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_FTP_ADMIN)==RMTSVC_ACCESS_FTP_ADMIN)
-	//如果用户具有文件管理权限
+	//if the user has file management permission
 	if((lAccess & RMTSVC_ACCESS_FILE_ALL)!=0)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/filelist")==0)
@@ -392,7 +392,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			return true;
 		}
 		else if(strncasecmp(httpreq.url().c_str(),"/download/",10)==0)
-		{//下载指定的文件
+		{//download the specified file
 			const char *ptr_path=httpreq.Request("path");
 			if(ptr_path==NULL) return true;
 			string filepath(ptr_path);
@@ -464,7 +464,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			else if(strcasecmp(httpreq.url().c_str(),"/upload")==0)
 			{
 				HTTPREQ_CONTENT_TYPE rt=httpreq.get_contentType(NULL);
-				if(rt==HTTP_CONTENT_TEXTXML) //解析XML文件
+				if(rt==HTTP_CONTENT_TEXTXML) //parse XML file
 					httprsp_upload(psock,httpreq,httprsp,session);
 				else return false;
 				return true;
@@ -477,7 +477,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		}//?else if( (lAccess & RMTSVC_ACCESS_FILE_ALL)==RMTSVC_ACCESS_REGIST_ALL)
 	}//?if((lAccess & RMTSVC_ACCESS_FILE_ALL)!=0)
 	//-----------------------------------Proxy------------------------------------
-	//如果用户具有代理管理配置权限
+	//if the user has proxy management/configuration permission
 	if((lAccess & RMTSVC_ACCESS_VIDC_ADMIN)==RMTSVC_ACCESS_VIDC_ADMIN)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/proxysets")==0)
@@ -497,7 +497,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_FTP_ADMIN)==RMTSVC_ACCESS_FTP_ADMIN)
 	//------------------------------------vIDC-------------------------------------
-	//如果用户具有VIDC管理配置权限
+	//if the user has VIDC management/configuration permission
 	if((lAccess & RMTSVC_ACCESS_VIDC_ADMIN)==RMTSVC_ACCESS_VIDC_ADMIN)
 	{
 		if(strcasecmp(httpreq.url().c_str(),"/mportL")==0)
@@ -538,15 +538,15 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 	}//?if((lAccess & RMTSVC_ACCESS_VIDC_ADMIN)==RMTSVC_ACCESS_VIDC_ADMIN)
 
 	DWORD dwFileLen=0;
-	const char *ptrfiledata=(!m_bGetFileFromRes)?NULL: //决定是否从资源中获取文件
+	const char *ptrfiledata=(!m_bGetFileFromRes)?NULL: //determine whether to retrieve the file from resources
 							GetFileFromRes(httpreq.url().c_str()+1,dwFileLen);
 	if(ptrfiledata)
 	{
 		if(setLastModify(psock,httpreq,httprsp))
-		{//如果请求的文件比http请求中的时间新则说明被修改过，则发送否则回应文件未被修改过
+		{//if the requested file is newer than the time in the HTTP request, it has been modified -- send it; otherwise respond that the file has not been modified
 			MIMETYPE_ENUM mt=httpResponse::MimeType(httpreq.url().c_str());
-			httprsp.set_mimetype(mt); //设置MIME类型
-			httprsp.lContentLength(dwFileLen); //设置响应内容长度
+			httprsp.set_mimetype(mt); //set MIME type
+			httprsp.lContentLength(dwFileLen); //set response content length
 			httprsp.send_rspH(psock,200,"OK");
 			psock->Send(dwFileLen,ptrfiledata,-1);
 		}
@@ -555,9 +555,9 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 	return false;
 }
 
-//从资源中获取指定的文件,资源文件格式:
-//从资源文件中查找指定的文件，资源文件头两字节为YY，紧跟着两字节为文件个数，
-//12字节的保留,然后跟着n个文件描述结构,然后各个文件内容
+//Get the specified file from resources. Resource file format:
+//Find the specified file in the resource file. The first two bytes are 'YY', followed by two bytes for the file count,
+//12 bytes reserved, then n file descriptor structures, then the file contents
 typedef struct tagFILERESOURCE
 {
 	DWORD filesize;
@@ -566,8 +566,8 @@ typedef struct tagFILERESOURCE
 #include "resource.h"
 const char * webServer :: GetFileFromRes(const char *filepath,DWORD &flength)
 {
-	static const char *ptrResource=NULL; //指向资源的指针
-	if(ptrResource==NULL) //获取资源指针
+	static const char *ptrResource=NULL; //pointer to the resource data
+	if(ptrResource==NULL) //get resource pointer
 	{
 		HRSRC hrs=::FindResource(NULL,MAKEINTRESOURCE(IDR_HTMLPAGE),RT_HTML);
 		if(hrs!=NULL)
@@ -579,7 +579,7 @@ const char * webServer :: GetFileFromRes(const char *filepath,DWORD &flength)
 	}//?if(ptrResource==NULL)
 	if(ptrResource==NULL) return NULL;
 	if(*(short *)ptrResource!=0x5959) return NULL;
-	//获取文件个数
+	//get the file count
 	short filenums=*(short *)(ptrResource+2);
 	FILERESOURCE *ptr_fileres=(FILERESOURCE *)(ptrResource+16);
 	const char *ptr_filedata=ptrResource+16+filenums*sizeof(FILERESOURCE);
@@ -596,26 +596,26 @@ const char * webServer :: GetFileFromRes(const char *filepath,DWORD &flength)
 	return NULL;
 }
 
-//设置资源文件的最后修改日期 
+//Set the last modified date of the resource file 
 #include "net4cpp21/utils/cTime.h"
 bool webServer :: setLastModify(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	char buf[64]; 
-	sprintf(buf,"%s %s",__DATE__,__TIME__); //格式:Sep 11 2006 12:58:20
+	sprintf(buf,"%s %s",__DATE__,__TIME__); //format: Sep 11 2006 12:58:20
 	cTime ct; ct.parseDate(buf);  //ct.parseDate1(buf);
-	//判断文件是否被修改-------------- start---------------------
+	//check whether the file has been modified -------------- start---------------------
 	cTime ct0; time_t t0=0,t1=1;
 	const char *p=httpreq.Header("If-Modified-Since");
 	if(p && ct0.parseDate(p) ){
 		t0=ct0.Gettime();
-		t1=ct.Gettime()+_timezone;//进行时区调整
+		t1=ct.Gettime()+_timezone;//apply timezone adjustment
 	}//?if(p)
-	if(t1<=t0) //文件没有被修改过
+	if(t1<=t0) //file has not been modified
 	{
 		this->httprsp_NotModify(psock,httprsp);
 		return false;
 	}
-	//判断文件是否被修改--------------  end ---------------------
+	//check whether the file has been modified --------------  end ---------------------
 	ct.FormatGmt(buf,64,"%a, %d %b %Y %H:%M:%S GMT");
 	httprsp.Header()["Last-Modified"]=string(buf);
 	ct=cTime::GetCurrentTime();
@@ -624,7 +624,7 @@ bool webServer :: setLastModify(socketTCP *psock,httpRequest &httpreq,httpRespon
 	return true;
 }
 /* 
-//生成指定的HTML资源格式文件
+//generate the specified HTML resource format file
 DWORD createHTMLFILERESOURCE(std::string &htmlpath)
 {
 	WIN32_FIND_DATA finddata;
@@ -640,7 +640,7 @@ DWORD createHTMLFILERESOURCE(std::string &htmlpath)
 	filenums=0x5959; ::fwrite(&filenums,sizeof(filenums),1,fp);
 	filenums=0x0; ::fwrite(&filenums,sizeof(filenums),1,fp);
 	for(int j=0;j<6;j++) ::fwrite(&filenums,sizeof(filenums),1,fp);
-	dwret=16; //保留12字节,头总共16字节
+	dwret=16; //reserve 12 bytes; header is 16 bytes total
 	hd=::FindFirstFile(htmlpath.c_str(), &finddata);
 	if(hd==INVALID_HANDLE_VALUE){ ::fclose(fp); return 0; }
 	do{
@@ -657,7 +657,7 @@ DWORD createHTMLFILERESOURCE(std::string &htmlpath)
 			}
 		}
 	}while(::FindNextFile(hd,&finddata));
-	::FindClose(hd); htmlpath.erase(htmlpath.length()-1); //删除最后的"*"
+	::FindClose(hd); htmlpath.erase(htmlpath.length()-1); //remove the trailing "*"
 	printf("[createHRES] total %d files in %s\r\n",filenums,htmlpath.c_str());
 	::fseek(fp,2,SEEK_SET); ::fwrite(&filenums,sizeof(filenums),1,fp);
 	for(short i=0;i<filenums;i++)
