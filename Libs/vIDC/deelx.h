@@ -24,7 +24,6 @@
 
 extern "C" {
 	typedef int (*POSIX_FUNC)(int);
-	int isblank(int c);
 }
 
 //

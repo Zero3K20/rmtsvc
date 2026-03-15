@@ -224,7 +224,7 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	}
 	if ( wait_usec>0)
     {
-		to.tv_sec =wait_usec/1000000L;
+		to.tv_sec =(long)(wait_usec/1000000L);
 		to.tv_usec =wait_usec%1000000L;
     }
 	else
@@ -374,7 +374,7 @@ SOCKSRESULT socketBase::setLinger(bool bEnabled,time_t iTimeout)
 		lg.l_onoff=1;
 	else
 		lg.l_onoff=0;
-	lg.l_linger=iTimeout;//设置超时最大时间s
+	lg.l_linger=(u_short)iTimeout;//设置超时最大时间s
 	if(setsockopt(m_sockfd,SOL_SOCKET,SO_LINGER,(const char *)&lg,sizeof(lg))!=0)
 		return SOCKSERR_SETOPT;
 	return SOCKSERR_OK;

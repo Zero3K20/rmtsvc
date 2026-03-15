@@ -69,7 +69,7 @@
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'">
-    <OutDir>.\nossl_Release\</OutDir>
+    <OutDir>..\libs\bin\</OutDir>
     <IntDir>.\nossl_Release\</IntDir>
     <TargetName>net4cpp21_nossl</TargetName>
     <TargetExt>.lib</TargetExt>
