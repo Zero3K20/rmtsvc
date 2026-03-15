@@ -196,7 +196,7 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	if(act==1) //捕获指定的窗口
 	{
 		hwnd=WindowFromPoint(pt);
-		sprintf(buf,"%d",hwnd);
+		sprintf(buf,"%ld",(long)(LONG_PTR)hwnd);
 		session["cap_hwnd"]=buf;
 	}else if(act==2){ //捕获整个屏幕
 		hwnd=NULL;
@@ -209,9 +209,9 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	std::string s(buf);
 	buflen=sprintf(buf,"<?xml version=\"1.0\" encoding=\"gb2312\" ?>\r\n"
 				"<xmlroot>\r\n"
-				"<hwnd>%d</hwnd>\r\n"
+				"<hwnd>%ld</hwnd>\r\n"
 				"<wtext>%s</wtext>\r\n"
-				"</xmlroot>",hwnd,s.c_str());
+				"</xmlroot>",(long)(LONG_PTR)hwnd,s.c_str());
 
 	httprsp.NoCache();//CacheControl("No-cache");
 	//设置MIME类型，默认为HTML
@@ -248,10 +248,10 @@ bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpRe
 				"<qx>%s</qx>\r\n"
 				"<ssid>%s</ssid>\r\n"
 				"<lockmskb>%d</lockmskb>\r\n"
-				"<hwnd>%d</hwnd>\r\n"
+				"<hwnd>%ld</hwnd>\r\n"
 				"</xmlroot>",httpreq.Header("User-Agent"),
 				m_quality,((m_dwImgSize==0)?0:1),session["lAccess"].c_str(),
-				session.sessionID(),0, hwnd);
+				session.sessionID(),0,(long)(LONG_PTR)hwnd);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//设置MIME类型，默认为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
@@ -487,7 +487,7 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode);
 bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
 	//生成5位校验码，并写入session
-	char tmpBuf[8]; srand(time(NULL));
+	char tmpBuf[8]; srand((unsigned int)time(NULL));
 	tmpBuf[5]=0;//生成随机数
 	for(int i = 0;   i < 5;i++ )
 	{
@@ -728,7 +728,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		{
 			float f=(float)bih.biWidth/bih.biHeight;
 			float f1=(float)w/h;
-			if(f1>f) w=h*f; else h=w/f;
+			if(f1>f) w=(WORD)(h*f); else h=(WORD)(w/f);
 			if(w<bih.biWidth && h<bih.biHeight) //进行图像缩小
 			{
 				long lEffwidth_src=bih.biSizeImage/bih.biHeight;

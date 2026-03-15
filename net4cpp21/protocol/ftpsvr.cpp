@@ -400,7 +400,9 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 		}//?else if(psession->m_opMode=='L')
 	}//if(sr>0)
 
+#ifdef _SURPPORT_OPENSSL_
 EXIT1:
+#endif
 	pcmdsock->Send(resplen,resp,-1);
 	psession->m_filename=""; psession->m_opMode=0;
 	psession->m_startPoint=0;

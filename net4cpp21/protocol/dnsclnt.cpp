@@ -96,7 +96,7 @@ int cvtString2DnsStr(unsigned char *buf,const char *names)
 		len+=(ptr-names);
 		names=ptr+1;
 	}//?while
-	if( (buf[len++]=strlen(names))>0 ){
+	if( (buf[len++]=(unsigned char)strlen(names))>0 ){
 		len+=sprintf((char *)buf+len,"%s",names);
 		buf[len++]=0;
 	}

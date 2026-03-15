@@ -55,7 +55,7 @@ void httpServer::httprsp_listDir(socketTCP *psock,std::string &strPath,httpReque
 				if(finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 				{
 					if(strcmp(finddata.cFileName,".")==0 || strcmp(finddata.cFileName,"..")==0) continue;
-					buflen=sprintf(buffer,"            %04d年%02d月%02d日    %02d:%02d%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;dir&gt; "
+					buflen=sprintf(buffer,"            %04d年%02d月%02d日    %02d:%02d%%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;dir&gt; "
 										  "<A HREF=\"%s/%s/\">%s</A><br>\r\n",
 										  systime.wYear,systime.wMonth,systime.wDay,systime.wHour,systime.wMinute,
 										  strCurUrl.c_str(),finddata.cFileName,finddata.cFileName);

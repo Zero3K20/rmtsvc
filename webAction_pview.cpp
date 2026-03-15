@@ -343,12 +343,12 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),
 				"<module>"
 				"<id>%d</id>"
-				"<hmdl>%d</hmdl>"
+				"<hmdl>%ld</hmdl>"
 				"<usage>%d</usage>"
-				"<mbase>0x%08X</mbase>"
+				"<mbase>0x%08lX</mbase>"
 				"<mname>%s</mname>"
 				"</module>",
-				++dwret,aModules[i],-1,0,szProcessName);
+				++dwret,(LONG_PTR)aModules[i],-1,0,szProcessName);
 		}
 		::CloseHandle(hProcess);
 	}//?if (pfnEnumProcesses!=NULL &&
@@ -390,14 +390,14 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),
 				"<module>"
 				"<id>%d</id>"
-				"<hmdl>%d</hmdl>"
+				"<hmdl>%ld</hmdl>"
 				"<usage>%d</usage>"
-				"<mbase>0x%08X</mbase>"
+				"<mbase>0x%08lX</mbase>"
 				"<mname>%s</mname>"
 				"</module>",
-				++dwret,moduleInfo->hModule,
+				++dwret,(LONG_PTR)moduleInfo->hModule,
 				moduleInfo->ProccntUsage,
-				moduleInfo->modBaseAddr,
+				(DWORD)(DWORD_PTR)moduleInfo->modBaseAddr,
 				moduleInfo->szExePath);
 		}while ((*pfnModule32Next)(hSnapShot,moduleInfo));
 	}//?if ((*pfnProcess32First)(hSnapShot, processInfo))

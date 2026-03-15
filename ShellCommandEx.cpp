@@ -171,7 +171,7 @@ BOOL listProcess(const char *filter,std::string &strRet)
 	char s[256]; int slen;
 	slen=sprintf(s,"plst - total %d process, filter: %s\r\n",vecList.size(),((filter)?filter:"") );
 	strRet.append(s); strRet.append("id\tPID\tname\r\n");
-	for(int i=0;i<vecList.size();i++)
+	for(int i=0;i<(int)vecList.size();i++)
 	{
 		slen=sprintf(s,"%d\t%u\t%s\r\n",i+1,vecList[i].first,vecList[i].second.c_str());
 		strRet.append(s);
@@ -514,7 +514,7 @@ BOOL docmd_mtcpr(const char *strParam,std::string &strRet)
 	{
 		if((*it).first!="vidcs" && (*it).first!="name" && (*it).first!="appsvr")
 		{ //去除已经处理过的
-			if( ((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //缓冲区保护
+			if( (int)((*it).first.length()+(*it).second.length()+2)>=(256-buflen)) break; //缓冲区保护
 			buflen+=sprintf(buf+buflen,"%s=%s ",(*it).first.c_str(),(*it).second.c_str());
 		}
 	}

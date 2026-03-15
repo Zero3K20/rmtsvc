@@ -312,8 +312,8 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 					((finddata.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)?'A':' '));
 			unsigned long folders=0,files=0;
 			double dbsize=folderSize(spath,ptr_name,folders,files);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%d KB (%d 字节)</fsize>",
-				(unsigned long)(dbsize/1024),(DWORD64)dbsize);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%lu KB (%lu 字节)</fsize>",
+				(unsigned long)(dbsize/1024),(unsigned long)dbsize);
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsubs>%d 个文件 , %d 个文件夹</fsubs>",files,folders);
 		}//?if(ptr)
 		::FindClose(hd);
@@ -594,7 +594,7 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 					if((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !bdsphide) continue;
 					long fnlen=strlen(finddata.cFileName);
 					if(fnlen<256) fnlen=256;
-					if(buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
+					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
 					if(buffer.str()==NULL) break;
 					++lret; //判断此目录是否有子目录
 					bool bHas=ifHasSubDir(spath,finddata.cFileName);
@@ -635,7 +635,7 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 					if((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !bdsphide) continue;
 					long fnlen=strlen(finddata.cFileName);
 					if(fnlen<256) fnlen=256;
-					if(buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
+					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
 					if(buffer.str()==NULL) break; else ++lret;
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
 //					::FileTimeToSystemTime(&localFtime,&st);

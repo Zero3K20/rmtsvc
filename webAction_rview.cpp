@@ -430,7 +430,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 						size_t count=0;//打印字符计数
 						if(lines>10) lines=10; //只显示10行的数据
 
-						if(buffer.Space()<(lines*50+20)){
+						if((int)buffer.Space()<(lines*50+20)){
 							if( buffer.Resize(buffer.size()+lines*50+30)==NULL ) break;
 						}
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata>");
@@ -464,7 +464,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 						}
 						else if(dwType==REG_MULTI_SZ)
 						{
-							buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%S]]></rdata>",subvalue_buffer);
+							buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%S]]></rdata>",(LPCWSTR)subvalue_buffer);
 						}
 						else
 						{

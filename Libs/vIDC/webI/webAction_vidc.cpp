@@ -161,7 +161,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>连接vIDCs失败,err=%d</retmsg>",sr);
 			}
 			vidccsets.xml_info_vidcc(buffer,ptr_vname,maptype);
-		}else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%</retmsg>",errMsg_failed);
+		}else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%s</retmsg>",errMsg_failed);
 	}else if(strcasecmp(ptr_cmd,"disconn")==0)
 	{//和指定的vidcs服务断开
 		pvidcc=(ptr_vname)?vidccsets.GetVidcClient(ptr_vname,false):NULL;
@@ -361,7 +361,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 				if(pinfo->m_clicert!="")
 				{
 					int l=pinfo->m_clicert.length()+pinfo->m_clikey.length()+pinfo->m_clikeypswd.length()+32;
-					if(buffer.Space()>l)
+					if((int)buffer.Space()>l)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<clicert>%s,%s,%s</clicert>",
 						pinfo->m_clicert.c_str(),pinfo->m_clikey.c_str(),pinfo->m_clikeypswd.c_str());
 				}
