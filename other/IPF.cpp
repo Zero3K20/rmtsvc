@@ -27,6 +27,7 @@
 #endif // __cplusplus
 
 #pragma comment( lib, "libs/bin/jpeg-r-dll" )
+#pragma comment( lib, "legacy_stdio_definitions.lib" )
 
 
 //打开位图文件 -- 
