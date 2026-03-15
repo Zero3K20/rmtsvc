@@ -17,13 +17,9 @@
 //   our pointer variable __iob (== &_iob), satisfying the link.
 //
 //   _iob is initialised via __acrt_iob_func(0) which is exported directly from
-//   ucrtbase.dll and requires no additional library.
+//   ucrtbase.dll and is already declared with __declspec(dllimport) in <stdio.h>.
 
 #include <stdio.h>
-
-// __acrt_iob_func is exported from ucrtbase.dll (always available, no extra lib).
-// Returns a FILE* pointer to the n-th stdio stream in the CRT's internal array.
-extern "C" FILE * __cdecl __acrt_iob_func(unsigned _Ix);
 
 // _iob: pointer to the CRT's internal FILE array.
 // In 32-bit MSVC: C name "_iob" -> COFF name "__iob".
@@ -37,4 +33,5 @@ extern "C" FILE *_iob = NULL;
 #endif
 
 // Point _iob at the CRT's live FILE array (populated before any user code runs).
+// __acrt_iob_func is declared by <stdio.h> above; no separate forward declaration needed.
 static int _iob_init_flag = (_iob = __acrt_iob_func(0), 0);
