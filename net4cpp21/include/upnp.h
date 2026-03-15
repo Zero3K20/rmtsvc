@@ -1,6 +1,6 @@
 /*******************************************************************
    *	upnp.h
-   *    DESCRIPTION:upnp 类定义
+   *    DESCRIPTION:UPnP class definition
    *
    *    AUTHOR:yyc
    *
@@ -22,20 +22,20 @@ namespace net4cpp21
 	public:
 		upnp();
 		virtual ~upnp();
-		bool bFound() { return m_bFound; } //是否寻找到可用的UPnP设备
+		bool bFound() { return m_bFound; } //whether a usable UPnP device was found
 		const char *name() { return m_friendlyName.c_str(); }
 		const char *manufacturer() { return m_manufacturer.c_str(); }
 		const char *controlURL() { return m_control_url.c_str(); }
 		std::vector<UPnPInfo *> &upnpinfo() { return m_upnpsets; }
-		bool Search(); //搜索支持upnp的NAT设备
+		bool Search(); //search for NAT devices that support UPnP
 		
 		bool AddPortMapping(bool bTCP,const char *internalIP,int internalPort,int externPort,const char *desc);
 		bool DeletePortMapping(bool bTCP,int externPort);
-		bool GetWanIP(std::string &strRet); //获取公网IP地址
+		bool GetWanIP(std::string &strRet); //鑾峰彇鍏綉IPaddress
 		bool GetDevXML(std::string &strXml);
 		void Clear();
 	protected:
-		//有数据到达
+		//鏈塪ata鍒拌揪
 		virtual void onData();
 		bool AddPortMapping(UPnPInfo &info);
 		bool DeletePortMapping(UPnPInfo &info);
@@ -50,7 +50,7 @@ namespace net4cpp21
 		std::string m_strLocation;
 		bool m_bFound;
 
-		std::vector<UPnPInfo *> m_upnpsets; //UPnP映射信息集合
+		std::vector<UPnPInfo *> m_upnpsets; //UPnP鏄犲皠info闆嗗悎
 	};
 }//?namespace net4cpp21
 

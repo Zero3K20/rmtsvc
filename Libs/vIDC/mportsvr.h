@@ -1,6 +1,6 @@
 /*******************************************************************
    *	mportsvr.h
-   *    DESCRIPTION:±¾µØ¶Ë¿ÚÓ³Éä·şÎñ
+   *    DESCRIPTION:local port mapping service
    *
    *    AUTHOR:yyc
    *
@@ -25,14 +25,14 @@ namespace net4cpp21
 {
 	typedef struct _RegCond
 	{
-		std::string strHeader; //ÒªĞŞ¸ÄµÄhttpÍ·
-		std::string strPattern;//RegexpÆ¥ÅäÄ£Ê½
-		std::string strReplto; //ÒªÌæ»»µÄ×Ö·û´®
+		std::string strHeader; //HTTP header to modify
+		std::string strPattern;//Regexp match pattern
+		std::string strReplto; //è¦æ›¿æ¢çš„å­—ç¬¦ä¸²
 		_RegCond(){}
 		~_RegCond(){}
 	}RegCond;
-	//HTTPÇëÇó¡¢ÏìÓ¦Í·½âÎö¶ÔÏó
-	//±¾µØTCP¶Ë¿ÚÓ³Éä·şÎñÀà
+	//HTTPè¯·æ±‚ã€å“åº”å¤´parseå¯¹è±¡
+	//localTCPport mapping serviceç±»
 	class mportTCP : public socketSvr
 	{
 	public:
@@ -43,11 +43,11 @@ namespace net4cpp21
 		bool getIfLogdata() const { return m_bLogdatafile; }
 		void setIfLogdata(bool b){ m_bLogdatafile=b; }
 		SOCKSRESULT Start(const char *strMyCert,const char *strMyKey,const char *strKeypwd,
-					   const char *strCaCert,const char *strCaCRL); //Æô¶¯Ó³Éä·şÎñ
+					   const char *strCaCert,const char *strCaCRL); //å¯åŠ¨æ˜ å°„æœåŠ¡
 		SOCKSRESULT StartX();
-		void Stop(); //Í£Ö¹Ó³Éä·şÎñ
+		void Stop(); //åœæ­¢æ˜ å°„æœåŠ¡
 		
-		//ÉèÖÃÒªÓ³ÉäµÄÓ¦ÓÃ·şÎñ
+		//è®¾ç½®è¦mapped application service
 		void setAppsvr(const char *appsvr,int apport,const char *appdesc,MPORTTYPE apptype=MPORTTYPE_UNKNOW);
 		void setMapping(int mportStart,int mportEnd,const char *bindip=NULL);
 		void setSSLType(SSLTYPE ssltype,bool bSSLVerify);
@@ -67,33 +67,33 @@ namespace net4cpp21
 			if(n==1) p=&m_appSvr[0];
 			else if(n>1){
 				srand(clock());
-				p=&m_appSvr[rand()%n]; //Ëæ»ú»ñÈ¡Ò»¸öÓ¦ÓÃ·şÎñµÃĞÅÏ¢
+				p=&m_appSvr[rand()%n]; //éšæœºè·å–ä¸€ä¸ªapplication serviceå¾—info
 			}
 			return p; 
 		}
 
 	private:
-		virtual void onAccept(socketTCP *psock); //µ±ÓĞÒ»¸öĞÂµÄ¿Í»§Á¬½Ó´Ë·şÎñ´¥·¢´Ëº¯Êı
+		virtual void onAccept(socketTCP *psock); //å½“æœ‰ä¸€ä¸ªæ–°çš„å®¢æˆ·connectæ­¤æœåŠ¡è§¦å‘æ­¤å‡½æ•°
 		bool AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP *ppeer);
 		static void transDataThread(std::pair<socketTCP *,FILE *> *p);
 	private:
-		//±»Ó³ÉäµÄÓ¦ÓÃ·şÎñ
+		//è¢«mapped application service
 		std::vector<std::pair<std::string,int> > m_appSvr;
-		MPORTTYPE m_apptype;//Ó³ÉäÓ¦ÓÃ·şÎñÀàĞÍ
-		int m_mportBegin;  //ÒªÇóÓ³Éä¶Ë¿Ú·¶Î§
+		MPORTTYPE m_apptype;//æ˜ å°„application servicetype
+		int m_mportBegin;  //è¦æ±‚map portèŒƒå›´
 		int m_mportEnd;
-		char m_bindLocalIP[16]; //ÒªÇó°ó¶¨µÄ±¾µØIP
-		SSLTYPE m_ssltype; //SSL×ª»»ÀàĞÍ
-		bool m_bSSLVerify; //SSL·şÎñÊÇ·ñĞèÒªÑéÖ¤¿Í»§¶ËÖ¤Êé
-		long m_lUserTag; //ÓÃÓÚ×Ô¶¨ÒåµÄÀ©³ä±êÖ¾,¶ÔÓÚ±¾ÀàÎŞÒâÒå
-		unsigned long m_maxratio; //ÏŞÖÆ×î´ó´ø¿í kb/s
-		bool m_bLogdatafile; //ÊÇ·ñ¼ÇÂ¼´úÀí·şÎñ×ª·¢µÄÊı¾İµ½ÈÕÖ¾ÎÄ¼ş
-		//ĞŞ¸ÄHTTPÏìÓ¦Í·ĞÅÏ¢ int - httpÏìÓ¦´úÂë
+		char m_bindLocalIP[16]; //è¦æ±‚ç»‘å®šçš„localIP
+		SSLTYPE m_ssltype; //SSLè½¬æ¢type
+		bool m_bSSLVerify; //SSLæœåŠ¡æ˜¯å¦éœ€è¦authenticationclientè¯ä¹¦
+		long m_lUserTag; //ç”¨äºè‡ªdefineçš„æ‰©å……flag,å¯¹äºæœ¬ç±»æ— æ„ä¹‰
+		unsigned long m_maxratio; //é™åˆ¶æœ€å¤§å¸¦å®½ kb/s
+		bool m_bLogdatafile; //æ˜¯å¦è®°å½•proxy serviceè½¬å‘çš„dataåˆ°æ—¥å¿—æ–‡ä»¶
+		//modifyHTTPå“åº”å¤´info int - HTTP responseä»£ç 
 		std::map<int,std::vector<RegCond> > m_modRspHeader;
-		//ĞŞ¸ÄHTTPÇëÇóÍ·ĞÅÏ¢ string - Æ¥ÅähttpÇëÇóURL
+		//modifyHTTPè¯·æ±‚å¤´info string - åŒ¹é…HTTP requestURL
 		std::map<std::string,std::vector<RegCond> > m_modReqHeader;
-		//yyc add 2010-02-13 Ôö¼Ó¶ÔurlÖØĞ´Ö§³Ö
-		//first - ÒªÆ¥ÅäµÄurl(Ö§³ÖRegexp) £¬second - Ìæ»»Îª(Regexp)
+		//yyc add 2010-02-13 å¢åŠ å¯¹urlé‡å†™æ”¯æŒ
+		//first - è¦åŒ¹é…çš„url(æ”¯æŒRegexp) ï¼Œsecond - æ›¿æ¢ä¸º(Regexp)
 		std::map<std::string,std::string> m_modURLRewriter;
 	};
 }//?namespace net4cpp21

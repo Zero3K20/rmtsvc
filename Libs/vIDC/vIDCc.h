@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vIDCc.h
-   *    DESCRIPTION:vIDC¿Í»§ÀàµÄ¶¨Òå
+   *    DESCRIPTION:vIDC client class definition
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -17,23 +17,23 @@
 
 namespace net4cpp21
 {
-	//vidcc¿Í»§¶ËÀà
+	//vidcc client class
 	class vidcClient : public socketProxy
 	{
 	public:
 		explicit vidcClient(const char *strname,const char *strdesc);
 		virtual ~vidcClient();
 		VIDCSINFO &vidcsinfo() { return m_vidcsinfo; }
-		void Destroy(); //Ïú»Ù²¢ÊÍ·Å×ÊÔ´
-		//Á¬½ÓÖ¸¶¨µÄvIDCs·şÎñ
+		void Destroy(); //destroy and free resources
+		//connectspecifiedçš„vIDCsæœåŠ¡
 		SOCKSRESULT ConnectSvr();
-		void DisConnSvr(); //¶Ï¿ªºÍvIDCsµÄÁ¬½Ó
+		void DisConnSvr(); //disconnectå’ŒvIDCsçš„connect
 		bool mapinfoDel(const char *mapname);
 		mapInfo * mapinfoGet(const char *mapname,bool bCreate);
 		
-		//³É¹¦·µ»ØSOCKSERR_OK
-		int Mapped(const char *mapname,mapInfo *pinfo); //Ó³ÉäÖ¸¶¨µÄ·şÎñ
-		int Unmap(const char *mapname,mapInfo *pinfo); //È¡ÏûÓ³ÉäÖ¸¶¨µÄ·şÎñ
+		//successè¿”å›SOCKSERR_OK
+		int Mapped(const char *mapname,mapInfo *pinfo); //æ˜ å°„specifiedçš„æœåŠ¡
+		int Unmap(const char *mapname,mapInfo *pinfo); //å–æ¶ˆæ˜ å°„specifiedçš„æœåŠ¡
 
 		void xml_list_mapped(cBuffer &buffer,VIDC_MAPTYPE maptype);
 		void str_list_mapped(const char *vname,std::string &strini);
@@ -43,14 +43,14 @@ namespace net4cpp21
 		static void onPipeThread(vidcClient *pvidcc);
 		static void onCommandThread(vidcClient *pvidcc);
 	private:
-		std::map<std::string,mapInfo *> m_mapsets; //Ó³Éä¼¯ºÏ
-		time_t m_lTimeout;//×î´óµÈ´ı³¬Ê±·µ»Øs
-		std::string m_strName; //±¾vidccµÄÃû³Æ
+		std::map<std::string,mapInfo *> m_mapsets; //æ˜ å°„é›†åˆ
+		time_t m_lTimeout;//æœ€å¤§ç­‰å¾…timeoutè¿”å›s
+		std::string m_strName; //æœ¬vidccçš„name
 		std::string m_strDesc;
 		VIDCSINFO m_vidcsinfo;
-		cThreadPool m_threadpool;//·şÎñÏß³Ì³Ø
+		cThreadPool m_threadpool;//æœåŠ¡thread pool
 
-		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //±£´æ×î½üÒ»´Î´ÓvIDCsµÄÃüÁî·µ»Ø
+		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //ä¿å­˜æœ€è¿‘ä¸€æ¬¡ä»vIDCsçš„å‘½ä»¤è¿”å›
 	};
 	
 	class vidccSets
@@ -68,9 +68,9 @@ namespace net4cpp21
 		void str_list_vidcc(std::string &strini);
 	private:
 		cMutex m_mutex;
-		//Ã¿¸övidcClient¶ÔÓ¦Á¬½ÓÒ»¸övIDCs
+		//æ¯ä¸ªvidcClientå¯¹åº”connectä¸€ä¸ªvIDCs
 		std::map<std::string,vidcClient *> m_vidccs;
-		std::string m_strName; //vidccµÄÃû³Æ
+		std::string m_strName; //vidccçš„name
 		std::string m_strDesc;
 	};
 

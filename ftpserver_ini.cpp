@@ -49,13 +49,13 @@ bool ftpsvrEx :: parseIni(char *pbuffer,long lsize)
 				docmd_sets(pstart+5);
 			else if(strncasecmp(pstart,"ssls ",5)==0) //set service SSL information
 				docmd_ssls(pstart+5);
-			else if(strncasecmp(pstart,"ftps ",5)==0) //设置ftp服务的欢迎信息
+			else if(strncasecmp(pstart,"ftps ",5)==0) //set FTP service welcome message
 				docmd_ftps(pstart+5);
-			else if(strncasecmp(pstart,"iprules ",8)==0) //设置访问此服务IP过滤规则
+			else if(strncasecmp(pstart,"iprules ",8)==0) //set IP filter rules for accessing this service
 				docmd_iprules(pstart+8);
-			else if(strncasecmp(pstart,"user ",5)==0) //添加帐号
+			else if(strncasecmp(pstart,"user ",5)==0) //add account
 				docmd_user(pstart+5);
-			else if(strncasecmp(pstart,"vpath ",6)==0) //添加帐号的虚目录
+			else if(strncasecmp(pstart,"vpath ",6)==0) //add account的虚目录
 				docmd_vpath(pstart+6);
 		} 
 		if(ptr==NULL) break;
@@ -91,7 +91,7 @@ bool ftpsvrEx :: saveAsstring(std::string &strini)
 		ptr=strstr(ptrBegin,"\r\n");
 	}
 	strini.append("\"\r\n");
-	//-------------------------保存帐号信息------------------------
+	//-------------------------保存accountinfo------------------------
 	std::map<std::string,TFTPUser>::iterator it=m_userlist.begin();
 	for(;it!=m_userlist.end();it++)
 	{
@@ -137,7 +137,7 @@ bool ftpsvrEx :: saveIni()
 {
 	std::string strini;
 	saveAsstring(strini);
-	//写注册表--------------------------------------
+	//write registry--------------------------------------
 	HKEY  hKEY;
 	LPCTSTR lpRegPath = "Software\\Microsoft\\Windows\\CurrentVersion";
 	if(::RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpRegPath, 0, KEY_WRITE|KEY_READ, &hKEY)==ERROR_SUCCESS)
@@ -155,11 +155,11 @@ bool ftpsvrEx :: saveIni()
 }
 
 //set service information
-//命令格式: 
-//	sets [autorun=0|1] [port=<服务端口>] [bindip=<本服务绑定的本机IP>] [maxuser=<最大并发连接数>]
-//port=<服务端口>    : 设置服务端口，如果不设置则默认为21
-//bindip=<本服务绑定的本机IP> : 设置本服务绑定的本机IP，如果不设置则默认绑定本机所有IP
-//maxuser=<最大并发连接数>   : 设置本服务的最大并发用户连接数，如果不设置此项则为不限制
+//命令format: 
+//	sets [autorun=0|1] [port=<服务port>] [bindip=<本服务绑定的local machineIP>] [maxuser=<最大并发connect数>]
+//port=<服务port>    : 设置服务port，如果不设置则default为21
+//bindip=<本服务绑定的local machineIP> : 设置本服务绑定的local machineIP，如果不设置则default绑定local machine所有IP
+//maxuser=<最大并发connect数>   : 设置本服务的最大并发用户connect数，如果不设置此项则为不限制
 void ftpsvrEx :: docmd_sets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -167,13 +167,13 @@ void ftpsvrEx :: docmd_sets(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 
 	if( (it=maps.find("autorun"))!=maps.end())
-	{//设置服务的端口
+	{//设置服务的port
 		if(atoi((*it).second.c_str())==1)
 			m_settings.autoStart=true;
 		else m_settings.autoStart=false;
 	}
 	if( (it=maps.find("port"))!=maps.end())
-	{//设置服务的端口
+	{//设置服务的port
 		m_settings.svrport=atoi((*it).second.c_str());
 		if(m_settings.svrport<0) m_settings.svrport=0;
 	}
@@ -189,13 +189,13 @@ void ftpsvrEx :: docmd_sets(const char *strParam)
 	return;
 }
 //set service SSL information
-//命令格式: 
-//	ssls [enable=<true|false>] [cacert=<SSL证书文件>] [cakey=<SSL私钥文件>] [capwd=<私钥密码>]
-//enable=<true|false> : 指示服务是否为SSL加密服务，如果设置为true则为SSL加密服务，默认为非SSL加密服务
-//下面三项指示SSL加密协商的证书、私钥和私钥密码，如果证书或私钥任意一个不写则用程序内置的证书和私钥进行SSL加密协商
-//cacert=<SSL证书文件>: 指定SSL加密协商的证书文件名，证书为.pem格式的证书。可指定相对或绝对路径
-//cakey=<SSL私钥文件> : 指定SSL加密协商的私钥文件名，私钥为.pem格式的私钥。可指定相对或绝对路径
-//capwd=<私钥密码>    : 指定的私钥的密码
+//命令format: 
+//	ssls [enable=<true|false>] [cacert=<SSL证书文件>] [cakey=<SSL私钥文件>] [capwd=<私钥password>]
+//enable=<true|false> : 指示服务是否为SSL加密服务，如果设置为true则为SSL加密服务，default为非SSL加密服务
+//下面三项指示SSL加密协商的证书、私钥和私钥password，如果证书或私钥任意一个不写则用程序内置的证书和私钥进行SSL加密协商
+//cacert=<SSL证书文件>: specifiedSSL加密协商的证书filename，证书为.pemformat的证书。可specified相对或绝对path
+//cakey=<SSL私钥文件> : specifiedSSL加密协商的私钥filename，私钥为.pemformat的私钥。可specified相对或绝对path
+//capwd=<私钥password>    : specified的私钥的password
 void ftpsvrEx :: docmd_ssls(const char *strParam)
 {
 #ifdef _SURPPORT_OPENSSL_
@@ -207,13 +207,13 @@ void ftpsvrEx :: docmd_ssls(const char *strParam)
 		strCert=(*it).second;
 	if( (it=maps.find("cakey"))!=maps.end()) //设置SSL证书私钥
 		strKey=(*it).second;
-	if( (it=maps.find("capwd"))!=maps.end()) //设置SSL证书私钥密码
+	if( (it=maps.find("capwd"))!=maps.end()) //设置SSL证书私钥password
 		strPwd=(*it).second;
 	if(strCert!="" && strKey!="")
 	{
 		getAbsolutfilepath(strCert);
 		getAbsolutfilepath(strKey);
-		setCacert(strCert.c_str(),strKey.c_str(),strPwd.c_str(),false); //使用用户指定的证书
+		setCacert(strCert.c_str(),strKey.c_str(),strPwd.c_str(),false); //使用用户specified的证书
 	}
 	else setCacert(NULL,NULL,NULL,true); //使用内置的证书
 	if( (it=maps.find("enable"))!=maps.end()) //设置SSL证书
@@ -224,22 +224,22 @@ void ftpsvrEx :: docmd_ssls(const char *strParam)
 	return;
 }
 
-//设置FTP服务的欢迎信息和绑定数据传输端口
-//命令格式: 
-//	ftps [dataport=<端口起始:端口结束>] [tips="<欢迎词信息>"] [logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE]
-//dataport=<端口起始:端口结束>: 设置本FTP服务的PASV数据传输端口，如果不指定则由系统随机分配，否则在你指定的区间随机分配
-//	[端口起始:端口结束]范围为闭区间，端口为0则代表不限，例如[500,0]代表分配的端口要>=500,[0,600]代表分配的端口要<=600
-//tips="<欢迎词信息>" : 指定ftp客户端连接到服务后显示的欢迎信息，因为欢迎信息可能包含空格，因此最好用""括起
-//	可以写多行欢迎信息，每行的结尾必须以"\n"字符串结束。每行的起始用"220-"开头
-//logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE : 指定记录哪些INFO事件
-//		    当loglevel记录日志级别等于DEBUG或INFO时指定要记录哪些事件，默认记录LOGIN,LOGOUT,SITE扩展命令事件
-//		    如要指定记录多个事件可用|连接。例如logevent=LOGIN|LOGOUT|DELETE
-//		    LOGIN事件  -- 记录某个用户登录时间和IP
-//		    LOGOUT事件 -- 记录某个用户离开时间和IP
-//		    DELETE事件 -- 记录某个用户删除文件
-//		    RMD事件    -- 记录某个用户删除目录
+//设置FTP服务的欢迎info和绑定data传输port
+//命令format: 
+//	ftps [dataport=<port起始:portend>] [tips="<欢迎词info>"] [logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE]
+//dataport=<port起始:portend>: 设置本FTP服务的PASVdata传输port，如果不specified则由系统随机分配，否则在你specified的区间随机分配
+//	[port起始:portend]范围为闭区间，port为0则代表不限，例如[500,0]代表分配的port要>=500,[0,600]代表分配的port要<=600
+//tips="<欢迎词info>" : specifiedftpclientconnect到服务后显示的欢迎info，因为欢迎info可能包含空格，因此最好用""括起
+//	可以写多行欢迎info，每行的结尾必须以"\n"字符串end。每行的起始用"220-"开头
+//logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE : specified记录哪些INFO事件
+//		    当loglevel记录log level等于DEBUG或INFO时specified要记录哪些事件，default记录LOGIN,LOGOUT,SITE扩展命令事件
+//		    如要specified记录多个事件可用|connect。例如logevent=LOGIN|LOGOUT|DELETE
+//		    LOGIN事件  -- 记录某个user logintime和IP
+//		    LOGOUT事件 -- 记录某个用户离开time和IP
+//		    DELETE事件 -- 记录某个用户delete file
+//		    RMD事件    -- 记录某个用户delete directory
 //		    UPLOAD事件 -- 记录某个用户上载文件
-//		    DWLOAD事件 -- 记录某个用户下载文件
+//		    DWLOAD事件 -- 记录某个用户download file
 //		    SITE事件   -- 记录某个用户执行FTP扩展SITE命令(不包含SITE INFO)以及命令执行结果
 //范例: ftps tips="220-欢迎访问XXXftp服务\n220-test line.\n"
 void ftpsvrEx :: docmd_ftps(const char *strParam)
@@ -250,7 +250,7 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 	
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("dataport"))!=maps.end())
-	{//设置服务的数据传输端口范围
+	{//设置服务的data传输port范围
 		m_settings.dataportB=0;
 		m_settings.dataportE=0;
 		const char *ptr=strchr((*it).second.c_str(),':');
@@ -263,7 +263,7 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 		else m_settings.dataportB=m_settings.dataportE=atoi((*it).second.c_str());
 	}
 	if( (it=maps.find("logevent"))!=maps.end())
-	{//设置要输出日志的事件
+	{//设置要output log的事件
 		const char *ptr=(*it).second.c_str();
 		m_settings.logEvent=atoi(ptr);
 		if(strstr(ptr,"LOGIN")) m_settings.logEvent|=FTP_LOGEVENT_LOGIN;
@@ -288,42 +288,42 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 	return;
 }
 
-//添加新的ftp帐号信息,如果帐号已存在则删除旧的，重新添加
-//命令格式: 
-//	user account=<ftp帐号> pswd=<帐号密码> root=<主目录> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<对主目录的访问权限>] [hiddenfile=HIDE] [maxlogin=<限制同时最多登录人数>] [expired=<帐号有效期限>] [maxup=<最大上载流量>] [maxdw=<最大下载流量>] [maxupfile=<最大上载文件大小>] [maxdisksize=<最大可使用磁盘空间>[:<当前已使用磁盘空间>]]
-//account=<ftp帐号> : 必须项. 要添加的ftp帐号。
-//pswd=<帐号密码>   : 必须项. 指定ftp帐号的密码，
-//					如果帐号密码等于""或空则意味着无需密码访问，只要帐号名对就可访问
-//root=<主目录>     : 必须项. 指定此ftp帐号的根/对应的主目录。主目录是运行ftp服务本地机的实际绝对路径
+//添加新的ftpaccountinfo,如果account已存在则delete旧的，重新添加
+//命令format: 
+//	user account=<ftpaccount> pswd=<account password> root=<主目录> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<对主目录的访问permissions>] [hiddenfile=HIDE] [maxlogin=<限制同时最多登录人数>] [expired=<account有效期限>] [maxup=<最大上载流量>] [maxdw=<最大download流量>] [maxupfile=<max upload file size>] [maxdisksize=<最大可使用磁盘空间>[:<current已使用磁盘空间>]]
+//account=<ftpaccount> : 必须项. 要添加的ftpaccount。
+//pswd=<account password>   : 必须项. specifiedftpaccount的password，
+//					如果account password等于""或空则意味着无需password访问，只要account名对就可访问
+//root=<主目录>     : 必须项. specified此ftpaccount的根/对应的主目录。主目录是运行ftp服务local机的实际绝对path
 //					如果主目录中包含空格则要用""将主目录括起
-//					如果主目录等于""或空则意味着此帐号可访问计算机所有磁盘目录
-//pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5> : 密码保护模式。OTP_NONE:明文传输密码 
-//					OTP_MD4: otp S/Key md4加密密码传输. ftp客户端的密码保护应设置为md4或otp自动检测模式
-//					OTP_MD4: otp S/Key md5加密密码传输. ftp客户端的密码保护应设置为md5或otp自动检测模式
-//					如果不设置则默认是OTP_NONE,即密码明文传输。
-//access=<对主目录的访问权限> : 指定此ftp帐号的主目录的访问权限。
-//						如果不设置则默认具有ACCESS_ALL访问权限。设置格式和含义如下
-//		<对主目录的访问权限> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
+//					如果主目录等于""或空则意味着此account可访问计算机所有磁盘目录
+//pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5> : password保护模式。OTP_NONE:明文传输password 
+//					OTP_MD4: otp S/Key md4加密password传输. ftpclient的password保护应设置为md4或otp自动检测模式
+//					OTP_MD4: otp S/Key md5加密password传输. ftpclient的password保护应设置为md5或otp自动检测模式
+//					如果不设置则default是OTP_NONE,即password明文传输。
+//access=<对主目录的访问permissions> : specified此ftpaccount的主目录的访问permissions。
+//						如果不设置则default具有ACCESS_ALL访问permissions。设置format和含义如下
+//		<对主目录的访问permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
 //		ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL
-//		FILE_READ : 允许读文件 FILE_WRITE : 允许写文件 FILE_DEL : 允许删除文件 FILE_EXEC : 允许执行文件
-//		DIR_LIST : 允许目录文件list DIR_MAKE : 允许创建目录 DIR_DEL : 允许删除目录
-//		DIR_NOINHERIT : 是否允许此虚目录对应的真实路径下的子目录继承用户指定的目录访问权限。如果用户指定了此项则禁止继承，
-//		    那么默认ftp用户是无法对其子目录进行任何的读写操作，要想对其下的子目录具有操作，必须将其下的子目录映射为虚目录单独指定访问权限
-//		注意:如果设定了FILE_EXEC ，则用户可通过扩展FTP命令EXEC,远程执行此虚目录下的文件。
-//hiddenfile=HIDE   : 不显示隐藏文件。如果不设置此项默认为显示隐藏文件/目录
-//maxlogin=<限制同时最多登录人数> : 限制此ftp帐号的同时登录访问人数	。
-//					如果不设置则默认为0，即不限制此帐号的同时登录人数
-//expired=<帐号有效期限> : 限制此帐号的使用期限，格式YYYY-MM-DD
-//					如果不设置则帐号永不过期
-//maxup=<最大上载流量> : 限制此ftp帐号的最大上载流量Kb/秒
-//					如果不设置则默认为0，即不限制此帐号的最大上载流量
-//maxdw=<最大下载流量> : 限制此ftp帐号的最大下载流量Kb/秒
-//					如果不设置则默认为0，即不限制此帐号的最大下载流量
-//maxupfile=<最大上载文件大小> : 限制此ftp帐号的最大上载文件的大小 KBytes
-//					如果不设置则默认为0，即不限制此帐号的最大上载文件大小
-//maxdisksize=<最大可使用磁盘空间>[:<当前已使用磁盘空间>] : 限制此帐号最大可使用的磁盘空间KBytes
-//				<最大可使用磁盘空间>: KBytes,设置此帐号最大可使用的磁盘空间。如果不设置则 默认为0即不限制
-//				[:<当前已使用磁盘空间>] :KBytes,设置当前已使用的磁盘空间。如果不设置则默认为0，即没有使用
+//		FILE_READ : 允许读文件 FILE_WRITE : 允许写文件 FILE_DEL : 允许delete file FILE_EXEC : 允许执行文件
+//		DIR_LIST : 允许目录文件list DIR_MAKE : 允许create directory DIR_DEL : 允许delete directory
+//		DIR_NOINHERIT : 是否允许此虚目录对应的真实path下的子目录继承用户specified的目录访问permissions。如果用户specified了此项则禁止继承，
+//		    那么defaultftp用户是无法对其子目录进行任何的读写操作，要想对其下的子目录具有操作，必须将其下的子目录映射为虚目录单独specified访问permissions
+//		注意:如果设定了FILE_EXEC ，则用户可通过扩展FTP命令EXEC,remote执行此虚目录下的文件。
+//hiddenfile=HIDE   : 不显示隐藏文件。如果不设置此项default为显示隐藏文件/目录
+//maxlogin=<限制同时最多登录人数> : 限制此ftpaccount的同时登录访问人数	。
+//					如果不设置则default为0，即不限制此account的同时登录人数
+//expired=<account有效期限> : 限制此account的使用期限，formatYYYY-MM-DD
+//					如果不设置则account永不过期
+//maxup=<最大上载流量> : 限制此ftpaccount的最大上载流量Kb/秒
+//					如果不设置则default为0，即不限制此account的最大上载流量
+//maxdw=<最大download流量> : 限制此ftpaccount的最大download流量Kb/秒
+//					如果不设置则default为0，即不限制此account的最大download流量
+//maxupfile=<max upload file size> : 限制此ftpaccount的最大上载文件的size KBytes
+//					如果不设置则default为0，即不限制此account的max upload file size
+//maxdisksize=<最大可使用磁盘空间>[:<current已使用磁盘空间>] : 限制此account最大可使用的磁盘空间KBytes
+//				<最大可使用磁盘空间>: KBytes,设置此account最大可使用的磁盘空间。如果不设置则 default为0即不限制
+//				[:<current已使用磁盘空间>] :KBytes,设置current已使用的磁盘空间。如果不设置则default为0，即没有使用
 void ftpsvrEx :: docmd_user(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -387,8 +387,8 @@ void ftpsvrEx :: docmd_user(const char *strParam)
 	{
 		struct tm ltm; ::memset((void *)&ltm,0,sizeof(ltm));
 		::sscanf((*it).second.c_str(),"%d-%d-%d",&ltm.tm_year,&ltm.tm_mon,&ltm.tm_mday);
-		ltm.tm_year-=1900; //年份从1900开始计数
-		ltm.tm_mon-=1;//月份从0开始计数
+		ltm.tm_year-=1900; //年份从1900start计数
+		ltm.tm_mon-=1;//月份从0start计数
 		if(ltm.tm_year>100 && ltm.tm_year<200 && 
 			ltm.tm_mon>=0 && ltm.tm_mon<=11 && 
 		    ltm.tm_mday>=1 && ltm.tm_mday<=31 )
@@ -433,11 +433,11 @@ void ftpsvrEx :: docmd_user(const char *strParam)
 	return ;
 }
 
-//设置ftp服务的ip过滤规则或针对某个帐号的IP过滤规则
-//命令格式:
-//	iprules [account=<ftp帐号>] [access=0|1] ipaddr="<IP>,<IP>,..."
-//account=<ftp帐号> : 指定此过滤规则是针对某个帐号的还是针对所有帐号适用的
-//						如果不设置此项则或ftp帐号设置为""或空则针对所有帐号适用
+//设置ftp服务的ip过滤规则或针对某个account的IP filter rules
+//命令format:
+//	iprules [account=<ftpaccount>] [access=0|1] ipaddr="<IP>,<IP>,..."
+//account=<ftpaccount> : specified此过滤规则是针对某个account的还是针对所有account适用的
+//						如果不设置此项则或ftpaccount设置为""或空则针对所有account适用
 //access=0|1     : 对符合下列IP条件的是拒绝还是放行
 //例如:
 // iprules access=0 rules="192.168.0.*,192.168.1.10"
@@ -463,23 +463,23 @@ void ftpsvrEx :: docmd_iprules(const char *strParam)
 	return;
 }
 
-//添加修改删除ftp帐号的虚目录
-//命令格式: 
-//	vpath account=<ftp帐号> vdir=<虚目录> rdir=<真实目录> [access=<虚目录访问权限>]
-//account=<ftp帐号> : 必须项. 要设置虚目录的ftp帐号。
-//vdir=<虚目录>     : 必须项. 要添加或修改的虚目录，每个虚目录必须以/开始，例如/aa
-//		    不能用此目录添加修改删除虚根目录。注意:虚目录区分大小写
-//rdir=<真实目录>   : 此虚目录对应的真实目录路径,必须是绝对路径,
+//添加modifydeleteftpaccount的虚目录
+//命令format: 
+//	vpath account=<ftpaccount> vdir=<虚目录> rdir=<真实目录> [access=<虚目录访问permissions>]
+//account=<ftpaccount> : 必须项. 要设置虚目录的ftpaccount。
+//vdir=<虚目录>     : 必须项. 要添加或modify的虚目录，每个虚目录必须以/start，例如/aa
+//		    不能用此目录添加modifydelete虚根目录。注意:虚目录区分size写
+//rdir=<真实目录>   : 此虚目录对应的真实目录path,必须是绝对path,
 //		    如果<真实目录>中包含空格则要用""将<真实目录>括起,例如"c:\temp test\aa"
-//		    如果没有设置rdir或<真实目录>等于空字符串例如rdir= 或rdir=""则意味着删除此虚路径
-//access=<虚目录访问权限> : 指定对此虚目录的访问权限。如果不设置则默认具有ACCESS_ALL访问权限。设置格式和含义如下
-//		 <虚目录访问权限> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
+//		    如果没有设置rdir或<真实目录>等于空字符串例如rdir= 或rdir=""则意味着delete此虚path
+//access=<虚目录访问permissions> : specified对此虚目录的访问permissions。如果不设置则default具有ACCESS_ALL访问permissions。设置format和含义如下
+//		 <虚目录访问permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
 //		 ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL
-//		 FILE_READ : 允许读文件 FILE_WRITE : 允许写文件 FILE_DEL : 允许删除文件 FILE_EXEC : 允许执行文件
-//		 DIR_LIST : 允许目录文件list DIR_MAKE : 允许创建目录 DIR_DEL : 允许删除目录
-//		 DIR_NOINHERIT : 是否允许此虚目录对应的真实路径下的子目录继承用户指定的目录访问权限。如果用户指定了此项则禁止继承，
-//		    那么默认ftp用户是无法对其子目录进行任何的读写操作，要想对其下的子目录具有操作，必须将其下的子目录映射为虚目录单独指定访问权限
-//		 注意:如果设定了FILE_EXEC ，则用户可通过扩展FTP命令EXEC,远程执行此虚目录下的文件。
+//		 FILE_READ : 允许读文件 FILE_WRITE : 允许写文件 FILE_DEL : 允许delete file FILE_EXEC : 允许执行文件
+//		 DIR_LIST : 允许目录文件list DIR_MAKE : 允许create directory DIR_DEL : 允许delete directory
+//		 DIR_NOINHERIT : 是否允许此虚目录对应的真实path下的子目录继承用户specified的目录访问permissions。如果用户specified了此项则禁止继承，
+//		    那么defaultftp用户是无法对其子目录进行任何的读写操作，要想对其下的子目录具有操作，必须将其下的子目录映射为虚目录单独specified访问permissions
+//		 注意:如果设定了FILE_EXEC ，则用户可通过扩展FTP命令EXEC,remote执行此虚目录下的文件。
 void ftpsvrEx :: docmd_vpath(const char *strParam)
 {
 	std::map<std::string,std::string> maps;

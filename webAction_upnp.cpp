@@ -82,7 +82,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
@@ -90,7 +90,7 @@ bool webServer::httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse 
 	return true;
 }
 
-//获取upnp设备的xml信息
+//获取upnp设备的xmlinfo
 bool webServer::httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -102,7 +102,7 @@ bool webServer::httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpRespon
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(strXml.length());
 	httprsp.send_rspH(psock,200,"OK");
 	

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	NS_sendcmd.cpp
-   *    DESCRIPTION:ÏòNS·şÎñÆ÷·¢ËÍµÄÃüÁî
+   *    DESCRIPTION:commands sent to the NS server
    *
    *    AUTHOR:yyc
    *
@@ -52,8 +52,8 @@ bool msnMessager :: sendcmd_CVR(const char *strAccount)
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
 	return (strncmp(buf,"CVR ",4)!=0)?false:true;
 }
-//·¢ËÍÃüÁî»ñÈ¡NS·şÎñÆ÷µÄµØÖ·
-//³É¹¦·µ»Ø0,·ñÔò·µ»Ø´íÎóÂë
+//send command to get the NS server address
+//returns 0 on success, otherwise returns error code
 int msnMessager :: sendcmd_USR(const char *strAccount,std::string &strNShost,int &iNSport)
 {
 	socketProxy &m_nsSocket=m_curAccount.m_chatSock;
@@ -70,8 +70,8 @@ int msnMessager :: sendcmd_USR(const char *strAccount,std::string &strNShost,int
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return SOCKSERR_TIMEOUT;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//ÕıÈ·µÄ·µ»Ø¸ñÊ½ XFR 3 NS 207.46.0.21:1863 0 65.54.239.140:1863
-	//Èç¹ûÊÇÎŞĞ§µÄÕÊºÅ½«·µ»Ø 911 trID
+	//æ­£ç¡®çš„è¿”å›format XFR 3 NS 207.46.0.21:1863 0 65.54.239.140:1863
+	//å¦‚æœæ˜¯invalidaccountå°†è¿”å› 911 trID
 	if(strncmp(buf,"XFR ",4)!=0) return SOCKSERR_MSN_EMAIL;
 	const char *ptr1,*ptr=strstr(buf+4,"NS ");
 	if(ptr) ptr1=strchr(ptr+3,':');
@@ -79,7 +79,7 @@ int msnMessager :: sendcmd_USR(const char *strAccount,std::string &strNShost,int
 	strNShost.assign(ptr+3,ptr1-ptr-3); iNSport=atoi(ptr1+1);
 	return MSN_ERR_OK;
 }
-//·¢ËÍÃüÁî»ñÈ¡https hashkey
+//send commandè·å–https hashkey
 bool msnMessager :: sendcmd_USR(const char *strAccount,std::string &hashkey)
 {
 	socketProxy &m_nsSocket=m_curAccount.m_chatSock;
@@ -95,11 +95,11 @@ bool msnMessager :: sendcmd_USR(const char *strAccount,std::string &hashkey)
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return false;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//ÕıÈ·µÄ·µ»Ø¸ñÊ½ USR 6 TWN S lc=1033,id=507,tw=40,fs=1,ru=http%3A%2F%2Fmessenger%2Emsn%2Ecom,ct=1119856294,kpp=1,kv=6,ver=2.1.6000.1,rn=7o5vXh8s,tpf=09b41a915a8e8469b1d3f23814be8e6b
+	//æ­£ç¡®çš„è¿”å›format USR 6 TWN S lc=1033,id=507,tw=40,fs=1,ru=http%3A%2F%2Fmessenger%2Emsn%2Ecom,ct=1119856294,kpp=1,kv=6,ver=2.1.6000.1,rn=7o5vXh8s,tpf=09b41a915a8e8469b1d3f23814be8e6b
 	if(strncmp(buf,"USR ",4)!=0) return false;
 	const char *ptr=strstr(buf+4,"TWN S ");
 	if(ptr==NULL) return false;
-	hashkey.assign(ptr+6);//È¥µô×îºóµÄ\r\n
+	hashkey.assign(ptr+6);//å»æ‰æœ€åçš„\r\n
 	if(hashkey[hashkey.length()-2]=='\r') hashkey.erase(hashkey.length()-2);
 	return true;
 }
@@ -118,12 +118,12 @@ bool msnMessager :: sendcmd_USR(std::string &hashkey)
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return false;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//ÕıÈ·µÄ·µ»Ø¸ñÊ½ USR 7 OK yycnet@hotmail.com 1 0
+	//æ­£ç¡®çš„è¿”å›format USR 7 OK yycnet@hotmail.com 1 0
 	if(strncmp(buf,"USR ",4)==0 && strstr(buf+4," OK ") ) return true;
 	return false;
 }
-//·¢ËÍ×´Ì¬¸Ä±íÏûÏ¢ "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
-//!µ±ÕÊºÅµÇÂ¼½ÓÊÕÍêÁªÏµÈËÁĞ±íºóÒª·¢ËÍ"NLN",ÉÏÏß×´Ì¬
+//sendstatusæ”¹è¡¨æ¶ˆæ¯ "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
+//!å½“accountç™»å½•receiveå®Œè”ç³»äººåˆ—è¡¨åè¦send"NLN",ä¸Šçº¿status
 bool msnMessager :: sendcmd_CHG(const char *sta)
 {
 	unsigned long trID=msgID();
@@ -146,7 +146,7 @@ bool msnMessager :: sendcmd_UUX()
 	return (m_curAccount.m_chatSock.Send(iret,buf,-1)>0)?true:false;
 }
 
-//PNGÃüÁî·µ»Ø·¶Àı - QNG 43\r\n
+//PNGå‘½ä»¤è¿”å›èŒƒä¾‹ - QNG 43\r\n
 bool msnMessager :: sendcmd_PNG()
 {
 	return (m_curAccount.m_chatSock.Send(5,"PNG\r\n",-1)>0)?true:false;
@@ -171,7 +171,7 @@ bool msnMessager :: sendcmd_ADC(const char *email,const char *strFlag)
 	return (m_curAccount.m_chatSock.Send(iret,buf,-1)>0)?true:false;
 }
 
-//nick --- ¾­¹ıutf8ºÍmime±àÂëµÄêÇ³Æ×Ö·û´®
+//nick --- ç»è¿‡utf8å’Œmimeç¼–ç çš„æ˜µç§°å­—ç¬¦ä¸²
 bool msnMessager :: sendcmd_ADC(const char *email,const char *nick,long waittimeout)
 {
 	unsigned long trID=msgID();
@@ -189,7 +189,7 @@ bool msnMessager :: sendcmd_ADC(const char *email,const char *nick,long waittime
 	} else bret=true;
 	return bret;;
 }
-//·¢ËÍ½¨Á¢chat sessionÇëÇó
+//sendå»ºç«‹chat sessionè¯·æ±‚
 bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 {
 	unsigned long trID=msgID();
@@ -204,7 +204,7 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 		cond.wait(MSN_MAX_RESPTIMEOUT);
 	} else buf[0]=0;
 	eraseCond(trID);
-	if(buf[0]==0) return false; //bufÖĞ±£´æµÄÎªXFRÃüÁîµÄÏìÓ¦½á¹û,½á¹û¸ñÊ½ÈçÏÂ
+	if(buf[0]==0) return false; //bufä¸­ä¿å­˜çš„ä¸ºXFRå‘½ä»¤çš„å“åº”ç»“æœ,ç»“æœformatå¦‚ä¸‹
 	////XFR 53 SB 207.46.4.174:1863 CKI 312825.1120186211.16162
 	std::vector<std::string> v;
 	iret=splitstring(buf,' ',v);
@@ -217,7 +217,7 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 	if( chatSock.Send(iret,buf,-1)<=0 ) return false;
 	if((iret=chatSock.Receive(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 		return false;
-	buf[iret]=0; //·µ»ØÊı¾İ¸ñÊ½ USR 160 OK yycnet@hotmail.com yyc:)
+	buf[iret]=0; //è¿”å›dataformat USR 160 OK yycnet@hotmail.com yyc:)
 	if(strncmp(buf,"USR ",4) || strstr(buf+4," OK ")==NULL ) return false;
 	
 	trID=msgID();
@@ -226,21 +226,21 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 	if( chatSock.Send(iret,buf,-1)<=0 ) return false;
 	if((iret=chatSock.Peek(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 		return false;
-	buf[iret]=0; //·µ»ØÊı¾İ¸ñÊ½ CAL 161 RINGING 312825
+	buf[iret]=0; //è¿”å›dataformat CAL 161 RINGING 312825
 	return (strncmp(buf,"CAL ",4)==0)?true:false;
-//yyc remove ÓĞ¿ÉÄÜ»á°ÑºóĞøµÄÊı¾İ½ÓÊÕÏÂÀ´£¬µ¼ÖÂsessionThread´¦ÀíÊı¾İ³öÏÖ´íÎó
+//yyc remove æœ‰å¯èƒ½ä¼šæŠŠåç»­çš„datareceiveä¸‹æ¥ï¼Œå¯¼è‡´sessionThreadhandledataå‡ºç°error
 //	if((iret=chatSock.Receive(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 //		return false;
-//	buf[iret]=0; //·µ»ØÊı¾İ¸ñÊ½ CAL 161 RINGING 312825
+//	buf[iret]=0; //è¿”å›dataformat CAL 161 RINGING 312825
 //	return (strncmp(buf,"CAL ",4)==0)?true:false;
 }
 
-//·¢ËÍ±¾Ä³¸öÁªÏµÈËÕıÔÚÊäÈë¿ØÖÆÏûÏ¢
+//sendæœ¬æŸä¸ªè”ç³»äººæ­£åœ¨è¾“å…¥æ§åˆ¶æ¶ˆæ¯
 bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-	if(pcon->m_chat_contacts<=0) return true; //ÔİÊ±²»·¢ËÍ£¬ÒòÎª»¹Ã»ÓĞÈË¼ÓÈëÁÄÌì£¬Èç¹û´ËÊ±·¢ËÍ»áÒıÆğMSN·şÎñ¹Ø±ÕsessionÁ¬½Ó
+	if(pcon->m_chat_contacts<=0) return true; //æš‚æ—¶ä¸sendï¼Œå› ä¸ºè¿˜æ²¡æœ‰äººåŠ å…¥èŠå¤©ï¼Œå¦‚æœæ­¤æ—¶sendä¼šå¼•èµ·MSNæœåŠ¡å…³é—­sessionconnect
 	if(type_email==NULL) type_email=m_curAccount.m_email.c_str();
 	char buf[256];
 	int len=sprintf(buf+56,"MIME-Version: 1.0\r\nContent-Type: text/x-msmsgscontrol\r\nTypingUser: %s\r\n\r\n",
@@ -250,35 +250,35 @@ bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 	return (chatSock.Send(len+iret,buf+(56-iret),-1)>0)?true:false;
 }
 
-//·¢ËÍÁÄÌìÄÚÈİ
-//ÁÄÌìÄÚÈİ³¤¶È±»ÏŞÖÆÔÚ1540(±àÂëºóµÄ×Ö½Ú´óĞ¡)×î´ó³¤¶È
-//Òò´ËÈç¹û·¢ËÍÁÄÌìÄÚÈİµÄ×Ö½Ú³¤¶È´óÓÚÖ¸¶¨¶î³¤¶ÈÒª·Ö¸î·¢ËÍ£¬°´ÕÕ1500·Ö¸î¼´¿É
-//msgHeader --- ×ªÏò±àÂëºÃµÄmsgHeader»º³å£¬ÇÒÇ°56×Ö½ÚÎª±£ÁôµÈ´ıĞ´ÈëMSG·¢ËÍ±ê¼ÇºÍ³¤¶È
+//sendèŠå¤©å†…å®¹
+//èŠå¤©å†…å®¹lengthè¢«é™åˆ¶åœ¨1540(ç¼–ç åçš„å­—èŠ‚size)æœ€å¤§length
+//å› æ­¤å¦‚æœsendèŠå¤©å†…å®¹çš„å­—èŠ‚lengthå¤§äºspecifiedé¢lengthè¦åˆ†å‰²sendï¼ŒæŒ‰ç…§1500åˆ†å‰²å³å¯
+//msgHeader --- è½¬å‘ç¼–ç å¥½çš„msgHeaderç¼“å†²ï¼Œä¸”å‰56å­—èŠ‚ä¸ºä¿ç•™ç­‰å¾…å†™å…¥MSGsendæ ‡è®°å’Œlength
 bool msnMessager::sendcmd_SS_chatMsg(cContactor *pcon,char *msgHeader,
 						int headerlen,const char *chatMsg,int msglen)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	¶ÔÒª·¢ËÍµÄÏûÏ¢½øĞĞutf8±àÂë
+//	å¯¹è¦sendçš„æ¶ˆæ¯è¿›è¡Œutf8ç¼–ç 
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//½«ÁÄÌìÄÚÈİ°´1500×Ö½Ú³¤¶È½øĞĞ·Ö¸î·¢ËÍ
+	//å°†èŠå¤©å†…å®¹æŒ‰1500å­—èŠ‚lengthè¿›è¡Œåˆ†å‰²send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //Èç¹ûÊÇutf8±àÂëµÄ×Ö·û£¬³ıÁËµÚÒ»¸ö×Ö½Ú£¬ÆäËû×Ö½Ú¶¼ÊÇÒÔ0x10¿ªÍ·,¼ûutf8±àÂëËµÃ÷
-			while( chatMsg[iSend]<0 ) //·ÀÖ¹½«utf8±àÂëµÄ×Ö·û½Ø¶Ï·¢ËÍ£¬
+			iSend=1500; //å¦‚æœæ˜¯utf8ç¼–ç çš„å­—ç¬¦ï¼Œé™¤äº†ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼Œå…¶ä»–å­—èŠ‚éƒ½æ˜¯ä»¥0x10å¼€å¤´,è§utf8ç¼–ç è¯´æ˜
+			while( chatMsg[iSend]<0 ) //é˜²æ­¢å°†utf8ç¼–ç çš„å­—ç¬¦æˆªæ–­sendï¼Œ
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------·¢ËÍÏûÏ¢----------------------------
+//---------------sendæ¶ˆæ¯----------------------------
 		trID=msgID();
 		iret=sprintf(msgHeader,"MSG %d A %d\r\n",trID,headerlen+iSend);
 		memmove(msgHeader+(56-iret),msgHeader,iret);
@@ -302,13 +302,13 @@ bool msnMessager::sendcmd_SS_chatMsg(cContactor *pcon,char *msgHeader,
 //----------------------------------------------------
 		chatMsg+=iSend; msglen-=iSend;
 		if(msglen<=0) break;
-		if(trID!=0 && trID%2==0) //ÎªÁË±ÜÃâ·¢ËÍÌ«¿ìµ¼ÖÂMSN·şÎñ¹Ø±ÕÁ¬½Ó£¬µÈ´ıÏìÓ¦Ó¦´ğ
+		if(trID!=0 && trID%2==0) //ä¸ºäº†é¿å…sendå¤ªå¿«å¯¼è‡´MSNæœåŠ¡å…³é—­connectï¼Œç­‰å¾…å“åº”åº”ç­”
 		{ //yyc add 2007-03-13
 			cCond cond; cond.setArgs(0);
-			this->m_conds[trID]=&cond; //×î³¤ÑÓÊ±µÈ´ı3Ãë
+			this->m_conds[trID]=&cond; //æœ€é•¿å»¶æ—¶ç­‰å¾…3ç§’
 			cond.wait(3); this->eraseCond(trID);
 		}//?if(trID%4==0)
-		//·ñÔò¼ÌĞø·¢ËÍ
+		//å¦åˆ™ç»§ç»­send
 	}//?while(true);
 	delete[] pmsgbuf; return true;
 }
@@ -317,26 +317,26 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	¶ÔÒª·¢ËÍµÄÏûÏ¢½øĞĞutf8±àÂë
+//	å¯¹è¦sendçš„æ¶ˆæ¯è¿›è¡Œutf8ç¼–ç 
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//½«ÁÄÌìÄÚÈİ°´1500×Ö½Ú³¤¶È½øĞĞ·Ö¸î·¢ËÍ
+	//å°†èŠå¤©å†…å®¹æŒ‰1500å­—èŠ‚lengthè¿›è¡Œåˆ†å‰²send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //Èç¹ûÊÇutf8±àÂëµÄ×Ö·û£¬³ıÁËµÚÒ»¸ö×Ö½Ú£¬ÆäËû×Ö½Ú¶¼ÊÇÒÔ0x10¿ªÍ·,¼ûutf8±àÂëËµÃ÷
-			while( chatMsg[iSend]<0 ) //·ÀÖ¹½«utf8±àÂëµÄ×Ö·û½Ø¶Ï·¢ËÍ£¬
+			iSend=1500; //å¦‚æœæ˜¯utf8ç¼–ç çš„å­—ç¬¦ï¼Œé™¤äº†ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼Œå…¶ä»–å­—èŠ‚éƒ½æ˜¯ä»¥0x10å¼€å¤´,è§utf8ç¼–ç è¯´æ˜
+			while( chatMsg[iSend]<0 ) //é˜²æ­¢å°†utf8ç¼–ç çš„å­—ç¬¦æˆªæ–­sendï¼Œ
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------·¢ËÍÏûÏ¢----------------------------
+//---------------sendæ¶ˆæ¯----------------------------
 		trID=msgID();
 		iret=sprintf(msgHeader,"MSG %d A %d\r\n",trID,headerlen+iSend);
 		memmove(msgHeader+(56-iret),msgHeader,iret);
@@ -360,13 +360,13 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 //----------------------------------------------------
 		chatMsg+=iSend; msglen-=iSend;
 		if(msglen<=0) break;
-		if(trID!=0 && trID%2==0) //ÎªÁË±ÜÃâ·¢ËÍÌ«¿ìµ¼ÖÂMSN·şÎñ¹Ø±ÕÁ¬½Ó£¬µÈ´ıÏìÓ¦Ó¦´ğ
+		if(trID!=0 && trID%2==0) //ä¸ºäº†é¿å…sendå¤ªå¿«å¯¼è‡´MSNæœåŠ¡å…³é—­connectï¼Œç­‰å¾…å“åº”åº”ç­”
 		{//yyc add 2007-03-13
 			cCond cond; cond.setArgs(0);
-			this->m_conds[trID]=&cond; //×î³¤ÑÓÊ±µÈ´ı3Ãë
+			this->m_conds[trID]=&cond; //æœ€é•¿å»¶æ—¶ç­‰å¾…3ç§’
 			cond.wait(3); this->eraseCond(trID);
 		}//?if(trID%4==0)
-		//·ñÔò¼ÌĞø·¢ËÍ
+		//å¦åˆ™ç»§ç»­send
 	}//?while(true);
 	delete[] pmsgbuf; return true;
 }
@@ -374,25 +374,25 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const char *chatMsg,int msglen)
 {
-	//	¶ÔÒª·¢ËÍµÄÏûÏ¢½øĞĞutf8±àÂë
+	//	å¯¹è¦sendçš„æ¶ˆæ¯è¿›è¡Œutf8ç¼–ç 
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//½«ÁÄÌìÄÚÈİ°´1500×Ö½Ú³¤¶È½øĞĞ·Ö¸î·¢ËÍ
+	//å°†èŠå¤©å†…å®¹æŒ‰1500å­—èŠ‚lengthè¿›è¡Œåˆ†å‰²send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //Èç¹ûÊÇutf8±àÂëµÄ×Ö·û£¬³ıÁËµÚÒ»¸ö×Ö½Ú£¬ÆäËû×Ö½Ú¶¼ÊÇÒÔ0x10¿ªÍ·,¼ûutf8±àÂëËµÃ÷
-			while( chatMsg[iSend]<0 ) //·ÀÖ¹½«utf8±àÂëµÄ×Ö·û½Ø¶Ï·¢ËÍ£¬
+			iSend=1500; //å¦‚æœæ˜¯utf8ç¼–ç çš„å­—ç¬¦ï¼Œé™¤äº†ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼Œå…¶ä»–å­—èŠ‚éƒ½æ˜¯ä»¥0x10å¼€å¤´,è§utf8ç¼–ç è¯´æ˜
+			while( chatMsg[iSend]<0 ) //é˜²æ­¢å°†utf8ç¼–ç çš„å­—ç¬¦æˆªæ–­sendï¼Œ
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------·¢ËÍÏûÏ¢----------------------------
+//---------------sendæ¶ˆæ¯----------------------------
 		std::vector<cContactor *>::iterator it=vec.begin();
 		for(;it!=vec.end();it++)
 		{
@@ -425,25 +425,25 @@ bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHea
 bool msnMessager::sendcmd_SS_chatMsgW(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const wchar_t *chatMsgW,int msglen)
 {
-	//	¶ÔÒª·¢ËÍµÄÏûÏ¢½øĞĞutf8±àÂë
+	//	å¯¹è¦sendçš„æ¶ˆæ¯è¿›è¡Œutf8ç¼–ç 
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//½«ÁÄÌìÄÚÈİ°´1500×Ö½Ú³¤¶È½øĞĞ·Ö¸î·¢ËÍ
+	//å°†èŠå¤©å†…å®¹æŒ‰1500å­—èŠ‚lengthè¿›è¡Œåˆ†å‰²send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //Èç¹ûÊÇutf8±àÂëµÄ×Ö·û£¬³ıÁËµÚÒ»¸ö×Ö½Ú£¬ÆäËû×Ö½Ú¶¼ÊÇÒÔ0x10¿ªÍ·,¼ûutf8±àÂëËµÃ÷
-			while( chatMsg[iSend]<0 ) //·ÀÖ¹½«utf8±àÂëµÄ×Ö·û½Ø¶Ï·¢ËÍ£¬
+			iSend=1500; //å¦‚æœæ˜¯utf8ç¼–ç çš„å­—ç¬¦ï¼Œé™¤äº†ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼Œå…¶ä»–å­—èŠ‚éƒ½æ˜¯ä»¥0x10å¼€å¤´,è§utf8ç¼–ç è¯´æ˜
+			while( chatMsg[iSend]<0 ) //é˜²æ­¢å°†utf8ç¼–ç çš„å­—ç¬¦æˆªæ–­sendï¼Œ
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------·¢ËÍÏûÏ¢----------------------------
+//---------------sendæ¶ˆæ¯----------------------------
 		std::vector<cContactor *>::iterator it=vec.begin();
 		for(;it!=vec.end();it++)
 		{
@@ -482,7 +482,7 @@ int msnMessager :: encodeChatMsgHead(char *buffer,int buflen,const char *IMFont,
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//¶Ô×ÖÌåÃû³Æ½øĞĞutf-8ºÍmime±àÂë
+		if(m_encodeFontname==""){//å¯¹å­—ä½“nameè¿›è¡Œutf-8å’Œmimeç¼–ç 
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);
@@ -502,7 +502,7 @@ int msnMessager :: encodeChatMsgHead(char *buffer,int buflen,const char *IMFont,
 	}
 	
 	if(dspname && cCoder::Utf8EncodeSize(strlen(dspname))<(buflen-len))
-	{//¶ÔÏÔÊ¾Ãû³Æ½øĞĞutf8±àÂë,²¢¶Ô±àÂë»º³åÇø´óĞ¡¼Ó±£»¤ÏŞ¶¨
+	{//å¯¹display nameç§°è¿›è¡Œutf8ç¼–ç ,å¹¶å¯¹ç¼–ç buffersizeåŠ ä¿æŠ¤é™å®š
 		strcpy(buffer+len,"P4-Context: "); len+=12;
 		len+=cCoder::utf8_encode(dspname,strlen(dspname),buffer+len);
 		buffer[len++]='\r'; buffer[len++]='\n';
@@ -522,7 +522,7 @@ int msnMessager :: encodeChatMsgHeadW(char *buffer,int buflen,const wchar_t *IMF
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//¶Ô×ÖÌåÃû³Æ½øĞĞutf-8ºÍmime±àÂë
+		if(m_encodeFontname==""){//å¯¹å­—ä½“nameè¿›è¡Œutf-8å’Œmimeç¼–ç 
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);
@@ -542,7 +542,7 @@ int msnMessager :: encodeChatMsgHeadW(char *buffer,int buflen,const wchar_t *IMF
 	}
 	
 	if(dspname && cCoder::Utf8EncodeSize(stringlenW(dspname))<(buflen-len))
-	{//¶ÔÏÔÊ¾Ãû³Æ½øĞĞutf8±àÂë,²¢¶Ô±àÂë»º³åÇø´óĞ¡¼Ó±£»¤ÏŞ¶¨
+	{//å¯¹display nameç§°è¿›è¡Œutf8ç¼–ç ,å¹¶å¯¹ç¼–ç buffersizeåŠ ä¿æŠ¤é™å®š
 		strcpy(buffer+len,"P4-Context: "); len+=12;
 		len+=cCoder::utf8_encodeW(dspname,stringlenW(dspname),buffer+len);
 		buffer[len++]='\r'; buffer[len++]='\n';

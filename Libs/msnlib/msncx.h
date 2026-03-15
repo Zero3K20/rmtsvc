@@ -1,7 +1,7 @@
 /*******************************************************************
 *	msncx.h
-*    DESCRIPTION:msnc0/msnc1Ğ­Òé´¦ÀíÀàµÄ¶¨ÒåÉùÃ÷¡£
-*				msnp10/11ÏÖÔÚÖ§³Ömsnc1.µ«msnp10/11ÈÔ¼æÈİmsnc0
+*    DESCRIPTION:msnc0/msnc1 protocol handler class definition and declaration.
+*				msnp10/11 now supports msnc1, but msnp10/11 remains compatible with msnc0
 *    AUTHOR:yyc
 *
 *    HISTORY:
@@ -22,12 +22,12 @@ namespace net4cpp21
 	protected:
 		FILE *m_fp;
 		bool m_bDataThread_Running;
-		cContactor *m_pcontact;//±¾ÑûÇëÁ¥ÊôµÄÁÄÌì»á»°¶ÔÏó
+		cContactor *m_pcontact;//the chat session object this invitation belongs to
 		msnMessager *m_pmsnmessager;
-		bool m_bSender;//ÊÇ·ñÎª·¢ËÍÕß»¹ÊÇ½ÓÊÕÕß
-		int m_inviteType;//ÑûÇëÀàĞÍ, INVITE_TYPE_FILE,INVITE_TYPE_PICTURE,INVITE_TYPE_ROBOT
-		std::string m_filepath;//ÎÄ¼ş¶ÁÈ¡»ò´æ´¢Â·¾¶
-		std::string m_filename;//ÎÄ¼ş´«ÊäµÄÎÄ¼şÃûºÍ´óĞ¡
+		bool m_bSender;//æ˜¯å¦ä¸ºsendè€…è¿˜æ˜¯receiveè€…
+		int m_inviteType;//é‚€è¯·type, INVITE_TYPE_FILE,INVITE_TYPE_PICTURE,INVITE_TYPE_ROBOT
+		std::string m_filepath;//æ–‡ä»¶è¯»å–æˆ–å­˜å‚¨path
+		std::string m_filename;//æ–‡ä»¶ä¼ è¾“çš„filenameå’Œsize
 		long m_filesize;
 	public:
 		explicit cMsncx(msnMessager *pmsnmessager,cContactor *pcontact,int inviteType);
@@ -63,7 +63,7 @@ namespace net4cpp21
 		virtual ~cMsnc0();
 		bool sendmsg_ACCEPT(bool bListen);
 		bool sendmsg_REJECT(const char *errCode);
-		bool sendFile(const char *filename);//·¢ËÍÖ¸¶¨ÎÄ¼ş
+		bool sendFile(const char *filename);//sendspecifiedæ–‡ä»¶
 		void setHostinfo(const char *hostip,int hostport,const char *authCookie);
 		static void msnc0Thread(cMsnc0 *pmsnc0);
 	};
@@ -84,12 +84,12 @@ namespace net4cpp21
 
 		cMsnc1(msnMessager *pmsnmessager,cContactor *pcontact,int inviteType=0);//MSNINVITE_TYPE_UNKNOW
 		virtual ~cMsnc1();
-		//»ñÈ¡Ä³¸öÁªÏµÈËµÄÍ·Ïñ¡£ saveas---Í¼ÏñÁì´æÎª...
+		//è·å–æŸä¸ªè”ç³»äººçš„å¤´åƒã€‚ saveas---å›¾åƒé¢†å­˜ä¸º...
 		bool getPicture(const char *saveas);
 		bool sendPicture(const char *filename);
-		bool sendFile(const char *filename);//·¢ËÍÖ¸¶¨ÎÄ¼ş
-//		bool sendRobotInvite(const char *robotname); //·¢ËÍ»úÆ÷ÈËÑûÇë
-		//pheader Ö¸Ïò½ÓÊÕMSGµÄ header
+		bool sendFile(const char *filename);//sendspecifiedæ–‡ä»¶
+//		bool sendRobotInvite(const char *robotname); //sendæœºå™¨äººé‚€è¯·
+		//pheader æŒ‡å‘receiveMSGçš„ header
 		bool sendmsg_ACK(unsigned char *pheader);
 		bool sendmsg_Got_BYE();
 		bool sendmsg_ACCEPT();

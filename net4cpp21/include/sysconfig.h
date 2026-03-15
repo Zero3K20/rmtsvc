@@ -2,7 +2,7 @@
 #ifndef __YY_SYSCONFIG_H__
 #define __YY_SYSCONFIG_H__
 
-#ifdef WIN32 //windowsϵͳƽ̨
+#ifdef WIN32 //Windows system platform
 	#pragma warning(disable:4786)
 	#pragma warning(disable:4503)
 	#ifndef _CRT_SECURE_NO_WARNINGS
@@ -14,8 +14,8 @@
 	#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
 	#endif
-	#include <windows.h> //����windows��ͷ�ļ�
-	#define	MSG_NOSIGNAL    0  //windows��û�д˶���
+	#include <windows.h> //include Windows header files
+	#define	MSG_NOSIGNAL    0  //this definition does not exist on Windows
 	
 	#define strcasecmpW _wcsicmp
 	#define strncasecmpW _wcsnicmp

@@ -36,21 +36,21 @@ typedef struct _TFTPUser
 	std::string username;//account name, case-insensitive (converted to lowercase)
 	std::string userpwd;//password, if password=="" then no password verification required
 	std::string userdesc;
-	unsigned long maxupratio;//最大上载速率 K/s,如果=0则不限
-	unsigned long maxdwratio;//最大下载速率 K/s,如果=0则不限
-	unsigned long maxupfilesize;//最大上载文件大小 KBytes ,0--不限
+	unsigned long maxupratio;//max upload rate K/s, 0 means unlimited
+	unsigned long maxdwratio;//max download rate K/s, 0 means unlimited
+	unsigned long maxupfilesize;//max upload file size in KBytes, 0 means unlimited
 	unsigned long maxdisksize;//限制最大磁盘使用空间 KBytes,0--不限
-	unsigned long curdisksize;//当前已使用磁盘空间 KBytes.
-	std::map<std::string,std::pair<std::string,long> > dirAccess;//目录访问权限,目录区分大小写
-			//first --- string : ftp的虚目录路径,最后以/结束，例如/ 或 /aa/，
-			//second --- pair : 此ftp虚目录对应的实际目录和目录的访问权限，实际目录必须为\结尾(win平台)
+	unsigned long curdisksize;//current已使用磁盘空间 KBytes.
+	std::map<std::string,std::pair<std::string,long> > dirAccess;//目录访问permissions,目录区分size写
+			//first --- string : ftp的虚目录path,最后以/end，例如/ 或 /aa/，
+			//second --- pair : 此ftp虚目录对应的实际目录和目录的访问permissions，实际目录必须为\结尾(win平台)
 	long ipaccess;
-	std::string ipRules;//ip访问规则
-	long maxLoginusers;//限制此帐号的最大同时登录用户数,<=0则不限制 
-	time_t limitedTime;//限制此帐号只在某个日期之前有效，==0不限制
+	std::string ipRules;//IP access rules
+	long maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
+	time_t limitedTime;//限制此account只在某个date之前有效，==0不限制
 	long pswdmode;
 	long disphidden; //是否显示隐藏文件
-	long forbid; //是否禁用此帐号
+	long forbid; //是否禁用此account
 }TFTPUser;
 
 class ftpsvrEx : public ftpServer

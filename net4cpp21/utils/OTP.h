@@ -1,6 +1,6 @@
 /*******************************************************************
    *	OTP.h
-   *    DESCRIPTION:һ�ο���ϵͳ RFC2289.txt
+   *    DESCRIPTION:一次口令系统 RFC2289.txt
    *				A One-Time Password System
    *    AUTHOR:yyc
    *

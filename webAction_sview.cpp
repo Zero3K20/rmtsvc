@@ -18,12 +18,12 @@
 //<service>
 //<id>sequence number</id>
 //<sname>service name</sname>
-//<status>服务状态</status>
-//<rtype>启动类型</rtype>
-//<stype>服务类型</stype>
-//<sdisp>显示名称</sdisp>
-//<sdesc>服务描述</sdesc>
-//<spath>服务模块路径</spath>
+//<status>service status</status>
+//<rtype>启动type</rtype>
+//<stype>service type</stype>
+//<sdisp>display name称</sdisp>
+//<sdesc>service description</sdesc>
+//<spath>服务模块path</spath>
 //</service>
 //...
 //</xmlroot>
@@ -33,9 +33,9 @@ bool webServer::httprsp_slist(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(1024);
 	serviceList(buffer);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -56,11 +56,11 @@ bool webServer::sevent(const char *sname,const char *cmd)
 	if(hService==NULL){ ::CloseServiceHandle(schSCManager); return false; }
 	
 	SERVICE_STATUS	ssStatus; 
-	if(strcmp(cmd,"run")==0) //启动指定的服务
+	if(strcmp(cmd,"run")==0) //启动specified的服务
 	{
 		if( ::StartService(hService, 0, 0) ) Sleep(1000);
 	}
-	else if(strcmp(cmd,"stop")==0) //停止指定的服务
+	else if(strcmp(cmd,"stop")==0) //停止specified的服务
 	{
 		if( ::ControlService(hService, SERVICE_CONTROL_STOP, &ssStatus) )
 		{
@@ -73,7 +73,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 			}//?while
 		}
 	}
-	else if(strcmp(cmd,"delete")==0) //删除卸载服务
+	else if(strcmp(cmd,"delete")==0) //deleteuninstall service
 	{
 		if( ::ControlService(hService, SERVICE_CONTROL_STOP, &ssStatus) )
 		{
@@ -161,7 +161,7 @@ DWORD serviceList(cBuffer &buffer)
 		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_ALL_ACCESS);
 		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); continue; }
 		
-		bytesNeeded=0;//进一步获取信息
+		bytesNeeded=0;//进一步获取info
 		QueryServiceConfig( hService, NULL, 0, &bytesNeeded);
 		DWORD lpqscBuf_Size=bytesNeeded;
 		LPQUERY_SERVICE_CONFIG lpqscBuf=(LPQUERY_SERVICE_CONFIG)::malloc(lpqscBuf_Size);

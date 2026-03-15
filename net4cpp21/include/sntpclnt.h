@@ -1,6 +1,6 @@
 /*******************************************************************
    *	sntpclnt.h
-   *    DESCRIPTION:SNTP简单网络时钟同步协议客户端声明
+   *    DESCRIPTION:SNTP simple network time synchronization protocol client declaration
    *
    *	http://hi.baidu.com/yycblog/home
    *	net4cpp 2.1
@@ -25,7 +25,7 @@ namespace net4cpp21
 		//General functions
 		bool  GetServerTime(const char * szHostName, NtpServerResponse& response,
 					int nPort = SNTP_SERVER_PORT);
-		//根据返回结果同步本地时钟
+		//synchronize local clock based on returned result
 		bool SynchroniseClock(NtpServerResponse& response);
 		
 	protected:
@@ -33,10 +33,10 @@ namespace net4cpp21
 		void RevertSetTimePriviledge();
 		bool  SetClientTime(const CNtpTime& NewTime);
 
-		DWORD            m_dwTimeout; //网络响应超时
+		DWORD            m_dwTimeout; //network response timeout
 		HANDLE           m_hToken;
 		TOKEN_PRIVILEGES m_TokenPriv;
-		std::string		 m_strLastError;	//错误信息
+		std::string		 m_strLastError;	//errorinfo
 	};
 };//namespace net4cpp21
 

@@ -19,12 +19,12 @@ BOOL portList(cBuffer &buffer);
 //<xmlroot>
 //<fport>
 //<id>sequence number</id>
-//<pid>进程ID</pid>
+//<pid>process ID</pid>
 //<pname>进程名</pname>
-//<ptype>类型</ptype>
-//<laddr>本地地址</laddr>
-//<raddr>远程地址</raddr>
-//<status>状态</status>
+//<ptype>type</ptype>
+//<laddr>localaddress</laddr>
+//<raddr>remoteaddress</raddr>
+//<status>status</status>
 //</fport>
 //...
 //</xmlroot>
@@ -33,9 +33,9 @@ bool webServer::httprsp_fport(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(2048);
 	portList(buffer);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -111,7 +111,7 @@ BOOL portList(cBuffer &buffer)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dll失败
+	if(hModule==NULL) return FALSE; //加载dllfailure
 	//获取函数指针 // XP and later - 实际测试2k也能用
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
@@ -202,7 +202,7 @@ BOOL portList(string &strret)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dll失败
+	if(hModule==NULL) return FALSE; //加载dllfailure
 	//获取函数指针 // XP and later - 实际测试2k也能用
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");

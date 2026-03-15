@@ -52,9 +52,9 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 	if(strParam) { *(char *)strParam=0; strParam++; }
 
 	BOOL bRet=FALSE; std::string strRet; //command execution return
-	std::string strUpdateFile=""; //rmtsvc本地升级文件
-	std::string strDownFile=""; //本地文件下载转向url
-	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //升级或下载
+	std::string strUpdateFile=""; //rmtsvclocal升级文件
+	std::string strDownFile=""; //localfile download转向url
+	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //升级或download
 	{
 		strRet="wrong command format!\r\n";
 		if(strParam) while(*strParam==' ') strParam++;
@@ -74,7 +74,7 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 					if(!bRet) delete[] downParam; 
 				}else strRet.assign("Failed to start downloa-thread\r\n");
 			}else if(!bUpdate)
-			{//下载本地指定的文件
+			{//downloadlocalspecified的文件
 				const char *filename,*filepath=NULL;
 				const char *ptr=strrchr(strParam,'\\');
 				if(ptr){ *(char *)ptr=0;
@@ -85,7 +85,7 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 				strDownFile.append(filename);
 				strDownFile.append("?path=");
 				if(filepath) strDownFile.append(filepath);
-			}else{ //用指定的本地文件升级rmtsvc
+			}else{ //用specified的local文件升级rmtsvc
 				strUpdateFile.assign(strParam);
 				strRet.assign("Update program...\r\n");
 				strRet.append(strParam); bRet=TRUE;
@@ -100,9 +100,9 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -113,14 +113,14 @@ bool webServer :: httprsp_version(socketTCP *psock,httpResponse &httprsp)
 {
 	char buffer[256]; int len;
 	if(m_bAnonymous)
-	len=sprintf(buffer,"%s<br>&nbsp;<font color=red>当前为匿名访问，为了安全请从ini中配置访问账号和权限</font>",
+	len=sprintf(buffer,"%s<br>&nbsp;<font color=red>current为匿名访问，为了安全请从ini中配置访问账号和permissions</font>",
 				MyService::ServiceVers);
 	else len=sprintf(buffer,"%s",MyService::ServiceVers);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 //	httprsp.set_mimetype(MIMETYPE_TEXT);
 	httprsp.AddHeader(string("Content-Type"),string("text/html; charset=gb2312"));
-	httprsp.lContentLength(len); //设置响应内容长度
+	httprsp.lContentLength(len); //设置response content length
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(len,buffer,-1); 
 	return true;
@@ -137,9 +137,9 @@ bool webServer:: httprsp_telnet(socketTCP *psock,httpResponse &httprsp,long lAcc
 	else iport=sprintf(buf,"Failed to start Telnet.");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(iport); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(iport,buf,-1); psock->Close();
@@ -158,8 +158,8 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 	if(ptr_user && ptr_pswd && ptr_chkcode)
 	{
 		if( session["chkcode"]!="" && 
-			strcasecmp(session["chkcode"].c_str(),ptr_chkcode)==0)  //yyc modify 2006-09-14 不区分大小写
-		{//判断帐号和密码，并的到用户的权限
+			strcasecmp(session["chkcode"].c_str(),ptr_chkcode)==0)  //yyc modify 2006-09-14 不区分size写
+		{//判断account和password，并的到用户的permissions
 			::_strlwr((char *)ptr_user); //转化为小写
 
 			std::map<std::string,std::pair<std::string,long> >::iterator it=m_mapUsers.find(ptr_user);
@@ -174,12 +174,12 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 					return true;
 				}
 			}
-		}//?验证码正确
+		}//?authentication码正确
 	}//?if(ptr_user && ptr_pswd && ptr_chkcode)
 
 	return false;
 }
-//设置仅仅获取指定窗口的屏幕
+//设置仅仅获取specified窗口的屏幕
 bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session)
 {
 	const char *ptr; char buf[256];
@@ -193,7 +193,7 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	if( (ptr=httpreq.Request("y")) ) pt.y=atoi(ptr);
 	pt.x+=rc.left; pt.y+=rc.top;
 	
-	if(act==1) //捕获指定的窗口
+	if(act==1) //捕获specified的窗口
 	{
 		hwnd=WindowFromPoint(pt);
 		sprintf(buf,"%ld",(long)(LONG_PTR)hwnd);
@@ -201,7 +201,7 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	}else if(act==2){ //捕获整个屏幕
 		hwnd=NULL;
 		session["cap_hwnd"]=string("null");
-	} //否则仅仅获取状态
+	} //否则仅仅获取status
 	
 	if(hwnd==NULL)
 		buflen=sprintf(buf,"hwnd is null");
@@ -214,17 +214,17 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 				"</xmlroot>",(long)(LONG_PTR)hwnd,s.c_str());
 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
 	return true;
 }
 
-//获取设置图像质量 bSetting - 是否可以设置
-//获取当前登录用户和权限
+//获取设置image quality bSetting - 是否可以设置
+//获取current登录用户和permissions
 bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp
 									,httpSession &session,bool bSetting)
 {
@@ -253,9 +253,9 @@ bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpRe
 				m_quality,((m_dwImgSize==0)?0:1),session["lAccess"].c_str(),
 				session.sessionID(),0,(long)(LONG_PTR)hwnd);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
@@ -298,9 +298,9 @@ bool webServer :: httprsp_msevent(socketTCP *psock,httpRequest &httpreq,httpResp
 	
 	Wutils::sendMouseEvent(x,y,flag,dwData);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_HTML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK"); 
 	return true;
@@ -322,9 +322,9 @@ bool webServer :: httprsp_keyevent(socketTCP *psock,httpRequest &httpreq,httpRes
 	}//?if(ptr_vkey)
 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_HTML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK"); 
 	return true;
@@ -346,9 +346,9 @@ bool webServer :: httprsp_command(socketTCP *psock,httpResponse &httprsp,const c
 			Wutils::Logoff();
 	}
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_HTML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK"); 
 	return true;
@@ -364,9 +364,9 @@ bool webServer :: httprsp_cmdpage(socketTCP *psock,httpResponse &httprsp,const c
 
 	docmd_exec2buf(strBuffer,true,5); 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(strBuffer.length()); 
 	httprsp.send_rspH(psock,200,"OK"); 
 	if(strBuffer!="") psock->Send(strBuffer.length(),strBuffer.c_str(),-1);
@@ -392,9 +392,9 @@ bool webServer :: httprsp_GetClipBoard(socketTCP *psock,httpResponse &httprsp)
 		}
 	}//?if(IsClipboardForma...
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(strContent.length()); 
 	httprsp.send_rspH(psock,200,"OK");
 	if(strContent!="") psock->Send(strContent.length(),strContent.c_str(),-1);
@@ -424,9 +424,9 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 		CloseClipboard();
 	}//?if(OpenClipboard(NULL))
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK");
 	return true;
@@ -443,9 +443,9 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	HWND hwnd=(HWND)atol(session["cap_hwnd"].c_str());
 	DWORD dwRet=capDesktop(hwnd,w,h,ifCapCursor,m_quality,lpbits);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_JPG);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(dwRet); 
 	httprsp.send_rspH(psock,200,"OK");
 	if(lpbits)
@@ -461,21 +461,21 @@ bool webServer::httprsp_sysinfo(socketTCP *psock,httpResponse &httprsp)
 	char buf[512]; int buflen=0;
 	buflen=sprintf(buf,"<xmlroot>\r\n");
 	buflen+=sprintf(buf+buflen,"<pcname>%s</pcname>\r\n",Wutils::computeName());
-	MSOSTYPE ostype=Wutils::winOsType(); //系统类型
+	MSOSTYPE ostype=Wutils::winOsType(); //系统type
 	buflen+=sprintf(buf+buflen,"<OS>%s</OS>\r\n",Wutils::getLastInfo());
-	Wutils::cpuInfo(ostype);//cpu信息
+	Wutils::cpuInfo(ostype);//cpuinfo
 	buflen+=sprintf(buf+buflen,"<CPU>%s</CPU>\r\n",Wutils::getLastInfo());
-	Wutils::winOsStatus();//当前系统状态
+	Wutils::winOsStatus();//current系统status
 	buflen+=sprintf(buf+buflen,"<status>%s</status>\r\n",Wutils::getLastInfo());
-	Wutils::FindPassword(NULL);//当前系统帐号/密码
+	Wutils::FindPassword(NULL);//current系统account/password
 	buflen+=sprintf(buf+buflen,"<account>%s</account>\r\n",Wutils::getLastInfo());
-	//当前进程ID
+	//currentprocess ID
 	buflen+=sprintf(buf+buflen,"<pid>%d</pid>\r\n",::GetCurrentProcessId());
 	buflen+=sprintf(buf+buflen,"</xmlroot>");
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
@@ -496,7 +496,7 @@ bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSes
 		 tmpBuf[i]=c;
 	}
 	session["chkcode"]=tmpBuf;
-	//生成图片,并发送
+	//生成图片,并send
 	BITMAPINFOHEADER bih;
 	::memset(&bih,0,sizeof(BITMAPINFOHEADER));
 	bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -509,9 +509,9 @@ bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSes
 	LPBYTE lpbits=new BYTE[bih.biSizeImage];
 	DWORD dwret=chkcodeImage(&bih,lpbits,tmpBuf);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_JPG);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(dwret); 
 	httprsp.send_rspH(psock,200,"OK");
 	if(dwret>0) psock->Send(dwret,(const char *)lpbits,-1);
@@ -533,9 +533,9 @@ bool webServer::httprsp_usageimage(socketTCP *psock,httpResponse &httprsp)
 	LPBYTE lpbits=new BYTE[bih.biSizeImage];
 	DWORD dwret=usageImage(&bih,lpbits);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_JPG);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(dwret); 
 	httprsp.send_rspH(psock,200,"OK");
 	if(dwret>0) psock->Send(dwret,(const char *)lpbits,-1);
@@ -554,7 +554,7 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 
 	RECT rt={0,0,0,0}; rt.right=lpbih->biWidth; rt.bottom=lpbih->biHeight;
-	HBRUSH hbr=::CreateSolidBrush(0x0);//创建黑色刷子
+	HBRUSH hbr=::CreateSolidBrush(0x0);//create黑色刷子
 	::FillRect(hMemDC,&rt,hbr);//背景为黑色
 	::DeleteObject(hbr);
 	
@@ -566,7 +566,7 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	::SetBkMode(hMemDC,oldMode);
 	::SetTextColor(hMemDC,oldColor);
 	
-	//获取图像数据并进行jpg压缩
+	//获取图像data并进行jpg压缩
 	DWORD dwret=0;
 	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
 		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //进行jpeg压缩
@@ -578,7 +578,7 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	return dwret;
 }
 
-//生成cpu占用率和内存使用率图像，并返回图像数据可大小
+//生成cpu占用率和memory usage图像，并返回图像data可size
 DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 {
 	#define POINTNUM 20 //每条曲线的点个数
@@ -596,7 +596,7 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hWndDC, rt.right -rt.left , rt.bottom -rt.top );
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 	
-	HBRUSH hbr=::CreateSolidBrush(0x0);//创建黑色刷子
+	HBRUSH hbr=::CreateSolidBrush(0x0);//create黑色刷子
 	::FillRect(hMemDC,&rt,hbr);//背景为黑色
 	::DeleteObject(hbr);
 	//绘出网格线
@@ -614,7 +614,7 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	}
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
-	//获取当前cpu占用率和内存使用率数据
+	//获取currentcpu占用率和memory usagedata
 	//***********start*****************
 	if(pointEnd>0 && (pointEnd%POINTNUM)==(pointStart%POINTNUM)) pointStart+=1;
 	cpuLinePoint[pointEnd%POINTNUM]=Wutils::getCPUusage();
@@ -639,7 +639,7 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
 	
-	//获取图像数据并进行jpg压缩
+	//获取图像data并进行jpg压缩
 	DWORD dwret=0;
 	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
 		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //进行jpeg压缩
@@ -658,7 +658,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	LPBYTE lpbuffer=NULL;
 	DWORD dwbuffer_size=0;
 	BITMAPINFOHEADER bih;
-	RECT rect;//得到屏幕的大小
+	RECT rect;//得到屏幕的size
 	if(hWnd==NULL) hWnd = ::GetDesktopWindow(); //获取桌面句柄
 	::GetWindowRect(hWnd, &rect); //::GetClientRect(hWnd, &rect);
 	::memset((void *)&bih,0,sizeof(bih));
@@ -691,11 +691,11 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	{
 		POINT ptCursor;
 		::GetCursorPos(&ptCursor);
-		//先获得鼠标光标下的窗口句柄，得到该窗口的线程ID
-		//Attatch当前线程到指定的窗口线程
-		//获得该窗口当前鼠标光标句柄
+		//先获得鼠标光标下的窗口句柄，得到该窗口的thread ID
+		//Attatchcurrent thread到specified的窗口线程
+		//获得该窗口current鼠标光标句柄
 		//Deattach
-		//!!!如果不这样做，直接调用GetCursor()则总是获得当前线程的光标句柄
+		//!!!如果不这样做，直接调用GetCursor()则总是获得current thread的光标句柄
 		//如果没有设置则获得的总是漏斗光标句柄
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=hWnd;
@@ -703,13 +703,13 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
 		HCURSOR hCursor=::GetCursor();
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
-		ICONINFO IconInfo;//获取光标的图标数据 
+		ICONINFO IconInfo;//获取光标的图标data 
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
 			ptCursor.x -= ((int) IconInfo.xHotspot);
 			ptCursor.y -= ((int) IconInfo.yHotspot);
 		}
-		//在兼容设备描述表上画出该光标
+		//在兼容设备description表上画出该光标
 		::DrawIconEx(
 		hMemDC, // handle to device context 
 		ptCursor.x, ptCursor.y,
@@ -766,7 +766,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	return dwret;
 }
 
-//------------------获取指定密码窗口的密码--------------------------------
+//------------------获取specifiedpassword窗口的password--------------------------------
 #include "cInjectDll.h"
 typedef HWND (WINAPI *PWindowFromPoint)(POINT);
 typedef long (WINAPI *PGetWindowLong)(HWND,int);
@@ -774,7 +774,7 @@ typedef BOOL (WINAPI *PPostMessage)(HWND,UINT,WPARAM,LPARAM);
 typedef int  (WINAPI *PGetWindowText)(HWND,LPTSTR,int);
 typedef struct _TGETPSWDINFO
 {
-	POINT pt; //鼠标当前坐标点
+	POINT pt; //鼠标current坐标点
 	PWindowFromPoint pfnWindowFromPoint;
 	PGetWindowLong pfnGetWindowLong;
 	PGetWindowText pfnGetWindowText;
@@ -798,7 +798,7 @@ DWORD WINAPI GetPswdFromWind(INJECTLIBINFO *pInfo)
 	}
 	return 0;
 }
-//获取密码窗口的密码
+//获取password窗口的password
 bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session)
 {
 	const char *ptr; char buf[256];
@@ -814,14 +814,14 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 	DWORD dwret,pid=0;
 	if( (hwnd=::WindowFromPoint(info.pt)) ) GetWindowThreadProcessId(hwnd,&pid);
 	
-	//初始化指定的函数指针
+	//initializationspecified的函数指针
 	info.pfnGetWindowLong= (PGetWindowLong)GetProcAddress(GetModuleHandle
 						("User32.dll"),"GetWindowLongA");	
 	info.pfnGetWindowText= (PGetWindowText)GetProcAddress(GetModuleHandle
 						("User32.dll"),"GetWindowTextA");
 	info.pfnWindowFromPoint= (PWindowFromPoint)GetProcAddress(GetModuleHandle
 						("User32.dll"),"WindowFromPoint");
-	cInjectDll inject(NULL); //返回0 成功
+	cInjectDll inject(NULL); //返回0 success
 	dwret=inject.Call(pid,(PREMOTEFUNC)&GetPswdFromWind,(PVOID)&info,sizeof(TGETPSWDINFO));
 	int buflen=sprintf(buf,"<?xml version=\"1.0\" encoding=\"gb2312\" ?>\r\n"
 				"<xmlroot>\r\n"
@@ -831,9 +831,9 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 				"</xmlroot>",dwret,pid,info.retPswdBuf);
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
@@ -845,7 +845,7 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 static HHOOK g_hKBLockHook=NULL;//锁定键盘鼠标钩子句柄
 static HHOOK g_hMSLockHook=NULL;
 
-//一下定义在winuser.h中但必须定义了 #if (_WIN32_WINNT >= 0x0400)
+//一下define在winuser.h中但必须define了 #if (_WIN32_WINNT >= 0x0400)
 #ifndef LLMHF_INJECTED
 
 #define WH_KEYBOARD_LL 13
@@ -870,7 +870,7 @@ typedef struct tagMSLLHOOKSTRUCT {
 
 #endif
 
-//锁定键盘鼠标处理钩子
+//锁定键盘鼠标handle钩子
 LRESULT CALLBACK kbLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier
@@ -884,7 +884,7 @@ LRESULT CALLBACK kbLockProc(
 	}
 	return 1;
 }
-//锁定键盘鼠标处理钩子
+//锁定键盘鼠标handle钩子
 LRESULT CALLBACK msLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier

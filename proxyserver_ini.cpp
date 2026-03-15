@@ -51,7 +51,7 @@ bool proxysvrEx :: parseIni(char *pbuffer,long lsize)
 				docmd_cassets(pstart+9);
 			else if(strncasecmp(pstart,"iprules ",8)==0) //set IP filter rules for accessing this service and certain accounts
 				docmd_iprules(pstart+8);
-			else if(strncasecmp(pstart,"proxyuser ",10)==0) //设置本服务访问帐号
+			else if(strncasecmp(pstart,"proxyuser ",10)==0) //设置本服务访问account
 				docmd_puser(pstart+10);
 		} 
 		if(ptr==NULL) break;
@@ -87,7 +87,7 @@ bool proxysvrEx :: saveAsstring(std::string &strini)
 		m_settings.caspswd.c_str());
 	strini.append(buf,len);
 
-	//-------------------------保存帐号信息------------------------
+	//-------------------------保存accountinfo------------------------
 	std::map<std::string,TProxyUser>::iterator it=m_userlist.begin();
 	for(;it!=m_userlist.end();it++)
 	{
@@ -123,7 +123,7 @@ bool proxysvrEx :: saveIni()
 {
 	std::string strini;
 	saveAsstring(strini);
-	//写注册表--------------------------------------
+	//write registry--------------------------------------
 	HKEY  hKEY;
 	LPCTSTR lpRegPath = "Software\\Microsoft\\Windows\\CurrentVersion";
 	if(::RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpRegPath, 0, KEY_WRITE|KEY_READ, &hKEY)==ERROR_SUCCESS)
@@ -140,8 +140,8 @@ bool proxysvrEx :: saveIni()
 	return true;
 }
 
-//设置代理服务参数
-//命令格式:
+//设置proxy service参数
+//命令format:
 //	proxysvr port= [bindip=] type=[HTTPS|SOCKS4|SOCKS5] [bauth=<1|0>] [autorun=<1|0>] [blogd=<1|0>]"
 void proxysvrEx :: docmd_psets(const char *strParam)
 {
@@ -180,9 +180,9 @@ void proxysvrEx :: docmd_psets(const char *strParam)
 
 	return;
 }
-//设置二级代理服务参数
-//命令格式:
-//	casproxy enabled=<0|1> host=<代理地址> type=[HTTPS|SOCKS4|SOCKS5] [bauth=<1|0>] [account=<帐号:密码>]"
+//设置二级proxy service参数
+//命令format:
+//	casproxy enabled=<0|1> host=<代理address> type=[HTTPS|SOCKS4|SOCKS5] [bauth=<1|0>] [account=<account:password>]"
 void proxysvrEx :: docmd_cassets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -230,18 +230,18 @@ void proxysvrEx :: docmd_cassets(const char *strParam)
 	return;
 }
 
-//添加新的代理服务访问帐号信息,如果帐号已存在则删除旧的，重新添加
-//命令格式: 
-//	proxyuser account=<帐号> pswd=<帐号密码> [maxlogin=<限制同时最多登录人数>] [expired=<帐号有效期限>] [maxratio=<最大带宽>] 
-//account=<帐号> : 必须项. 要添加的帐号。
-//pswd=<帐号密码>   : 必须项. 指定帐号的密码，
-//					如果帐号密码等于""或空则意味着无需密码访问，只要帐号名对就可访问
-//maxlogin=<限制同时最多登录人数> : 限制此ftp帐号的同时登录访问人数	。
-//					如果不设置则默认为0，即不限制此帐号的同时登录人数
-//expired=<帐号有效期限> : 限制此帐号的使用期限，格式YYYY-MM-DD
-//					如果不设置则帐号永不过期
-//maxratio=<最大带宽> : 限制此帐号的最大上下载流量Kb/秒
-//					如果不设置则默认为0，即不限制此帐号的最大上载流量
+//添加新的proxy service访问accountinfo,如果account已存在则delete旧的，重新添加
+//命令format: 
+//	proxyuser account=<account> pswd=<account password> [maxlogin=<限制同时最多登录人数>] [expired=<account有效期限>] [maxratio=<最大带宽>] 
+//account=<account> : 必须项. 要添加的account。
+//pswd=<account password>   : 必须项. specifiedaccount的password，
+//					如果account password等于""或空则意味着无需password访问，只要account名对就可访问
+//maxlogin=<限制同时最多登录人数> : 限制此ftpaccount的同时登录访问人数	。
+//					如果不设置则default为0，即不限制此account的同时登录人数
+//expired=<account有效期限> : 限制此account的使用期限，formatYYYY-MM-DD
+//					如果不设置则account永不过期
+//maxratio=<最大带宽> : 限制此account的最大上download流量Kb/秒
+//					如果不设置则default为0，即不限制此account的最大上载流量
 void proxysvrEx :: docmd_puser(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -273,8 +273,8 @@ void proxysvrEx :: docmd_puser(const char *strParam)
 	{
 		struct tm ltm; ::memset((void *)&ltm,0,sizeof(ltm));
 		::sscanf((*it).second.c_str(),"%d-%d-%d",&ltm.tm_year,&ltm.tm_mon,&ltm.tm_mday);
-		ltm.tm_year-=1900; //年份从1900开始计数
-		ltm.tm_mon-=1;//月份从0开始计数
+		ltm.tm_year-=1900; //年份从1900start计数
+		ltm.tm_mon-=1;//月份从0start计数
 		if(ltm.tm_year>100 && ltm.tm_year<200 && 
 			ltm.tm_mon>=0 && ltm.tm_mon<=11 && 
 		    ltm.tm_mday>=1 && ltm.tm_mday<=31 )
@@ -297,9 +297,9 @@ void proxysvrEx :: docmd_puser(const char *strParam)
 	return ;
 }
 
-//设置ip过滤规则和自动启动标志
-//命令格式:
-//	iprules type=[proxy|proxyuser|proxydest] account=<代理服务帐号>] [access=0|1] ipaddr="<IP>,<IP>,..."
+//设置ip过滤规则和自动启动flag
+//命令format:
+//	iprules type=[proxy|proxyuser|proxydest] account=<proxy serviceaccount>] [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : 对符合下列IP条件的是拒绝还是放行
 void proxysvrEx :: docmd_iprules(const char *strParam)
 {
@@ -309,7 +309,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("type"))==maps.end()) return;
 	if((*it).second=="proxy")
-	{//设置代理服务的IP过滤规则
+	{//设置proxy service IP filtering规则
 		if( (it=maps.find("access"))!=maps.end())
 			m_settings.ipaccess=atoi((*it).second.c_str());
 		
@@ -317,7 +317,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			m_settings.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//设置代理服务某个帐号的IP过滤规则
+	{//设置proxy service某个account的IP filter rules
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 
@@ -330,7 +330,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			puser.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//设置代理服务某个帐号的目的过滤规则
+	{//设置proxy service某个account的目的过滤规则
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 

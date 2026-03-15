@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vIDCs.h
-   *    DESCRIPTION:vIDC·şÎñÀàµÄ¶¨Òå
+   *    DESCRIPTION:vIDC service class definition
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -25,24 +25,24 @@ namespace net4cpp21
 		bool bAuthentication() { return m_bAuthentication; }
 		void bAuthentication(bool b) { m_bAuthentication=b; }
 		std::string &accessPswd() { return m_strPswd; }
-		bool DisConnect(long vidccID); //Ç¿ÖÆ¶Ï¿ªÄ³¸övidcccµÄÁ¬½Ó
-		void setLogdatafile(long vidccID,bool b);//ÉèÖÃ¶ÔÄ³¸övidccÓ³ÉäµÄ·şÎñ½øĞĞÈÕÖ¾¼ÇÂ¼
+		bool DisConnect(long vidccID); //forcibly disconnect a vidcc connection
+		void setLogdatafile(long vidccID,bool b);//enable logging for the service mapped by a vidcc
 
 		void xml_list_vidcc(cBuffer &buffer);
 		void xml_info_vidcc(cBuffer &buffer,long vidccID);
 
 	protected:
-		void onConnect(socketTCP *psock);//ÓĞÒ»¸öÓÃ»§Á¬½ÓÉÏÀ´
-		void Destroy(); //¶ÔÏóÊÍ·ÅÇ°£¬Ïú»ÙÊÍ·Å×ÊÔ´¶¯×÷
+		void onConnect(socketTCP *psock);//æœ‰ä¸€ä¸ªç”¨æˆ·connectä¸Šæ¥
+		void Destroy(); //å¯¹è±¡é‡Šæ”¾å‰ï¼Œé”€æ¯é‡Šæ”¾èµ„æºåŠ¨ä½œ
 		vidccSession * docmd_helo(socketTCP *psock,const char *param);
 		vidccSession * AddPipeFromVidcSession(socketTCP *pipe,long vidccID);
 		bool DelPipeFromVidcSession(socketTCP *pipe,long vidccID);
 	private:
-		bool m_bAuthentication; //vIDCsÊÇ·ñĞèÒªÑéÖ¤
-		std::string m_strPswd; //vIDCsµÄÑéÖ¤ÃÜÂë
+		bool m_bAuthentication; //vIDCsæ˜¯å¦éœ€è¦authentication
+		std::string m_strPswd; //vIDCsçš„authenticationpassword
 		cMutex m_mutex;
 		//key - vidccID
-		std::map<long,vidccSession *> m_sessions; //µ±Ç°ÒÑÁ¬½ÓµÄvIDCc¿Í»§¶Ë¼¯ºÏ
+		std::map<long,vidccSession *> m_sessions; //currentå·²connectçš„vIDCcclienté›†åˆ
 	};
 //***********************************************************************************	
 	class vidcServer : public socketSvr,public vidcsvr
@@ -52,7 +52,7 @@ namespace net4cpp21
 		virtual ~vidcServer(){}
 		void Stop();
 	private:
-		//µ±ÓĞÒ»¸öĞÂµÄ¿Í»§Á¬½Ó´Ë·şÎñ´¥·¢´Ëº¯Êı
+		//å½“æœ‰ä¸€ä¸ªæ–°çš„å®¢æˆ·connectæ­¤æœåŠ¡è§¦å‘æ­¤å‡½æ•°
 		virtual void onAccept(socketTCP *psock)
 		{
 			vidcsvr::onConnect(psock);

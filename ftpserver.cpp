@@ -531,16 +531,16 @@ bool webServer::httprsp_ftpini(socketTCP *psock,httpRequest &httpreq,httpRespons
 		if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<settings><![CDATA[%s]]></settings>",strini.c_str());
 	}
-	else if(strcasecmp(ptr_cmd,"in")==0) //导入FTP service配置
+	else if(strcasecmp(ptr_cmd,"in")==0) //import FTP service configuration
 	{
 		const char *ptr=httpreq.Request("ini");
 		if(ptr){
 			pftpsvr->initSetting();
 			pftpsvr->m_userlist.clear();
 			pftpsvr->parseIni((char *)ptr,0);
-			pftpsvr->saveIni(); //保存配置参数
+			pftpsvr->saveIni(); //save configuration parameters
 		}//?if(ptr)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>导入配置完成!</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Configuration imported successfully!</retmsg>");
 	}//?else if(strcasecmp(ptr_cmd,"in")==0)
 
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);

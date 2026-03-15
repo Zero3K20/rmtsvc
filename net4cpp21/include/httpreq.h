@@ -1,6 +1,6 @@
 /*******************************************************************
    *	httpreq.h
-   *    DESCRIPTION:HTTP ÇëÇó½âÎö¶ÔÏó
+   *    DESCRIPTION:HTTP request parsing object
    *
    *    AUTHOR:yyc
    *
@@ -35,20 +35,20 @@ namespace net4cpp21
 		bool bKeepAlive();
 		time_t IfModifiedSince();
 		void set_requestRange(long lstartpos,long lendpos);
-		//¿ÉÄÜ»áÓĞ¶à¸ö·¶Î§,·µ»Ø·¶Î§¸öÊı
+		//there may be multiple ranges, returns the count
 		int get_requestRange(long *lpstartpos,long *lpendpos,int idx=0);
 		void set_Authorization(const char *user,const char *pswd);
 		HTTPAUTH_TYPE get_Authorization(std::string &user,std::string &pswd);
-		//ÉèÖÃPOSTÊı¾İÀàĞÍ
+		//set POST data type
 		void set_contentType(HTTPREQ_CONTENT_TYPE itype,const char *lpBoundary);
 		HTTPREQ_CONTENT_TYPE get_contentType(std::string *strBoundary);
 		const char * get_contentCharset();
 		long get_contentLen() const { return m_httpreq_lContentlen; }
-		//·µ»ØÌá½»Êı¾İÖ¸Õë£¬½ö½ö¶Ô·ÇFormÊı¾İÓĞÒâÒå
+		//è¿”å›æäº¤dataæŒ‡é’ˆï¼Œä»…ä»…å¯¹éFormdataæœ‰æ„ä¹‰
 		cBuffer &get_contentData() { return m_httpreq_postdata; }
-		void ifParseParams(bool b) { m_bParseParams=b; } //ÉèÖÃÊÇ·ñ½âÎöÌá½»²ÎÊı£¬ÓÃÓÚHTTP ´úÀí·şÎñ
+		void ifParseParams(bool b) { m_bParseParams=b; } //è®¾ç½®æ˜¯å¦parseæäº¤å‚æ•°ï¼Œç”¨äºHTTP proxy service
 
-		//»ñÈ¡httpÇëÇóÊı¾İ
+		//è·å–HTTP requestdata
 		const char *Request(const char *reqname){
 			if(reqname==NULL) return NULL;
 
@@ -67,25 +67,25 @@ namespace net4cpp21
 			return (it!=m_httpreq_COOKIE.end())?((*it).second.c_str()):NULL;
 		}
 		const char *Header(const char *pheader)
-		{//»ñÈ¡Ö¸¶¨µÄhttpÇëÇóÍ·
+		{//è·å–specifiedçš„HTTP request header
 			std::map<std::string,std::string>::iterator it=
 				(pheader)?m_httpreq_HEADER.find(pheader):m_httpreq_HEADER.end();
 			return (it!=m_httpreq_HEADER.end())?((*it).second.c_str()):NULL;
 		}
 
 		//---------------------------------------------------------------
-		void init_httpreq(bool ifKeepHeader=false);//³õÊ¼»¯httpÇëÇó×¼±¸·¢ËÍĞÂµÄhttpÇëÇó
+		void init_httpreq(bool ifKeepHeader=false);//initializationHTTP requestå‡†å¤‡sendæ–°çš„HTTP request
 		std::map<std::string,std::string> &QueryString() { return m_httpreq_params_GET;}
 		std::map<std::string,std::string> &Form() { return m_httpreq_params_POST;}
 		std::map<std::string,std::string> &Cookies() { return m_httpreq_COOKIE; }
 		std::map<std::string,std::string> &Header() { return m_httpreq_HEADER; }
 	
-		//±àÂëhttpÇëÇó²¢·¢ËÍ,³É¹¦·µ»ØSOCKSERR_OK
+		//ç¼–ç HTTP requestå¹¶send,successè¿”å›SOCKSERR_OK
 		SOCKSRESULT send_req(socketTCP *psock,const char *lpszurl);
-		void SetPostData(const char *buf,long buflen) //ÉèÖÃÒª·¢ËÍµÄPOSTÊı¾İ
+		void SetPostData(const char *buf,long buflen) //è®¾ç½®è¦sendçš„POST data
 		{
-			m_httpreq_params_POST.clear(); //´ËÊ±POST ParamÎŞĞ§
-			m_httpreq_postdata.len()=0; //Çå¿ÕÔ­ÓĞµÄÊı¾İ
+			m_httpreq_params_POST.clear(); //æ­¤æ—¶POST Paramæ— æ•ˆ
+			m_httpreq_postdata.len()=0; //æ¸…ç©ºåŸæœ‰çš„data
 			m_httpreq_postdata.Resize(buflen+1);
 			if(m_httpreq_postdata.str()==NULL) return; 
 			::memcpy(m_httpreq_postdata.str(),buf,buflen);
@@ -100,10 +100,10 @@ namespace net4cpp21
 		}
 		//--------------------------------------------------------------
 
-		//½ÓÊÕ²¢½âÂë´¦ÀíhttpÇëÇó
+		//receiveå¹¶è§£ç handle HTTP request
 		SOCKSRESULT recv_reqH(socketTCP *psock,time_t timeout=HTTP_MAX_RESPTIMEOUT);
-		bool recv_remainder(socketTCP *psock,long receiveBytes=-1); //½ÓÊÕÊ£ÓàÎ´½ÓÊÕÍêµÄÊı¾İ
-		//½âÎöBasicÕÊºÅÃÜÂë´®
+		bool recv_remainder(socketTCP *psock,long receiveBytes=-1); //receiveå‰©ä½™æœªreceiveå®Œçš„data
+		//parseBasicaccount passwordä¸²
 		static bool ParseAuthorizationBasic(const char *str,
 										  std::string &username,std::string &password);
 	private:
@@ -118,22 +118,22 @@ namespace net4cpp21
 							 std::map<std::string,std::string> &maps);
 
 	private:
-		DWORD m_httpreq_dwVer; //httpĞ­Òé°æ±¾
-		HTTPREQ_TYPE m_httpreq_iType; //httpÇëÇóÀàĞÍ
+		DWORD m_httpreq_dwVer; //httpåè®®version
+		HTTPREQ_TYPE m_httpreq_iType; //HTTP requesttype
 		long m_httpreq_lContentlen;
 		std::string m_httpreq_strUrl;
 		
-		//±£´æ´ÓURLÌá½»µÄ²ÎÊı
+		//ä¿å­˜ä»URLæäº¤çš„å‚æ•°
 		std::map<std::string,std::string> m_httpreq_params_GET;
-		//±£´æ´ÓPOST±íµ¥Ìá½»µÄ²ÎÊı
+		//ä¿å­˜ä»POSTè¡¨å•æäº¤çš„å‚æ•°
 		std::map<std::string,std::string> m_httpreq_params_POST;
 		std::map<std::string,std::string> m_httpreq_HEADER;
 		std::map<std::string,std::string> m_httpreq_COOKIE;
-		bool m_httpreq_bReceiveALL;//ÊÇ·ñÒÑ¾­httpÇëÇóÍêÕû½ÓÊÕ
-		cBuffer m_httpreq_postdata; //±£´æ½ÓÊÕµÄ²¿·ÖpostÊı¾İ
+		bool m_httpreq_bReceiveALL;//æ˜¯å¦å·²ç»HTTP requestå®Œæ•´receive
+		cBuffer m_httpreq_postdata; //ä¿å­˜receiveçš„éƒ¨åˆ†postdata
 
-		bool m_bParseParams; //ÊÇ·ñ½øĞĞ²ÎÊı½âÎö£¬Ä¬ÈÏÎªÕæ
-							//Ö÷ÒªÊÇ¸ø´úÀí·şÎñÊ¹ÓÃ£¬´úÀí·şÎñÔÚ½ÓÊÕ´¦ÀíHTTPS´úÀíÊ±²»½âÎö²ÎÊıÌá¸ßËÙ¶È
+		bool m_bParseParams; //æ˜¯å¦è¿›è¡Œå‚æ•°parseï¼Œdefaultä¸ºçœŸ
+							//ä¸»è¦æ˜¯ç»™proxy serviceä½¿ç”¨ï¼Œproxy serviceåœ¨receivehandleHTTPSä»£ç†æ—¶ä¸parseå‚æ•°æé«˜é€Ÿåº¦
 	};
 
 }//?namespace net4cpp21

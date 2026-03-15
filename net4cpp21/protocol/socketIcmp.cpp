@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketIcmp.cpp
-   *    DESCRIPTION:ICMP socket ÀàµÄÊµÏÖ
+   *    DESCRIPTION:ICMP socket ç±»çš„implementation
    *
    *    AUTHOR:yyc
    *
@@ -32,8 +32,8 @@ inline void ConstructICMP(IcmpHeader &icmph)
 	return;
 }
 
-//·¢ËÍIcmp EchoÊı¾İ°ü
-//ipDest --- Òª·¢ËÍµÄÄ¿µÄÖ÷»úIP
+//sendIcmp EchodataåŒ…
+//ipDest --- è¦sendçš„ç›®çš„ä¸»æœºIP
 SOCKSRESULT socketIcmp :: sendIcmp_echo(unsigned long ipDest)
 {
 	IcmpHeader icmph;
@@ -50,7 +50,7 @@ SOCKSRESULT socketIcmp :: sendIcmp_echo(unsigned long ipDest)
 	return sendIcmpPackage(ipDest,icmph);
 }
 
-//·¢ËÍIcmp EchoÏìÓ¦Êı¾İ°ü
+//sendIcmp Echoå“åº”dataåŒ…
 SOCKSRESULT socketIcmp :: sendIcmp_reply(unsigned long ipDest,unsigned short usId, 
 										unsigned short usSeq,unsigned long ulData)
 {
@@ -68,7 +68,7 @@ SOCKSRESULT socketIcmp :: sendIcmp_reply(unsigned long ipDest,unsigned short usI
 	return sendIcmpPackage(ipDest,icmph);
 }
 
-//·¢ËÍIcmpÊı¾İ°ü
+//sendIcmpdataåŒ…
 SOCKSRESULT socketIcmp :: sendIcmpPackage(unsigned long ipDest,IcmpHeader &icmph)
 {
 	if(m_socktype!=SOCKS_RAW)

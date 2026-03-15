@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vidcManager.cpp
-   *    DESCRIPTION:vIDC¼¯ºÏ¹ÜÀíÀà
+   *    DESCRIPTION:vIDC collection management class
    *
    *    AUTHOR:yyc
    *
@@ -27,7 +27,7 @@ void vidcManager :: initSetting()
 	}
 	m_tcpsets.clear();
 	m_upnp.Clear();
-	m_vidccSets.Destroy(); //Ïú»ÙËùÓĞvidcc
+	m_vidccSets.Destroy(); //destroy all vidcc instances
 }
 
 void vidcManager :: Destroy()
@@ -35,8 +35,8 @@ void vidcManager :: Destroy()
 	initSetting();
 	m_vidcsvr.Stop();
 }
-//Æô¶¯ÉèÖÃÎª×Ô¶¯Æô¶¯µÃ±¾µØ¶Ë¿ÚÓ³Éä·şÎñ
-//ÔÚ³ÌĞò¿ªÊ¼ÔËĞĞÊ±µ÷ÓÃ
+//start local port mapping services configured for automatic start
+//åœ¨ç¨‹åºstartè¿è¡Œæ—¶è°ƒç”¨
 void vidcManager :: mtcpl_Start()
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.begin();
@@ -46,7 +46,7 @@ void vidcManager :: mtcpl_Start()
 		if(ptr_mtcp && p && p->bAutorun)
 		{
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
-			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL½âÃÜ·şÎñ,ÉèÖÃ¿Í»§¶ËÖ¤Êé
+			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSLè§£å¯†æœåŠ¡,è®¾ç½®clientè¯ä¹¦
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
 #ifdef _SURPPORT_OPENSSL_
@@ -55,7 +55,7 @@ void vidcManager :: mtcpl_Start()
 			}
 			SOCKSRESULT sr=ptr_mtcp->Start(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),
 				g_strCaCert.c_str(),g_strCaCRL.c_str());
-			if(sr<=0) RW_LOG_PRINT(LOGLEVEL_WARN,"[mtcpl] Æô¶¯±¾¶¨Ó³Éä·şÎñ %s Ê§°Ü, err=%d\r\n",(*it).first.c_str(),sr);
+			if(sr<=0) RW_LOG_PRINT(LOGLEVEL_WARN,"[mtcpl] å¯åŠ¨æœ¬å®šæ˜ å°„æœåŠ¡ %s failure, err=%d\r\n",(*it).first.c_str(),sr);
 		}
 	}//?for
 	return;
@@ -63,7 +63,7 @@ void vidcManager :: mtcpl_Start()
 
 void vidcManager :: xml_list_localip(cBuffer &buffer)
 {
-	std::vector<std::string> vec;//µÃµ½±¾»úIP£¬·µ»ØµÃµ½±¾»úIPµÄ¸öÊı
+	std::vector<std::string> vec;//å¾—åˆ°local machineIPï¼Œè¿”å›å¾—åˆ°local machineIPçš„ä¸ªæ•°
 	long n=socketBase::getLocalHostIP(vec);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<localip>");
 	for(int i=0;i<n;i++) buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s ",vec[i].c_str());
@@ -71,7 +71,7 @@ void vidcManager :: xml_list_localip(cBuffer &buffer)
 }
 
 //<maplist>
-//<mapped name="Ó³ÉäÃû³Æ">Ó¦ÓÃÃèÊö</mapped>
+//<mapped name="æ˜ å°„name">åº”ç”¨description</mapped>
 //</maplist>
 void vidcManager :: xml_list_mtcp(cBuffer &buffer)
 {
@@ -127,25 +127,25 @@ void vidcManager :: xml_info_mtcp(cBuffer &buffer,const char *mapname)
 
 		if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 		if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</mapinfo>");
-	}else{//´íÎó
+	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Ö¸¶¨µÄÓ³Éä %s ²»´æÔÚ</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specifiedçš„æ˜ å°„ %s ä¸å­˜åœ¨</retmsg>",mapname);
 	}
 	return;
 }
 
 
-//Æô¶¯Ö¸¶¨µÄÓ³Éä·şÎñ
+//å¯åŠ¨specifiedçš„æ˜ å°„æœåŠ¡
 void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
 	if(it!=m_tcpsets.end()){
 		mportTCP * ptr_mtcp=(*it).second;
 		TMapParam *p=(TMapParam *)(ptr_mtcp->Tag());
-		if(p){//ÉèÖÃIP¹ıÂË¹æÔò
+		if(p){//è®¾ç½®IP filter rules
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
-			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL½âÃÜ·şÎñ,ÉèÖÃ¿Í»§¶ËÖ¤Êé
+			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSLè§£å¯†æœåŠ¡,è®¾ç½®clientè¯ä¹¦
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
 #ifdef _SURPPORT_OPENSSL_
@@ -155,10 +155,10 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 		}
 		SOCKSRESULT sr=ptr_mtcp->Start(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),
 				g_strCaCert.c_str(),g_strCaCRL.c_str());
-		if(sr<=0){ //Æô¶¯·şÎñÊ§°Ü
+		if(sr<=0){ //start servicefailure
 			if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 			if(buffer.str())
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Æô¶¯Ó³Éä %s Ê§°Ü, err=%d</retmsg>",mapname,sr);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>å¯åŠ¨æ˜ å°„ %s failure, err=%d</retmsg>",mapname,sr);
 		}
 		if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 		if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"<mapinfo>");
@@ -184,15 +184,15 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 
 		if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 		if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</mapinfo>");
-	}else{//´íÎó
+	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Ö¸¶¨µÄÓ³Éä %s ²»´æÔÚ</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specifiedçš„æ˜ å°„ %s ä¸å­˜åœ¨</retmsg>",mapname);
 	}
 	return;
 }
 
-//Í£Ö¹Ö¸¶¨µÄÓ³Éä·şÎñ
+//åœæ­¢specifiedçš„æ˜ å°„æœåŠ¡
 void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -224,15 +224,15 @@ void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 
 		if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 		if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</mapinfo>");
-	}else{//´íÎó
+	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Ö¸¶¨µÄÓ³Éä %s ²»´æÔÚ</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specifiedçš„æ˜ å°„ %s ä¸å­˜åœ¨</retmsg>",mapname);
 	}
 	return;
 }
 
-//É¾³ıÖ¸¶¨µÄÓ³Éä·şÎñ
+//deletespecifiedçš„æ˜ å°„æœåŠ¡
 void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -243,15 +243,15 @@ void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 		delete p; delete ptr_mtcp;
 		m_tcpsets.erase(it);
 		xml_list_mtcp(buffer);
-	}else{//´íÎó
+	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Ö¸¶¨µÄÓ³Éä %s ²»´æÔÚ</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specifiedçš„æ˜ å°„ %s ä¸å­˜åœ¨</retmsg>",mapname);
 	}
 	return;
 }
 
-//------------------------UDPÓ³Éä¼¯ºÏ----------------------
+//------------------------UDPæ˜ å°„é›†åˆ----------------------
 
 void vidcManager :: xml_list_mudp(cBuffer &buffer)
 {

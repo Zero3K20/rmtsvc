@@ -1,6 +1,6 @@
 /*******************************************************************
    *	msnproxy.cpp
-   *    DESCRIPTION:ÀûÓÃMSN·şÎñ×ö´úÀí£¬×ª·¢Êı¾İ
+   *    DESCRIPTION:use MSN service as proxy to forward data
    *
    *    AUTHOR:yyc
    *
@@ -45,7 +45,7 @@ unsigned long msnMessager::proxy_senddata(HCHATSESSION hchat,const char *proxyCm
 	cContactor *pcon=(cContactor *)hchat;
 	if(pcon==NULL || pcon->m_chatSock.status()!=SOCKS_CONNECTED) return 0;
 	unsigned long trID=msgID();
-	char msgHeader[256];//ÏÈÉú³ÉMSGÍ· //±£Áô56×Ö½ÚµÄ¿Õ¼äÓÃÓÚĞ´ÈëMSGÃüÁîÍ·
+	char msgHeader[256];//first generate MSG header //reserve 56 bytes of space for writing the MSG command header
 	int headerlen=sprintf(msgHeader+56,"MIME-Version: 1.0\r\n"
 						   "Content-Type: text/plain; charset=UTF-8\r\n"
 						   "X-MMS-IM-Format: FN=MS Sans Serif; EF=; CO=0; CS=0; PF=0\r\n"
@@ -57,10 +57,10 @@ unsigned long msnMessager::proxy_senddata(HCHATSESSION hchat,const char *proxyCm
 	return trID;
 }
 
-//host - ÒªÁ¬½ÓµÄÓ¦ÓÃ·şÎñµÄµØÖ·ºÍ¶Ë¿Ú ip:port
+//host - address and port of the application service to connect to: ip:port
 void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,const char *host)
 {
-	//·¢ËÍ´úÀíÁ¬½ÓÇëÇó
+	//sendä»£ç†connectè¯·æ±‚
 	HTRANSINFO htransinfo(new msnproxy_transInfo);
 	if(htransinfo.get_rep()==NULL) return NULL;
 	htransinfo->local_id=++g_proxyID;
@@ -75,7 +75,7 @@ void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,c
 	m_proxyMutex.lock();
 	m_mapProxyTransInfo[htransinfo->local_id]=htransinfo;
 	m_proxyMutex.unlock();
-	int iTimeout=30; //µÈ´ıÃüÁî·µ»Ø,×î¶àµÈ´ı15Ãë
+	int iTimeout=30; //ç­‰å¾…å‘½ä»¤è¿”å›,æœ€å¤šç­‰å¾…15 seconds
 	while(htransinfo->remote_id==0 && --iTimeout>0)
 	{
 		if(htransinfo->psock->checkSocket(0,SOCKS_OP_READ)<SOCKSERR_OK) break;
@@ -85,12 +85,12 @@ void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,c
 	m_proxyMutex.lock();
 	m_mapProxyTransInfo.erase(htransinfo->local_id);
 	m_proxyMutex.unlock();
-	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN-Proxy] Í¨¹ıMSN´úÀí»úÆ÷ÈËÁ¬½ÓÔ¶¶Ë·şÎñ %s Ê§°Ü!\r\n",host);
+	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN-Proxy] é€šè¿‡MSNä»£ç†æœºå™¨äººconnectè¿œç«¯æœåŠ¡ %s failure!\r\n",host);
 	return NULL;
 }
 
-//ÊÕµ½MSN PROXY´úÀíÊı¾İ
-//proxyCmd - ´úÀíÃüÁî¡£¸ñÊ½: <command> <remote-id>-<local-id>
+//æ”¶åˆ°MSN PROXYä»£ç†data
+//proxyCmd - ä»£ç†å‘½ä»¤ã€‚format: <command> <remote-id>-<local-id>
 void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *undecode_szMsg,int szMsglen)
 {
 //	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN PROXY] %s msglen=%d\r\n",proxyCmd,szMsglen);
@@ -103,7 +103,7 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 	if( (ptr=strchr(ptr,'-'))==NULL ) return;
 	else local_id=atol(ptr+1);
 	
-	if(proxycmd==MSN_PROXY_CONNECTED) //Á¬½Ó¶Ô¶Ë³É¹¦
+	if(proxycmd==MSN_PROXY_CONNECTED) //connectå¯¹ç«¯success
 	{
 		m_proxyMutex.lock();
 		std::map<unsigned long,HTRANSINFO>::iterator it=m_mapProxyTransInfo.find(local_id);
@@ -111,14 +111,14 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 			(*it).second->remote_id=remote_id;
 		m_proxyMutex.unlock();
 	}
-	else if(proxycmd==MSN_PROXY_CLOSED) //¶Ô¶ËÒÑ¹Ø±Õ
+	else if(proxycmd==MSN_PROXY_CLOSED) //å¯¹ç«¯å·²å…³é—­
 	{
 		m_proxyMutex.lock();
 		std::map<unsigned long,HTRANSINFO>::iterator it=m_mapProxyTransInfo.find(local_id);
 		if(it!=m_mapProxyTransInfo.end()) (*it).second->psock->Close();
 		m_proxyMutex.unlock();
 	}
-	else if(proxycmd==MSN_PROXY_DATA) //´úÀí×ª·¢Êı¾İ
+	else if(proxycmd==MSN_PROXY_DATA) //ä»£ç†forward data
 	{
 		socketTCP *psock=NULL;
 		m_proxyMutex.lock();
@@ -127,16 +127,16 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 		m_proxyMutex.unlock();
 		if(psock && psock->status()==SOCKS_CONNECTED)
 		{
-			//½øĞĞBase64½âÂë
+			//è¿›è¡ŒBase64è§£ç 
 			szMsglen=cCoder::base64_decode(undecode_szMsg,szMsglen,undecode_szMsg);
-			psock->Send(szMsglen,undecode_szMsg,-1); //×ª·¢Êı¾İ
+			psock->Send(szMsglen,undecode_szMsg,-1); //forward data
 		}
 		else{
 			char buf[64]; sprintf(buf,"%d %d-%d",MSN_PROXY_CLOSED,local_id,remote_id);
 			proxy_senddata(hchat,buf,"closed\r\n",8);
 		}
 	}//?else if(proxycmd==MSN_PROXY_DATA)
-	else if(proxycmd==MSN_PROXY_CONNECT) //Á¬½ÓÖ¸¶¨µÄÓ¦ÓÃ·şÎñÆ÷
+	else if(proxycmd==MSN_PROXY_CONNECT) //connectspecifiedçš„application serviceå™¨
 	{
 		HTRANSINFO htransinfo(new msnproxy_transInfo);
 		if(htransinfo.get_rep()==NULL) return;
@@ -167,7 +167,7 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 	return;
 }
 
-//Êı¾İ×ª·¢
+//dataè½¬å‘
 void msnMessager::proxy_transferData(void *param,const char *otherdata,long datalen)
 {
 	msnproxy_transInfo *pinfo=(msnproxy_transInfo *)param;
@@ -180,7 +180,7 @@ void msnMessager::proxy_transferData(void *param,const char *otherdata,long data
 
 	if(psock)
 	{
-		if(pinfo->bDelete) //Á¬½ÓÖ¸¶¨µÄÓ¦ÓÃ·şÎñ
+		if(pinfo->bDelete) //connectspecifiedçš„application service
 		{
 			if(psock->Connect(NULL,0,8)>0)
 			{
@@ -189,7 +189,7 @@ void msnMessager::proxy_transferData(void *param,const char *otherdata,long data
 			}
 		}//?if(psock->parent()==NULL)
 		
-		//----------------¿ªÊ¼Êı¾İ×ª·¢-------------------
+		//----------------startdataè½¬å‘-------------------
 		sprintf(proxyCmd,"%d %d-%d",MSN_PROXY_DATA,local_id,remote_id);
 		unsigned long trID=0; cCond cond; cond.setArgs(0);
 		int iret; char *buf=new char[1024+SSENDBUFFERSIZE];
@@ -204,22 +204,22 @@ void msnMessager::proxy_transferData(void *param,const char *otherdata,long data
 				iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 				if(iret<0) break; 
 				if(iret==0) continue;
-				//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+				//è¯»clientsendçš„data
 				iret=psock->Receive(buf,1024,-1);
-				if(iret<0) break; //==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+				if(iret<0) break; //==0è¡¨æ˜receivedataæµé‡è¶…è¿‡é™åˆ¶
 				if(iret==0){ Sleep(200); continue; }
 			}
-			//½øĞĞBase64±àÂë
+			//è¿›è¡ŒBase64ç¼–ç 
 			iret=cCoder::base64_encode(buf,iret,buf+1024);
 			trID=pmsnmeaager->proxy_senddata(pinfo->hchat,proxyCmd,buf+1024,iret);
 			if(trID==0) break;
-			if(trID%4==0) //ÎªÁË±ÜÃâ·¢ËÍÌ«¿ìµ¼ÖÂMSN·şÎñ¹Ø±ÕÁ¬½Ó£¬µÈ´ıÏìÓ¦Ó¦´ğ
+			if(trID%4==0) //ä¸ºäº†é¿å…sendå¤ªå¿«å¯¼è‡´MSNæœåŠ¡å…³é—­connectï¼Œç­‰å¾…å“åº”åº”ç­”
 			{
-				pmsnmeaager->m_conds[trID]=&cond; //ÑÓÊ±µÈ´ı3Ãë
+				pmsnmeaager->m_conds[trID]=&cond; //å»¶æ—¶ç­‰å¾…3ç§’
 				cond.wait(3); pmsnmeaager->eraseCond(trID);
 			}//?if(trID%4==0)
 		}//?while
-		//----------------Êı¾İ×ª·¢½áÊø-------------------
+		//----------------dataè½¬å‘end-------------------
 
 		if(pinfo->bDelete) delete psock;
 	}//?if(psock

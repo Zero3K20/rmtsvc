@@ -56,7 +56,7 @@ bool webServer :: httprsp_reglist(socketTCP *psock,httpResponse &httprsp,const c
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len());
 	if(!bret)
 		httprsp.send_rspH(psock,400,"Bad Request");
@@ -162,7 +162,7 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	}//?if(spath && spath[0]=='\\')
 	return httprsp_reglist(psock,httprsp,spath,2);
 }
-//将二进制字符串转换为二进制数组，返回数组大小
+//将二进制string conversion为二进制数组，返回数组size
 DWORD cvtBinaryString2Binary(char *strBinary)
 {
 	LPBYTE pbyte=(LPBYTE)strBinary;
@@ -356,7 +356,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 	
 	if(lret==0 && buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),
-					"<kitem><id></id><regkey>(none - 没有数据项)</regkey></kitem>");
+					"<kitem><id></id><regkey>(none - 没有data项)</regkey></kitem>");
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regkeys>");
 	return (lret<0)?false:true;
@@ -421,14 +421,14 @@ bool regitemList(cBuffer &buffer,const char *skey)
 						"<rname><![CDATA[%s]]></rname>"
 						"<rdlen>%d</rdlen>",
 						++lret,STR_REG_TYPE[dwType],
-						((subname_buffer[0]==0)?"(默认)":subname_buffer),
+						((subname_buffer[0]==0)?"(default)":subname_buffer),
 						dwValueBufferSize);
 					
 					if(dwType==REG_BINARY)
 					{
 						int i,j,lines=(dwValueBufferSize+15)/16; //计算共多少行
 						size_t count=0;//打印字符计数
-						if(lines>10) lines=10; //只显示10行的数据
+						if(lines>10) lines=10; //只显示10行的data
 
 						if((int)buffer.Space()<(lines*50+20)){
 							if( buffer.Resize(buffer.size()+lines*50+30)==NULL ) break;
@@ -473,7 +473,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 							else
 								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%s]]></rdata>",subvalue_buffer);
 						}
-					} //非二进制数据
+					} //非二进制data
 					if(buffer.Space()<12) buffer.Resize(buffer.size()+12);
 					if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</vitem>");
 					dwNameBufferSize=dwMaxValueNameLen+1;
@@ -490,8 +490,8 @@ bool regitemList(cBuffer &buffer,const char *skey)
 	{
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str()) 
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(默认)</rname>"
-						"<rdlen>0</rdlen><rdata>(数据未设置)</rdata></vitem>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(default)</rname>"
+						"<rdlen>0</rdlen><rdata>(data未设置)</rdata></vitem>");
 	}
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regitems>");

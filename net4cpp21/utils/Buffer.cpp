@@ -1,12 +1,12 @@
 /*******************************************************************
    *	Buffer.h
-   *    DESCRIPTION:Ñ­»·buffer»º³å ºÍ buffer»º³å
+   *    DESCRIPTION:å¾ªç¯bufferç¼“å†² å’Œ bufferç¼“å†²
    *
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
    *
-   *    DATE:2005-08£­19
+   *    DATE:2005-08ï¼19
    *	net4cpp 2.1
    *******************************************************************/
 
@@ -57,7 +57,7 @@ bool cLoopBuffer::Write(const char *s,size_t l)
 	return true;
 }
 
-//´Ó»º³åÇøÖĞ¶ÁÈ¡Ö¸¶¨µÄ×Ö½Ú
+//ä»bufferä¸­è¯»å–specifiedçš„å­—èŠ‚
 bool cLoopBuffer::Read(char *s,size_t l)
 {
 	if (l > m_q)
@@ -115,7 +115,7 @@ cBuffer::~cBuffer()
 	delete[] m_buf;
 }
 
-/*//¿½±´¹¹Ôì
+/*//æ‹·è´æ„é€ 
 cBuffer::cBuffer(const cBuffer &buf1){
 cBuffer &buf=const_cast<cBuffer &>(buf1);
 	delete[] m_buf;
@@ -126,7 +126,7 @@ cBuffer &buf=const_cast<cBuffer &>(buf1);
 	buf.m_max=0;
 	buf.m_len=0;
 } */
-//¿½±´¹¹Ôì
+//æ‹·è´æ„é€ 
 cBuffer::cBuffer(cBuffer &buf){
 	delete[] m_buf;
 	m_buf=buf.m_buf;
@@ -136,7 +136,7 @@ cBuffer::cBuffer(cBuffer &buf){
 	buf.m_max=0;
 	buf.m_len=0;
 }
-//¸³Öµ
+//èµ‹å€¼
 cBuffer & cBuffer::operator = (cBuffer &buf)
 {
 	delete[] m_buf;
@@ -150,7 +150,7 @@ cBuffer & cBuffer::operator = (cBuffer &buf)
 }
 char & cBuffer::operator [] (size_t pos)
 {
-	static char c=0; //Ô½½ç±£»¤×Ö·û
+	static char c=0; //è¶Šç•Œä¿æŠ¤å­—ç¬¦
 	if(pos<0 || pos>=m_max) return c;
 	return m_buf[pos];
 }

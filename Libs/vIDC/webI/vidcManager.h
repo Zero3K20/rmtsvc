@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vidcManager.h
-   *    DESCRIPTION:vIDC¼¯ºÏ¹ÜÀíÀà
+   *    DESCRIPTION:vIDC collection management class
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -24,7 +24,7 @@ public:
 	~vidcManager();
 	void Destroy();
 	void mtcpl_Start();
-	//»ñÈ¡±¾»úip
+	//get local IP
 	void xml_list_localip(cBuffer &buffer);
 
 	void xml_list_mtcp(cBuffer &buffer);
@@ -39,12 +39,12 @@ public:
 	void xml_stop_mudp(cBuffer &buffer,const char *mapname);
 	void xml_dele_mudp(cBuffer &buffer,const char *mapname);
 
-	bool readIni(); //´Ó×¢²á±í¶ÁÅäÖÃ
-	bool saveIni(); //Íù×¢²á±íĞ´ÅäÖÃ
+	bool readIni(); //read configuration from registry
+	bool saveIni(); //å¾€registryå†™é…ç½®
 	bool parseIni(char *pbuffer,long lsize);
 	bool parseCommand(const char *pstart);
 	bool saveAsstring(std::string &strini);
-	void initSetting(); //³õÊ¼»¯ËùÓĞÅäÖÃ
+	void initSetting(); //initializationæ‰€æœ‰é…ç½®
 	bool docmd_sslc(const char *strParam);
 	bool docmd_mtcpl(const char *strParam);
 	void docmd_mdhrsp(const char *strParam);
@@ -56,11 +56,11 @@ public:
 	void docmd_upnp(const char *strParam);
 	
 public:
-	vidcServerEx m_vidcsvr; //vidc·şÎñ
-	vidccSets m_vidccSets; //vidc¿Í»§¶Ë¼¯ºÏ
+	vidcServerEx m_vidcsvr; //vidcæœåŠ¡
+	vidccSets m_vidccSets; //vidcclienté›†åˆ
 	upnp	m_upnp;
 private:
-	std::map<std::string,mportTCP *> m_tcpsets; //TCP·şÎñÓ³Éä¼¯ºÏ
+	std::map<std::string,mportTCP *> m_tcpsets; //TCPæœåŠ¡æ˜ å°„é›†åˆ
 
 };
 

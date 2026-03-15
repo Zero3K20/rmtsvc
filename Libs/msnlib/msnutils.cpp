@@ -1,6 +1,6 @@
 /*******************************************************************
    *	msnlib.cpp
-   *    DESCRIPTION:msnĞ­Òé´¦ÀíÀàÊµÏÖ
+   *    DESCRIPTION:MSN protocol handler class implementation
    *
    *    AUTHOR:yyc
    *
@@ -19,16 +19,16 @@
 using namespace std;
 using namespace net4cpp21;
 
-//httpsÈÏÖ¤£¬»ñÈ¡passport
+//HTTPS authentication, get passport
 SOCKSRESULT msnMessager :: passport_auth(std::string &strKey,const char *strAccount,const char *pwd)
 {
 	httpClient httpsock; 
 	std::string httpsURL; int iret;
-	//Ä¬ÈÏÏÈ´Ónexus.passport.comÍøÕ¾»ñÈ¡ÕæÕıµÄhttps URL
-	//´ËurlÓ¦Îªhttps://loginnet.passport.com/login2.srf
-	//Ò»°ãÇé¿öÏÂ²»»á±ä£¬µ«ÎªÁË±£ÏÕÆğ¼û»¹ÊÇ´ÓÎ¢ÈíÍøÕ¾»ñµÃ±È½ÏºÃ
+	//by default, first get the real HTTPS URL from nexus.passport.com
+	//æ­¤urlåº”ä¸ºhttps://loginnet.passport.com/login2.srf
+	//ä¸€èˆ¬æƒ…å†µä¸‹ä¸ä¼šå˜ï¼Œä½†ä¸ºäº†ä¿é™©èµ·è§è¿˜æ˜¯ä»å¾®è½¯ç½‘ç«™è·å¾—æ¯”è¾ƒå¥½
 /*	iret=httpsock.send_httpreq("https://nexus.passport.com:443/rdr/pprdr.asp");
-	if(iret==200){//·µ»Ø³É¹¦
+	if(iret==200){//è¿”å›success
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("PassportURLs");
 		if(ptr && (ptr=strstr(ptr,"DALogin=")) )
@@ -44,9 +44,9 @@ SOCKSRESULT msnMessager :: passport_auth(std::string &strKey,const char *strAcco
 	}//?if(iret==200)
 	else
 		RW_LOG_DEBUG("Failed to access https://nexus.passport.com:443/rdr/pprdr.asp,err=%d\r\n",iret);
-*/ //yyc remove 2006-02-28 ¾­³£Á¬½Ónexus.passport.comºó½øĞĞSSLĞ­ÉÌÊ±ÏİÈëËÀµÈ,Òò´Ë²»Ö´ĞĞ´Ë²½
+*/ //yyc remove 2006-02-28 ç»å¸¸connectnexus.passport.comåè¿›è¡ŒSSLåå•†æ—¶é™·å…¥æ­»ç­‰,å› æ­¤ä¸æ‰§è¡Œæ­¤æ­¥
 
-	//Èç¹û»ñÈ¡Ê§°Ü£¬³¢ÊÔÊ¹ÓÃÄ¬ÈÏµÄhttps URL
+	//å¦‚æœè·å–failureï¼Œå°è¯•ä½¿ç”¨defaultçš„https URL
 	if(httpsURL=="") httpsURL.assign("https://loginnet.passport.com/login2.srf");
 	char buf[512]; std::string strMimeAccount;
 	iret=cCoder::mime_encode(strAccount,strlen(strAccount),buf); buf[iret]=0;
@@ -57,7 +57,7 @@ TRANS302:
 	buf[iret]=0; httpsock.cls_httpreq();
 	httpsock.add_reqHeader("Authorization",buf);
 	iret=httpsock.send_httpreq(httpsURL.c_str());
-	if(iret==302) //×ªÏò
+	if(iret==302) //è½¬å‘
 	{
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("Location");
@@ -65,7 +65,7 @@ TRANS302:
 		if(ptr==NULL) return SOCKSERR_MSN_AUTH;
 		httpsURL.assign(ptr); goto TRANS302;
 	}
-	else if(iret==200) //ÏìÓ¦³É¹¦
+	else if(iret==200) //å“åº”success
 	{
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("Authentication-Info");
@@ -78,7 +78,7 @@ TRANS302:
 		strKey.assign(ptr,i); return MSN_ERR_OK;
 	}//?else if(iret==200)
 	else if(iret==401) //HTTP/1.1 401 Unauthorized
-		return SOCKSERR_MSN_EMAIL; //ÎŞĞ§µÄÕÊºÅ»òÃÜÂë
+		return SOCKSERR_MSN_EMAIL; //invalidaccountæˆ–password
 	return SOCKSERR_MSN_AUTH;
 }
 
@@ -132,8 +132,8 @@ bool msnMessager :: MSNP11Challenge(std::string &strChallenge,const char *szClie
 	return true;
 }
 
-//¶ÔÎÄ¼ş½øĞĞsha-1Ëã·¨µÄÔËËã£¬»ñµÃÒ»¸ö20×Ö½ÚÁ÷
-//ÔÙÓÃbase64½øĞĞ¼ÓÂë»ñµÃµÄ×Ö·û´®
+//å¯¹æ–‡ä»¶è¿›è¡Œsha-1ç®—æ³•çš„è¿ç®—ï¼Œè·å¾—ä¸€ä¸ª20å­—èŠ‚æµ
+//å†ç”¨base64è¿›è¡ŒåŠ ç è·å¾—çš„å­—ç¬¦ä¸²
 bool msnMessager :: SHA1File(FILE *fp,string &strRet)
 {
 	if(fp==NULL) return false;
@@ -147,7 +147,7 @@ bool msnMessager :: SHA1File(FILE *fp,string &strRet)
 		if(readLen<2048) break;
 	}//?while
 	SHA1_Final(digest, &ctx);		
-	//½øĞĞbase64±àÂë
+	//è¿›è¡Œbase64 encoding
 	readLen=cCoder::base64_encode((char *)digest,20,readBuf);
 	readBuf[readLen]=0; strRet.assign(readBuf);
 	return true;
@@ -160,7 +160,7 @@ bool msnMessager :: SHA1Buf(const char *buf,long len,string &strRet)
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, (const void *)buf, len);
 	SHA1_Final(digest, &ctx);
-	//½øĞĞbase64±àÂë
+	//è¿›è¡Œbase64 encoding
 	char readBuf[256]; readBuf[0]=0;
 	long readLen=cCoder::base64_encode((char *)digest,20,readBuf);
 	readBuf[readLen]=0; strRet.assign(readBuf);
@@ -182,7 +182,7 @@ bool msnMessager :: MD5Buf(const char *buf,long len,string &strRet)
 
 //------------------------------------------------------------------------------------------
 //----------------------------private function----------------------------------------------
-//Ìí¼ÓÒ»¸öĞÂÁªÏµÈË
+//æ·»åŠ ä¸€ä¸ªæ–°è”ç³»äºº
 cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 {
 	if(email==NULL || email[0]==0) return NULL;
@@ -200,9 +200,9 @@ cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 	}
 	else if( (pcon=new cContactor()) ){
 		pcon->m_email.assign(email);
-		//¸´ÖÆ´úÀíĞÅÏ¢
+		//å¤åˆ¶ä»£ç†info
 		pcon->m_chatSock.setProxy(m_curAccount.m_chatSock);
-		//ÉèÖÃÆäËûchatSockµÄ¸¸ÎªºÍNSÁ¬½ÓµÄsocket£¬Ò»µ©ÃüÁîÁ¬½ÓÍ¨µÀ¶Ï¿ªÔòÒì³£
+		//è®¾ç½®å…¶ä»–chatSockçš„çˆ¶ä¸ºå’ŒNSconnectçš„socketï¼Œä¸€æ—¦å‘½ä»¤connecté€šé“disconnectåˆ™å¼‚å¸¸
 		pcon->m_chatSock.setParent((socketBase *)&m_curAccount.m_chatSock);
 		m_contacts[pcon->m_email]=pcon;
 
@@ -213,7 +213,7 @@ cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 			wchar2chars(nickW,(char *)tmpS.c_str(),tmpS.length());
 			pcon->m_nick_char.assign(tmpS.c_str());
 		}
-		else //Ä¬ÈÏêÇ³ÆºÍemailÏàÍ¬
+		else //defaultæ˜µç§°å’Œemailç›¸åŒ
 		{
 			pcon->m_nick_char=pcon->m_email; wchar_t *nickw=NULL;
 			if( (nickw=new wchar_t[pcon->m_email.length()+1]) )
@@ -241,7 +241,7 @@ bool msnMessager :: connectSvr(socketProxy &sock,const char *strhost,int iport)
 int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxSplit)
 {
 	if(str==NULL) return 0;
-	while(*str==' ') str++;//É¾³ıÇ°µ¼¿Õ¸ñ
+	while(*str==' ') str++;//deleteå‰å¯¼ç©ºæ ¼
 	const char *ptr=strchr(str,delm);
 	while(true)
 	{
@@ -253,7 +253,7 @@ int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxS
 		vec.push_back(str);
 		if(ptr==NULL) break;
 		*(char *)ptr=delm; str=ptr+1;
-		while(*str==' ') str++;//É¾³ıÇ°µ¼¿Õ¸ñ
+		while(*str==' ') str++;//deleteå‰å¯¼ç©ºæ ¼
 		ptr=strchr(str,delm);
 	}//?while
 	return vec.size();

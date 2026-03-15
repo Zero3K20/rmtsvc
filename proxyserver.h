@@ -23,34 +23,34 @@ typedef struct _TPROXYSETTINGS
 	int svrport; //service port
 	std::string bindip; //proxy service bind IP
 	int svrtype; //proxy type supported by the service
-	bool bAuth; //代理服务是否需要验证
-	bool autorun;  //程序运行是否自动启动代理服务
-	bool bCascade; //是否启用二级代理
-	std::string cassvrip; //二级代理服务地址和端口
-	int castype; //二级代理支持的代理类型
-	bool casAuth; //二级代理是否需要验证
-	std::string casuser; //访问二级代理的帐号和密码
+	bool bAuth; //proxy service是否需要authentication
+	bool autorun;  //program execution是否自动启动proxy service
+	bool bCascade; //是否启用secondary proxy
+	std::string cassvrip; //二级proxy serviceaddress和port
+	int castype; //secondary proxy支持的代理type
+	bool casAuth; //secondary proxy是否需要authentication
+	std::string casuser; //访问secondary proxy的account和password
 	std::string caspswd;
-	long ipaccess;   //访问本代理服务的IP过滤规则
+	long ipaccess;   //访问本proxy service IP filtering规则
 	std::string ipRules;
-	bool bLogdatafile; //是否记录代理转发数据
+	bool bLogdatafile; //是否记录代理forward data
 }PROXYSETTINGS;
 
 
 typedef struct _TProxyUser
 {
-	std::string username;//帐号,帐号不区分大小写(帐号转换为小写)
-	std::string userpwd;//密码,如果密码==""则，无需密码验证
+	std::string username;//account,account不区分size写(account转换为小写)
+	std::string userpwd;//password,如果password==""则，无需password verification
 	std::string userdesc;
 	long ipaccess;
-	std::string ipRules;//ip访问规则
+	std::string ipRules;//IP access rules
 	unsigned long maxratio;//最大带宽 K/s,如果=0则不限
-	long maxLoginusers;//限制此帐号的最大同时登录用户数,<=0则不限制 
-	time_t limitedTime;//限制此帐号只在某个日期之前有效，==0不限制
-	long forbid; //是否禁用此帐号
+	long maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
+	time_t limitedTime;//限制此account只在某个date之前有效，==0不限制
+	long forbid; //是否禁用此account
 
 	std::string strAccessDest;//允许或禁止访问的目的
-	int bAccessDest; //上述指定的目的是禁止还是允许 0禁止否则允许
+	int bAccessDest; //上述specified的目的是禁止还是允许 0禁止否则允许
 }TProxyUser;
 
 class proxysvrEx : public proxyServer

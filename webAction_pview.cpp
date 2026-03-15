@@ -25,12 +25,12 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID);
 //<xmlroot>
 //<process>
 //<id>序号</id>
-//<pid>进程ID</pid>
-//<ppid>父进程ID</ppid>
+//<pid>process ID</pid>
+//<ppid>父process ID</ppid>
 //<pname>进程名</pname>
 //<priority>优先级</priority>
 //<threads>线程个数</threads>
-//<ppath>程序路径</ppath>
+//<ppath>程序path</ppath>
 //</process>
 //...
 //</xmlroot>
@@ -48,7 +48,7 @@ DWORD procList(cBuffer &buffer,const char *filter)
 //<module>
 //<id>序号</id>
 //<hmdl></hmdl>
-//<mbase>基地址</mbase>
+//<mbase>基address</mbase>
 //<mname>模块名</mname>
 //</module>
 //...
@@ -67,9 +67,9 @@ bool webServer::httprsp_plist(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(1024);
 	procList(buffer,NULL);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -81,9 +81,9 @@ bool webServer::httprsp_mlist(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 	cBuffer buffer(1024);
 	moduleList(buffer,pid);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -101,9 +101,9 @@ bool webServer::httprsp_pkill(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 		::CloseHandle(hProcess);
 	}else buflen=sprintf(buf,"Can not open processID %d",pid);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
@@ -118,9 +118,9 @@ bool webServer::httprsp_mdattach(socketTCP *psock,httpResponse &httprsp,DWORD pi
 	if(count<=0 || count>100) count=1;
 	for(int i=0;i<count;i++) inject.DeattachDLL(pid,hmdl);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//设置MIMEtype，default为HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置响应内容长度
+	//设置response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK");
 	return true;
@@ -142,7 +142,7 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	return bMatch;
 }
 //枚举NT系统的进程
-//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块信息
+//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块info
 DWORD procList_NT(cBuffer &buffer,const char *filter)
 {
 	typedef BOOL (WINAPI *pfnEnumProcesses_D)(
@@ -174,7 +174,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	//枚举系统进程ID列表
+	//枚举系统process ID列表
 	if (pfnEnumProcesses!=NULL && (*pfnEnumProcesses)(aProcesses, sizeof(aProcesses), &cbNeeded ) )
 	{
 		cProcesses = cbNeeded / sizeof(DWORD);
@@ -223,7 +223,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 }
 
 //枚举win9x/2k系统的进程
-//对于win9x/2k可以通过toolhelp32函数列举进程及模块信息
+//对于win9x/2k可以通过toolhelp32函数列举进程及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等函数
 DWORD procList_2K(cBuffer &buffer,const char *filter)
 {
@@ -251,8 +251,8 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 		if(filter && filter[0]!=0 ) filternums=(strchr(filter,','))?2:1;//2代表多个
 		do
 		{
-			//win9x下显示的是文件路径全名，去掉路径
-			//2k下仅仅显示的是文件名（因此可以不要此判断）
+			//win9x下显示的是file path全名，去掉path
+			//2k下仅仅显示的是filename（因此可以不要此判断）
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
@@ -293,7 +293,7 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 }
 
 //枚举NT系统的进程
-//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块信息
+//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块info
 DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -360,7 +360,7 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 }
 
 //枚举win9x/2k系统进程的模块
-//对于win9x/2k可以通过toolhelp32函数列举进程及模块信息
+//对于win9x/2k可以通过toolhelp32函数列举进程及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等函数
 DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 {

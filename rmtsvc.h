@@ -64,7 +64,7 @@ public:
 
 	int m_svrport;
 	std::string m_bindip;
-	bool m_bPowerOff; //是否无需权限就可执行关机重启动作
+	bool m_bPowerOff; //是否无需permissions就可执行关机重启动作
 private:
 	virtual bool onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &session,
 			std::map<std::string,std::string>& application,httpResponse &httprsp);
@@ -76,7 +76,7 @@ private:
 	bool httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSession &session);
 	bool httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session,bool bSetting);
-	//设置仅仅获取指定窗口的屏幕
+	//设置仅仅获取specified窗口的屏幕
 	bool httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_GetClipBoard(socketTCP *psock,httpResponse &httprsp);
@@ -137,31 +137,31 @@ private:
 	
 	bool httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 	bool httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
-	//从资源中获取指定的文件
+	//从资源中获取specified的文件
 	const char *GetFileFromRes(const char *filepath,DWORD &flength);
 
-	std::string m_defaultPage; //默认文档
+	std::string m_defaultPage; //default文档
 	int m_quality;//捕获桌面图像的质量
-	DWORD m_dwImgSize;//捕获桌面图像的大小 0-桌面大小，否则指定大小HWORD=h,WWORD=w
+	DWORD m_dwImgSize;//捕获桌面图像的size 0-桌面size，否则specifiedsizeHWORD=h,WWORD=w
 	bool m_bGetFileFromRes;
 
-	//first,访问者帐号 - 不区分大小写。保存时一律为小写
-	//second.first - 访问者帐号 second.second - 访问者权限
+	//first,访问者account - 不区分size写。保存时一律为小写
+	//second.first - 访问者account second.second - 访问者permissions
 	std::map<std::string,std::pair<std::string,long> > m_mapUsers;
 
 	bool m_bSSLenabled; //启动SSL服务
-	bool m_bSSLverify; //是否进行客户端证书验证
-	//yyc add 2010-02-23 如果从ini中显示的配置了账号则不支持匿名方式
-	bool m_bAnonymous; //是否允许匿名访问，默认为真
+	bool m_bSSLverify; //是否进行client证书authentication
+	//yyc add 2010-02-23 如果从ini中显示的配置了账号则not supported匿名方式
+	bool m_bAnonymous; //是否允许匿名访问，default为真
 };
 
 //---------------------------------------------------------------
 //---------------------------------------------------------------
 typedef struct _TaskTimer //定时任务结构
 {
-	long h,m;//定时的时分,如果是定时间隔任务则h指示定时间隔(秒)
-	long type; //定时类型 't'-轮询间隔(s)执行 'd'每天定时执行
-	long flag; //默认0
+	long h,m;//定时的时分,如果是定time隔任务则h指示定time隔(秒)
+	long type; //定时type 't'-轮询间隔(s)执行 'd'每天定时执行
+	long flag; //default0
 	std::string strTask; //定时任务
 }TaskTimer;
 class sockEvent : public socketBase
@@ -170,16 +170,16 @@ public:
 	sockEvent(){ m_sockstatus=SOCKS_OPENED; }
 	virtual ~sockEvent(){}
 	virtual void Close(){ m_sockstatus=SOCKS_CLOSED;}
-}; //用于程序结束时及时关闭所有的阻塞socket
+}; //用于program exit时及时关闭所有的阻塞socket
 #include "NTService.h"
 class MyService : public CNTService 
 {
-	sockEvent m_hSockEvent; //用于程序结束时及时关闭所有的阻塞socket
-	HANDLE m_hStop; //服务停止Event对象句柄
+	sockEvent m_hSockEvent; //用于program exit时及时关闭所有的阻塞socket
+	HANDLE m_hStop; //service stoppedEvent对象句柄
 	HANDLE m_hStopEvent; //是否允许通过SCM或控制台stop service事件
-						//如果设置了停止密码，则根据停止密码创建命名事件
+						//如果设置了停止password，则根据停止passwordcreate命名事件
 	bool m_bSpyself;//是否监视自身异常退出
-	bool m_bFaceless; //默认双击运行程序是否不带控制台界面
+	bool m_bFaceless; //default双击运行程序是否不带控制台界面
 	std::vector<TaskTimer> m_tasklist; //定时执行任务列表
 	bool CreateTaskTime(const char *ptrAt,const char *strTask);
 	void parseCommand(const char *strCommand);
@@ -193,7 +193,7 @@ public:
 	telServerEx m_telsvr;
 	//---------------------------vIDC------------------------------
 	vidcManager m_vidcManager; //vidc集合管理类
-	std::string m_preCmdpage; //cmdpage命令行页命令处理前缀
+	std::string m_preCmdpage; //cmdpage命令行页命令handle前缀
 //*********************用户其他代码  end  ****************************************
 public:
 	static const char *ServiceVers;
@@ -206,16 +206,16 @@ public:
 	BOOL AutoSpy(const char *commandline);//启动自动监视
 	socketBase *GetSockEvent(){ return &m_hSockEvent; }
 private:
-	//创建服务停止密码保护事件
+	//createservice stoppedpassword保护事件
 	void CreateStopEvent(const char *stop_pswd);
 	//重载函数
-	virtual void	Run(DWORD argc, LPTSTR *argv); //服务/程序运行体
-	virtual void	Stop();//服务停止处理
+	virtual void	Run(DWORD argc, LPTSTR *argv); //服务/program execution体
+	virtual void	Stop();//service stoppedhandle
 	virtual void	Stop_Request();
-	virtual void	Shutdown(); //系统关机处理
+	virtual void	Shutdown(); //system shutdownhandle
 
 };
-//将一个相对路径名转换为一个绝对路径名
+//将一个相对path名转换为一个绝对path名
 extern void getAbsolutfilepath(std::string &spath);
 extern int splitString(const char *str,char delm,std::map<std::string,std::string> &maps);
 extern int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxSplit);
