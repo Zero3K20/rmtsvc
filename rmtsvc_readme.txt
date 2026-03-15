@@ -26,7 +26,7 @@ Rather than let it rot away unused, open-sourcing it allows more people to parti
 net4cpp21  - Core network library; the networking portion of rmtsvc is developed based on this library. It includes wrappers for basic networking as well as common protocols and services such as HTTP, FTP, DNS, SMTP, proxy, etc.
 libs       - Library files required to compile rmtsvc, as well as source code for other libraries (e.g., MSN - fairly old, only supports up to MSNP13 / MSN 7.x).
              The bin subdirectory contains all compiled lib files needed for building (except for the OpenSSL lib files).
-libsidc  - vidc library source code
+libs\vidc  - vidc library source code
 bin        - rmtsvc executable directory
 bin\html   - rmtsvc web front-end static pages; web pages access rmtsvc services via JS to parse and render XML data.
 
@@ -35,11 +35,9 @@ This project has been compiled and tested with VC6 without any issues. Other ver
 When compiling with VC6, add the OpenSSL header file and lib file paths under net4cpp21 to the build environment:
 VC6 menu --> Tools --> Options --> Directories
 Add include path:
-<rmtsvc path>
-et4cpp21\OPENSSL
+<rmtsvc path>\net4cpp21\OPENSSL
 Add library path:
-<rmtsvc path>
-et4cpp21\OPENSSL\LIB
+<rmtsvc path>\net4cpp21\OPENSSL\LIB
 
 
 net4cpp21 Network Class Hierarchy
