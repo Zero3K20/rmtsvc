@@ -118,7 +118,7 @@ void vidcManager :: xml_info_mtcp(cBuffer &buffer,const char *mapname)
 			if(p->clicert!="")
 			{
 				int l=p->clicert.length()+p->clikey.length()+p->clikeypswd.length()+32;
-				if(buffer.Space()<l) buffer.Resize(buffer.size()+l);
+				if((int)buffer.Space()<l) buffer.Resize(buffer.size()+l);
 				if(buffer.str())
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<clicert>%s,%s,%s</clicert>",
 						p->clicert.c_str(),p->clikey.c_str(),p->clikeypswd.c_str());
@@ -175,7 +175,7 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 			if(p->clicert!="")
 			{
 				int l=p->clicert.length()+p->clikey.length()+p->clikeypswd.length()+32;
-				if(buffer.Space()<l) buffer.Resize(buffer.size()+l);
+				if((int)buffer.Space()<l) buffer.Resize(buffer.size()+l);
 				if(buffer.str())
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<clicert>%s,%s,%s</clicert>",
 						p->clicert.c_str(),p->clikey.c_str(),p->clikeypswd.c_str());
@@ -215,7 +215,7 @@ void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 			if(p->clicert!="")
 			{
 				int l=p->clicert.length()+p->clikey.length()+p->clikeypswd.length()+32;
-				if(buffer.Space()<l) buffer.Resize(buffer.size()+l);
+				if((int)buffer.Space()<l) buffer.Resize(buffer.size()+l);
 				if(buffer.str())
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<clicert>%s,%s,%s</clicert>",
 						p->clicert.c_str(),p->clikey.c_str(),p->clikeypswd.c_str());

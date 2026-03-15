@@ -218,7 +218,7 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	int i,retv=0;
 	struct timeval to;
 	fd_set fds; FD_ZERO(&fds);
-	for(i=0;i<len;i++)
+	for(i=0;i<(int)len;i++)
 	{
 		FD_SET(sockfds[i], &fds);
 	}
@@ -245,7 +245,7 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	}
 	//对于其他的错误则直接返回,交由用户处理判断
 	//有句柄可读或可写
-	for(i=0;i<len;i++)
+	for(i=0;i<(int)len;i++)
 	{
 		sockfds[i]=(FD_ISSET(sockfds[i], &fds))?1:0;
 	}

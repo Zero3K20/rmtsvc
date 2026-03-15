@@ -238,7 +238,7 @@ void mportTCP :: onAccept(socketTCP *psock)
 				for(it=this->m_modReqHeader.begin();it!=this->m_modReqHeader.end();it++)
 				{
 					if(strncasecmp(requrl.c_str(),(*it).first.c_str(),
-						(*it).first.length())==0 && (*it).first.length()>matchLen)
+						(*it).first.length())==0 && (long)(*it).first.length()>matchLen)
 					{
 						findit=it; matchLen=(*it).first.length();
 					}
@@ -479,7 +479,7 @@ int mportTCP :: str_info_mtcp(const char *mapname,char *buf)
 	int len=sprintf(buf,"mtcpl name=%s ",mapname);;
 	if(m_appSvr.size()>0){
 		len+=sprintf(buf+len,"appsvr=%s:%d",m_appSvr[0].first.c_str(),m_appSvr[0].second);
-		for(int i=1;i<m_appSvr.size();i++)
+		for(int i=1;i<(int)m_appSvr.size();i++)
 			len+=sprintf(buf+len,",%s:%d",m_appSvr[i].first.c_str(),m_appSvr[i].second);
 	}else len+=sprintf(buf+len,"appsvr=");
 	
@@ -554,11 +554,11 @@ bool mportTCP :: addRegCond(int rspcode,const char *header,const char *pattern,c
 	}else{
 		std::vector<RegCond> &regcond=(*it_rsp).second;
 		int i=0;
-		for(;i<regcond.size();i++) //查找此header是否已经存在
+		for(;i<(int)regcond.size();i++) //查找此header是否已经存在
 		{
 			if(strcasecmp(regcond[i].strHeader.c_str(),header)==0) break;
 		}//?for(int i=0;
-		if(i<regcond.size()){
+		if(i<(int)regcond.size()){
 			if(pattern) regcond[i].strPattern.assign(pattern);
 			else regcond[i].strPattern="";
 			if(replto) regcond[i].strReplto.assign(replto);
@@ -596,11 +596,11 @@ bool mportTCP :: addRegCond(const char *url,const char *header,const char *patte
 	}else{
 		std::vector<RegCond> &regcond=(*it_req).second;
 		int i=0;
-		for(;i<regcond.size();i++) //查找此header是否已经存在
+		for(;i<(int)regcond.size();i++) //查找此header是否已经存在
 		{
 			if(strcasecmp(regcond[i].strHeader.c_str(),header)==0) break;
 		}//?for(int i=0;
-		if(i<regcond.size()){
+		if(i<(int)regcond.size()){
 			if(pattern) regcond[i].strPattern.assign(pattern);
 			else regcond[i].strPattern="";
 			if(replto) regcond[i].strReplto.assign(replto);
@@ -622,7 +622,7 @@ bool mportTCP :: str_info_regcond(const char *mapname,std::string &strini)
 	for(it_rsp=m_modRspHeader.begin();it_rsp!=m_modRspHeader.end();it_rsp++)
 	{
 		std::vector<RegCond> &regcond=(*it_rsp).second;
-		for(int i=0;i<regcond.size();i++)
+		for(int i=0;i<(int)regcond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhrsp name=%s cond=%d header=\"%s\" pattern=\"%s\" replto=\"%s\"\r\n",
 				mapname,(*it_rsp).first,regcond[i].strHeader.c_str(),
@@ -634,7 +634,7 @@ bool mportTCP :: str_info_regcond(const char *mapname,std::string &strini)
 	for(it_req=m_modReqHeader.begin();it_req!=m_modReqHeader.end();it_req++)
 	{
 		std::vector<RegCond> &regcond=(*it_req).second;
-		for(int i=0;i<regcond.size();i++)
+		for(int i=0;i<(int)regcond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhreq name=%s cond=\"%s\" header=\"%s\" pattern=\"%s\" replto=\"%s\"\r\n",
 				mapname,(*it_req).first.c_str(),regcond[i].strHeader.c_str(),
@@ -726,7 +726,7 @@ bool HttpHeader :: Send(socketTCP *psock,FILE *fp)
 
 void HttpHeader :: Modify(std::vector<RegCond> &regcond)
 {
-	for(int i=0;i<regcond.size();i++)
+	for(int i=0;i<(int)regcond.size();i++)
 	{
 		std::map<std::string,std::string>::iterator findit;
 		for(findit=m_header.begin();findit!=m_header.end();findit++)

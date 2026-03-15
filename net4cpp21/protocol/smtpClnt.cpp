@@ -170,7 +170,7 @@ SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dn
 				RW_LOG_PRINT(LOGLEVEL_DEBUG,"[smtpclnt] %s",s.c_str());
 				m_errors.push_back(s); continue;
 			}//?if(pmxinfo==NULL)
-			for(i=0;i<pmxinfo->mxhosts.size();i++)
+			for(i=0;i<(int)pmxinfo->mxhosts.size();i++)
 			{
 				sr=ConnectSvr(pmxinfo->mxhosts[i].c_str(),SMTP_SERVER_PORT);
 				if(sr!=SOCKSERR_OK){ Close(); continue; }
@@ -184,7 +184,7 @@ SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dn
 				//如果一个MX邮箱响应错误，则不再进行循环直接失败跳出
 				if(sr==SOCKSERR_SMTP_RESP){ i=pmxinfo->mxhosts.size(); break; }
 			}//?for(int i=0;i<pmxinfo->
-			if(i<pmxinfo->mxhosts.size()){ 
+			if(i<(int)pmxinfo->mxhosts.size()){ 
 				okCount++; errCount--;
 				RW_LOG_DEBUG("[smtpclnt] Successs to send email to %s\r\n",(*it).first.c_str());
 			}else RW_LOG_DEBUG("[smtpclnt] Failed to send email to %s\r\n",(*it).first.c_str());
@@ -641,7 +641,7 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 		out << "To: <" << m_vecTo[0].first << ">\r\n";
 	else
 		out << "To: \"" << m_vecTo[0].second << "\" <" << m_vecTo[0].first << ">\r\n";
-	for(int i=1;i<m_vecTo.size();i++)
+	for(int i=1;i<(int)m_vecTo.size();i++)
 	{
 		if(m_vecTo[i].second=="")
 			out << "\t <" << m_vecTo[i].first << ">\r\n";
@@ -655,7 +655,7 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 			out << "CC: <" << m_vecCc[0].first << ">\r\n";
 		else
 			out << "CC: \"" << m_vecCc[0].second << "\" <" << m_vecCc[0].first << ">\r\n";
-		for(int i=1;i<m_vecCc.size();i++)
+		for(int i=1;i<(int)m_vecCc.size();i++)
 		{
 			if(m_vecCc[i].second=="")
 				out << "\t <" << m_vecCc[i].first << ">\r\n";
@@ -739,7 +739,7 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 	//开始进行邮件附件的处理
 	int fileAttachs=0;//有效附件数
 	int i;
-	for(i=0; i<m_attachs.size();i++)
+	for(i=0; i<(int)m_attachs.size();i++)
 	{//如果附件文件名的开头为<>,则<>中的类容代表contentID
 		const char *ptr=m_attachs[i].c_str();
 		const char *contentID=NULL;

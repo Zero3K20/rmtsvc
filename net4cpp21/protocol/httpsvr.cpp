@@ -221,7 +221,7 @@ long httpServer :: cvtVPath2RPath(std::string &vpath)
 	{
 		if(strchr(vpath.c_str(),'/')!=NULL) lAccess=0; //目录权限禁止继承，则下级目录的权限为0
 	}
-	for(int i=0;i<vpath.length();i++) if(vpath[i]=='/') vpath[i]='\\';
+	for(int i=0;i<(int)vpath.length();i++) if(vpath[i]=='/') vpath[i]='\\';
 	vpath.insert(0,(*it).second.first.c_str());
 	return lAccess;
 }
