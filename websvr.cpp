@@ -537,6 +537,17 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_VIDC_ADMIN)==RMTSVC_ACCESS_VIDC_ADMIN)
 
+	//For HTML, JavaScript, and CSS files, set no-cache header so the browser
+	//always re-validates with the server and gets the latest version of the file.
+	{
+		const char *ext=strrchr(httpreq.url().c_str(),'.');
+		if(ext && (strcasecmp(ext,".htm")==0 ||
+		           strcasecmp(ext,".html")==0 ||
+		           strcasecmp(ext,".js")==0 ||
+		           strcasecmp(ext,".css")==0))
+			httprsp.NoCache();
+	}
+
 	return false;
 }
 
