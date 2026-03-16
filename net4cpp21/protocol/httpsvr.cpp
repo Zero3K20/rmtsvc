@@ -30,13 +30,13 @@ httpSession::httpSession()
 	m_lastTime=m_startTime;
 	//generate unique session ID
 	srand( (unsigned)m_startTime );
-	/* Display 23 大写字母. */
+	/* Display 23 uppercase letters. */
 	for(int i = 0;   i < 23;i++ )
 	{
 		 m_sessionID[i]=(rand()*25)/RAND_MAX+65;
 	} m_sessionID[23]=0;
 }
-//user可以自己set新的sessionID，而not用auto生成的
+//user can set a new sessionID themselves, rather than use the auto-generated one
 bool httpSession::SetSessionID(const char *strID)
 {
 	if(strID==NULL || strID[0]==0) return false;
@@ -53,7 +53,7 @@ httpServer :: httpServer()
 httpServer :: ~httpServer()
 {
 	Close();
-	//HTTPservice析构前要保证thread都end，因为thread中访问了httpServerclass的object
+	//HTTP service destructor must ensure all threads have ended, because threads access objects of the httpServer class
 	m_threadpool.join(); 
 
 	std::map<std::string,httpSession *>::iterator it=m_sessions.begin();
@@ -70,7 +70,7 @@ bool httpServer :: setvpath(const char *vpath,const char *rpath,long lAccess)
 	if(str_vpath[str_vpath.length()-1]!='/') str_vpath.append("/");
 	std::pair<std::string,long> p(rpath,lAccess);
 #ifdef WIN32
-	if(p.first!="") //末尾add'\'
+	if(p.first!="") //append '\'
 		if(p.first[p.first.length()-1]!='\\') p.first.append("\\");
 #endif
 	m_dirAccess[str_vpath]=p;
@@ -86,11 +86,11 @@ void httpServer :: onTooMany(socketTCP *psock)
 	return;
 }
 
-//at此event中checkSessiontimeout
+//check session timeout in this event
 void httpServer :: onIdle(void)
 {
 	static time_t checkedTime=time(NULL);
-	if(checkedTime-time(NULL)>20){//20秒钟check一次sessionwhethertimeout
+	if(checkedTime-time(NULL)>20){//check session timeout once every 20 seconds
 		checkedTime=time(NULL);
 		m_mutex.lock();
 		std::map<std::string,httpSession *>::iterator it=m_sessions.begin();
@@ -107,10 +107,10 @@ void httpServer :: onIdle(void)
 void httpServer :: onAccept(socketTCP *psock)
 {
 	httpRequest httpreq;
-	while(true){ //循环handlereceivemultipleHTTP request
+	while(true){ //loop to handle multiple received HTTP requests
 		SOCKSRESULT sr=httpreq.recv_reqH(psock,HTTP_MAX_RESPTIMEOUT);
-		if(sr<=HTTP_REQ_UNKNOWN) break; //is notHTTP requestor者timeout
-		httpResponse httprsp; httpSession *psession;//handle并getsessionobject
+		if(sr<=HTTP_REQ_UNKNOWN) break; //is not HTTP request or timeout
+		httpResponse httprsp; httpSession *psession;//handle and get session object
 		const char *strSessionID=httpreq.Cookies(httpSession::SESSION_IDNAME);
 		m_mutex.lock();
 		if(strSessionID){
@@ -121,27 +121,27 @@ void httpServer :: onAccept(socketTCP *psock)
 			if( (psession=new httpSession)==NULL ) return;
 			m_sessions[psession->sessionID()]=psession;	
 			httprsp.SetCookie(httpSession::SESSION_IDNAME,psession->sessionID(),"/");
-		}//防止userhandleblockedor者非常耗时超过了设定的session的validtime，导致此session被删掉
+		}//prevent user handler from being blocked or taking so long that it exceeds the session valid time, causing this session to be deleted
 		psession->m_lastTime=0x7fffffff; 
 		m_mutex.unlock();
 		if(!httpreq.ifReceivedAll() && httpreq.get_contentType(NULL)==HTTP_CONTENT_APPLICATION)
-			if(!httpreq.recv_remainder(psock,-1)) return; //receive完剩余的form提交data,未receive完则returnclose
+			if(!httpreq.recv_remainder(psock,-1)) return; //receive remaining form submission data; if not fully received, return and close
 	//	RW_LOG_PRINTMAPS(httpreq.Cookies(),"Cookies");
 	//	RW_LOG_PRINTMAPS(httpreq.QueryString(),"Get param");
 	//	RW_LOG_PRINTMAPS(httpreq.Form(),"Post Param");
 
-		//start准备handle HTTP request
+		//start handling HTTP request
 		if(!onHttpReq(psock,httpreq,*psession,m_application,httprsp)){
-			string vpath=httpreq.url(); //转交web servicedefaulthandle
+			string vpath=httpreq.url(); //hand off to web service default handler
 			long lAccess=cvtVPath2RPath(vpath);
-			if( lAccess!=HTTP_ACCESS_NONE) //将虚directory转化为实directory并getdirectory的访问permissions
+			if( lAccess!=HTTP_ACCESS_NONE) //convert virtual directory to real directory and get directory access permissions
 			{
 				if(vpath.length()>0 && vpath[vpath.length()-1]=='\\') 
 					vpath.erase(vpath.length()-1);
 				long iret=FILEIO::fileio_exist(vpath.c_str());
-				if(iret==-1) //specified的fileordirectory does not exist
+				if(iret==-1) //specified file or directory does not exist
 					httprsp_fileNoFind(psock,httprsp);
-				else if(iret==-2) //specified的yesdirectory,listdirectory中的内容
+				else if(iret==-2) //specified path is a directory; list directory contents
 				{	
 					if((lAccess & HTTP_ACCESS_LIST)==0)
 						httprsp_listDenied(psock,httprsp);
@@ -150,8 +150,8 @@ void httpServer :: onAccept(socketTCP *psock)
 						vpath.append("\\*"); 
 						httprsp_listDir(psock,vpath,httpreq,httprsp);
 					}
-				}else{ //specified的yesfile
-					//判断filewhether被modify-------------- start---------------------
+				}else{ //specified path is a file
+					//check whether file was modified -------------- start---------------------
 					cTime ct0; time_t t0=0,t1=1;
 					const char *p=httpreq.Header("If-Modified-Since");
 					if(p && ct0.parseDate(p) ){
@@ -162,7 +162,7 @@ void httpServer :: onAccept(socketTCP *psock)
 							FILETIME ft=finddata.ftLastWriteTime;
 							::FindClose(hd); t0=ct0.Gettime();
 							cTime ct1(ft);
-							t1=ct1.Gettime()+_timezone;//进行时区调整						 
+							t1=ct1.Gettime()+_timezone;//apply timezone adjustment						 
 						}
 					}//?if(p)
 					if(t1<=t0) //file没有被modify过
@@ -183,7 +183,7 @@ void httpServer :: onAccept(socketTCP *psock)
 							httprsp.sendfile(psock,vpath.c_str(),MIMETYPE_UNKNOWED,lstartpos,lendpos);
 						}//?if(iRangeNums>1)
 					}//?file被modify过
-				} //specified的yesfile
+				} //specified path is a file
 			} else httprsp_accessDenied(psock,httprsp);
 		}//?if(!onHttpReq(psock,httpreq,*psession,m_application,httprsp))
 
