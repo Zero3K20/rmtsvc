@@ -7,7 +7,7 @@ function processRequest()
 			
 			var xmlobj = xmlHttp.responseXML;
 			var sta=xmlobj.getElementsByTagName("status");
-			if(sta.length>0 && sta.item(0).text=="1"){
+			if(sta.length>0 && (sta.item(0).textContent || sta.item(0).text)=="1"){
 				document.getElementById("lblHelp").innerText="  正在查找中...";
 				document.getElementById("btnStop").disabled=false;
 			}else{
@@ -16,18 +16,18 @@ function processRequest()
 			}
 			var wanip=xmlobj.getElementsByTagName("wanip");
 			if(wanip.length>0) 
-				document.getElementById("lblWanIP").innerText=wanip.item(0).text;
+				document.getElementById("lblWanIP").innerText=(wanip.item(0).textContent || wanip.item(0).text);
 			var devname=xmlobj.getElementsByTagName("devname");
 			var devmacf=xmlobj.getElementsByTagName("manufacturer");
-			if(devname.length>0 && devname.item(0).text!="")
+			if(devname.length>0 && (devname.item(0).textContent || devname.item(0).text)!="")
 			{
-				var s=devname.item(0).text+" / "+devmacf.item(0).text;
+				var s=(devname.item(0).textContent || devname.item(0).text)+" / "+(devmacf.item(0).textContent || devmacf.item(0).text);
 				document.getElementById("lblDevName").innerHTML=s+"&nbsp;&nbsp;<a href=upnpxml target=_blank>详细信息</a>";
 			}
 			else
 				document.getElementById("lblDevName").innerHTML="";
 			
-			var upnplist=xmlobj.selectSingleNode("//upnplist")
+			var upnplist=(xmlobj.getElementsByTagName("upnplist")[0] || null)
 			if(upnplist!=null)
 			{
 				if(upnpXML.documentElement!=null)
@@ -37,7 +37,7 @@ function processRequest()
 			
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }

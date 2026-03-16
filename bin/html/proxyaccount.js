@@ -16,34 +16,34 @@ function disp_userlist(xmlobj)
 function disp_userinfo(xmlobj)
 {
 	var node=xmlobj.getElementsByTagName("account");
-	if(node.length>0) document.getElementById("lblUser").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblUser").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("password");
-	if(node.length>0) document.getElementById("lblPswd").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblPswd").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("description");
-	if(node.length>0) document.getElementById("lblDesc").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblDesc").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("expired");
-	if(node.length>0 && node.item(0).text!="")
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="")
 	{
 		document.getElementById("chkExpired").checked=false;
 		document.getElementById("lblExpired").readOnly=false;
-		document.getElementById("lblExpired").value=node.item(0).text;
+		document.getElementById("lblExpired").value=(node.item(0).textContent || node.item(0).text);
 	}
 	
 	node=xmlobj.getElementsByTagName("maxsignin");
-	if(node.length>0) document.getElementById("lblMaxSignin").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxSignin").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxratio");
-	if(node.length>0) document.getElementById("lblMaxRatio").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxRatio").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("forbid");
-	if(node.length>0 && node.item(0).text=="1") 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") 
 		document.getElementById("chkForbid").checked=true;
 	
-	var ipfilter_xml=xmlobj.selectSingleNode("//ipfilter")
+	var ipfilter_xml=(xmlobj.getElementsByTagName("ipfilter")[0] || null)
 	if(ipfilter_xml!=null && ipfilter_xml.childNodes.length>0)
 	{
 		node=ipfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblIPAddr").value=node.item(0).text;
+		document.getElementById("lblIPAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=ipfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkIPAccess1").checked=true;
 			document.getElementById("chkIPAccess0").checked=false;
@@ -53,13 +53,13 @@ function disp_userinfo(xmlobj)
 		}
 	}
 	
-	var dstfilter_xml=xmlobj.selectSingleNode("//dstfilter")
+	var dstfilter_xml=(xmlobj.getElementsByTagName("dstfilter")[0] || null)
 	if(dstfilter_xml!=null && dstfilter_xml.childNodes.length>0)
 	{
 		node=dstfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblDstAddr").value=node.item(0).text;
+		document.getElementById("lblDstAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=dstfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkDstAccess1").checked=true;
 			document.getElementById("chkDstAccess0").checked=false;
@@ -76,17 +76,17 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			
 			var xmlobj = xmlHttp.responseXML;
-			var userlist=xmlobj.selectSingleNode("//userlist")
+			var userlist=(xmlobj.getElementsByTagName("userlist")[0] || null)
 			if(userlist!=null && userlist.childNodes.length>0)
 				disp_userlist(userlist);
 				
-			var userinfo=xmlobj.selectSingleNode("//userinfo")
+			var userinfo=(xmlobj.getElementsByTagName("userinfo")[0] || null)
 			if(userinfo!=null && userinfo.childNodes.length>0)
 				disp_userinfo(userinfo);
 				
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }

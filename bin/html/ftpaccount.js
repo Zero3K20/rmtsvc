@@ -16,50 +16,50 @@ function disp_userlist(xmlobj)
 function disp_userinfo(xmlobj)
 {
 	var node=xmlobj.getElementsByTagName("account");
-	if(node.length>0) document.getElementById("lblUser").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblUser").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("password");
-	if(node.length>0) document.getElementById("lblPswd").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblPswd").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("description");
-	if(node.length>0) document.getElementById("lblDesc").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblDesc").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("pswdmode");
 	var pwdmode=0;
-	if(node.length>0) pwdmode=node.item(0).text;
+	if(node.length>0) pwdmode=(node.item(0).textContent || node.item(0).text);
 	if(pwdmode==1)
 		document.getElementById("chkPswdmode1").checked=true;
 	else if(pwdmode==2)
 		document.getElementById("chkPswdmode2").checked=true;
 	else	document.getElementById("chkPswdmode0").checked=true;
 	node=xmlobj.getElementsByTagName("expired");
-	if(node.length>0 && node.item(0).text!="")
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="")
 	{
 		document.getElementById("chkExpired").checked=false;
 		document.getElementById("lblExpired").readOnly=false;
-		document.getElementById("lblExpired").value=node.item(0).text;
+		document.getElementById("lblExpired").value=(node.item(0).textContent || node.item(0).text);
 	}
 	
 	node=xmlobj.getElementsByTagName("maxsignin");
-	if(node.length>0) document.getElementById("lblMaxSignin").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxSignin").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxup");
-	if(node.length>0) document.getElementById("lblMaxUp").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxUp").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxupfile");
-	if(node.length>0) document.getElementById("lblMaxUpfile").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxUpfile").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxdw");
-	if(node.length>0) document.getElementById("lblMaxDw").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxDw").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxdisk");
-	if(node.length>0) document.getElementById("lblMaxDisk").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxDisk").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("usedisk");
-	if(node.length>0) document.getElementById("lblUseDisk").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblUseDisk").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("disphidden");
-	if(node.length>0 && node.item(0).text=="1") 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") 
 		document.getElementById("chkDispHidden").checked=true;
 	node=xmlobj.getElementsByTagName("forbid");
-	if(node.length>0 && node.item(0).text=="1") 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") 
 		document.getElementById("chkForbid").checked=true;
 	
 	node=xmlobj.getElementsByTagName("user_root");
 	if(node.length>0)
 	{
-		document.getElementById("lblRoot").value=node.item(0).text;
+		document.getElementById("lblRoot").value=(node.item(0).textContent || node.item(0).text);
 		var o=node.item(0).attributes.item(0);//item("access")
 		var qx=o.nodeValue;
 		for(i=0;i<7;i++)
@@ -69,7 +69,7 @@ function disp_userinfo(xmlobj)
 		}
 	}
 	
-	var vapths_xml=xmlobj.selectSingleNode("//vpaths")
+	var vapths_xml=(xmlobj.getElementsByTagName("vpaths")[0] || null)
 	if(vapths_xml!=null && vapths_xml.childNodes.length>0)
 	{
 		var vname="";
@@ -92,13 +92,13 @@ function disp_userinfo(xmlobj)
 		}
 	}
 	
-	var ipfilter_xml=xmlobj.selectSingleNode("//ipfilter")
+	var ipfilter_xml=(xmlobj.getElementsByTagName("ipfilter")[0] || null)
 	if(ipfilter_xml!=null && ipfilter_xml.childNodes.length>0)
 	{
 		node=ipfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblIPAddr").value=node.item(0).text;
+		document.getElementById("lblIPAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=ipfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkIPAccess1").checked=true;
 			document.getElementById("chkIPAccess0").checked=false;
@@ -115,17 +115,17 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			
 			var xmlobj = xmlHttp.responseXML;
-			var userlist=xmlobj.selectSingleNode("//userlist")
+			var userlist=(xmlobj.getElementsByTagName("userlist")[0] || null)
 			if(userlist!=null && userlist.childNodes.length>0)
 				disp_userlist(userlist);
 				
-			var userinfo=xmlobj.selectSingleNode("//userinfo")
+			var userinfo=(xmlobj.getElementsByTagName("userinfo")[0] || null)
 			if(userinfo!=null && userinfo.childNodes.length>0)
 				disp_userinfo(userinfo);
 				
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }

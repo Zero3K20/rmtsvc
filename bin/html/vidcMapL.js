@@ -5,7 +5,7 @@ function disp_localip(node)
 	if(node.length<=0) return;
 	var oSelect=document.getElementById("selMapip");
 	for(i=oSelect.options.length;i>1;i--) oSelect.options.remove(i-1);
-	var localip=node.item(0).text;
+	var localip=(node.item(0).textContent || node.item(0).text);
 	var ss=localip.split(" ");
 	for(i=0;i<ss.length;i++)
 	{
@@ -38,24 +38,24 @@ function disp_mapinfo(xmlobj)
 	document.getElementById("btnRefresh").disabled=false;
 	var mapped_port=0;
 	var node=xmlobj.getElementsByTagName("svrport");
-	if(node.length>0) mapped_port=node.item(0).text;
+	if(node.length>0) mapped_port=(node.item(0).textContent || node.item(0).text);
 	if(mapped_port>0)
 	{
 		document.getElementById("btnStart").disabled=true;
 		document.getElementById("btnStop").disabled=false;
 		node=xmlobj.getElementsByTagName("ifssl");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			var s="&nbsp;(无需客户端证书验证)";
 			node=xmlobj.getElementsByTagName("ifsslv");
-			if(node.length>0 && node.item(0).text=="1") s="&nbsp;(需要客户端证书验证)";
+			if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") s="&nbsp;(需要客户端证书验证)";
 			document.getElementById("lblStatus").innerHTML="<font color=green>●</font>SSL加密服务正在运行... &nbsp;端口:"+mapped_port+s;
 		}
 		else	document.getElementById("lblStatus").innerHTML="<font color=green>●</font>服务正在运行... &nbsp;端口:"+mapped_port;
 		node=xmlobj.getElementsByTagName("starttime");
-		if(node.length>0) document.getElementById("lblRuntime").innerText=node.item(0).text;
+		if(node.length>0) document.getElementById("lblRuntime").innerText=(node.item(0).textContent || node.item(0).text);
 		node=xmlobj.getElementsByTagName("connected");
-		if(node.length>0) document.getElementById("lblConnected").innerText=node.item(0).text;
+		if(node.length>0) document.getElementById("lblConnected").innerText=(node.item(0).textContent || node.item(0).text);
 	}else{
 		document.getElementById("btnStart").disabled=false;
 		document.getElementById("btnStop").disabled=true;
@@ -73,23 +73,23 @@ function disp_mapinfo(xmlobj)
 		document.getElementById("btnDele").disabled=true;
 	}
 	node=xmlobj.getElementsByTagName("appip");
-	if(node.length>0) document.getElementById("lblAppIP").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblAppIP").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("appport");
-	if(node.length>0) document.getElementById("lblAppPort").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblAppPort").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("appdesc");
-	if(node.length>0) document.getElementById("lblAppDesc").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblAppDesc").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("mapport");
-	if(node.length>0) document.getElementById("lblMapport").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMapport").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("mapname");
-	if(node.length>0) document.getElementById("lblMapname").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMapname").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxconn");
-	if(node.length>0) document.getElementById("lblMaxconn").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxconn").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("maxratio");
-	if(node.length>0) document.getElementById("lblMaxratio").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblMaxratio").value=(node.item(0).textContent || node.item(0).text);
 	
 	node=xmlobj.getElementsByTagName("bindip");
 	var bindip="";
-	if(node.length>0) bindip=node.item(0).text;
+	if(node.length>0) bindip=(node.item(0).textContent || node.item(0).text);
 	var oSelect=document.getElementById("selMapip");
 	for(i=0;i<oSelect.options.length;i++)
 	{
@@ -101,9 +101,9 @@ function disp_mapinfo(xmlobj)
 	
 	node=xmlobj.getElementsByTagName("ssltype");
 	if(node.length>0){
-		 if(node.item(0).text=="+ssl")
+		 if((node.item(0).textContent || node.item(0).text)=="+ssl")
 		 	document.getElementById("ssltype1").checked=true;
-		 else if(node.item(0).text=="-ssl")
+		 else if((node.item(0).textContent || node.item(0).text)=="-ssl")
 		 	document.getElementById("ssltype2").checked=true;
 		 else document.getElementById("ssltype0").checked=true;
 	}else document.getElementById("ssltype0").checked=true;
@@ -115,18 +115,18 @@ function disp_mapinfo(xmlobj)
 	}
 	
 	node=xmlobj.getElementsByTagName("sslverify");
-	if(node.length>0 && node.item(0).text=="1")
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		document.getElementById("sslverify1").checked=true;
 	else document.getElementById("sslverify0").checked=true;
 	
 	node=xmlobj.getElementsByTagName("clicert");
 	if(node.length>0)
-		document.getElementById("clicert").value=node.item(0).text;
+		document.getElementById("clicert").value=(node.item(0).textContent || node.item(0).text);
 	else document.getElementById("clicert").value="";
 	
 	node=xmlobj.getElementsByTagName("apptype");
 	var apptype="UNK";
-	if(node.length>0) apptype=node.item(0).text;
+	if(node.length>0) apptype=(node.item(0).textContent || node.item(0).text);
 	if(apptype=="FTP")
 		document.getElementById("apptype3").checked=true;
 	else if(apptype=="WWW")
@@ -136,17 +136,17 @@ function disp_mapinfo(xmlobj)
 	else document.getElementById("apptype0").checked=true;
 	
 	node=xmlobj.getElementsByTagName("autorun");
-	if(node.length>0 && node.item(0).text!=0) 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)!=0) 
 		document.getElementById("chkAutorun").checked=true;
 	else document.getElementById("chkAutorun").checked=false;
 		
-	var ipfilter_xml=xmlobj.selectSingleNode("//ipfilter")
+	var ipfilter_xml=(xmlobj.getElementsByTagName("ipfilter")[0] || null)
 	if(ipfilter_xml!=null && ipfilter_xml.childNodes.length>0)
 	{
 		node=ipfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblIPAddr").value=node.item(0).text;
+		document.getElementById("lblIPAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=ipfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkIPAccess1").checked=true;
 			document.getElementById("chkIPAccess0").checked=false;
@@ -166,16 +166,16 @@ function processRequest()
 			var localip=xmlobj.getElementsByTagName("localip");
 			if(localip!=null) disp_localip(localip);
 			
-			var maplist=xmlobj.selectSingleNode("//maplist")
+			var maplist=(xmlobj.getElementsByTagName("maplist")[0] || null)
 			if(maplist!=null) disp_maplist(maplist);
 				
-			var mapinfo=xmlobj.selectSingleNode("//mapinfo")
+			var mapinfo=(xmlobj.getElementsByTagName("mapinfo")[0] || null)
 			if(mapinfo!=null && mapinfo.childNodes.length>0)
 				disp_mapinfo(mapinfo);
 				
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }

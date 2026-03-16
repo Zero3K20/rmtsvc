@@ -23,17 +23,17 @@ function Imgloaded()
 
 function msPosition(e) 
 { 
-	var o=window.document.all("divScreen");
+	var o=window.document.getElementById("divScreen");
  	ptX=e.x+o.scrollLeft-o.parentElement.offsetLeft;
   	ptY=e.y+o.scrollTop-o.parentElement.offsetTop;
   	var w=window.parent.frmLeft;
-  	w.document.all("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
-  	document.all("txtHide").focus();
+  	w.document.getElementById("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
+  	document.getElementById("txtHide").focus();
 }
 
 function window_onload()
 {
-	var o=window.parent.frmLeft.document.all("chkAuto");
+	var o=window.parent.frmLeft.document.getElementById("chkAuto");
 	if( o.checked ) autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
 	loadImg();		

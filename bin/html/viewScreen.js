@@ -17,11 +17,11 @@ function Imgloaded()
 
 function msmove_IE()
 {
- 	var o=window.document.all("divScreen");
+ 	var o=window.document.getElementById("divScreen");
  	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
   	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop; 
   	var w=window.parent.frmLeft;
-  	w.document.all("lblXY").innerText="X:"+x1+" , Y:"+y1;
+  	w.document.getElementById("lblXY").innerText="X:"+x1+" , Y:"+y1;
 }
 
 function processRequest() 
@@ -36,18 +36,18 @@ function processRequest()
 			{
 				loadImg();
 				var sHelp="\r\n按下Alt然后左键单击密码框获取密码";
-				if(hwnd.item(0).text==0)
+				if((hwnd.item(0).textContent || hwnd.item(0).text)==0)
 					alert("当前捕获的是整个桌面，如果要捕获指定窗口\r\n按下Ctrl+Shift然后左键单击指定的窗口"+sHelp);
-				else  alert("当前捕获 "+"\""+wtext.item(0).text+"\" 窗口\r\n按下Ctrl+Shift然后右键单击取消对此窗口的捕获"+sHelp);
+				else  alert("当前捕获 "+"\""+(wtext.item(0).textContent || wtext.item(0).text)+"\" 窗口\r\n按下Ctrl+Shift然后右键单击取消对此窗口的捕获"+sHelp);
 			}
 			var iret=xmlobj.getElementsByTagName("result");
 			if(iret!=null && iret.length>0)
 			{
-				if(iret.item(0).text==0)
-					alert("密码框中密码为: "+wtext.item(0).text);
-				else if(iret.item(0).text==1)
-					alert("非密码框,'"+wtext.item(0).text+"'")
-				else alert("获取失败, err="+iret.item(0).text);
+				if((iret.item(0).textContent || iret.item(0).text)==0)
+					alert("密码框中密码为: "+(wtext.item(0).textContent || wtext.item(0).text));
+				else if((iret.item(0).textContent || iret.item(0).text)==1)
+					alert("非密码框,'"+(wtext.item(0).textContent || wtext.item(0).text)+"'")
+				else alert("获取失败, err="+(iret.item(0).textContent || iret.item(0).text));
 			}
             	}
         }
@@ -56,7 +56,7 @@ function processRequest()
 //获取单击动作
 function msup()
 {
-	var o=window.document.all("divScreen");
+	var o=window.document.getElementById("divScreen");
  	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
   	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop;
 	var altk=0;
@@ -82,7 +82,7 @@ function msup()
 
 function window_onload()
 {
-	var o=window.parent.frmLeft.document.all("chkAuto");
+	var o=window.parent.frmLeft.document.getElementById("chkAuto");
 	if( o.checked ) autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
 	loadImg()

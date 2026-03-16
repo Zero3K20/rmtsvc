@@ -44,14 +44,16 @@ function serviceClick(tblElement)
 		document.getElementById("btnStart").disabled=true;
 	}
 	curSname=slistXML.recordset("sname");
-	document.all("lblService").innerText="Service : "+curSname;
+	document.getElementById("lblService").innerText="Service : "+curSname;
 }
 
 //----------------≈≈–Ú func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
-var xmlData=eval("document.all."+xmlObj).XMLDocument;
-var xslData=eval("document.all."+xslObj).XMLDocument;
+try {
+var xmlData=document.getElementById(xmlObj) && document.getElementById(xmlObj).XMLDocument;
+var xslData=document.getElementById(xslObj) && document.getElementById(xslObj).XMLDocument;
+if(!xmlData || !xslData) return;
 var nodes=xslData.documentElement.selectSingleNode("xsl:for-each"); 
 var s=nodes.selectSingleNode("@order-by").value;
 if(s.substr(1)==sortByColName)
@@ -65,4 +67,5 @@ else
 nodes.selectSingleNode("@order-by").value=s;
 
 xmlData.documentElement.transformNodeToObject(xslData.documentElement,xmlData); 
+} catch(e) {} 
 } 

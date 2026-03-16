@@ -6,7 +6,7 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			
 			var xmlobj = xmlHttp.responseXML;
-			var rkeys=xmlobj.selectSingleNode("//regkeys")
+			var rkeys=(xmlobj.getElementsByTagName("regkeys")[0] || null)
 			if(rkeys!=null && rkeys.childNodes.length>0)
 			{
 				document.getElementById("lblKeyNum").innerText=rkeys.childNodes.length;
@@ -15,7 +15,7 @@ function processRequest()
 				regkeyXML.appendChild(rkeys);
 				document.getElementById("lblRegPath").innerText=regpath;
 			}
-			var ritems=xmlobj.selectSingleNode("//regitems")
+			var ritems=(xmlobj.getElementsByTagName("regitems")[0] || null)
 			if(ritems!=null && ritems.childNodes.length>0)
     			{
     				
@@ -49,10 +49,10 @@ function window_onload()
 	var qx=parent.frmLeft.userQX;
 	if((qx & ACCESS_REGIST_ALL)==ACCESS_REGIST_ALL)
 	{
-		document.all("fDelkey").disabled=false;
-		document.all("fAddkey").disabled=false;
-		document.all("fAddItem").disabled=false;
-		document.all("fDelItem").disabled=false;
+		document.getElementById("fDelkey").disabled=false;
+		document.getElementById("fAddkey").disabled=false;
+		document.getElementById("fAddItem").disabled=false;
+		document.getElementById("fDelItem").disabled=false;
 	}
 }
 
@@ -215,7 +215,7 @@ function addItem()
 
 function keypress(txtElement)
 {
-	if(document.all("fAddItem").disabled) return;
+	if(document.getElementById("fAddItem").disabled) return;
 	if(window.event.keyCode==10 && window.event.ctrlKey)
 	{
 		var tblElement=txtElement.parentElement.parentElement;
@@ -255,11 +255,11 @@ function cancelModifyItem(txtElement)
 	txtElement.dataFld="rdata";
 	txtElement.className="txtInput_none";
 	txtElement.readOnly=true;
-	document.all("lblHelp").innerHTML="";
+	document.getElementById("lblHelp").innerHTML="";
 }
 function modifyItem(txtElement)
 {
-	if(document.all("fAddItem").disabled) return;
+	if(document.getElementById("fAddItem").disabled) return;
 	if(txtElement.readOnly==false) return;
 	var tblElement=txtElement.parentElement.parentElement;
 	var row=tblElement.rowIndex;
@@ -270,7 +270,7 @@ function modifyItem(txtElement)
 		txtElement.value=regitemXML.recordset("rdata");
 		txtElement.className="txtInput_normal";
 		txtElement.readOnly=false;
-		document.all("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
+		document.getElementById("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
 	}
 }
 
