@@ -156,7 +156,7 @@ bool ftpsvrEx :: saveIni()
 
 //set service information
 //command format: 
-//	sets [autorun=0|1] [port=<serviceport>] [bindip=<本service绑定的local machineIP>] [maxuser=<maximumconcurrentconnect数>]
+//	sets [autorun=0|1] [port=<serviceport>] [bindip=<local machine IP for this service>] [maxuser=<max concurrent connections>]
 //port=<service port>    : set service port, default is 21 if not specified
 //bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
 //maxuser=<max concurrent connections> : set max concurrent users, no limit if not specified
@@ -190,12 +190,12 @@ void ftpsvrEx :: docmd_sets(const char *strParam)
 }
 //set service SSL information
 //command format: 
-//	ssls [enable=<true|false>] [cacert=<SSLcertificatefile>] [cakey=<SSL私钥file>] [capwd=<私钥password>]
+//	ssls [enable=<true|false>] [cacert=<SSL certificate file>] [cakey=<SSL private key file>] [capwd=<private key password>]
 //enable=<true|false> : indicates whether the service is SSL-encrypted; true means SSL-encrypted, default is non-SSL
 //the following three items specify the SSL negotiation certificate, private key and password; if either is omitted, the built-in certificate and private key are used
 //cacert=<SSLcertificatefile>: specifies the SSL negotiation certificate filename (.pem format). Can be relative or absolute path
-//cakey=<SSL私钥file> : specifies the SSL negotiation private key filename (.pem format). Can be relative or absolute path
-//capwd=<私钥password>    : password for the specified private key
+//cakey=<SSL private key file> : specifies the SSL negotiation private key filename (.pem format). Can be relative or absolute path
+//capwd=<private key password>    : password for the specified private key
 void ftpsvrEx :: docmd_ssls(const char *strParam)
 {
 #ifdef _SURPPORT_OPENSSL_
@@ -226,10 +226,10 @@ void ftpsvrEx :: docmd_ssls(const char *strParam)
 
 //set FTP service welcome message and data transfer port
 //command format: 
-//	ftps [dataport=<port起始:portend>] [tips="<欢迎词info>"] [logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE]
-//dataport=<port起始:portend>: set the PASV data transfer port for this FTP service; if not specified, assigned randomly by the system, otherwise within the specified range
-//	[port起始:portend]closed interval; port 0 means no limit. e.g. [500,0] means port>=500, [0,600] means port<=600
-//tips="<欢迎词info>" : specifies the welcome message shown to FTP clients upon connection; use quotes if it contains spaces
+//	ftps [dataport=<start port:end port>] [tips="<welcome message>"] [logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE]
+//dataport=<start port:end port>: set the PASV data transfer port for this FTP service; if not specified, assigned randomly by the system, otherwise within the specified range
+//	[start port:end port] closed interval; port 0 means no limit. e.g. [500,0] means port>=500, [0,600] means port<=600
+//tips="<welcome message>" : specifies the welcome message shown to FTP clients upon connection; use quotes if it contains spaces
 //	multiple welcome lines can be written; each line must end with "\n" and start with "220-"
 //logevent=LOGIN|LOGOUT|DELETE|RMD|UPLOAD|DWLOAD|SITE : specifies which INFO events to log
 //		    when log level is DEBUG or INFO, specifies which events to log; default logs LOGIN, LOGOUT, SITE events
@@ -241,7 +241,7 @@ void ftpsvrEx :: docmd_ssls(const char *strParam)
 //		    UPLOADevent -- log when a user uploads a file
 //		    DWLOADevent -- log when a user downloads a file
 //		    SITEevent   -- log when a user executes an FTP SITE extension command (excluding SITE INFO) and the result
-//范例: ftps tips="220-欢迎访问XXXftpservice\n220-test line.\n"
+//example: ftps tips="220-Welcome to XXX FTP service\n220-test line.\n"
 void ftpsvrEx :: docmd_ftps(const char *strParam)
 {
 	if(strParam==NULL) return;
@@ -290,20 +290,20 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 
 //add new FTP account info; if account already exists, delete and re-add it
 //command format: 
-//	user account=<ftpaccount> pswd=<account password> root=<主directory> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<对主directory的访问permissions>] [hiddenfile=HIDE] [maxlogin=<限制同时最多login人数>] [expired=<accountvalid期限>] [maxup=<maximum上载流量>] [maxdw=<maximumdownload流量>] [maxupfile=<max upload file size>] [maxdisksize=<maximum可使用磁盘space>[:<current已使用磁盘space>]]
+//	user account=<ftpaccount> pswd=<account password> root=<home directory> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<home directory access permissions>] [hiddenfile=HIDE] [maxlogin=<max simultaneous logins>] [expired=<account expiry date>] [maxup=<max upload bandwidth>] [maxdw=<max download bandwidth>] [maxupfile=<max upload file size>] [maxdisksize=<max usable disk space>[:<current used disk space>]]
 //account=<ftpaccount> : required. The FTP account to add.
 //pswd=<account password>   : required. The password for the FTP account.
 //					if account password is empty, no password is required; just the correct account name suffices
-//root=<主directory>     : required. Specifies the root/home directory for this FTP account. Must be an absolute path on the local machine running the FTP service
+//root=<home directory>     : required. Specifies the root/home directory for this FTP account. Must be an absolute path on the local machine running the FTP service
 //					if the home directory contains spaces, enclose it in quotes
 //					if the home directory is empty, the account can access all disk directories
 //pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5> : password protection mode. OTP_NONE: transmit password in plaintext 
 //					OTP_MD4: OTP S/Key MD4 encrypted password transmission. FTP client password protection should be set to md4 or OTP auto-detect mode
 //					OTP_MD4: OTP S/Key MD5 encrypted password transmission. FTP client password protection should be set to md5 or OTP auto-detect mode
 //					if not set, default is OTP_NONE (plaintext password).
-//access=<对主directory的访问permissions> : specifies the access permissions for this FTP account's home directory.
+//access=<home directory access permissions> : specifies the access permissions for this FTP account's home directory.
 //						if not set, default is ACCESS_ALL permissions. Format and meaning as follows
-//		<对主directory的访问permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
+//		<home directory access permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
 //		ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL
 //		FILE_READ : allow read FILE_WRITE: allow write FILE_DEL: allow delete FILE_EXEC: allow execute
 //		DIR_LIST : allow directory listing DIR_MAKE: allow create directory DIR_DEL: allow delete directory
@@ -311,19 +311,19 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 //		    then by default the FTP user cannot read/write subdirectories; to grant access to subdirectories, map them as virtual directories with separate permissions
 //		note: if FILE_EXEC is set, users can remotely execute files in this virtual directory via the extended FTP EXEC command.
 //hiddenfile=HIDE   : do not show hidden files. Default is to show hidden files/directories if not set
-//maxlogin=<限制同时最多login人数> : limit the number of simultaneous logins for this FTP account.
+//maxlogin=<max simultaneous logins> : limit the number of simultaneous logins for this FTP account.
 //					if not set, default is 0 (unlimited simultaneous logins for this account)
-//expired=<accountvalid期限> : limit this account's usage period, format YYYY-MM-DD
+//expired=<account expiry date> : limit this account's usage period, format YYYY-MM-DD
 //					if not set, the account never expires
-//maxup=<maximum上载流量> : limit this FTP account's maximum upload speed in Kb/s
+//maxup=<max upload bandwidth> : limit this FTP account's maximum upload speed in Kb/s
 //					if not set, default is 0 (no upload speed limit for this account)
-//maxdw=<maximumdownload流量> : limit this FTP account's maximum download speed in Kb/s
+//maxdw=<max download bandwidth> : limit this FTP account's maximum download speed in Kb/s
 //					if not set, default is 0 (no download speed limit for this account)
 //maxupfile=<max upload file size> : limit this FTP account's maximum upload file size in KBytes
 //					if not set, default is 0 (no upload file size limit for this account)
-//maxdisksize=<maximum可使用磁盘space>[:<current已使用磁盘space>] : limit this account's maximum usable disk space in KBytes
-//				<maximum可使用磁盘space>: KBytes, sets the maximum usable disk space for this account. Default is 0 (unlimited) if not set
-//				[:<current已使用磁盘space>] :KBytes, sets the current used disk space. Default is 0 (none used) if not set
+//maxdisksize=<max usable disk space>[:<current used disk space>] : limit this account's maximum usable disk space in KBytes
+//				<max usable disk space>: KBytes, sets the maximum usable disk space for this account. Default is 0 (unlimited) if not set
+//				[:<current used disk space>] :KBytes, sets the current used disk space. Default is 0 (none used) if not set
 void ftpsvrEx :: docmd_user(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -439,7 +439,7 @@ void ftpsvrEx :: docmd_user(const char *strParam)
 //account=<ftpaccount> : specifies whether this filter rule applies to a specific account or to all accounts
 //						if not set or FTP account is empty, the rule applies to all accounts
 //access=0|1     : whether to deny or allow IPs matching the following conditions
-//例如:
+//example:
 // iprules access=0 rules="192.168.0.*,192.168.1.10"
 void ftpsvrEx :: docmd_iprules(const char *strParam)
 {
@@ -465,15 +465,15 @@ void ftpsvrEx :: docmd_iprules(const char *strParam)
 
 //add, modify or delete an FTP account's virtual directory
 //command format: 
-//	vpath account=<ftpaccount> vdir=<虚directory> rdir=<true实directory> [access=<虚directory访问permissions>]
+//	vpath account=<ftpaccount> vdir=<virtual directory> rdir=<real directory> [access=<virtual directory access permissions>]
 //account=<ftpaccount> : required. The FTP account for which to set the virtual directory.
-//vdir=<虚directory>     : required. The virtual directory to add or modify; each must start with /, e.g. /aa
+//vdir=<virtual directory>     : required. The virtual directory to add or modify; each must start with /, e.g. /aa
 //		    cannot use this to add, modify or delete the virtual root directory. Note: virtual directories are case-sensitive
-//rdir=<true实directory>   : the real directory path corresponding to this virtual directory; must be an absolute path
-//		    if<true实directory>中containsspaces则要用""将<true实directory>括起,例如"c:\temp test\aa"
-//		    if没有setrdiror<true实directory>等于nullstring例如rdir= orrdir=""则意味着delete此虚path
-//access=<虚directory访问permissions> : specified对此虚directory的访问permissions。if not set, default is ACCESS_ALL permissions. Format and meaning as follows
-//		 <虚directory访问permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
+//rdir=<real directory>   : the real directory path corresponding to this virtual directory; must be an absolute path
+//		    if <real directory> contains spaces, enclose it in "", e.g. "c:\temp test\aa"
+//		    if rdir is not set or <real directory> equals empty string, e.g. rdir= or rdir="", it means delete this virtual path
+//access=<virtual directory access permissions> : specifies permissions for this virtual directory. If not set, default is ACCESS_ALL permissions. Format and meaning as follows
+//		 <virtual directory access permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
 //		 ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL
 //		 FILE_READ : allow read FILE_WRITE: allow write FILE_DEL: allow delete FILE_EXEC: allow execute
 //		 DIR_LIST : allow directory listing DIR_MAKE: allow create directory DIR_DEL: allow delete directory

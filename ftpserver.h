@@ -43,14 +43,14 @@ typedef struct _TFTPUser
 	unsigned long curdisksize;//current used disk space in KBytes.
 	std::map<std::string,std::pair<std::string,long> > dirAccess;//directory access permissions; directory names are case-sensitive
 			//first --- string: FTP virtual directory path, ending with /, e.g. / or /aa/,
-			//second --- pair : 此ftp虚directorycorresponding实际directoryanddirectory的访问permissions，实际directory必须为\结尾(winplatform)
+			//second --- pair : real directory corresponding to this FTP virtual directory, and directory access permissions; real directory must end with \ (Windows platform)
 	long ipaccess;
 	std::string ipRules;//IP access rules
 	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
 	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	long pswdmode;
-	long disphidden; //whether显示隐藏file
-	long forbid; //whether禁用此account
+	long disphidden; //whether to show hidden files
+	long forbid; //whether to disable this account
 }TFTPUser;
 
 class ftpsvrEx : public ftpServer

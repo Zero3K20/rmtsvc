@@ -25,15 +25,15 @@ typedef struct _TPROXYSETTINGS
 	int svrtype; //proxy type supported by the service
 	bool bAuth; //whether the proxy service requires authentication
 	bool autorun;  //whether to auto-start proxy service on program start
-	bool bCascade; //whether启用secondary proxy
+	bool bCascade; //whether to enable secondary/cascading proxy
 	std::string cassvrip; //secondary proxy serviceaddressandport
-	int castype; //secondary proxy支持的代理type
+	int castype; //proxy type supported by the secondary proxy
 	bool casAuth; //whether secondary proxy requires authentication
-	std::string casuser; //访问secondary proxy的accountandpassword
+	std::string casuser; //account and password for accessing the secondary proxy
 	std::string caspswd;
-	long ipaccess;   //访问本proxy service IP filtering规则
+	long ipaccess;   //IP filter rules for accessing this proxy service
 	std::string ipRules;
-	bool bLogdatafile; //whether记录代理forward data
+	bool bLogdatafile; //whether to log proxy forwarded data
 }PROXYSETTINGS;
 
 
@@ -47,10 +47,10 @@ typedef struct _TProxyUser
 	unsigned long maxratio;//maximum bandwidth K/s, 0 means unlimited
 	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
 	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
-	long forbid; //whether禁用此account
+	long forbid; //whether to disable this account
 
-	std::string strAccessDest;//允许or禁止访问的目的
-	int bAccessDest; //上述specified的目的yes禁止还yes允许 0禁止otherwise允许
+	std::string strAccessDest;//allowed or forbidden destination addresses
+	int bAccessDest; //whether the above specified destination is forbidden or allowed: 0 = forbidden, otherwise = allowed
 }TProxyUser;
 
 class proxysvrEx : public proxyServer

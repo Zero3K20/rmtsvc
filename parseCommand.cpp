@@ -279,7 +279,7 @@ void webServer :: docmd_webs(const char *strParam)
 //command format:
 //	webiprules [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
-//例如:
+//example:
 // webiprules access=0 ipaddr="192.168.0.*,192.168.1.10"
 void webServer :: docmd_webiprules(const char *strParam)
 {
