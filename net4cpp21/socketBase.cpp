@@ -239,7 +239,7 @@ int socketBase :: checkSocket(int *sockfds,size_t len,time_t wait_usec,SOCKETOPM
 	else if(opmode==SOCKS_OP_ROOB) //Check if OOB data is available
 		retv = select(FD_SETSIZE, NULL, NULL, &fds, &to);
 	else return 1; //Other operations always return true, e.g., writing OOB data!!!!!
-	if(retv==0) return 0; // timeout occured 
+	if(retv==0) return 0; // timeout occurred
 	if(retv==SOCKET_ERROR){ //An error occurred
 		if(SOCK_M_GETERROR==EINPROGRESS) return 0;//Operation in progress, not an error
 	}

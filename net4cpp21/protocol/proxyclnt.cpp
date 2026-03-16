@@ -79,7 +79,7 @@ SOCKSRESULT socketProxy :: Connect(const char *host,int port,time_t lWaitout)
 SOCKSRESULT socketProxy :: Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
 	if(m_proxytype!=PROXY_SOCKS4 && m_proxytype!=PROXY_SOCKS5) 
-		return SOCKSERR_NOTSURPPORT;
+		return SOCKSERR_NOTSUPPORT;
 	//先connectproxy service器
 	SOCKSRESULT sr=socketTCP::Connect(m_proxyhost.c_str(),m_proxyport,lWaitout);
 	if(sr<0){
@@ -100,7 +100,7 @@ SOCKSRESULT socketProxy :: Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 //[out] svrIP/svrPort returns the port and IP address opened by the SOCKS service
 SOCKSRESULT socketProxy :: UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
-	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSURPPORT;
+	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSUPPORT;
 	//先connectproxy service器
 	SOCKSRESULT sr=socketTCP::Connect(m_proxyhost.c_str(),m_proxyport,lWaitout);
 	if(sr<0){
@@ -147,7 +147,7 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 		::memcpy((void *)(buf+buflen),(const void *)&rp,sizeof(rp));
 		buflen+=sizeof(rp);
 	}
-	else return SOCKSERR_NOTSURPPORT;
+	else return SOCKSERR_NOTSUPPORT;
 	if( (sr=this->Send(buflen,(const char *)buf,-1))<0) return sr;
 	if( (sr=this->Receive(buf,256,lWaitout))<0 ) return sr;
 	
@@ -345,7 +345,7 @@ bool socketProxy :: socks5_Negotiation(time_t lWaitout)
 	}//?if(buf[1]==0x02)
 	else if(buf[1]!=0) //not supported要求的authentication方式
 	{
-		RW_LOG_PRINT(LOGLEVEL_WARN,"not surpport Authentication (%d).\r\n",buf[1]);
+		RW_LOG_PRINT(LOGLEVEL_WARN,"not support Authentication (%d).\r\n",buf[1]);
 		return false;
 	} //buf[1]==0则do not求authentication
 	return true;
@@ -357,7 +357,7 @@ bool socketProxy :: socks5_Negotiation(time_t lWaitout)
 SOCKSRESULT socketProxy :: sendReq_UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
 	SOCKSRESULT sr=SOCKSERR_OK;
-//	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSURPPORT;
+//	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSUPPORT;
 	if( !socks5_Negotiation(lWaitout) ) return SOCKSERR_PROXY_AUTH;
 	char buf[256]; int buflen=10;
 	buf[0]=0x05; buf[1]=0x03; //填充sock5reqstructure BIND

@@ -15,7 +15,7 @@
 webServer :: webServer():m_svrport(7778)
 {
 	m_bPowerOff=false;
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		setCacert(NULL,NULL,NULL,true); //load built-in certificate by default
 #endif
 		setRoot(NULL,HTTP_ACCESS_NONE,NULL);
@@ -35,7 +35,7 @@ webServer :: webServer():m_svrport(7778)
 bool webServer :: Start() 
 {
 	if(m_svrport==0) return true; //do not start service
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	if(m_bSSLenabled) //start SSL service
 	{
 		if(g_strMyCert=="" || g_strMyKey=="")
@@ -57,7 +57,7 @@ bool webServer :: Start()
 void webServer :: Stop()
 { 
 	Close();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	freeSSL();
 #endif
 	return;
@@ -67,7 +67,7 @@ void webServer :: setRoot(const char *rpath,long lAccess,const char *defaultPage
 {
 	std::string spath; if(rpath) spath.assign(rpath);
 	if(spath!="/"){
-		getAbsolutfilepath(spath);
+		getAbsoluteFilePath(spath);
 		if(spath[spath.length()-1]!='\\') spath.append("\\");
 	}else spath="";
 	this->setvpath("/",spath.c_str(),lAccess);

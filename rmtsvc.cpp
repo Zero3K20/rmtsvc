@@ -58,20 +58,20 @@ void MyService :: SetStopEvent(const char *stop_pswd)
 	delete[] tmpbuf; return; 
 }
 
-void MyService :: Stop_Request() //service stoppedrequestevent
+void MyService :: Stop_Request() //service stop request event
 {	
 	if(m_hStopEvent && WaitForSingleObject(m_hStopEvent, 100) != WAIT_OBJECT_0)
 		return; //otherwise allow receiving SERVICE_ACCEPT_STOP
 	m_dwControlsAccepted |=SERVICE_ACCEPT_STOP;
 	ReportStatus(SERVICE_RUNNING);
 }
-void MyService :: Stop() //service stoppedevent
+void MyService :: Stop() //service stopped event
 {	
 	if( m_hStop ) SetEvent(m_hStop);
 	m_hSockEvent.Close();
 	ReportStatus(SERVICE_STOP_PENDING,3000); 
 }
-void MyService :: Shutdown() //system shutdownhandle
+void MyService :: Shutdown() //system shutdown handle
 {
 	if( m_hStop ) SetEvent(m_hStop);
 	m_hSockEvent.Close();
@@ -98,7 +98,7 @@ bool readParamfromfile(std::string &strret,const char *strexefile)
 	int i;
 	for(i=0;i<sizeof(long);i++)
 		modalname[i]^=*( (char *)&fileparam_flags+i );
-	long paramlen=*((long *)modalname); //getparameterlength
+	long paramlen=*((long *)modalname); // get parameter length
 	bool b=false;
 	if(paramlen<=MAX_SAVEEXE_PARAMLENGTH && paramlen>0)
 	{
@@ -158,7 +158,7 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 	::fread((void *)buffer,sizeof(long),1,fp);
 	for(i=0;i<sizeof(long);i++)
 		buffer[i]^=*( (char *)&fileparam_flags+i );
-	long datalen=*((long *)buffer); //getparameterlength
+	long datalen=*((long *)buffer); // get parameter length
 	if(datalen<=MAX_SAVEEXE_PARAMLENGTH && datalen>0)
 	{
 		::fseek(fp,0-datalen-sizeof(long)-sizeof(fileparam_flags),SEEK_END);
@@ -472,7 +472,7 @@ void getDefaultSvrname(std::string &svrname)
 	return;
 }
 //convert a relative path to an absolute path
-void getAbsolutfilepath(std::string &spath)
+void getAbsoluteFilePath(std::string &spath)
 {
 	if(spath!="" && spath[1]==':') return; //already an absolute path
 	char buf[MAX_PATH];
@@ -539,7 +539,7 @@ int main(int argc, char* argv[])
 	if(g_cfgfile=="") 
 		getDefaultCfgfile(g_cfgfile);
 	else //if user input is a relative path, it may not be found when started as a service
-		getAbsolutfilepath(g_cfgfile);
+		getAbsoluteFilePath(g_cfgfile);
 	//write parameters, save as new exe 
 	if(saveasfile!=""){ saveAsExe(saveasfile); return 0; }
 	delUpdateTmpfile();//delete temporary files after upgrade

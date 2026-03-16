@@ -97,7 +97,7 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			int hostport=casPort;
 			if(ptr){ *(char *)ptr=0; hostport=atoi(ptr+1);}
 			if(hostport>0 && ptrBegin[0]!=0)
-			{ //secondary proxy serviceaddressandportvalid
+			{ //secondary proxy service address and port valid
 				std::pair<std::string,int> p(ptrBegin,hostport);
 				m_vecCassvr.push_back(p);
 			}

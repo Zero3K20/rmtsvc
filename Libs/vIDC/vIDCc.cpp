@@ -211,7 +211,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //map the specified
 	}else rspcode=atoi(m_szLastResponse);
 	if(rspcode==501) return SOCKSERR_VIDC_NAME;
 	else if(rspcode==502) return SOCKSERR_VIDC_MEMO;
-	else if(rspcode==503) return SOCKSERR_VIDC_SURPPORT;
+	else if(rspcode==503) return SOCKSERR_VIDC_SUPPORT;
 	else if(rspcode==504) return SOCKSERR_VIDC_MAP;
 	return SOCKSERR_VIDC_RESP;
 }

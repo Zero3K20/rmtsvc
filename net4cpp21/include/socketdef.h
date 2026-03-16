@@ -102,7 +102,7 @@
 #define SOCKSERR_TIMEOUT -13 //Timeout
 #define SOCKSERR_EACCES	-14 //The specified address is a broadcast address but the broadcast flag is not set
 #define SOCKSERR_THREAD -15 //Failed to create thread for task execution
-#define SOCKSERR_NOTSURPPORT -16 //This feature is not supported
+#define SOCKSERR_NOTSUPPORT -16 //This feature is not supported
 #define SOCKSERR_MEMORY -17 //Memory allocation error
 #define SOCKSERR_SSLASSCIATE -18 //SSL handshake failed
 #define SOCKSERR_PARENT -19 //Parent socket closed or errored

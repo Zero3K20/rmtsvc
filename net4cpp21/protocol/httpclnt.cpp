@@ -68,7 +68,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 		RW_LOG_DEBUG("[httpclnt] Failed to connect HTTP server(%s:%d),error=%d\r\n",webhost.c_str(),webport,sr);
 		return SOCKSERR_CONN;
 	}
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	else if(strurl[4]!=':')
 	{ //访问的yeshttp SSLservice
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient
@@ -161,7 +161,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 		RW_LOG_DEBUG("[httpclnt] Failed to connect HTTP server(%s:%d),error=%d\r\n",webhost.c_str(),webport,sr);
 		return SOCKSERR_CONN;
 	}
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	else if(strurl[4]!=':')
 	{ //访问的yeshttp SSLservice
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient

@@ -29,7 +29,7 @@
 #define SOCKSERR_VIDC_NAME -304 //invalidname
 #define SOCKSERR_VIDC_MEMO -305 //memory allocation failure
 #define SOCKSERR_VIDC_MAP  -306 //mapping failed
-#define SOCKSERR_VIDC_SURPPORT -307 //this feature is temporarily not supported
+#define SOCKSERR_VIDC_SUPPORT -307 //this feature is temporarily not supported
 #endif
 
 /***********************vIDC handle flow******************************************************

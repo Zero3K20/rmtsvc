@@ -14,13 +14,13 @@
 #define __YY_SOCKET_TCP_H__
 
 #ifndef _NOSSL_D
-#define _SURPPORT_OPENSSL_ //Define this macro to enable SSL support
+#define _SUPPORT_OPENSSL_ //Define this macro to enable SSL support
 						//Also add the OpenSSL header and library paths to the compiler options:
 						//<net4cpp2.1 directory>/OPENSSL
 						//<net4cpp2.1 directory>/OPENSSL/lib
 						//tools menu --> Options submenu --> directories page
 #endif
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	#include <openssl/crypto.h>
 	#include <openssl/x509.h>
 	#include <openssl/pem.h>
@@ -64,7 +64,7 @@ namespace net4cpp21
 		SOCKSRESULT Connect(time_t lWaitout,int bindport,const char *bindip); //yyc add 2007-08-07
 	};
 
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	class socketSSL : public socketTcp
 	{
 	public:

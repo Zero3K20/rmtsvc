@@ -326,7 +326,7 @@ SOCKSRESULT smtpClient :: ConnectSvr(const char *smtpsvr,int smtpport)
 
 	if(m_authType==SMTPAUTH_NONE) return SOCKSERR_OK;
 	//SMTP server requires LOGIN authentication
-	if(m_authType!=SMTPAUTH_LOGIN) return SOCKSERR_SMTP_SURPPORT;
+	if(m_authType!=SMTPAUTH_LOGIN) return SOCKSERR_SMTP_SUPPORT;
 	return (Auth_LOGIN()==SOCKSERR_OK)?SOCKSERR_OK:SOCKSERR_SMTP_AUTH;
 }
 

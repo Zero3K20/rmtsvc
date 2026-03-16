@@ -135,7 +135,7 @@ SOCKSRESULT socketTcp::Connect(time_t lWaitout,int bindport,const char *bindip)
 }
 
 //-----------------------------socketSSL--------------------------------
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 
 static char default_cacert[]="-----BEGIN CERTIFICATE-----\n"
 					"MIIDgzCCAuygAwIBAgIBADANBgkqhkiG9w0BAQQFADCBjjELMAkGA1UEBhMCQ04x\n"

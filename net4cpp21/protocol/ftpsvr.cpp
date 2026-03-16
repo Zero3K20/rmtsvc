@@ -295,7 +295,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 		sr=datasock.Accept(-1,NULL);
 	if(sr>0)
 	{
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		if(psession->m_sslMode=='P')
 			if(!datasock.SSL_Associate()) goto EXIT1;
 #endif
@@ -400,7 +400,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 		}//?else if(psession->m_opMode=='L')
 	}//if(sr>0)
 
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 EXIT1:
 #endif
 	pcmdsock->Send(resplen,resp,-1);

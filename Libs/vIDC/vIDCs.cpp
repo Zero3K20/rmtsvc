@@ -194,10 +194,10 @@ NextCMD:		//移动ptrBegin到nextcommanddata起始
 		//otherwise此管道已经被取走占用,notdelete
 //		else{ pipe->Close(); pipe->setParent(NULL); }
 	}//?else if(strncmp(ptrBegin,"PIPE ",5)==0)
-	//yyc add 2007-08-21 surpport MakeHolecommand，用于TCP穿洞
+	//yyc add 2007-08-21 support MakeHolecommand，用于TCP穿洞
 	else if(strcmp(buf,"HOLE\r\n")==0)
 	{
-		//returnconnect的IPaddressandport
+		//return the connect IP address and port
 		iret=sprintf(buf,"200 %s:%d\r\n",psock->getRemoteIP(),psock->getRemotePort());
 		iret=psock->Send(iret,buf,-1);
 		//循环waiting对方releaseconnect

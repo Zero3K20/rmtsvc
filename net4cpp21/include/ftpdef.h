@@ -26,7 +26,7 @@
 //FTP return result constant definitions
 #define SOCKSERR_FTP_RESP -301 //command response error
 #define SOCKSERR_FTP_AUTH SOCKSERR_FTP_RESP-1 //FTP authentication failure
-#define SOCKSERR_FTP_SURPPORT SOCKSERR_FTP_RESP-2 //FTP password encryption transfer method not supported
+#define SOCKSERR_FTP_SUPPORT SOCKSERR_FTP_RESP-2 //FTP password encryption transfer method not supported
 #define SOCKSERR_FTP_REST SOCKSERR_FTP_RESP-3 //this site does not support resume transfer
 #define SOCKSERR_FTP_DATACONN SOCKSERR_FTP_RESP-4 //cannot connect to data port
 #define SOCKSERR_FTP_LIST SOCKSERR_FTP_RESP-5 //LIST response error

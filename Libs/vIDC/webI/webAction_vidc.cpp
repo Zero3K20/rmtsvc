@@ -296,7 +296,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的mapserviceinvalid</retmsg>");
 					else if(sr==SOCKSERR_VIDC_MEMO)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>memory allocation failure</retmsg>");
-					else if(sr==SOCKSERR_VIDC_SURPPORT)
+					else if(sr==SOCKSERR_VIDC_SUPPORT)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>此versionthis feature is temporarily not supported</retmsg>");
 					else if(sr==SOCKSERR_VIDC_MAP)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>mapping failed，确信map port没被占用</retmsg>");

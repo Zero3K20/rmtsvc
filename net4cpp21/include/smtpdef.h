@@ -22,7 +22,7 @@
 #define SOCKSERR_SMTP_RESP -301 //command response error
 #define SOCKSERR_SMTP_CONN SOCKSERR_SMTP_RESP-1 //connectserverfailure
 #define SOCKSERR_SMTP_AUTH SOCKSERR_SMTP_RESP-2 //SMTP authentication failure
-#define SOCKSERR_SMTP_SURPPORT SOCKSERR_SMTP_RESP-3 //unsupported SMTP authentication method
+#define SOCKSERR_SMTP_SUPPORT SOCKSERR_SMTP_RESP-3 //unsupported SMTP authentication method
 #define SOCKSERR_SMTP_RECIPIENT SOCKSERR_SMTP_RESP-4 //no email recipient specified
 #define SOCKSERR_SMTP_FAILED SOCKSERR_SMTP_RESP-5 //general error
 #define SOCKSERR_SMTP_EMLFILE SOCKSERR_SMTP_RESP-6 //invalid email format
