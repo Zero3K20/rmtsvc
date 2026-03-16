@@ -448,6 +448,7 @@ void WINAPI CNTService :: ServiceCtrl(DWORD dwCtrlCode) {
 BOOL WINAPI CNTService :: ControlHandler(DWORD dwCtrlType) {
 	_ASSERTE(gpTheService != 0);
 	switch( dwCtrlType ) {
+		case CTRL_CLOSE_EVENT:  // user clicked X on the console window
 		case CTRL_BREAK_EVENT:  // use Ctrl+C or Ctrl+Break to simulate
 		case CTRL_C_EVENT:      // SERVICE_CONTROL_STOP in debug mode
 			_tprintf(TEXT("Stopping %s.\n"), gpTheService->m_lpDisplayName);
