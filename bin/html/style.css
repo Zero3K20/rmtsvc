@@ -12,7 +12,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	color:#000000; 
  	FONT-FAMILY: 'Arial'; 
  	FONT-SIZE: 9pt; 
- 	cursor:hand 
+ 	cursor:pointer 
   } 
 .btnDown 
 { 
@@ -24,7 +24,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
      color:#000000; 
      FONT-FAMILY: 'Arial'; 
      FONT-SIZE: 9pt; 
-     cursor:hand 
+     cursor:pointer 
 } 
 .btnOff 
 { 
@@ -36,7 +36,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
      color:#000000; 
      FONT-FAMILY: 'Arial'; 
      FONT-SIZE: 9pt; 
-     CURSOR: hand; 
+     cursor: pointer; 
 }
 .txtInput_normal
 { 
@@ -48,7 +48,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 FONT-SIZE: 9pt;
  	 background: Sliver;
  	 COLOR: blue; 
- 	 CURSOR: hand;
+ 	 cursor: pointer;
  	 overflow: auto;
  	 HEIGHT: 100%; 
  	 WIDTH:  100%;
@@ -63,7 +63,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 FONT-FAMILY: 'Arial'; 
  	 FONT-SIZE: 9pt;
  	 background: transparent;
- 	 CURSOR: hand;
+ 	 cursor: pointer;
  	 overflow: hidden;
  	 HEIGHT: 100%; 
  	 WIDTH:  100%;
@@ -89,6 +89,6 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 FONT-FAMILY: 'Arial'; 
  	 FONT-SIZE: 9pt;
  	 background: transparent;
- 	 CURSOR: hand;
+ 	 cursor: pointer;
  	 MARGIN-TOP: 0pt;
 }

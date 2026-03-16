@@ -65,45 +65,45 @@ function setButtonStatus()
 	if((userQX & ACCESS_SCREEN_ALL)!=0)
     	{
     		o=document.getElementById("fView")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewScreen.htm";
     		if((userQX & ACCESS_SCREEN_ALL)==ACCESS_SCREEN_ALL)
     		{
     		var o=document.getElementById("fKeys");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="javascript:sendKey();";
     		o=document.getElementById("fControl")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewCtrl.htm";
     		o=document.getElementById("fCtAlDe")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="/command?cmd=CtAlDe";
     		o=document.getElementById("fSetClip")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="javascript:SetClipBoard();";
     		o=document.getElementById("fGetClip")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="javascript:GetClipBoard();";
     		o=document.getElementById("fRun")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="javascript:RunProcess();";
     		o=document.getElementById("fShDw")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="/command?cmd=ShDw";
     		o=document.getElementById("fRest")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="/command?cmd=ReSt";
     		o=document.getElementById("fLgOf")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="/command?cmd=LgOf";
     		o=document.getElementById("fLock")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="/command?cmd=Lock";
     		o=document.getElementById("fProc")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewProcess.htm";
     		o=document.getElementById("fPort")
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewPort.htm";
     		}
     	}
@@ -111,52 +111,52 @@ function setButtonStatus()
     	if((userQX & ACCESS_REGIST_ALL)!=0)
     	{
     		var o=document.getElementById("fReg");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewReg.htm";
 	}
     	if((userQX & ACCESS_SERVICE_ALL)!=0)
     	{
     		var o=document.getElementById("fServ");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewService.htm";
 	}
     	if((userQX & ACCESS_TELNET_ALL)==ACCESS_TELNET_ALL)
     	{
     		var o=document.getElementById("fTele");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="javascript:start_telnet()";
 	}
 	if((userQX & ACCESS_FILE_ALL)!=0)
     	{
     		var o=document.getElementById("fFile");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="viewFile.htm";
     	}
     	if((userQX & ACCESS_FTP_ADMIN)!=0)
     	{
     		var o=document.getElementById("fFTP");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="ftpsets.htm";
     	}
     	if((userQX & ACCESS_VIDC_ADMIN)!=0)
     	{
     		var o=document.getElementById("fUPnP");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="upnp.htm";
     		o=document.getElementById("fMapL");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="vidcMapL.htm";
     		o=document.getElementById("fMapR");
     		o.href="vidcMapR.htm";
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o=document.getElementById("fProxy");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="proxysets.htm";
     		o=document.getElementById("fvIDCs");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="vidcsvr.htm";
     		o=document.getElementById("fvIDCi");
-    		o.disabled=false;
+    		o.removeAttribute('disabled');
     		o.href="vidcini.htm";
     	}
 }
