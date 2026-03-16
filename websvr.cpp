@@ -67,6 +67,7 @@ void webServer :: setRoot(const char *rpath,long lAccess,const char *defaultPage
 {
 	std::string spath; if(rpath) spath.assign(rpath);
 	if(spath!="/"){
+		if(spath.empty()) spath.assign("html");
 		getAbsoluteFilePath(spath);
 		if(spath[spath.length()-1]!='\\') spath.append("\\");
 	}else spath="";
