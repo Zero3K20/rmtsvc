@@ -12,10 +12,10 @@
 </td></tr>
 <tr height=25px><td align=center>
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-&nbsp;&nbsp;<A href"" onclick="javascript:window.event.returnValue=false;window.returnValue=document.all('txtInput').value;window.close();">确  定</A>&nbsp;&nbsp;</span>
+&nbsp;&nbsp;<A href"" onclick="javascript:window.dialogResult=document.getElementById('txtInput').value;window.close();return false;">确  定</A>&nbsp;&nbsp;</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-&nbsp;&nbsp;<A href"" onclick="javascript:window.event.returnValue=false;window.returnValue='';window.close();" >取  消</A>&nbsp;&nbsp;</span>
+&nbsp;&nbsp;<A href"" onclick="javascript:window.dialogResult='';window.close();return false;" >取  消</A>&nbsp;&nbsp;</span>
 </td></tr>
 </table>
 </body>

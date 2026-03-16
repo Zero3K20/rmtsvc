@@ -4,10 +4,10 @@ function ArrangeTaskList(){
 	var TotalHeight=document.body.clientHeight;
 	var TabHeight=0;
 	var i;
-	var tabtool = document.all.tags("TABLE");
+	var tabtool = document.getElementsByTagName("TABLE");
 	for(i=0;i<tabtool.length;i++)
 	{
-		if(tabtool(i).item=="1")
+		if(tabtool[i].getAttribute("item")=="1")
 		{
 			TabHeight+=27;
 		}
@@ -15,19 +15,19 @@ function ArrangeTaskList(){
 	var show=true;
 	for(i=0;i<tabtool.length;i++)
 	{
-		if(tabtool(i).item=="1")
+		if(tabtool[i].getAttribute("item")=="1")
 		{
-			tabtool(i).style.height=(TotalHeight-TabHeight-4)+"px";
+			tabtool[i].style.height=(TotalHeight-TabHeight-4)+"px";
 			if(show)
 			{
-				tabtool(i).style.visibility="visible";
-				tabtool(i).style.display="";
+				tabtool[i].style.visibility="visible";
+				tabtool[i].style.display="";
 				show=false;
 			}
 			else
 			{
-				tabtool(i).style.visibility="hidden";
-				tabtool(i).style.display="none";
+				tabtool[i].style.visibility="hidden";
+				tabtool[i].style.display="none";
 			}
 		}
 	}		
@@ -38,23 +38,23 @@ function Show_ChangeTool(name){
 	var i;
 	for(i=0;i<Arr.length;i++)
 	{
-		if(document.all("Tab"+Arr[i])!=null)
+		if(document.getElementById("Tab"+Arr[i])!=null)
 		{
 			if(Arr[i]==name)
 			{
-				document.all("Tab"+Arr[i]).style.visibility="visible";
-				document.all("Tab"+Arr[i]).style.display="block";
-				document.all("td"+Arr[i]).bgColor='#e5e5e5';
-				document.all("td"+Arr[i]).onmouseout="";
-				document.all("td"+Arr[i]).onmouseover="";
+				document.getElementById("Tab"+Arr[i]).style.visibility="visible";
+				document.getElementById("Tab"+Arr[i]).style.display="block";
+				document.getElementById("td"+Arr[i]).bgColor='#e5e5e5';
+				document.getElementById("td"+Arr[i]).onmouseout="";
+				document.getElementById("td"+Arr[i]).onmouseover="";
 			}
 			else
 			{
-				document.all("Tab"+Arr[i]).style.visibility="hidden";
-				document.all("Tab"+Arr[i]).style.display="none";
-				document.all("td"+Arr[i]).bgColor='Silver';
-				document.all("td"+Arr[i]).onmouseout=new Function("this.bgColor='Silver'");
-				document.all("td"+Arr[i]).onmouseover=new Function("this.bgColor='#e5e5e5'");
+				document.getElementById("Tab"+Arr[i]).style.visibility="hidden";
+				document.getElementById("Tab"+Arr[i]).style.display="none";
+				document.getElementById("td"+Arr[i]).bgColor='Silver';
+				document.getElementById("td"+Arr[i]).onmouseout=new Function("this.bgColor='Silver'");
+				document.getElementById("td"+Arr[i]).onmouseover=new Function("this.bgColor='#e5e5e5'");
 			}
 		}
 	}
@@ -64,45 +64,45 @@ function setButtonStatus()
 {
 	if((userQX & ACCESS_SCREEN_ALL)!=0)
     	{
-    		o=document.all("fView")
+    		o=document.getElementById("fView")
     		o.disabled=false;
     		o.href="viewScreen.htm";
     		if((userQX & ACCESS_SCREEN_ALL)==ACCESS_SCREEN_ALL)
     		{
-    		var o=document.all("fKeys");
+    		var o=document.getElementById("fKeys");
     		o.disabled=false;
     		o.href="javascript:sendKey();";
-    		o=document.all("fControl")
+    		o=document.getElementById("fControl")
     		o.disabled=false;
     		o.href="viewCtrl.htm";
-    		o=document.all("fCtAlDe")
+    		o=document.getElementById("fCtAlDe")
     		o.disabled=false;
     		o.href="/command?cmd=CtAlDe";
-    		o=document.all("fSetClip")
+    		o=document.getElementById("fSetClip")
     		o.disabled=false;
     		o.href="javascript:SetClipBoard();";
-    		o=document.all("fGetClip")
+    		o=document.getElementById("fGetClip")
     		o.disabled=false;
     		o.href="javascript:GetClipBoard();";
-    		o=document.all("fRun")
+    		o=document.getElementById("fRun")
     		o.disabled=false;
     		o.href="javascript:RunProcess();";
-    		o=document.all("fShDw")
+    		o=document.getElementById("fShDw")
     		o.disabled=false;
     		o.href="/command?cmd=ShDw";
-    		o=document.all("fRest")
+    		o=document.getElementById("fRest")
     		o.disabled=false;
     		o.href="/command?cmd=ReSt";
-    		o=document.all("fLgOf")
+    		o=document.getElementById("fLgOf")
     		o.disabled=false;
     		o.href="/command?cmd=LgOf";
-    		o=document.all("fLock")
+    		o=document.getElementById("fLock")
     		o.disabled=false;
     		o.href="/command?cmd=Lock";
-    		o=document.all("fProc")
+    		o=document.getElementById("fProc")
     		o.disabled=false;
     		o.href="viewProcess.htm";
-    		o=document.all("fPort")
+    		o=document.getElementById("fPort")
     		o.disabled=false;
     		o.href="viewPort.htm";
     		}
@@ -110,52 +110,52 @@ function setButtonStatus()
     	
     	if((userQX & ACCESS_REGIST_ALL)!=0)
     	{
-    		var o=document.all("fReg");
+    		var o=document.getElementById("fReg");
     		o.disabled=false;
     		o.href="viewReg.htm";
 	}
     	if((userQX & ACCESS_SERVICE_ALL)!=0)
     	{
-    		var o=document.all("fServ");
+    		var o=document.getElementById("fServ");
     		o.disabled=false;
     		o.href="viewService.htm";
 	}
     	if((userQX & ACCESS_TELNET_ALL)==ACCESS_TELNET_ALL)
     	{
-    		var o=document.all("fTele");
+    		var o=document.getElementById("fTele");
     		o.disabled=false;
     		o.href="javascript:start_telnet()";
 	}
 	if((userQX & ACCESS_FILE_ALL)!=0)
     	{
-    		var o=document.all("fFile");
+    		var o=document.getElementById("fFile");
     		o.disabled=false;
     		o.href="viewFile.htm";
     	}
     	if((userQX & ACCESS_FTP_ADMIN)!=0)
     	{
-    		var o=document.all("fFTP");
+    		var o=document.getElementById("fFTP");
     		o.disabled=false;
     		o.href="ftpsets.htm";
     	}
     	if((userQX & ACCESS_VIDC_ADMIN)!=0)
     	{
-    		var o=document.all("fUPnP");
+    		var o=document.getElementById("fUPnP");
     		o.disabled=false;
     		o.href="upnp.htm";
-    		o=document.all("fMapL");
+    		o=document.getElementById("fMapL");
     		o.disabled=false;
     		o.href="vidcMapL.htm";
-    		o=document.all("fMapR");
+    		o=document.getElementById("fMapR");
     		o.href="vidcMapR.htm";
     		o.disabled=false;
-    		o=document.all("fProxy");
+    		o=document.getElementById("fProxy");
     		o.disabled=false;
     		o.href="proxysets.htm";
-    		o=document.all("fvIDCs");
+    		o=document.getElementById("fvIDCs");
     		o.disabled=false;
     		o.href="vidcsvr.htm";
-    		o=document.all("fvIDCi");
+    		o=document.getElementById("fvIDCi");
     		o.disabled=false;
     		o.href="vidcini.htm";
     	}
@@ -163,13 +163,13 @@ function setButtonStatus()
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // ÅÐ¶Ï¶ÔÏó×´Ì¬
+	if (xmlHttp.readyState == 4) { // ï¿½Ð¶Ï¶ï¿½ï¿½ï¿½×´Ì¬
 		if (xmlHttp.status == 200) 
-		{ // ÐÅÏ¢ÒÑ¾­³É¹¦·µ»Ø£¬¿ªÊ¼´¦ÀíÐÅÏ¢
+		{ // ï¿½ï¿½Ï¢ï¿½Ñ¾ï¿½ï¿½É¹ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 		//	alert(xmlHttp.responseText);
 			var xmlobj = xmlHttp.responseXML;
 			var quality = xmlobj.getElementsByTagName("quality");
-			document.all("quality"+quality[0].firstChild.data).checked=true;
+			document.getElementById("quality"+quality[0].firstChild.data).checked=true;
 			var qxnode=xmlobj.getElementsByTagName("ssid");
 			if(qxnode.length>0) ssid=qxnode[0].firstChild.data;
 			qxnode=xmlobj.getElementsByTagName("qx");
@@ -183,18 +183,18 @@ function processRequest()
 
 function processRequestX() 
 {
-	if (xmlHttp.readyState == 4) { // ÅÐ¶Ï¶ÔÏó×´Ì¬
-		if (xmlHttp.status == 200) { // ÐÅÏ¢ÒÑ¾­³É¹¦·µ»Ø£¬¿ªÊ¼´¦ÀíÐÅÏ¢
+	if (xmlHttp.readyState == 4) { // ï¿½Ð¶Ï¶ï¿½ï¿½ï¿½×´Ì¬
+		if (xmlHttp.status == 200) { // ï¿½ï¿½Ï¢ï¿½Ñ¾ï¿½ï¿½É¹ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 			
 			var xmlobj = xmlHttp.responseXML;
     			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			var dwurl=xmlobj.getElementsByTagName("dwurl");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
 			if(dwurl.length>0)
-    				window.open(dwurl.item(0).text);
+    				window.open((dwurl.item(0).textContent || dwurl.item(0).text));
 			//refreshScreen();
-            	} //else alert("ÇëÇóµÄÒ³ÃæÓÐÒì³£,status="+xmlHttp.status);
+            	} //else alert("ï¿½ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ì³£,status="+xmlHttp.status);
         }
 }
 
@@ -212,10 +212,10 @@ function capsetting()
 {
 	var lockmskb=0; var qualityVal=0;
 //	if(document.all("chkMsKb").checked) lockmskb=1;
-	if(document.all("quality10").checked) qualityVal=10;
-	else if(document.all("quality30").checked) qualityVal=30;
-	else if(document.all("quality60").checked) qualityVal=60;
-	else if(document.all("quality90").checked) qualityVal=90;
+	if(document.getElementById("quality10").checked) qualityVal=10;
+	else if(document.getElementById("quality30").checked) qualityVal=30;
+	else if(document.getElementById("quality60").checked) qualityVal=60;
+	else if(document.getElementById("quality90").checked) qualityVal=90;
 	else qualityVal=60;
 	xmlHttp.open("GET", "/capSetting?quality="+qualityVal+"&lockmskb="+lockmskb, true);
 	xmlHttp.onreadystatechange = processRequest;
@@ -227,13 +227,13 @@ function chkAuto_click(e)
 	var w=window.parent.frmView; 
 	if(e.checked)
 	{ 
-		var interval=prompt("ÇëÉè¶¨×Ô¶¯Ë¢ÐÂ¼ä¸ô,·¶Î§[300~8000]ºÁÃë",e.value);
+		var interval=prompt("ï¿½ï¿½ï¿½è¶¨ï¿½Ô¶ï¿½Ë¢ï¿½Â¼ï¿½ï¿½,ï¿½ï¿½Î§[300~8000]ï¿½ï¿½ï¿½ï¿½",e.value);
 		if(interval<300 || interval>8000) interval=e.value;
 		w.autoRefresh=interval;
-		document.all("lblInterval").innerText=interval+"ms";
+		document.getElementById("lblInterval").innerText=interval+"ms";
 		w.loadImg();
 	} else{
-		document.all("lblInterval").innerText="";
+		document.getElementById("lblInterval").innerText="";
 	 	w.autoRefresh=0;
 	}
 }
@@ -244,11 +244,11 @@ function refreshScreen()
 	w.imgLoaded=true;
 	w.loadImg(); 
 }
-//·¢ËÍÌØÊâ°´¼ü
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â°´ï¿½ï¿½
 function sendKey()
 {
-	var altk=document.all("selCSA").value;
-	var fx=document.all("selFX").value;
+	var altk=document.getElementById("selCSA").value;
+	var fx=document.getElementById("selFX").value;
 	altk=altk*256+fx*1;
 	xmlHttp.open("GET","/keyevent?vkey="+altk+",",false);
 	xmlHttp.send(null);
@@ -256,23 +256,23 @@ function sendKey()
 	
 }
 
-//ÉèÖÃ¼ôÌù°åÄÚÈÝ
+//ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 function SetClipBoard()
 {
-	var v=window.showModalDialog("setClipBoard.htm","","dialogHeight:300px;dialogWidth=300px;center:yes;status:no;scroll:no;");
+	var v=prompt("\u8bf7\u8f93\u5165\u8981\u8bbe\u7f6e\u5230\u526a\u8d34\u677f\u7684\u5185\u5bb9:","");
 	if(v!=null && v!="")
 	{
-		var v1=v.replace(/&/g,"%26"); //¶ÔÌØÊâ×Ö·û&½øÐÐmime±àÂë
+		var v1=v.replace(/&/g,"%26"); //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½&ï¿½ï¿½ï¿½ï¿½mimeï¿½ï¿½ï¿½ï¿½
 		var strEncode="val="+v1;
 		xmlHttp.open("POST", "/SetClipBoard", true);
 		xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
-//		xmlHttp.setRequestHeader("Content-Length",strEncode.length); //´Ë¾ä¿É²»Òª£¬¶ÔÏó»á×Ô¶¯¼ÓÉÏ
+//		xmlHttp.setRequestHeader("Content-Length",strEncode.length); //ï¿½Ë¾ï¿½É²ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		xmlHttp.onreadystatechange = processRequest;
 		xmlHttp.send(strEncode);
 	}
 }
 
-//»ñµÃ¼ôÌù°åÄÚÈÝ
+//ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 function GetClipBoard()
 {
 	window.open("/GetClipBoard","_blank","height=300,width=300,directories=no,location=no,menubar=no,status=no,toolbar=no");
@@ -280,7 +280,7 @@ function GetClipBoard()
 
 function RunProcess()
 {
-	var scmd=prompt("Çë¼üÈë³ÌÐò¡¢Iternet×ÊÔ´Ãû³Æ»òÀ©Õ¹ÃüÁî,·þÎñ½«ÎªÄãÔ¶³ÌÖ´ÐÐ»ò´ò¿ªËü","");
+	var scmd=prompt("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Iternetï¿½ï¿½Ô´ï¿½ï¿½ï¿½Æ»ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½Ô¶ï¿½ï¿½Ö´ï¿½Ð»ï¿½ï¿½ï¿½ï¿½","");
 	if(scmd==null) return;
 	var strEncode="path="+scmd.replace(/&/g,"%26");
 	xmlHttp.open("POST","/file_run",true);
