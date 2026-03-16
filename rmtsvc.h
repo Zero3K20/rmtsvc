@@ -137,13 +137,10 @@ private:
 	
 	bool httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 	bool httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
-	//get the specified file from the resource
-	const char *GetFileFromRes(const char *filepath,DWORD &flength);
 
 	std::string m_defaultPage; //default document
 	int m_quality;//capture desktop image quality
 	DWORD m_dwImgSize;//capture desktop image size: 0=desktop size, otherwise specified size HWORD=h, WWORD=w
-	bool m_bGetFileFromRes;
 
 	//first, visitor account - case insensitive. Saved in lowercase
 	//second.first - visitor account  second.second - visitor permissions

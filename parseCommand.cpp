@@ -219,7 +219,6 @@ void MyService :: docmd_sets(const char *strParam)
 //		DIR_LIST : directory listing
 //		DIR_NOINHERIT: whether to allow subdirectories under this virtual directory's real path to inherit the user-specified permissions.
 //default=<default document>
-//resource=<FALSE> : do not get files from program resources
 void webServer :: docmd_webs(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -238,10 +237,6 @@ void webServer :: docmd_webs(const char *strParam)
 	{//whether shutdown/restart can be performed remotely without permissions
 		if((*it).second=="ANYONE") m_bPowerOff=true;
 	}
-	if( (it=maps.find("resource"))!=maps.end())
-	{
-		if((*it).second=="FALSE") m_bGetFileFromRes=false;
-	}
 
 	long lAccess=HTTP_ACCESS_NONE;
 	std::string rootpath,defaultPage;
@@ -257,8 +252,7 @@ void webServer :: docmd_webs(const char *strParam)
 		if(strstr(ptr,"DIR_NOINHERIT")) lAccess|=HTTP_ACCESS_SUBDIR_INHERIT;
 		if(strstr(ptr,"ACCESS_ALL")) lAccess=HTTP_ACCESS_ALL;
 	}
-	if(!m_bGetFileFromRes) //if specified not to get web pages from exe resources, at minimum only read permission is needed
-			lAccess|=HTTP_ACCESS_READ;
+	lAccess|=HTTP_ACCESS_READ; //HTML files are served from disk; read access is always required
 
 	if( (it=maps.find("default"))!=maps.end())
 		defaultPage=(*it).second;
