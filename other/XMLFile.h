@@ -37,44 +37,44 @@ public:
 /// Implementation
 public:
 
-	///getnode值(长整型)
+	///get node value (long integer)
 	///saveXMLfile
 	/** 
-		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(取值名).
-		\param lDefaultValue default长整值.
+		\param cstrBaseKeyName base key name.
+		\param cstrValueName key name (value name).
+		\param lDefaultValue default long integer value.
 	*/
 	long GetLong(const char* cstrBaseKeyName, const char* cstrValueName, long lDefaultValue);
-	///setnode值(长整型)
+	///set node value (long integer)
 	/** 
-		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(取save值名).
-		\param lDefaultValue default长整值.
+		\param cstrBaseKeyName base key name.
+		\param cstrValueName key name (for saving value).
+		\param lDefaultValue default long integer value.
 	*/
 	long SetLong(const char* cstrBaseKeyName, const char* cstrValueName, long lValue);
 
-	///getnode值(string)
+	///get node value (string)
 	/** 
-		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(取值名).
-		\param cstrDefaultValue defaultstring值.
+		\param cstrBaseKeyName base key name.
+		\param cstrValueName key name (value name).
+		\param cstrDefaultValue default string value.
 	*/
 	std::string GetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
 	std::string GetStringC(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
-	///setnode值(string)
+	///set node value (string)
 	/** 
-		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(save值名).
-		\param cstrDefaultValue defaultstring值.
+		\param cstrBaseKeyName base key name.
+		\param cstrValueName key name (value name for saving).
+		\param cstrDefaultValue default string value.
 	*/
 	long SetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrValue);
 	
 	///getnodeattribute
 	/** 
-		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(saveattribute键名).
-		\param cstrAttributeName attribute名(saveattribute值名).
-		\param cstrDefaultAttributeValue defaultattribute值.
+		\param cstrBaseKeyName base key name.
+		\param cstrValueName key name (for saving attribute key name).
+		\param cstrAttributeName attribute name (for saving attribute value name).
+		\param cstrDefaultAttributeValue default attribute value.
 	*/
 	std::string GetAttribute(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrAttributeName, const char* cstrDefaultAttributeValue);
@@ -82,30 +82,30 @@ public:
 	long SetAttribute(const char* cstrBaseKeyName, const char* cstrValueName,
 					const char* cstrAttributeName, const char* cstrAttributeValue);
 
-	///getnode值
+	///get node value
 	long GetNodeValue(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrDefaultValue, std::string& strValue, const char* cstrAttributeName, 
 		const char* cstrDefaultAttributeValue,std::string& strAttributeValue);
 	
-	///setnode值
+	///set node value
 	long SetNodeValue(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrValue=NULL, const char* cstrAttributeName=NULL,
 		const char* cstrAttributeValue=NULL);
 
-	///delete某nodeand其all子node
+	///delete a node and all its child nodes
 	/*!
       all child node key values are saved in the keys_val parameter.
     */
 	long DeleteSetting(const char* cstrBaseKeyName, const char* cstrValueName);
 
-	///get某node的子node的键名
+	///get key names of child nodes of a node
 	/*!
       all child node key names are saved in the keys_val parameter.
     */
 	long GetKeysValue(const char* cstrBaseKeyName, 
 		std::map<std::string, std::string>& keys_val);
 
-	///get某node的子node的键名
+	///get key names of child nodes of a node
 	long GetKeys(const char* cstrBaseKeyName, 
 		std::vector<std::string>& keys);
 
@@ -115,18 +115,18 @@ public:
 	*/
 	bool save(const char* filename=NULL);
 	
-	///装载XMLfile
+	///load XML file
 	/** 
-		\param filename 装入filename.
+		\param filename the filename to load.
 	*/
 	bool load(const char* filename, const char* root_name="xmlRoot");
-	//装载xmlcharacter流 //yyc add
+	//load XML character stream //yyc add
 	bool loadXML(const char *xmlBuffer, const char* root_name="xmlRoot");
-	//get装载xmlerror
+	//get XML load error
 	std::string loadError();
-	///notsave改变
+	///discard changes
 	void DiscardChanges();
-	///clear内容
+	///clear content
 	void clear();
 
 	//------------------------------------------------------------------------------------

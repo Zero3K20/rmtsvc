@@ -17,11 +17,11 @@
 
 //----------------const define------------------
 #define BMPINFOSIZE 2048
-// DIBSCANLINE_WIDTHBYTES 执行DIB扫描行的DWORDalignment操作。宏parameter“bits”yes
+// DIBSCANLINE_WIDTHBYTES performs DIB scanline DWORD alignment. Macro parameter "bits" is
 // the product of biWidth and biBitCount in the DIB info structure. The macro result is the aligned
 // bytes occupied by a scan line.
 #define DIBSCANLINE_WIDTHBYTES(bits)    (((bits)+31)/32*4)
-// DDBSCANLINE_WIDTHBYTES 执行DDB扫描行的WORDalignment操作。宏parameter“bits”yes
+// DDBSCANLINE_WIDTHBYTES performs DDB scanline WORD alignment. Macro parameter "bits" is
 // the product of bmWidth and bmBitCount in the DDB info structure. The macro result is the aligned
 // bytes occupied by a scan line.
 #define DDBSCANLINE_WIDTHBYTES(bits)    (((bits)+15)/16*2)
@@ -36,7 +36,7 @@
 	(x)=(y); \
 	(y)=l; \
 }
-//少量byte复制
+//small byte copy
 //#define BITSCOPY(dst,src,c) \
 //	memcpy((dst),(src),(c))
 
@@ -54,21 +54,21 @@ class cImageF
 public:
 	//open bitmap file -- 
 	//[in] filename ---- bitmap filename
-	//[out] lpbi ---- return bitmap info,packet括可能的调色板info，user必须保证足够大。
-	//					一般来说defineBMPINFOSIZEbyte足够了
+	//[out] lpbi ---- return bitmap info,including possible palette info, user must ensure sufficient space.
+	//					generally BMPINFOSIZE bytes is sufficient
 	//[out] lppBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-	//				iflpBits==NULL则仅仅return bitmap info
+	//				if lpBits==NULL, only return bitmap info
 	//return: 0 on failure, non-zero (image data size) on success
 	static IPFRESULT IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits);
 	//openJPEGfile -- 
 	//[in] filename ---- JPEGfilename
 	//[out] lpbi ---- return bitmap info
 	//[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-	//				iflpBits==NULL则仅仅return bitmap info
+	//				if lpBits==NULL, only return bitmap info
 	//return: 0 on failure, non-zero (image data size) on success
 //	static IPFRESULT IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits);
 	//save BMP file -- 
-	//[in] filename ---- 目的bitmap filename
+	//[in] filename ---- destination bitmap filename
 	//[in] lpbi ---- bitmap info
 	//[in] lpBits ---- bitmap data pointer
 	//return: 0 on failure, file size on success
@@ -76,48 +76,48 @@ public:
 
 	//save JPEG file -- 
 	//currently only supports 8-bit grayscale or 24-bit true color
-	//[in] filename ---- 目的bitmap filename
-	//[in] lpbi ---- bitmap info头
+	//[in] filename ---- destination bitmap filename
+	//[in] lpbi ---- bitmap info header
 	//[in] lpBits ---- bitmap data pointer
 	//[in] quality --- JPEG compression quality (0~100)
 	//return: 0 on failure, file size on success
 	static IPFRESULT IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality);
-	//lpBuf --- jpegdata流 
-	//dwSize --- jpegdata流size
+	//lpBuf --- JPEG data stream 
+	//dwSize --- JPEG data streamsize
 	//return: 0 on failure, file size on success
 	static IPFRESULT IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSize);
-	//将bitmapdata压缩为JPEGdata流 -- 
+	//compress bitmap data into JPEG data stream -- 
 	//currently only supports 8-bit grayscale or 24-bit true color
-	//[in] lpbih ---- bitmap info头
+	//[in] lpbih ---- bitmap info header
 	//[in] lpBits ---- bitmap data pointer
-	//[out] dstBuf ---- 存储convert后的JPEGdata的space,user必须保证space足够大
-	//					一般来说分配and原bitmap一样大的space即可
+	//[out] dstBuf ---- storage space for converted JPEG data, user must ensure sufficient space
+	//					generally allocating the same size as the original bitmap is sufficient
 	//[in] quality --- JPEG compression quality (0~100)
-	//return：iffailurereturn0，otherwisereturn压缩成jpeg后data的size
+	//return：iffailurereturn0，otherwisereturncompressed JPEG data size
 	static IPFRESULT IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYTE dstBuf,int quality);
-	//将jpegdata解压缩为bitmapdata流 -- 
+	//decompress JPEG data into bitmap data stream -- 
 	//[in] srcBuf ---- jpegdatapointer
-	//[in] dwSize ---- srcBufpointer to的space的size
+	//[in] dwSize ---- size of the space pointed to by srcBuf
 	//[out] lpbi ---- return bitmap info
 	//[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-	//				iflpBits==NULL则仅仅return bitmap info
+	//				if lpBits==NULL, only return bitmap info
 	//return: 0 on failure, non-zero (image data size) on success
 //	static IPFRESULT IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi,LPBYTE lpBits);
 
-	//捕捉windowimage --- 24bittrue彩色image
-	//ifhWnd==NULL则捕捉整个screen
-	//lpbih --- biWidth ，biHeightspecified捕捉window的宽高,==0则捕捉window的宽or高
-	//			biCompressionspecifiedimagedata的压缩方式，目前只支持BI_RGB(not压缩)，BI_JPEG(jpeg压缩)
-	//			returnimage的info
-	//lpBits --- saveimagedataor压缩后的imagedata
-	//			if==NULL,则仅仅returnimagedata需要的spacesize
-	//quality --- ifspecified了BI_JPEG压缩则此parameterspecifiesjpegcompression quality
-	//lprc --- specified捕捉window的区域==NULL则为整个window区域
+	//capture window image --- 24-bit true color image
+	//if hWnd==NULL, capture the entire screen
+	//lpbih --- biWidth, biHeight specify the width/height of the window to capture; ==0 means capture window's full width or height
+	//			biCompression specifies image data compression method, currently supports BI_RGB (no compression) and BI_JPEG (JPEG compression)
+	//			returns image info
+	//lpBits --- save image data or compressed image data
+	//			if==NULL, only return the space size needed for image data
+	//quality --- if BI_JPEG compression is specified, this parameter specifies JPEG compression quality
+	//lprc --- specifies the capture area of the window; ==NULL means the entire window area
 	//failurereturn0，otherwisereturnimagedatasize
 	//ifCapCursorwhethercapture mouse cursor
 	static IPFRESULT capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor);
 
-	//getspecifiedDIB的调色板尺寸（以byte为单bit）
+	//get palette size of the specified DIB (in bytes)
 //	static WORD PaletteSize(LPBITMAPINFOHEADER lpbih);
 
 };

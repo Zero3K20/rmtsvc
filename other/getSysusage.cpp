@@ -56,7 +56,7 @@ typedef LONG (WINAPI *PROCNTQSI)(UINT,PVOID,ULONG,PULONG);
 PROCNTQSI NtQuerySystemInformation=NULL;
 //***************only for NT/win2000 end*********************
 
-//returnwhen时cpu的占用率(0-100)
+//return current CPU usage (0-100)
 int Wutils :: getCPUusage()
 {
 	int retv=0;
@@ -131,7 +131,7 @@ int Wutils :: getCPUusage()
 }
 
 //********************************************
-//returnwhen时mem的使用率(0-100)
+//return current memory usage rate (0-100)
 int Wutils :: getMEMusage()
 {
 	int retv=0;

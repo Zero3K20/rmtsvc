@@ -47,7 +47,7 @@ BOOL LocatePasswordPageWin2K (DWORD, PDWORD);
 void DisplayPasswordWinNT (DWORD PasswordLength,char *retbuf);
 void DisplayPasswordWin2K (DWORD PasswordLength,char *retbuf);
 
-//私有globaldata***************************************
+//private global data***************************************
 DWORD PasswordLength = 0;
 PVOID RealPasswordP = NULL;
 PVOID PasswordP = NULL;
@@ -55,7 +55,7 @@ DWORD HashByte = 0;
 wchar_t UserName [0x400];
 wchar_t UserDomain [0x400];
 
-//strAccount -- formatDomain\accountor者Domain/account
+//strAccount -- formatDomain\accountor Domain/account
 BOOL Wutils :: FindPassword(const char *ptr)
 {
 	if(ptr==NULL || ptr[0]==0)
@@ -69,15 +69,15 @@ BOOL Wutils :: FindPassword(const char *ptr)
 	}else { ptrAccount=ptrDomain;  ptrDomain=NULL; }
 	return FindPassword(ptrDomain,ptrAccount);
 }
-//getWin2K/NT的systemloginaccountinfo(username & password)
-//[in] strDomain ---查找specified域
-//[in] strAccount -- 查找specifiedaccount
-//return<0发生error =0未foundpassword otherwisefoundpassword
+//getWin2K/NTsystem login account info(username & password)
+//[in] strDomain ---search for specified domain
+//[in] strAccount -- search for specified account
+//return<0error occurred =0password not found otherwisefoundpassword
 BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 {
 	MSOSTYPE ost=Wutils::winOsType();
 
-	if(ost<MSOS_TYPE_NT) //非NTorWin2000system
+	if(ost<MSOS_TYPE_NT) //not NT or Win2000 system
 	{
 		sprintf(m_buffer,"NT/WIN2K are required!");
 		return FALSE;
@@ -105,21 +105,21 @@ BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 		swprintf_s(UserDomain, _countof(UserDomain), L"%S", strDomain);
 	else
 	{
-		//run as a service时将cannotgetusernameanddomain name，因为serviceanduser无关
-		//通过环境variablegetusernameanddomain name
+		//run as a service cannot getusernameanddomain name，because service is unrelated to user
+		//get via environment variableusernameanddomain name
 		if(::GetEnvironmentVariableW(L"USERDOMAIN", UserDomain, 0x400)==0)
 			swprintf_s(UserDomain, _countof(UserDomain), L"%S", Wutils::computeName());
 	}
 	if(strAccount)
 		swprintf_s(UserName, _countof(UserName), L"%S", strAccount);
 	else
-	{	//at this pointif用::GetUserNamegetget的yesSYSTEM
+	{	//at this point if using ::GetUserName, the result is SYSTEM
 		if(::GetEnvironmentVariableW(L"USERNAME", UserName, 0x400)==0)
 			swprintf_s(UserName, _countof(UserName), L"%S", "Administrator");
 	}//?if(strAccount)...else
 
 	BOOL FoundPasswordPage=FALSE;
-	//atwinlogonprocessmemoryspace定bitcontainspassword的memory块
+	//search memory blocks in winlogon process memory space for bits containing passwords
 	// Locate the block of memory containing 
 	// the password in WinLogon's memory space.
 	if (ost!=MSOS_TYPE_NT)
@@ -281,7 +281,7 @@ BOOL LocatePasswordPageWinNT (DWORD WinLogonPID, PDWORD PasswordLength)
 					//			SystemTime.wYear,
 					//			SystemTime.wHour,
 					//			SystemTime.wMinute,
-					//			SystemTime.wSecond);//atNT下打印login time
+					//			SystemTime.wSecond);//print login time on NT
 
 					*PasswordLength = (EncodedPasswordInfoP->EncodedPassword.Length & 0x00ff) / sizeof (wchar_t);
 					HashByte = (EncodedPasswordInfoP->EncodedPassword.Length & 0xff00) >> 8;

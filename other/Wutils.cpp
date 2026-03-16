@@ -129,7 +129,7 @@ MSOSSTATUS Wutils::winOsStatus()
 	}
 	return oss;
 }
-//lockworker站,lock workstation (only for NT)
+//lock workstation,lock workstation (only for NT)
 BOOL Wutils:: LockWorkstation()
 {
 	// Load the user32 library
@@ -148,14 +148,14 @@ BOOL Wutils:: LockWorkstation()
 	else return FALSE;
 	return TRUE;
 }
-//模拟Ctrl+Alt+Del按键
+//simulate Ctrl+Alt+Del key press
 BOOL Wutils:: SimulateCtrlAltDel()
 {
 	HWINSTA hwinsta=NULL,hwinstaSave = NULL; 
 	HDESK       hdesk = NULL, hdeskSave=NULL;
 	BOOL bRet=FALSE;
-//	if(Wutils::inputDesktopSelected()) //判断currentdesktopwhetheryesDefault
-//	{//ifyes则openwinlogondesktop，因为Ctrl+alt+del必须send到winlogondesktop   
+//	if(Wutils::inputDesktopSelected()) //check if current desktop is the Default desktop
+//	{//if yes, open winlogon desktop, because Ctrl+alt+del must be sent to winlogon desktop   
 		// Save a handle to the caller's current window station.
 		if ( (hwinstaSave = GetProcessWindowStation() ) == NULL)
 			goto Cleanup;
@@ -205,8 +205,8 @@ BOOL Wutils:: SimulateCtrlAltDel()
 			goto Cleanup; 
 		}
 //	}//?if(!Wutils::inputDesktopSelected())
-//	else //ifis notDefaultdesktop，则currentinput desktop可能为winlogon
-//	{//切换到currentinput desktop，用此methodfalse定currentinput为winlogon
+//	else //if not Default desktop, then current input desktop may be winlogon
+//	{//switch to current input desktop; use this method to confirm current input is winlogon
 //		if(!Wutils::selectInputDesktop()){
 //			sprintf(m_buffer,"failed to selectInputDesktop\r\n - %s\r\n",
 //			Wutils::getLastInfo()); return FALSE; }
@@ -221,8 +221,8 @@ Cleanup:
 	if (hdesk) CloseDesktop(hdesk);
 	return bRet;
 }
-//falgs--mouse按键status
-//flag含义：最低4bit代表mouse按键
+//flags - mouse button status
+//flag meaning: lowest 4 bits represent mouse buttons
 //						0 Default. No button is pressed. 
 //						1 Left button is pressed. 
 //						2 Right button is pressed. 
@@ -231,14 +231,14 @@ Cleanup:
 //						5 Left and middle buttons both are pressed. 
 //						6 Right and middle buttons are both pressed. 
 //						7 All three buttons are pressed. 
-//			高四bit代表mouseevent
+//          high 4 bits represent mouse events
 //						0 only Move
 //						1 click
 //						2 double click
 //						3 drag
 //						4 drop
 //						5 wheel
-//		低2byte的低3bit分别代表 Ctrl Shift Altwhether按下
+//      low 3 bits of low 2 bytes represent whether Ctrl Shift Alt are pressed
 //          bit 0 represents whether Ctrl key is pressed: 0=no, 1=yes
 //          bit 1 represents whether Shift key is pressed: 0=no, 1=yes
 //          bit 2 represents whether Alt key is pressed: 0=no, 1=yes
@@ -256,14 +256,14 @@ Cleanup:
 #define MSEVENT_CTRL 0x0100
 #define MSEVENT_SHIFT 0x0200
 #define MSEVENT_ALT 0x0400
-//dwData - wheel movement,仅仅MSEVENT_EVENT_WHEEL有意义
+//dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
 	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
 	//The calling process must have WINSTA_WRITEATTRIBUTES access to the window station. 
-	//whenrun as a service时，defaultSetCursorPoswhethert起作用的
-	::SetCursorPos(x, y);//移动mousecursor到specifiedposition
-	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//仅仅移动cursor
+	//when running as a service, SetCursorPos may not work by default
+	::SetCursorPos(x, y);//move mouse cursor to specified position
+	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//only move cursor
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL,0);
@@ -272,9 +272,9 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	if((flags&MSEVENT_ALT)!=0) //Alt pressed
 		Keybd_Event((BYTE)VK_MENU, (BYTE)VK_MENU,0);
 	
-	//判断mouse按键
+	//check mouse button
 	int fDown=0,fUp=0;
-	if((flags&MSEVENT_BUTTON_LEFT)==MSEVENT_BUTTON_LEFT) //判断mouse按键status
+	if((flags&MSEVENT_BUTTON_LEFT)==MSEVENT_BUTTON_LEFT) //check mouse buttonstatus
 	{
 		fDown|=MOUSEEVENTF_LEFTDOWN;
 		fUp|=MOUSEEVENTF_LEFTUP;
@@ -292,28 +292,28 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DRAG)
 	{//mousedrag
-		Mouse_Event(fDown,0, 0,dwData);//mouse按下
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse按下
+		Mouse_Event(fDown,0, 0,dwData);//mouse button down
+		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse button down
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DROP)
 	{//mousedrop
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse按下
+		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse button down
 		Mouse_Event(fUp, 0, 0,0);
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_WHEEL)
-	{//模拟mouse滚轮event
+	{//simulate mouse wheel event
 		Mouse_Event(MOUSEEVENTF_WHEEL,0,0,dwData);
 	}
-	else //非mousedrag-drop
+	else //not mouse drag-drop
 	{
-		Mouse_Event(fDown,0, 0,dwData);//mouse按下
-		Mouse_Event(fUp, 0, 0,dwData); //mouse抬起
-		if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DBLCLICK) //mouse双击
+		Mouse_Event(fDown,0, 0,dwData);//mouse button down
+		Mouse_Event(fUp, 0, 0,dwData); //mouse button up
+		if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DBLCLICK) //mouse double click
 		{
 			Mouse_Event(fDown, 0, 0,dwData);
 			Mouse_Event(fUp, 0, 0,dwData);
-		}//双击
-	} //非mousedrag-drop
+		}//double click
+	} //not mouse drag-drop
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL, KEYEVENTF_KEYUP);
@@ -323,12 +323,12 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		Keybd_Event((BYTE)VK_MENU, (BYTE)VK_MENU, KEYEVENTF_KEYUP);
 	return TRUE;
 }
-//sendvirtual按键
-//低 1byte，代表按键地asc码
-//高byte代表 Ctrl,Shift,alt按键地status
-//			  最低一bit代表Ctrl键whether按下
-//			  第二bit代表Shift按键whether按下
-//			  第三bit代表Alt按键whether按下
+//send virtual key press
+//low 1 byte represents the key ASCII code
+//high byte represents Ctrl, Shift, Alt key status
+//          lowest bit represents whether Ctrl key is pressed
+//          second bit represents whether Shift key is pressed
+//          third bit represents whether Alt key is pressed
 BOOL Wutils :: sendKeyEvent(short vkey)
 {
 	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
@@ -354,7 +354,7 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 	return true;
 }
 
-//模拟按键inputstring，仅仅可inputasciistring
+//simulate key press to input string, can only input ASCII strings
 BOOL Wutils :: sendText(const char *strTxt)
 {
 	if(strTxt==NULL || strTxt[0]==0) return TRUE;
@@ -373,13 +373,13 @@ BOOL Wutils :: sendText(const char *strTxt)
 	}//?while(*ptr)
 	return TRUE;
 }
-//通过剪切板inputstring，可input任何的文字
+//input string via clipboard, can input any text
 BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 {
 	if(strTxt==NULL || strTxt[0]==0) return TRUE;
 	if(!Wutils::inputDesktopSelected())
 		Wutils::selectInputDesktop();
-	int len=strlen(strTxt); //通过剪切板往currentwindow写一段text
+	int len=strlen(strTxt); //write text to current window via clipboard
 	if(!OpenClipboard(NULL))
 	{
 		sprintf(m_buffer,"failed to OpenClipboard");
@@ -404,24 +404,24 @@ BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 		}//?hMem
 	}
 	CloseClipboard();
-	//支持console的文本input
+	//support console text input
 	HWND hWnd=GetForegroundWindow();
 	if(hWnd)
-	{//判断current的input焦点whetheratconsole
+	{//check if current input focus is at console
 		char rgBuf[32]; RECT rt;
 		if(GetClassName(hWnd, rgBuf, 32) != 0 && \
 			strcmp(rgBuf, "ConsoleWindowClass") == 0 && \
-			GetWindowRect(hWnd,&rt)!=0)//getconsolewindowscreen坐标
-		{//ifinputwindow为consolewindow,atconsolewindow模拟mouse右键单击
+			GetWindowRect(hWnd,&rt)!=0)//get console window screen coordinates
+		{//if input window is console window, simulate right mouse click at console window
 			int x=rt.left+(rt.right-rt.left)/2;
 			int y=rt.top+(rt.bottom -rt.top)/2;
-			::SetCursorPos(x, y);//移动mousecursor到specifiedposition
+			::SetCursorPos(x, y);//move mouse cursor to specified position
 			Mouse_Event(MOUSEEVENTF_RIGHTDOWN,0,0,0);
 			Mouse_Event(MOUSEEVENTF_RIGHTUP,0,0,0);
 			return TRUE;
 		}//
 	}//?if(hWnd)
-	//otherwise模拟Ctrl+v按键
+	//otherwise simulate Ctrl+V key press
 	#define VK_V 0x56
 	Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL, 0);
 	Keybd_Event((BYTE)VK_V, (BYTE)VK_V, 0);
@@ -430,7 +430,7 @@ BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 	return TRUE;
 }
 
-//modify本process的permissions
+//modify permissions of this process
 BOOL  Wutils:: EnablePrivilege(LPCTSTR lpszPrivilegeName,bool bEnable)
 {
     HANDLE hToken;
@@ -458,8 +458,8 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter);
 DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter);
-//列出local machineallprocess
-//return符合conditionfilterprocess的个数,号分割各个过滤condition.过滤condition支持*?通配符号
+//list all processes on local machine
+//return count of processes matching filter condition, conditions separated by commas. Supports * ? wildcards
 DWORD Wutils::procList(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter)
 {
@@ -470,7 +470,7 @@ DWORD Wutils::procList(std::vector<std::pair<DWORD,std::string> > &vecList,
 	return procList_2K(vecList,filter);
 }
 
-//getspecified的remoteprocess的ID，根据name.returnPID
+//get ID of specified remote process by name.returnPID
 DWORD Wutils::GetPIDFromName(LPCTSTR szRemoteProcessName)
 {
 	std::vector<std::pair<DWORD,std::string> > vecList;
@@ -486,7 +486,7 @@ DWORD Wutils::GetPIDFromName(LPCTSTR szRemoteProcessName)
 
 BOOL GetProcName_NT(DWORD pid,char *szProcessName,DWORD buflen);
 BOOL GetProcName_2K(DWORD pid,char *szProcessName,DWORD buflen);
-//通过process IDgetprocess name
+//get process name by process ID
 const char *Wutils::GetNameFromPID(DWORD pid)
 {
 	if(pid==0) return NULL;
@@ -499,7 +499,7 @@ const char *Wutils::GetNameFromPID(DWORD pid)
 	return ((bRet)?m_buffer:NULL);
 }
 
-//捕获currentdesktopimage并send
+//capture current desktop image and send
 #include "ipf.h"
 BOOL Wutils :: snapWindows(int quality,const char *filename,bool ifCapCursor)
 {
@@ -512,7 +512,7 @@ BOOL Wutils :: snapWindows(int quality,const char *filename,bool ifCapCursor)
 	DWORD dwRet=0; LPBYTE lpBits=NULL;
 	if( (dwRet=cImageF::capWindow(NULL,lpbih,NULL,quality,ifCapCursor))!= 0
 			&& 
-		(lpBits=(LPBYTE)::malloc(dwRet)) //分配memorysuccess
+		(lpBits=(LPBYTE)::malloc(dwRet)) //memory allocation success
 	  )
 	{
 		dwRet=cImageF::capWindow(NULL,lpbih,lpBits,quality,ifCapCursor);
@@ -616,8 +616,8 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	}//?while
 	return bMatch;
 }
-//enumNTsystem的process
-//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
+//enumerate NT system processes
+//for NT operating system, use PSAPI.DLL to enumerate processes and module info
 DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter)
 {
@@ -651,7 +651,7 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 		cProcesses = cbNeeded / sizeof(DWORD);
 		HANDLE hProcess;
 		char szProcessName[MAX_PATH];
-		int filternums=0;//过滤condition个数
+		int filternums=0;//filter condition count
 		if(filter && filter[0]!=0 )
 			filternums=(strchr(filter,','))?2:1;//2 means multiple
 		for (unsigned int i = 0; i < cProcesses; i++ )
@@ -665,7 +665,7 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 				::CloseHandle( hProcess );
 			}
 			bool bMatch=true;
-			if(filternums==1) //一个过滤condition
+			if(filternums==1) //single filter condition
 				bMatch=MatchingString(szProcessName,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(szProcessName,filter);
@@ -680,9 +680,9 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 	return vecList.size();
 }
 
-//enumwin9x/2ksystem的process
-//对于win9x/2k可以通过toolhelp32function列举process及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等function
+//enumerate win9x/2k system processes
+//for win9x/2k, use toolhelp32 functions to enumerate processes and module info
+//only 2k&&win9x support CreateToolhelp32Snapshot and similar functions
 DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter)
 {
@@ -705,13 +705,13 @@ DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 	 if ((*pfnProcess32First)(hSnapShot, processInfo))
 	 {
 		const char *ptrFilename=NULL;
-		int filternums=0;//过滤condition个数
+		int filternums=0;//filter condition count
 		if(filter && filter[0]!=0 )
 			filternums=(strchr(filter,','))?2:1;//2 means multiple
 		do
 		{
-			//win9x下显示的yesfile path全名，去掉path
-			//2k下仅仅显示的yesfilename（therefore可以do not此判断）
+			//in win9x, display is the full file path; remove the path prefix
+			//in 2k, only the filename is displayed (so this check can be skipped)
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
@@ -719,7 +719,7 @@ DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 				ptrFilename+=1;//remove '\'
 			
 			bool bMatch=true;
-			if(filternums==1) //一个过滤condition
+			if(filternums==1) //single filter condition
 				bMatch=MatchingString(ptrFilename,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(ptrFilename,filter);
@@ -736,8 +736,8 @@ DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 	return vecList.size();
 }
 
-//enumNTsystem的process
-//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
+//enumerate NT system processes
+//for NT operating system, use PSAPI.DLL to enumerate processes and module info
 BOOL GetProcName_NT(DWORD processID,char *szProcessName,DWORD buflen)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -782,9 +782,9 @@ BOOL GetProcName_NT(DWORD processID,char *szProcessName,DWORD buflen)
 	return bRet;
 }
 
-//enumwin9x/2ksystemprocess的模块
-//对于win9x/2k可以通过toolhelp32function列举process及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等function
+//enumerate win9x/2k system process modules
+//for win9x/2k, use toolhelp32 functions to enumerate processes and module info
+//only 2k&&win9x support CreateToolhelp32Snapshot and similar functions
 BOOL GetProcName_2K(DWORD processID,char *szProcessName,DWORD buflen)
 {
 	HINSTANCE hDll=::LoadLibrary("KERNEL32.dll");

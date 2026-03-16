@@ -41,29 +41,29 @@ public:
 	static const char *computeName();
 	//return the number of CPUs
 	static int cpuInfo(MSOSTYPE ostype);
-	//getwindows操作systemtype
+	//get windows operating system type
 	static MSOSTYPE winOsType();
-	//get操作systemcurrent的status
+	//get current operating system status
 	static MSOSSTATUS winOsStatus();
-	//列出local machineallprocess
-	//return符合conditionfilterprocess的个数.支持*?通配符号
+	//list all processes on local machine
+	//return count of processes matching filter condition. Supports * ? wildcards
 	static DWORD procList(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter);
-	//模拟Ctrl+Alt+Del按键
+	//simulate Ctrl+Alt+Del key press
 	static BOOL SimulateCtrlAltDel();
-	//lockworker站
+	//lock workstation
 	static BOOL LockWorkstation();
-	//捕获currentdesktopimage
+	//capture current desktop image
 	static BOOL snapWindows(int quality,const char *filename,bool ifCapCursor);
-	//modify本process的permissions
+	//modify permissions of this process
 	static BOOL EnablePrivilege(LPCTSTR lpszPrivilegeName,bool bEnable);
-	//getspecified的remoteprocess的ID，根据name
+	//get ID of specified remote process by name
 	static DWORD GetPIDFromName(LPCTSTR szRemoteProcessName);
 	static const char *GetNameFromPID(DWORD pid);
 	static BOOL FindPassword(const char *ptr);
 	static BOOL FindPassword(const char *strDomain,const char *strAccount);	
-	static int getCPUusage(); //returnwhen时cpu的占用率(0-100)
-	static int getMEMusage(); //returnwhen时mem的使用率(0-100)
+	static int getCPUusage(); //return current CPU usage (0-100)
+	static int getMEMusage(); //return current memory usage rate (0-100)
 
 	static BOOL ShutDown()
 	{
@@ -82,7 +82,7 @@ public:
 		::ExitWindowsEx(EWX_LOGOFF|EWX_FORCE,0);
 		return TRUE;
 	}
-	//dwData - wheel movement,仅仅MSEVENT_EVENT_WHEEL有意义
+	//dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 	static BOOL sendMouseEvent(int x,int y,short flags,DWORD dwData=0);
 	static BOOL sendKeyEvent(short vkey);
 	static BOOL sendKeys(const char *str)
@@ -98,15 +98,15 @@ public:
 	static void selectDesktop(){
 		if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
 	}
-	//send键盘mousemessage时的附加info值
+	//extra info value when sending keyboard/mouse messages
 	static DWORD mskbEvent_dwExtraInfo;
 private:
-	static char m_buffer[MAX_PATH]; //用来temporarysavereturn的string
+	static char m_buffer[MAX_PATH]; //temporary buffer for return string
 	
-	//模拟send key press
-	//通过剪切板inputstring，可input任何的文字
+	//simulate key press
+	//input string via clipboard, can input any text
 	static BOOL sendTextbyClipboard(const char *strTxt);
-	//模拟按键inputstring，仅仅可inputasciistring
+	//simulate key press to input string, can only input ASCII strings
 	static BOOL sendText(const char *strTxt);
 
 	// Determine whether the thread's current desktop is the input one
