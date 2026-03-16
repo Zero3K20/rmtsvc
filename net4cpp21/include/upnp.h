@@ -31,11 +31,11 @@ namespace net4cpp21
 		
 		bool AddPortMapping(bool bTCP,const char *internalIP,int internalPort,int externPort,const char *desc);
 		bool DeletePortMapping(bool bTCP,int externPort);
-		bool GetWanIP(std::string &strRet); //获取公网IPaddress
+		bool GetWanIP(std::string &strRet); //get public IP address
 		bool GetDevXML(std::string &strXml);
 		void Clear();
 	protected:
-		//有data到达
+		//data has arrived
 		virtual void onData();
 		bool AddPortMapping(UPnPInfo &info);
 		bool DeletePortMapping(UPnPInfo &info);
@@ -50,7 +50,7 @@ namespace net4cpp21
 		std::string m_strLocation;
 		bool m_bFound;
 
-		std::vector<UPnPInfo *> m_upnpsets; //UPnP映射info集合
+		std::vector<UPnPInfo *> m_upnpsets; //UPnP mapping info collection
 	};
 }//?namespace net4cpp21
 

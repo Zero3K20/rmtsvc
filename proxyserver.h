@@ -23,34 +23,34 @@ typedef struct _TPROXYSETTINGS
 	int svrport; //service port
 	std::string bindip; //proxy service bind IP
 	int svrtype; //proxy type supported by the service
-	bool bAuth; //proxy service是否需要authentication
-	bool autorun;  //program execution是否自动启动proxy service
-	bool bCascade; //是否启用secondary proxy
-	std::string cassvrip; //二级proxy serviceaddress和port
+	bool bAuth; //whether the proxy service requires authentication
+	bool autorun;  //whether to auto-start proxy service on program start
+	bool bCascade; //yesno启用secondary proxy
+	std::string cassvrip; //secondary proxy serviceaddressandport
 	int castype; //secondary proxy支持的代理type
-	bool casAuth; //secondary proxy是否需要authentication
-	std::string casuser; //访问secondary proxy的account和password
+	bool casAuth; //whether secondary proxy requires authentication
+	std::string casuser; //访问secondary proxy的accountandpassword
 	std::string caspswd;
 	long ipaccess;   //访问本proxy service IP filtering规则
 	std::string ipRules;
-	bool bLogdatafile; //是否记录代理forward data
+	bool bLogdatafile; //yesno记录代理forward data
 }PROXYSETTINGS;
 
 
 typedef struct _TProxyUser
 {
-	std::string username;//account,account不区分size写(account转换为小写)
-	std::string userpwd;//password,如果password==""则，无需password verification
+	std::string username;//account name, case-insensitive (converted to lowercase)
+	std::string userpwd;//password; if password=="", no password verification is required
 	std::string userdesc;
 	long ipaccess;
 	std::string ipRules;//IP access rules
-	unsigned long maxratio;//最大带宽 K/s,如果=0则不限
-	long maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
-	time_t limitedTime;//限制此account只在某个date之前有效，==0不限制
-	long forbid; //是否禁用此account
+	unsigned long maxratio;//maximum bandwidth K/s, 0 means unlimited
+	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
+	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
+	long forbid; //yesno禁用此account
 
-	std::string strAccessDest;//允许或禁止访问的目的
-	int bAccessDest; //上述specified的目的是禁止还是允许 0禁止否则允许
+	std::string strAccessDest;//允许or禁止访问的目的
+	int bAccessDest; //上述specified的目的yes禁止还yes允许 0禁止otherwise允许
 }TProxyUser;
 
 class proxysvrEx : public proxyServer

@@ -32,14 +32,14 @@ namespace net4cpp21
 		//connect to the mapped application service
 		socketTCP * connect_mapped(std::pair<std::string,int>* &p);
 
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock);
-		//收到forward data，用于data分析handle
+		//received forwarded data, used for data analysis handling
 		virtual void onData(char *buf,long len,socketTCP *from,socketTCP *to)
 		{ return; }
 	private:
 		static void transThread(socketTCP *psock);
-		//被mapped application service
+		//mapped application service
 		std::vector<std::pair<std::string,int> > m_mappedApp;
 	};
 }//?namespace net4cpp21

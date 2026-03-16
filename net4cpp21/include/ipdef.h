@@ -313,16 +313,16 @@ datagram.*/
 #define IPOption_SIZE 40
 #define IPOption_MAX_ROUTES 10
 #define IpV4_Min_Header_Length 20
-typedef struct _IpV4Header //按照IPV4协议的头文件进行define的IP消息头
+typedef struct _IpV4Header //IP message header defined according to the IPv4 protocol
 {
-	unsigned char IHL_Version;//unsigned char  IHL:4,Version:4;/4位首部length+4位IPversion number
-	unsigned char  TypeOfService;//8位service typeTOS
-	unsigned short TotalLength;//16位总length（字节）
+	unsigned char IHL_Version;//unsigned char  IHL:4,Version:4; // 4-bit header length + 4-bit IP version number
+	unsigned char  TypeOfService;//8-bit service type TOS
+	unsigned short TotalLength;//16-bit total length (bytes)
 	unsigned short Identification;//标识
 	unsigned short Frag_and_flags;//unsigned short FragmentOffset:13,Flags:3;
 	unsigned char  TimeToLive;//生存time TTL
 	unsigned char  Protocol;
-	unsigned short HeaderChecksum;//IP首部校验和
+	unsigned short HeaderChecksum;//IP首部校验and
 	unsigned long   SourceAddress;
 	unsigned long   DestinationAddress;
 	
@@ -361,7 +361,7 @@ typedef struct _IpV4Header //按照IPV4协议的头文件进行define的IP消息
 	}
 }IpV4Header,*LPIpV4Header;
 
-//TCPdata包的结构
+//TCPdatapacket的structure
 /*
     0                   1                   2                   3   
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
@@ -386,22 +386,22 @@ typedef struct _IpV4Header //按照IPV4协议的头文件进行define的IP消息
                             TCP Header Format
 */ 
 /*
-一个TCPdata包包括一个TCP头，后面是选项和data。一个TCP头包含6个flag位。它们的意义分别为：
+一个TCPdatapacketpacket括一个TCP头，后面yesoptionanddata。一个TCP头contains6个flagbit。它们的意义分别为：
 
-　　SYN: flag位用来建立connect，让connect双方同步序列号。如果SYN＝1而ACK=0，则表示该data包为connect请求，如果SYN=1而ACK=1则表示接受connect。
+　　SYN: flagbit用来建立connect，让connect双方synchronize序列号。ifSYN＝1而ACK=0，则表示该datapacket为connectrequest，ifSYN=1而ACK=1则表示接受connect。
 
-　　FIN: 表示send端已经没有data要求传输了，希望释放connect。
+　　FIN: 表示send端已经no data要求传输了，希望releaseconnect。
 
-　　RST: 用来复位一个connect。RSTflag置位的data包称为复位包。一般情况下，如果TCP收到的一个分段明显不是属于该主机上的任何一个connect，则向远端send一个复位包。
+　　RST: 用来复bit一个connect。RSTflag置bit的datapacket称为复bitpacket.一般情况下，ifTCP收到的一个分段明显notyes属于该主机上的任何一个connect，则向远端send一个复bitpacket.
 
-　　URG: 为紧急dataflag。如果它为1，表示本data包中包含紧急data。此时紧急data指针有效。
+　　URG: 为紧急dataflag。if它为1，表示本datapacket中contains紧急data。此时紧急datapointervalid。
 
-　　ACK: 为确认flag位。如果为1，表示包中的确认号时有效的。否则，包中的确认号无效。
+　　ACK: 为confirmflagbit。if为1，表示packet中的confirm号时valid的。otherwise，packet中的confirm号invalid。
 
-　　PSH: 如果置位，receive端应尽快把data传送给应用层。
+　　PSH: if置bit，receive端应尽快把data传送给应用层。
 TCPconnect的建立
 
-　　TCP是一个面向connect的可靠传输协议。面向connect表示两个应用端在利用TCP传送data前必须先建立TCPconnect。 TCP的可靠性通过校验和，定时器，data序号和应答来提供。通过给每个send的字节分配一个序号，receive端receive到data后send应答，TCP协议保证了data的可靠传输。data序号用来保证data的顺序，剔除重复的data。在一个TCP会话中，有两个data流（每个connect端从另外一端receivedata，同时向对方senddata），因此在建立connect时，必须要为每一个data流分配ISN（初始序号）。为了了解implementation过程，我们假设clientC希望跟server端S建立connect，然后分析connect建立的过程（通常称作三阶段握手）：
+　　TCPyes一个面向connect的可靠传输protocol。面向connect表示两个应用端at利用TCP传送data前必须先establish TCP connection。 TCP的可靠性通过校验and，定时器，data序号and应答来提供。通过给每个send的byte分配一个序号，receive端receive到data后send应答，TCPprotocol保证了data的可靠传输。data序号用来保证data的顺序，剔除重复的data。at一个TCP会话中，有两个data流（每个connect端从另外一端receivedata，同时向对方senddata），thereforeat建立connect时，必须要为每一个data流分配ISN（初始序号）。为了了解implementation过程，我们false设clientC希望跟server端S建立connect，然后分析connect建立的过程（通常称作三阶段握手）：
 
 　　1： C –SYN XX -> S
 
@@ -409,29 +409,29 @@ TCPconnect的建立
 
 　　3： C —-ACK YY+1 --> S
 
-　　1：Csend一个TCP包（SYN 请求）给S，其中标记SYN（同步序号）要打开。SYN请求指明了client希望connect的server端port号和client的ISN（XX是一个例子）。
+　　1：Csend一个TCPpacket（SYN request）给S，其中标记SYN（synchronize序号）要open。SYNrequestspecifies了client希望connect的server端port号andclient的ISN（XXyes一个例子）。
 
-　　2：server端发回应答，包含自己的SYNinfoISN（YY）和对C的SYN应答，应答时返回下一个希望得到的字节序号（YY+1）。
+　　2：server端发回应答，contains自己的SYNinfoISN（YY）and对C的SYN应答，应答时returnnext希望得到的byte序号（YY+1）。
 
 　　3：C 对从S 来的SYN进行应答，datasendstart。
 
 　　一些implementation细节
 
-　　大部分TCP/IPimplementation遵循以下原则：
+　　大partialTCP/IPimplementation遵循以下原则：
 
-　　1：当一个SYN或者FINdata包到达一个关闭的port，TCP丢弃data包同时send一个RSTdata包。
+　　1：when一个SYNor者FINdatapacket到达一个close的port，TCP丢弃datapacket同时send一个RSTdatapacket.
 
-　　2：当一个RSTdata包到达一个监听port，RST被丢弃。
+　　2：when一个RSTdatapacket到达一个监听port，RST被丢弃。
 
-　　3：当一个RSTdata包到达一个关闭的port，RST被丢弃。
+　　3：when一个RSTdatapacket到达一个close的port，RST被丢弃。
 
-　　4：当一个包含ACK的data包到达一个监听port时，data包被丢弃，同时send一个RSTdata包。
+　　4：when一个containsACK的datapacket到达一个监听port时，datapacket被丢弃，同时send一个RSTdatapacket.
 
-　　5：当一个SYN位关闭的data包到达一个监听port时，data包被丢弃。
+　　5：when一个SYNbitclose的datapacket到达一个监听port时，datapacket被丢弃。
 
-　　6：当一个SYNdata包到达一个监听port时，正常的三阶段握手继续，回答一个SYN　ACKdata包。
+　　6：when一个SYNdatapacket到达一个监听port时，正常的三阶段握手continue，回答一个SYN　ACKdatapacket.
 
-　　7：当一个FINdata包到达一个监听port时，data包被丢弃。”FIN行为”（关闭得port返回RST，监听port丢弃包），在URG和PSHflag位置位时同样要发生。所有的URG，PSH和FIN，或者没有任何标记的TCPdata包都会引起”FIN行为”。 　　
+　　7：when一个FINdatapacket到达一个监听port时，datapacket被丢弃。”FIN行为”（close得portreturnRST，监听port丢弃packet），atURGandPSHflagbit置bit时同样要发生。all的URG，PSHandFIN，or者没有任何标记的TCPdatapacket都会引起”FIN行为”。 　　
 
 */
 const int Tcp_Min_Header_Length = 20;
@@ -439,8 +439,8 @@ typedef struct _TcpHeader
 {
 	unsigned short SourcePort;//源port
 	unsigned short DestinationPort;//目的port
-	unsigned long   SequenceNumber;//32位序列号
-	unsigned long   AcknowledgementNumber;//32位确认号
+	unsigned long   SequenceNumber;//32bit序列号
+	unsigned long   AcknowledgementNumber;//32bitconfirm号
 	//unsigned short FIN:1,SYN:1,RST:1,PSH:1,ACK:1,URG:1,Reserved:6,DataOffset:4;
 	unsigned short th_flag_res_offset;
 	unsigned short Window;
@@ -505,7 +505,7 @@ typedef struct _TcpHeader
 	}
 }TcpHeader,*LPTcpHeader; 
 
-//UDPdata包的结构
+//UDPdatapacket的structure
 /*               0      7 8     15 16    23 24    31  
                  +--------+--------+--------+--------+ 
                  |     Source      |   Destination   | 

@@ -27,9 +27,9 @@ socketTCP * mportTCP_vidcs :: connectAppsvr(char *strHost,socketTCP *psock)
 	if( ppeer==NULL ) return NULL;
 
 	std::pair<std::string,int> *p=GetAppsvr();
-	if(p==NULL) return ppeer; //此时表示此map port为内网proxy service port，不必connectspecified的内网application service
-	char buf[128];//send一个connect命令
-	//清空管道里可能残留的data
+	if(p==NULL) return ppeer; //this indicates the map port is an internal proxy service port; no need to connect to the specified internal application servicevice
+	char buf[128];//send a connect command
+	//clear any data remaining in the pipe
 	int iret=ppeer->checkSocket(0,SOCKS_OP_READ);
 	if(iret>0) while( (iret=ppeer->Receive(buf,128,0))==128) NULL;
 
@@ -38,7 +38,7 @@ socketTCP * mportTCP_vidcs :: connectAppsvr(char *strHost,socketTCP *psock)
 	{
 		httpResponse httprsp;
 		int rspcode=httprsp.recv_rspH(ppeer,VIDC_MAX_RESPTIMEOUT);
-		if(rspcode==200){ //successconnect了remoteapplication service
+		if(rspcode==200){ //successfully connected to remote application service
 			if(httprsp.lReceivedContent()>0) 
 				psock->Send(httprsp.lReceivedContent(),httprsp.szReceivedContent(),-1);
 			if(p->second!=80) 
@@ -47,8 +47,8 @@ socketTCP * mportTCP_vidcs :: connectAppsvr(char *strHost,socketTCP *psock)
 			return ppeer;
 		}
 	}//?if( (iret=ppeer->Send(iret,buf,-1))>0 )
-//	if(ppeer->status()==SOCKS_CONNECTED) //意义不大
-//		if(m_psession->AddPipe(ppeer) ) return NULL; //重新添加到管道缓冲中
+//	if(ppeer->status()==SOCKS_CONNECTED) //意义not大
+//		if(m_psession->AddPipe(ppeer) ) return NULL; //重新add到管道buffer中
 	delete ppeer;  return NULL;
 }
 
@@ -71,9 +71,9 @@ void vidccSession :: Destroy()
 		ptr_mtcp->Stop(); delete ptr_mtcp;
 	}
 	m_tcpsets.clear();
-	//等待管道队列为空，因为管道空闲监视thread end时会从此vidccSessiondelete管道
-	//如果此处不等待，则有可能vidccSession释放后管道空闲监视线程会调用DelPipe函数delete管道
-	//导致野指针访问出错
+	//waiting管道queue为null，因为管道null闲监视thread end时会从此vidccSessiondelete管道
+	//if此处notwaiting，则有可能vidccSessionrelease后管道null闲监视thread会调用DelPipefunctiondelete管道
+	//导致野pointer访问出错
 	while(m_pipes.size()>0) cUtils::usleep(200000); //延时200ms
 }
 
@@ -85,7 +85,7 @@ bool vidccSession :: AddPipe(socketTCP *pipe)
 	m_mutex.unlock();
 	return true;
 }
-//对于没有绑定的管道，如果关闭则调用此命令delete
+//对于没有绑定的管道，ifclose则调用此commanddelete
 bool vidccSession :: DelPipe(socketTCP *pipe)
 {
 	bool bret=false;
@@ -100,10 +100,10 @@ bool vidccSession :: DelPipe(socketTCP *pipe)
 
 socketTCP * vidccSession :: GetPipe()
 {
-	//通过向vidccsend command获取管道
+	//通过向vidccsend commandget管道
 	if( m_psock_command->Send(7,"PIPE \r\n",-1)<=0 ) return NULL;
 	time_t t=time(NULL);
-	while(m_pipes.size()<=0) //等待新的管道
+	while(m_pipes.size()<=0) //waiting新的管道
 	{
 		if((time(NULL)-t)>VIDC_MAX_RESPTIMEOUT) return NULL;
 		if(m_psock_command->status()!=SOCKS_CONNECTED) return NULL;
@@ -112,7 +112,7 @@ socketTCP * vidccSession :: GetPipe()
 	socketTCP * pipe=NULL;
 	m_mutex.lock();
 	std::vector<socketTCP *>::iterator it=m_pipes.begin();
-	//获取并从管道队列中移除
+	//get并从管道queue中移除
 	if(it!=m_pipes.end()){ pipe=*it; m_pipes.erase(it); }
 	m_mutex.unlock(); return pipe;
 }
@@ -126,9 +126,9 @@ void vidccSession :: parseCommand(const char *ptrCommand)
 		docmd_unbind(ptrCommand+5);
 	else if(strncmp(ptrCommand,"vNOP ",5)==0)
 		docmd_vnop(ptrCommand+5);
-	else if(strncmp(ptrCommand,"ADDR ",5)==0) //获取vIDCs主机的IPaddress列表
+	else if(strncmp(ptrCommand,"ADDR ",5)==0) //getvIDCs主机的IPaddresslist
 		docmd_addr(ptrCommand+5);
-	else if(strncmp(ptrCommand,"FILT ",5)==0) //设置某个映射服务的IP filtering跪着
+	else if(strncmp(ptrCommand,"FILT ",5)==0) //set某个mapservice的IP filtering跪着
 		docmd_ipfilter(ptrCommand+5);
 	else if(strncmp(ptrCommand,"HRSP ",5)==0)
 		docmd_mdhrsp(ptrCommand+5);
@@ -139,9 +139,9 @@ void vidccSession :: parseCommand(const char *ptrCommand)
 }
 
 extern int splitString(const char *str,char delm,std::map<std::string,std::string> &maps);
-//vIDCcsend的remote映射命令 //2.5新版命令
-//	BIND type=[TCP|UDP] name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<本服务绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<description>]
-//	BIND type=PROXY name=<XXX> mport=<map port> [bindip=<本服务绑定的local machineIP>] [appdesc=<description>]
+//vIDCcsend的remotemapcommand //2.5新版command
+//	BIND type=[TCP|UDP] name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<本service绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<description>]
+//	BIND type=PROXY name=<XXX> mport=<map port> [bindip=<本service绑定的local machineIP>] [appdesc=<description>]
 void vidccSession :: docmd_bind(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -154,7 +154,7 @@ void vidccSession :: docmd_bind(const char *strParam)
 		return;
 	}
 	const char *mapname=(*it).second.c_str();
-	::strlwr((char *)mapname); //转换为小写
+	::strlwr((char *)mapname); //convert为小写
 	
 	VIDC_MAPTYPE maptype=VIDC_MAPTYPE_TCP;
 	if( (it=maps.find("type"))!=maps.end())
@@ -190,7 +190,7 @@ void vidccSession :: docmd_bind(const char *strParam)
 			mportBegin=atoi((*it).second.c_str());
 			mportEnd=atoi(ptr+1);
 		}else{ mportBegin=atoi((*it).second.c_str()); mportEnd=mportBegin; }	
-	}//?parseport mapping参数
+	}//?parseport mappingparameter
 
 	it=maps.find("bindip");
 	ptr_bindip=(it!=maps.end())?(*it).second.c_str():NULL;
@@ -213,20 +213,20 @@ void vidccSession :: docmd_bind(const char *strParam)
 	long ltmp; it=maps.find("maxratio"); //限制带宽
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	ptr_mtcp->setMaxRatio( ((ltmp<0)?0:ltmp) );
-	it=maps.find("maxconn"); //限制maximum connections
+	it=maps.find("maxconn"); //limit maximum connections
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	ptr_mtcp->maxConnection( ((ltmp<0)?0:ltmp) );
 
 	ptr_mtcp->setMapping(mportBegin,mportEnd,ptr_bindip);
 	ptr_mtcp->setSSLType(ssltype,bSSLVerify);
 	ptr_mtcp->setAppsvr(ptr_appsvr,0,ptr_appdesc,apptype);
-	//从vIDCs服务获取SSL证书配置info
+	//从vIDCsservicegetSSLcertificateconfigurationinfo
 	socketTCP * ptr_vidcsSocket=(socketTCP *)m_psock_command->parent();
 #ifdef _SURPPORT_OPENSSL_
 	if(ptr_vidcsSocket) ptr_mtcp->setCacert(ptr_vidcsSocket,((bSSLVerify)?false:true) );
 #endif
-	SOCKSRESULT sr=ptr_mtcp->StartX(); //启动映射服务
-	if(sr<=0){ //启动映射服务failure
+	SOCKSRESULT sr=ptr_mtcp->StartX(); //start mapping service
+	if(sr<=0){ //start mapping servicefailure
 		m_psock_command->Send(msg_err_504,sr);
 		delete ptr_mtcp; return;
 	}
@@ -238,9 +238,9 @@ void vidccSession :: docmd_bind(const char *strParam)
 #endif
 	return;
 }
-//specifiedmap port的clientauthentication证书 //2.5新版命令
-//format: SSLC name=<XXX> certlen=<证书字节> keylen=<私钥字节> pwdlen=<passwordlength>\r\n后续字节\r\n
-//certlen,keylen,pwdlen字节length包含最后的'\0'
+//specified map port的clientauthenticationcertificate //2.5新版command
+//format: SSLC name=<XXX> certlen=<certificatebyte> keylen=<私钥byte> pwdlen=<passwordlength>\r\n后续byte\r\n
+//certlen, keylen, pwdlen byte length includes the trailing '\0'
 long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long receivedByte)
 {
 	long lret=0;
@@ -256,7 +256,7 @@ long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long re
 	if( (it=maps.find("certlen"))!=maps.end() ) certlen=atol((*it).second.c_str());
 	if( (it=maps.find("keylen"))!=maps.end() ) keylen=atol((*it).second.c_str());
 	if( (it=maps.find("pwdlen"))!=maps.end() ) pwdlen=atol((*it).second.c_str());
-	totalByte=certlen+keylen+pwdlen+2;//包含最后的\r\n
+	totalByte=certlen+keylen+pwdlen+2;//containslast的\r\n
 	lret=receivedByte;
 	if(receivedByte>=totalByte) //data已经receive完毕
 	{
@@ -277,7 +277,7 @@ long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long re
 	}
 
 	if( (it=maps.find("name"))!=maps.end() ) mapname=(*it).second.c_str();
-	if(mapname) ::strlwr((char *)mapname); //转换为小写
+	if(mapname) ::strlwr((char *)mapname); //convert为小写
 	std::map<std::string,mportTCP_vidcs *>::iterator it_mtcp=(mapname)?m_tcpsets.find(mapname):m_tcpsets.end();
 	if( it_mtcp != m_tcpsets.end() && (*it_mtcp).second )
 	{
@@ -294,13 +294,13 @@ long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long re
 	if(lpCertBuf!=received) delete[] lpCertBuf;
 	return lret;
 }
-////specifiedmap port的更改HTTP response header规则
-//命令format:
-//	HRSP name=<映射service name称> cond=<HTTP response代码> header=<响应头name>
-//							  pattern=<匹配模式> replto=<替换字符串>
-//cond=<HTTP response代码> - 确定更改HTTP响应代码为specified代码的头
-//pattern=<匹配模式>  - 如果匹配模式为空则直接用repltospecified的字符串替换
-//replto=<替换字符串> - 如果replto为空则直接delete此头
+////specifies rules for modifying HTTP response headers for map port
+//command format:
+//	HRSP name=<mapservice name称> cond=<HTTP response代码> header=<response头name>
+//							  pattern=<匹配模式> replto=<替换character串>
+//cond=<HTTP response代码> - 确定更改HTTPresponse代码为specified代码的头
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
+//replto=<替换character串> - ifreplto为null则直接delete此头
 void vidccSession :: docmd_mdhrsp(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -309,7 +309,7 @@ void vidccSession :: docmd_mdhrsp(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	const char *mapname=NULL;
 	if( (it=maps.find("name"))!=maps.end() ) mapname=(*it).second.c_str();
-	if(mapname) ::strlwr((char *)mapname); //转换为小写
+	if(mapname) ::strlwr((char *)mapname); //convert为小写
 	std::map<std::string,mportTCP_vidcs *>::iterator it_mtcp=(mapname)?m_tcpsets.find(mapname):m_tcpsets.end();
 	mportTCP_vidcs *ptr_mtcp=(it_mtcp == m_tcpsets.end())?NULL:(*it_mtcp).second;
 
@@ -333,13 +333,13 @@ void vidccSession :: docmd_mdhrsp(const char *strParam)
 		m_psock_command->Send(sizeof(msg_ok_200)-1,msg_ok_200,-1); 
 	}else m_psock_command->Send(sizeof(msg_err_501)-1,msg_err_501,-1);
 }
-////specifiedmap port的更改HTTP request header规则
-//命令format:
-//	HREQ name=<映射service name称> cond=<HTTP requesturl> header=<响应头name>
-//							  pattern=<匹配模式> replto=<替换字符串>
-//cond=<HTTP requesturl>  - 更改符合条件的HTTP请求头，请求的Url和specified的cond包含匹配
-//pattern=<匹配模式>  - 如果匹配模式为空则直接用repltospecified的字符串替换
-//replto=<替换字符串> - 如果replto为空则直接delete此头
+////specifies rules for modifying HTTP request headers for map port
+//command format:
+//	HREQ name=<mapservice name称> cond=<HTTP requesturl> header=<response头name>
+//							  pattern=<匹配模式> replto=<替换character串>
+//cond=<HTTP requesturl>  - 更改符合condition的HTTPrequest头，request的Urlandspecified的condcontains匹配
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
+//replto=<替换character串> - ifreplto为null则直接delete此头
 void vidccSession :: docmd_mdhreq(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -348,7 +348,7 @@ void vidccSession :: docmd_mdhreq(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	const char *mapname=NULL;
 	if( (it=maps.find("name"))!=maps.end() ) mapname=(*it).second.c_str();
-	if(mapname) ::strlwr((char *)mapname); //转换为小写
+	if(mapname) ::strlwr((char *)mapname); //convert为小写
 	std::map<std::string,mportTCP_vidcs *>::iterator it_mtcp=(mapname)?m_tcpsets.find(mapname):m_tcpsets.end();
 	mportTCP_vidcs *ptr_mtcp=(it_mtcp == m_tcpsets.end())?NULL:(*it_mtcp).second;
 
@@ -372,7 +372,7 @@ void vidccSession :: docmd_mdhreq(const char *strParam)
 		m_psock_command->Send(sizeof(msg_ok_200)-1,msg_ok_200,-1); 
 	}else m_psock_command->Send(sizeof(msg_err_501)-1,msg_err_501,-1);
 }
-//specifiedmap port的ip过滤规则 //2.5新版命令
+//specified map port的ip过滤规则 //2.5新版command
 //format: FILT name=<XXX> access=<0|1> ipaddr=
 void vidccSession :: docmd_ipfilter(const char *strParam)
 {
@@ -382,7 +382,7 @@ void vidccSession :: docmd_ipfilter(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	const char *mapname=NULL;
 	if( (it=maps.find("name"))!=maps.end() ) mapname=(*it).second.c_str();
-	if(mapname) ::strlwr((char *)mapname); //转换为小写
+	if(mapname) ::strlwr((char *)mapname); //convert为小写
 	std::map<std::string,mportTCP_vidcs *>::iterator it_mtcp=(mapname)?m_tcpsets.find(mapname):m_tcpsets.end();
 	if( it_mtcp == m_tcpsets.end())
 	{
@@ -397,14 +397,14 @@ void vidccSession :: docmd_ipfilter(const char *strParam)
 	m_psock_command->Send(sizeof(msg_ok_200)-1,msg_ok_200,-1); 
 }
 
-//vIDCcsend的取消某个TCP映射服务命令
-//format: UBND <SP> <映射name> <CRLF>
-//注: vIDC 2.5版以前没有映射name一说，因此name发过来的是实际的map port
-//2.5 版为了兼容以前的version对于映射时没有specifiedname的用映射后的port代替name
+//vIDCcsend的cancel某个TCP mappingservicecommand
+//format: UBND <SP> <mapname> <CRLF>
+//注: vIDC 2.5版以前没有mapname一说，thereforename发过来的yes实际的map port
+//version 2.5 uses the mapped port as the name for compatibility with previous versions when no name is specified during mapping
 void vidccSession :: docmd_unbind(const char *param)
 {
 	const char *mapname=param;
-	::strlwr((char *)mapname); //转换为小写
+	::strlwr((char *)mapname); //convert为小写
 	std::map<std::string,mportTCP_vidcs *>::iterator it=m_tcpsets.find(mapname);
 	if(it==m_tcpsets.end())
 	{
@@ -417,11 +417,11 @@ void vidccSession :: docmd_unbind(const char *param)
 	m_psock_command->Send(sizeof(msg_ok_200)-1,msg_ok_200,-1);
 }
 
-//vIDCcsend的获取vIDCs主机的IPaddress列表命令
+//vIDCcsend的getvIDCs主机的IPaddresslistcommand
 //format: ADDR <SP> <CRLF>
 void vidccSession :: docmd_addr(const char *param)
 {
-	std::vector<std::string> vec;//得到local machineIP，返回得到local machineIP的个数
+	std::vector<std::string> vec;//get local machine IPs, returns the count of local machine IPs
 	long n=socketBase::getLocalHostIP(vec);
 	char buf[VIDC_MAX_COMMAND_SIZE]; 
 	int buflen=sprintf(buf,"200 ");
@@ -433,20 +433,20 @@ void vidccSession :: docmd_addr(const char *param)
 	m_psock_command->Send(buflen,buf,-1);
 }
 
-//vIDCcsend的保持connect的心跳命令
+//vIDCcsend的保持connect的心跳command
 //format: vNOP <SP> <CRLF>
 void vidccSession :: docmd_vnop(const char *param)
 {
 	m_psock_command->Send(7,"rNOP \r\n",-1);
 }
 
-//不可识别的命令
+//not可识别的command
 void vidccSession :: docmd_unknowed(const char *ptrCommand)
 {
 	m_psock_command->Send(sizeof(msg_err_500)-1,msg_err_500,-1);
 }
 
-void vidccSession :: setIfLogdata(bool b) //设置是否记录日志
+void vidccSession :: setIfLogdata(bool b) //setyesno记录log
 {
 	std::map<std::string,mportTCP_vidcs *>::iterator it=m_tcpsets.begin();
 	for(;it!=m_tcpsets.end();it++)

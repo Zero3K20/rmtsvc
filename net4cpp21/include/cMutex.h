@@ -34,11 +34,11 @@
 	#define pthread_cond_wait(pCond,pMutex) WaitForSingleObject(*(pCond),INFINITE)
 	#define pthread_cond_timedwait(pCond,pMutex,pt) WaitForSingleObject(*(pCond),(pt)->tv_nsec*1000)
 	#define pthread_cond_signal(pCond) SetEvent(*(pCond))
-#elif defined MAC //暂时not supported
+#elif defined MAC //temporarily not supported
 	//....
-#else  //unix/linux平台 //运用POSIX库的多线程和mutex，condition variable函数
+#else  //unix/linux platform // using POSIX library multithreading, mutex and condition variable functions
 	extern "C"
-	{ //多thread function,mutex
+	{ //multi-thread function, mutex
 		#include <pthread.h>
 	}
 #endif
@@ -49,7 +49,7 @@ namespace net4cpp21
 	class cMutexBase
 	{
 	protected:
-		unsigned long m_lLock;//是否处于锁定status
+		unsigned long m_lLock;//whether currently locked
 	public:
 		cMutexBase():m_lLock(0){}
 		virtual ~cMutexBase(){}
@@ -109,15 +109,15 @@ namespace net4cpp21
 	{
 	private:
 #ifdef WIN32
-		cMutexBase m_mutex; //假的mutex变量，实际没有任何意义，因为windows下condition variable和mutex没有关系
+		cMutexBase m_mutex; //false的mutexvariable，实际没有任何意义，因为windows下condition variableandmutex没有关系
 #else
-		cMutex m_mutex; //linux/unix下等待需用到mutex，
-		//linux/unix下condition variable必须和mutex配合使用,以防止多个线程同时请求pthread_cond_wait()（或pthread_cond_timedwait()，下同）的竞争
-		//在调用pthread_cond_wait()前必须由本线程lock,mutex保持锁定status，并在线程挂起进入等待前unlock。在条件满足从而离开pthread_cond_wait()之前，mutex将被重新lock，以与进入pthread_cond_wait()前的lock动作对应
+		cMutex m_mutex; //linux/unix下waiting需用到mutex，
+		//linux/unix下condition variable必须andmutex配合使用,以防止多个thread同时requestpthread_cond_wait()（orpthread_cond_timedwait()，下同）的竞争
+		//at调用pthread_cond_wait()前必须由本threadlock,mutex保持lockstatus，并atthread挂起进入waiting前unlock。atcondition满足and thus leavepthread_cond_wait()之前，mutex将被重新lock，以与进入pthread_cond_wait()前的lock动作对应
 #endif
         pthread_cond_t m_cond;
-		int m_status; //0处于非等待status，否则处于等待status
-		unsigned long m_args;//用户可传递额外参数
+		int m_status; //0处于非waitingstatus，otherwise处于waitingstatus
+		unsigned long m_args;//user可传递额外parameter
 	public:
 		cCond()
 		{
@@ -130,12 +130,12 @@ namespace net4cpp21
 			if(m_status!=0) pthread_cond_signal(&m_cond);
             		pthread_cond_destroy(&m_cond);
 		}
-		bool wait(time_t seconds=-1) //返回真--被激活，否则timeout
+		bool wait(time_t seconds=-1) //returntrue--被激活，otherwisetimeout
 		{
 			if(m_status!=0) return false;
-			m_status=1;//等待激活status
+			m_status=1;//waiting激活status
 			m_mutex.lock();
-			if(seconds<0) //无限等待，直到被激活
+			if(seconds<0) //无限waiting，直到被激活
 			{
 				 pthread_cond_wait(&m_cond,m_mutex.address());
 			}
@@ -166,7 +166,7 @@ namespace net4cpp21
 			return &m_cond;
 		}
 
-		bool status() //是否为等待status
+		bool status() //yesno为waitingstatus
 		{
 			return (m_status!=0)?true:false;
 		}

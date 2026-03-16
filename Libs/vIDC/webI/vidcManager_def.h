@@ -36,7 +36,7 @@ typedef struct _TMapParam
 	bool bAutorun;
 	long ipaccess;
 	std::string ipRules;//IP access rules 
-	//-ssl 服务clientauthentication证书
+	//-ssl service client authentication certificate
 	std::string clicert;
 	std::string clikey;
 	std::string clikeypswd;
@@ -53,15 +53,15 @@ public:
 	virtual ~vidcServerEx(){}
 	SOCKSRESULT Start()
 	{
-		//设置vIDCs的SSL证书info，remote映射的服务需要证书info，将从此对象获取
-		//因此vIDCs服务无法启用SSL加密，如果启用了必将根据证书设置情况要么是需要证书authentication的
-		//要么是无需证书authentication的，程序将不能动态决定
+		//set vIDCs SSL certificate info; remote-mapped services need certificate info obtained from this object
+		//therefore the vIDCs service cannot enable SSL encryption; if enabled, it will either require certificate authentication
+		//or not require certificate authentication, and the program cannot decide dynamically
 #ifdef _SURPPORT_OPENSSL_
 		this->setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false
 					,g_strCaCert.c_str(),g_strCaCRL.c_str());
 #endif
 		
-		//设置IP filter rules
+		//setIP filter rules
 		this->rules().addRules_new(RULETYPE_TCP,m_ipaccess,m_ipRules.c_str());
 		const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
 		BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许port重用

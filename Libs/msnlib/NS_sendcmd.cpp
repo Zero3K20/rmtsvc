@@ -70,8 +70,8 @@ int msnMessager :: sendcmd_USR(const char *strAccount,std::string &strNShost,int
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return SOCKSERR_TIMEOUT;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//正确的返回format XFR 3 NS 207.46.0.21:1863 0 65.54.239.140:1863
-	//如果是invalidaccount将返回 911 trID
+	//correct return format: XFR 3 NS 207.46.0.21:1863 0 65.54.239.140:1863
+	//if account is invalid, returns 911 trID
 	if(strncmp(buf,"XFR ",4)!=0) return SOCKSERR_MSN_EMAIL;
 	const char *ptr1,*ptr=strstr(buf+4,"NS ");
 	if(ptr) ptr1=strchr(ptr+3,':');
@@ -79,7 +79,7 @@ int msnMessager :: sendcmd_USR(const char *strAccount,std::string &strNShost,int
 	strNShost.assign(ptr+3,ptr1-ptr-3); iNSport=atoi(ptr1+1);
 	return MSN_ERR_OK;
 }
-//send command获取https hashkey
+//send command to get HTTPS hash key
 bool msnMessager :: sendcmd_USR(const char *strAccount,std::string &hashkey)
 {
 	socketProxy &m_nsSocket=m_curAccount.m_chatSock;
@@ -95,11 +95,11 @@ bool msnMessager :: sendcmd_USR(const char *strAccount,std::string &hashkey)
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return false;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//正确的返回format USR 6 TWN S lc=1033,id=507,tw=40,fs=1,ru=http%3A%2F%2Fmessenger%2Emsn%2Ecom,ct=1119856294,kpp=1,kv=6,ver=2.1.6000.1,rn=7o5vXh8s,tpf=09b41a915a8e8469b1d3f23814be8e6b
+	//correct return format: USR 6 TWN S lc=1033,id=507,tw=40,fs=1,ru=http%3A%2F%2Fmessenger%2Emsn%2Ecom,ct=1119856294,kpp=1,kv=6,ver=2.1.6000.1,rn=7o5vXh8s,tpf=09b41a915a8e8469b1d3f23814be8e6b
 	if(strncmp(buf,"USR ",4)!=0) return false;
 	const char *ptr=strstr(buf+4,"TWN S ");
 	if(ptr==NULL) return false;
-	hashkey.assign(ptr+6);//去掉最后的\r\n
+	hashkey.assign(ptr+6);//去掉last的\r\n
 	if(hashkey[hashkey.length()-2]=='\r') hashkey.erase(hashkey.length()-2);
 	return true;
 }
@@ -118,12 +118,12 @@ bool msnMessager :: sendcmd_USR(std::string &hashkey)
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return false;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//正确的返回format USR 7 OK yycnet@hotmail.com 1 0
+	//正确的returnformat USR 7 OK yycnet@hotmail.com 1 0
 	if(strncmp(buf,"USR ",4)==0 && strstr(buf+4," OK ") ) return true;
 	return false;
 }
-//sendstatus改表消息 "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
-//!当account登录receive完联系人列表后要send"NLN",上线status
+//sendstatus改表message "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
+//! after account login and contact list received, send "NLN" online status
 bool msnMessager :: sendcmd_CHG(const char *sta)
 {
 	unsigned long trID=msgID();
@@ -146,7 +146,7 @@ bool msnMessager :: sendcmd_UUX()
 	return (m_curAccount.m_chatSock.Send(iret,buf,-1)>0)?true:false;
 }
 
-//PNG命令返回范例 - QNG 43\r\n
+//PNGcommandreturn范例 - QNG 43\r\n
 bool msnMessager :: sendcmd_PNG()
 {
 	return (m_curAccount.m_chatSock.Send(5,"PNG\r\n",-1)>0)?true:false;
@@ -171,7 +171,7 @@ bool msnMessager :: sendcmd_ADC(const char *email,const char *strFlag)
 	return (m_curAccount.m_chatSock.Send(iret,buf,-1)>0)?true:false;
 }
 
-//nick --- 经过utf8和mime编码的昵称字符串
+//nick --- 经过utf8andmime编码的昵称character串
 bool msnMessager :: sendcmd_ADC(const char *email,const char *nick,long waittimeout)
 {
 	unsigned long trID=msgID();
@@ -189,7 +189,7 @@ bool msnMessager :: sendcmd_ADC(const char *email,const char *nick,long waittime
 	} else bret=true;
 	return bret;;
 }
-//send建立chat session请求
+//send建立chat sessionrequest
 bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 {
 	unsigned long trID=msgID();
@@ -204,7 +204,7 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 		cond.wait(MSN_MAX_RESPTIMEOUT);
 	} else buf[0]=0;
 	eraseCond(trID);
-	if(buf[0]==0) return false; //buf中保存的为XFR命令的响应结果,结果format如下
+	if(buf[0]==0) return false; //buf中save的为XFRcommand的response结果,结果format如下
 	////XFR 53 SB 207.46.4.174:1863 CKI 312825.1120186211.16162
 	std::vector<std::string> v;
 	iret=splitstring(buf,' ',v);
@@ -217,7 +217,7 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 	if( chatSock.Send(iret,buf,-1)<=0 ) return false;
 	if((iret=chatSock.Receive(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 		return false;
-	buf[iret]=0; //返回dataformat USR 160 OK yycnet@hotmail.com yyc:)
+	buf[iret]=0; //returndataformat USR 160 OK yycnet@hotmail.com yyc:)
 	if(strncmp(buf,"USR ",4) || strstr(buf+4," OK ")==NULL ) return false;
 	
 	trID=msgID();
@@ -226,21 +226,21 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 	if( chatSock.Send(iret,buf,-1)<=0 ) return false;
 	if((iret=chatSock.Peek(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 		return false;
-	buf[iret]=0; //返回dataformat CAL 161 RINGING 312825
+	buf[iret]=0; //returndataformat CAL 161 RINGING 312825
 	return (strncmp(buf,"CAL ",4)==0)?true:false;
 //yyc remove 有可能会把后续的datareceive下来，导致sessionThreadhandledata出现error
 //	if((iret=chatSock.Receive(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 //		return false;
-//	buf[iret]=0; //返回dataformat CAL 161 RINGING 312825
+//	buf[iret]=0; //returndataformat CAL 161 RINGING 312825
 //	return (strncmp(buf,"CAL ",4)==0)?true:false;
 }
 
-//send本某个联系人正在输入控制消息
+//send本某个联系人in progress输入控制message
 bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-	if(pcon->m_chat_contacts<=0) return true; //暂时不send，因为还没有人加入聊天，如果此时send会引起MSN服务关闭sessionconnect
+	if(pcon->m_chat_contacts<=0) return true; //暂时notsend，因为还没有人加入聊天，if此时send会引起MSNserviceclosesessionconnect
 	if(type_email==NULL) type_email=m_curAccount.m_email.c_str();
 	char buf[256];
 	int len=sprintf(buf+56,"MIME-Version: 1.0\r\nContent-Type: text/x-msmsgscontrol\r\nTypingUser: %s\r\n\r\n",
@@ -251,34 +251,34 @@ bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 }
 
 //send聊天内容
-//聊天内容length被限制在1540(编码后的字节size)最大length
-//因此如果send聊天内容的字节length大于specified额length要分割send，按照1500分割即可
-//msgHeader --- 转向编码好的msgHeader缓冲，且前56字节为保留等待写入MSGsend标记和length
+//聊天内容length被限制at1540(编码后的bytesize)maximumlength
+//thereforeifsend聊天内容的bytelength大于specified额length要分割send，按照1500分割即可
+//msgHeader --- 转向编码好的msgHeaderbuffer，且前56byte为保留waitingwriteMSGsend标记andlength
 bool msnMessager::sendcmd_SS_chatMsg(cContactor *pcon,char *msgHeader,
 						int headerlen,const char *chatMsg,int msglen)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	对要send的消息进行utf8编码
+//	对要send的message进行utf8编码
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//将聊天内容按1500字节length进行分割send
+	//将聊天内容按1500bytelength进行分割send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //如果是utf8编码的字符，除了第一个字节，其他字节都是以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的字符截断send，
+			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
+			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------send消息----------------------------
+//---------------sendmessage----------------------------
 		trID=msgID();
 		iret=sprintf(msgHeader,"MSG %d A %d\r\n",trID,headerlen+iSend);
 		memmove(msgHeader+(56-iret),msgHeader,iret);
@@ -302,13 +302,13 @@ bool msnMessager::sendcmd_SS_chatMsg(cContactor *pcon,char *msgHeader,
 //----------------------------------------------------
 		chatMsg+=iSend; msglen-=iSend;
 		if(msglen<=0) break;
-		if(trID!=0 && trID%2==0) //为了避免send太快导致MSN服务关闭connect，等待响应应答
+		if(trID!=0 && trID%2==0) //为了避免send太快导致MSNserviceclose connection，waitingresponse应答
 		{ //yyc add 2007-03-13
 			cCond cond; cond.setArgs(0);
-			this->m_conds[trID]=&cond; //最长延时等待3秒
+			this->m_conds[trID]=&cond; //最长延时waiting3秒
 			cond.wait(3); this->eraseCond(trID);
 		}//?if(trID%4==0)
-		//否则继续send
+		//otherwisecontinuesend
 	}//?while(true);
 	delete[] pmsgbuf; return true;
 }
@@ -317,26 +317,26 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	对要send的消息进行utf8编码
+//	对要send的message进行utf8编码
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//将聊天内容按1500字节length进行分割send
+	//将聊天内容按1500bytelength进行分割send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //如果是utf8编码的字符，除了第一个字节，其他字节都是以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的字符截断send，
+			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
+			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------send消息----------------------------
+//---------------sendmessage----------------------------
 		trID=msgID();
 		iret=sprintf(msgHeader,"MSG %d A %d\r\n",trID,headerlen+iSend);
 		memmove(msgHeader+(56-iret),msgHeader,iret);
@@ -360,13 +360,13 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 //----------------------------------------------------
 		chatMsg+=iSend; msglen-=iSend;
 		if(msglen<=0) break;
-		if(trID!=0 && trID%2==0) //为了避免send太快导致MSN服务关闭connect，等待响应应答
+		if(trID!=0 && trID%2==0) //为了避免send太快导致MSNserviceclose connection，waitingresponse应答
 		{//yyc add 2007-03-13
 			cCond cond; cond.setArgs(0);
-			this->m_conds[trID]=&cond; //最长延时等待3秒
+			this->m_conds[trID]=&cond; //最长延时waiting3秒
 			cond.wait(3); this->eraseCond(trID);
 		}//?if(trID%4==0)
-		//否则继续send
+		//otherwisecontinuesend
 	}//?while(true);
 	delete[] pmsgbuf; return true;
 }
@@ -374,25 +374,25 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const char *chatMsg,int msglen)
 {
-	//	对要send的消息进行utf8编码
+	//	对要send的message进行utf8编码
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//将聊天内容按1500字节length进行分割send
+	//将聊天内容按1500bytelength进行分割send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //如果是utf8编码的字符，除了第一个字节，其他字节都是以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的字符截断send，
+			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
+			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------send消息----------------------------
+//---------------sendmessage----------------------------
 		std::vector<cContactor *>::iterator it=vec.begin();
 		for(;it!=vec.end();it++)
 		{
@@ -425,25 +425,25 @@ bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHea
 bool msnMessager::sendcmd_SS_chatMsgW(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const wchar_t *chatMsgW,int msglen)
 {
-	//	对要send的消息进行utf8编码
+	//	对要send的message进行utf8编码
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//将聊天内容按1500字节length进行分割send
+	//将聊天内容按1500bytelength进行分割send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //如果是utf8编码的字符，除了第一个字节，其他字节都是以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的字符截断send，
+			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
+			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
 			}
 		}//?if(iSend>1500)
-//---------------send消息----------------------------
+//---------------sendmessage----------------------------
 		std::vector<cContactor *>::iterator it=vec.begin();
 		for(;it!=vec.end();it++)
 		{
@@ -482,7 +482,7 @@ int msnMessager :: encodeChatMsgHead(char *buffer,int buflen,const char *IMFont,
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//对字体name进行utf-8和mime编码
+		if(m_encodeFontname==""){//对字体name进行utf-8andmime编码
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);
@@ -522,7 +522,7 @@ int msnMessager :: encodeChatMsgHeadW(char *buffer,int buflen,const wchar_t *IMF
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//对字体name进行utf-8和mime编码
+		if(m_encodeFontname==""){//对字体name进行utf-8andmime编码
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);

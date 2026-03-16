@@ -44,11 +44,11 @@ namespace net4cpp21
 		HTTPREQ_CONTENT_TYPE get_contentType(std::string *strBoundary);
 		const char * get_contentCharset();
 		long get_contentLen() const { return m_httpreq_lContentlen; }
-		//返回提交data指针，仅仅对非Formdata有意义
+		//return submitted data pointer, only meaningful for non-form data
 		cBuffer &get_contentData() { return m_httpreq_postdata; }
-		void ifParseParams(bool b) { m_bParseParams=b; } //设置是否parse提交参数，用于HTTP proxy service
+		void ifParseParams(bool b) { m_bParseParams=b; } //set whether to parse submitted parameters, used for HTTP proxy service
 
-		//获取HTTP requestdata
+		//get HTTP request data
 		const char *Request(const char *reqname){
 			if(reqname==NULL) return NULL;
 
@@ -67,25 +67,25 @@ namespace net4cpp21
 			return (it!=m_httpreq_COOKIE.end())?((*it).second.c_str()):NULL;
 		}
 		const char *Header(const char *pheader)
-		{//获取specified的HTTP request header
+		{//get the specified HTTP request header
 			std::map<std::string,std::string>::iterator it=
 				(pheader)?m_httpreq_HEADER.find(pheader):m_httpreq_HEADER.end();
 			return (it!=m_httpreq_HEADER.end())?((*it).second.c_str()):NULL;
 		}
 
 		//---------------------------------------------------------------
-		void init_httpreq(bool ifKeepHeader=false);//initializationHTTP request准备send新的HTTP request
+		void init_httpreq(bool ifKeepHeader=false);//initialize HTTP request to prepare for sending a new HTTP request
 		std::map<std::string,std::string> &QueryString() { return m_httpreq_params_GET;}
 		std::map<std::string,std::string> &Form() { return m_httpreq_params_POST;}
 		std::map<std::string,std::string> &Cookies() { return m_httpreq_COOKIE; }
 		std::map<std::string,std::string> &Header() { return m_httpreq_HEADER; }
 	
-		//编码HTTP request并send,success返回SOCKSERR_OK
+		//编码HTTP request并send,returns SOCKSERR_OK on success
 		SOCKSRESULT send_req(socketTCP *psock,const char *lpszurl);
-		void SetPostData(const char *buf,long buflen) //设置要send的POST data
+		void SetPostData(const char *buf,long buflen) //set要send的POST data
 		{
-			m_httpreq_params_POST.clear(); //此时POST Param无效
-			m_httpreq_postdata.len()=0; //清空原有的data
+			m_httpreq_params_POST.clear(); //此时POST Paraminvalid
+			m_httpreq_postdata.len()=0; //clear原有的data
 			m_httpreq_postdata.Resize(buflen+1);
 			if(m_httpreq_postdata.str()==NULL) return; 
 			::memcpy(m_httpreq_postdata.str(),buf,buflen);
@@ -118,22 +118,22 @@ namespace net4cpp21
 							 std::map<std::string,std::string> &maps);
 
 	private:
-		DWORD m_httpreq_dwVer; //http协议version
+		DWORD m_httpreq_dwVer; //httpprotocolversion
 		HTTPREQ_TYPE m_httpreq_iType; //HTTP requesttype
 		long m_httpreq_lContentlen;
 		std::string m_httpreq_strUrl;
 		
-		//保存从URL提交的参数
+		//save从URL提交的parameter
 		std::map<std::string,std::string> m_httpreq_params_GET;
-		//保存从POST表单提交的参数
+		//save从POST表单提交的parameter
 		std::map<std::string,std::string> m_httpreq_params_POST;
 		std::map<std::string,std::string> m_httpreq_HEADER;
 		std::map<std::string,std::string> m_httpreq_COOKIE;
-		bool m_httpreq_bReceiveALL;//是否已经HTTP request完整receive
-		cBuffer m_httpreq_postdata; //保存receive的部分postdata
+		bool m_httpreq_bReceiveALL;//yesno已经HTTP request完整receive
+		cBuffer m_httpreq_postdata; //savereceive的partialpostdata
 
-		bool m_bParseParams; //是否进行参数parse，default为真
-							//主要是给proxy service使用，proxy service在receivehandleHTTPS代理时不parse参数提高速度
+		bool m_bParseParams; //yesno进行parameterparse，default为true
+							//主要yes给proxy service使用，proxy serviceatreceivehandleHTTPS代理时notparseparameter提高速度
 	};
 
 }//?namespace net4cpp21

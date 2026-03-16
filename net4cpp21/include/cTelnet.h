@@ -22,19 +22,19 @@ namespace net4cpp21
 		std::string m_telUser;
 		std::string m_telPwd;
 		bool m_bTelAuthentication;//whether this telnet service requires authentication
-		long m_telClntnums;//currentconnect的telnetclient个数
+		long m_telClntnums;//number of currently connected telnet clients
 	protected:
-		std::string m_telHello;//当有clientconnect上后的提示info
-		std::string m_telTip;//命令输入行提示符
-		char m_cmd_prefix; //扩展命令前缀
+		std::string m_telHello;//prompt info when a client connects
+		std::string m_telTip;//command line prompt
+		char m_cmd_prefix; //extended command prefix
 
-		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//收到用户输入命令
-		virtual bool onLogin(){ return false; }//有一个用户telnet登录success,返回真则直接createcmd shell
-		void onConnect(socketTCP *psock);//有一个用户connect上来
+		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//收到user输入command
+		virtual bool onLogin(){ return false; }//有一个usertelnetloginsuccess,returntrue则直接createcmd shell
+		void onConnect(socketTCP *psock);//a user has connected
 	public:
 		cTelnet();
 		virtual ~cTelnet(){}
-		//设置telnet的访问account,如果user==NULL则此无需授权访问,否则需要授权访问
+		//settelnet的访问account,ifuser==NULL则此无需authorization访问,otherwise需要authorization访问
 		void setTelAccount(const char *user,const char *pwd);
 		const char *getTelAccount() { return m_telUser.c_str(); }
 		const char *getTelPassword() { return m_telPwd.c_str(); }
@@ -49,7 +49,7 @@ namespace net4cpp21
 			return;
 		}
 	private:
-		//如果没有error发生则返回真
+		//if没有error发生则returntrue
 		bool getInput(socketTCP *psock,std::string &strRet,int bEcho,int timeout);
 	};
 	
@@ -59,7 +59,7 @@ namespace net4cpp21
 		telServer();
 		virtual ~telServer();
 	protected:
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock){ cTelnet::onConnect(psock); }
 		virtual bool onLogin(){ return true; }
 	};

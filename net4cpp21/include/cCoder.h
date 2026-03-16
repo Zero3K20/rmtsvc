@@ -20,41 +20,41 @@ namespace net4cpp21
 		static unsigned char DecToHex(unsigned char B);		//character conversion for Quoted encoding
 		static unsigned char HexToDec(unsigned char C);		//character conversion for Quoted decoding
 		
-		static const char BASE64_ENCODE_TABLE[64];		//Base64编码表
-		static const unsigned int BASE64_DECODE_TABLE[256];	//Base64解码表
-		static const unsigned char QUOTED_ENCODE_TABLE[256];	//Quoted编码表
+		static const char BASE64_ENCODE_TABLE[64];		//Base64 encoding table
+		static const unsigned int BASE64_DECODE_TABLE[256];	//Base64 decoding table
+		static const unsigned char QUOTED_ENCODE_TABLE[256];	//Quoted encoding table
 		
 	public:
-		static unsigned int m_LineWidth;			//specified编码后每行的length，缺省是76
-		//根据文件实际length获取编码Base64后的length,-1编码后每行length不限，0编码后每行length为m_LineWidth
+		static unsigned int m_LineWidth;			//specifies the line length after encoding; default is 76
+		//根据file实际lengthget编码Base64后的length,-1编码后每行lengthnot限，0编码后每行length为m_LineWidth
 		static int Base64EncodeSize(int iSize,unsigned int nLineWidth=0);  
-		static int Base64DecodeSize(int iSize);		//根据已编码文件length获取Base64的解码length
-		static int UUEncodeSize(int iSize);			//根据文件实际length获取UUCode编码后的length
-		static int UUDecodeSize(int iSize);			//根据已编码文件length获取UUCode解码后的length
-		static int QuotedEncodeSize(int iSize);		//根据实际文件的length获取Quoted编码
+		static int Base64DecodeSize(int iSize);		//根据已编码filelengthgetBase64的解码length
+		static int UUEncodeSize(int iSize);			//根据file实际lengthgetUUCode编码后的length
+		static int UUDecodeSize(int iSize);			//根据已编码filelengthgetUUCode解码后的length
+		static int QuotedEncodeSize(int iSize);		//根据实际file的lengthgetQuoted编码
 		
 		
 		/*
-		*  对一段Buffer进行Base64编码
+		*  对一段Buffer进行Base64 encoding
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*
-		*	 注: 输出Buffer的length可以使用 Base64EncodeSize(int) 方法取得
+		*	 注: 输出Buffer的length可以使用 Base64EncodeSize(int) method取得
 		*/
 		static int base64_encode(char *pSrc, unsigned int nSize, char *pDest,
-			unsigned int nLineWidth=0); //隔specified的LineWidth添加CRLF
-		//==-1编码后每行length不限，==0编码后每行length为m_LineWidth
+			unsigned int nLineWidth=0); //隔specified的LineWidthaddCRLF
+		//==-1编码后每行lengthnot限，==0编码后每行length为m_LineWidth
 		/*
-		*  对一段Buffer进行Base64解码
+		*  对一段Buffer进行Base64 decoding
 		*	
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*		return	解码后的实际length
 		*
-		*	 注: 输出Buffer的length可以使用 Base64DecodeSize(int) 方法取得
+		*	 注: 输出Buffer的length可以使用 Base64DecodeSize(int) method取得
 		*/
 		static int  base64_decode(char *pSrc, unsigned int nSize, char *pDest);
 		/*
@@ -62,9 +62,9 @@ namespace net4cpp21
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*
-		*	 注: 输出Buffer的length可以使用 UUEncodeSize(int) 方法取得
+		*	 注: 输出Buffer的length可以使用 UUEncodeSize(int) method取得
 		*/
 		static int UU_encode(char *pSrc, unsigned int nSize, char *pDest);
 		
@@ -73,9 +73,9 @@ namespace net4cpp21
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*
-		*	 注: 输出Buffer的length可以使用 UUDecodeSize(int) 方法取得
+		*	 注: 输出Buffer的length可以使用 UUDecodeSize(int) method取得
 		*/
 		static int UU_decode(char *pSrc, unsigned int nSize, char *pDest);
 		/*
@@ -83,10 +83,10 @@ namespace net4cpp21
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*		return	编码后的实际length
 		*
-		*	 注: 输出Buffer的length可以使用 QuotedDecodeSize(int) 方法取得
+		*	 注: 输出Buffer的length可以使用 QuotedDecodeSize(int) method取得
 		*/
 		static int quoted_encode(char *pSrc, unsigned int nSize, char *pDest);
 		
@@ -95,10 +95,10 @@ namespace net4cpp21
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*		return	解码后的实际length
 		*
-		*	 注：这里没有提供计算解码length的方法 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
 		*/
 		static int quoted_decode(char *pSrc, unsigned int nSize, char *pDest);
 		
@@ -107,41 +107,41 @@ namespace net4cpp21
 		static int url_encode(const char *pSrc,int nSize,char *pDest);
 		static int MimeEncodeSize(int iSize){ return iSize *3;}
 		/*
-		*  对specified的字符串进行Mime编码
+		*  对specified的character串进行Mime编码
 		*
-		*	 	pSrc	输入字符串
-		*		nSize	字符串length
-		*		pDest	输出缓冲
+		*	 	pSrc	输入character串
+		*		nSize	character串length
+		*		pDest	输出buffer
 		*		return	编码后的实际length
 		*
-		*	 注：此函数不对汉字进行编码
+		*	 注：此functionnot对汉字进行编码
 		*/
 		static int mime_encode(const char *pSrc,unsigned int nSize,char *pDest);
 		//汉字也进行编码
 		static int mime_encodeEx(const char *pSrc,unsigned int nSize,char *pDest);
 		static int mime_encodeURL(const char *pSrc,unsigned int nSize,char *pDest);
 		/*
-		*  对specified的字符串进行Mime解码
+		*  对specified的character串进行Mime解码
 		*
-		*	 	pSrc	输入字符串
-		*		nSize	字符串length
-		*		pDest	输出缓冲
+		*	 	pSrc	输入character串
+		*		nSize	character串length
+		*		pDest	输出buffer
 		*		return	解码码后的实际length
 		*
-		*	 注：这里没有提供计算解码length的方法 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
 		*/
 		static int mime_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		
-		//UTF-8 - ASCII 兼容的多字节(1~3)字节 Unicode 编码
-		//实际的utf8编码的字节为1~6字节，但我们一般也就用双字节的字符集，这样最多用到3字节
-		//因为0x00000800 - 0x0000FFFF字符转化为utf8才为3字节
+		//UTF-8 - ASCII 兼容的多byte(1~3)byte Unicode 编码
+		//实际的utf8编码的byte为1~6byte，但我们一般也就用双byte的character集，这样最多用到3byte
+		//因为0x00000800 - 0x0000FFFFcharacter转化为utf8才为3byte
 		static int Utf8EncodeSize(int iSize){ return iSize *3;}
 		/*
 		*  对specified的Buffer进行utf8编码
 		*
 		*	 	pSrc	输入Buffer
 		*		nSize	Bufferlength
-		*		pDest	输出缓冲
+		*		pDest	输出buffer
 		*		return	编码后的实际length
 		*
 		*/
@@ -150,20 +150,20 @@ namespace net4cpp21
 		/*
 		*  对specified的Buffer进行Utf8解码
 		*
-		*	 	pSrc	输入字符串
-		*		nSize	字符串length
-		*		pDest	输出缓冲
+		*	 	pSrc	输入character串
+		*		nSize	character串length
+		*		pDest	输出buffer
 		*		return	解码码后的实际length
 		*
-		*	 注：这里没有提供计算解码length的方法 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
 		*/
 		static int utf8_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int utf8_decodeW(const char *pSrc,unsigned int nSize,unsigned short *pDest);
 
-		//将16进制字符串转为数值
+		//将16进制character串转为数值
 		static unsigned long hex_atol(const char *str);
 
-		//=?charset?encoding-type?data?= dataformat解码
+		//=?charset?encoding-type?data?= data format decoding
 		static int eml_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int eml_encode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int EmlEncodeSize(int iSize);

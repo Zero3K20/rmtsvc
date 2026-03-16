@@ -36,7 +36,7 @@ void vidcManager :: Destroy()
 	m_vidcsvr.Stop();
 }
 //start local port mapping services configured for automatic start
-//在程序start运行时调用
+//called when the program starts
 void vidcManager :: mtcpl_Start()
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.begin();
@@ -46,7 +46,7 @@ void vidcManager :: mtcpl_Start()
 		if(ptr_mtcp && p && p->bAutorun)
 		{
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
-			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL解密服务,设置client证书
+			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL decryption service, set client certificate
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
 #ifdef _SURPPORT_OPENSSL_
@@ -55,7 +55,7 @@ void vidcManager :: mtcpl_Start()
 			}
 			SOCKSRESULT sr=ptr_mtcp->Start(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),
 				g_strCaCert.c_str(),g_strCaCRL.c_str());
-			if(sr<=0) RW_LOG_PRINT(LOGLEVEL_WARN,"[mtcpl] 启动本定映射服务 %s failure, err=%d\r\n",(*it).first.c_str(),sr);
+			if(sr<=0) RW_LOG_PRINT(LOGLEVEL_WARN,"[mtcpl] start local mapping service %s failed, err=%d\r\n",(*it).first.c_str(),sr);
 		}
 	}//?for
 	return;
@@ -63,7 +63,7 @@ void vidcManager :: mtcpl_Start()
 
 void vidcManager :: xml_list_localip(cBuffer &buffer)
 {
-	std::vector<std::string> vec;//得到local machineIP，返回得到local machineIP的个数
+	std::vector<std::string> vec;//get local machine IPs, returns the count of local machine IPs
 	long n=socketBase::getLocalHostIP(vec);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<localip>");
 	for(int i=0;i<n;i++) buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s ",vec[i].c_str());
@@ -71,7 +71,7 @@ void vidcManager :: xml_list_localip(cBuffer &buffer)
 }
 
 //<maplist>
-//<mapped name="映射name">应用description</mapped>
+//<mapped name="mapping name">application description</mapped>
 //</maplist>
 void vidcManager :: xml_list_mtcp(cBuffer &buffer)
 {
@@ -130,22 +130,22 @@ void vidcManager :: xml_info_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的映射 %s 不存在</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
 	}
 	return;
 }
 
 
-//启动specified的映射服务
+//startspecified的mapservice
 void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
 	if(it!=m_tcpsets.end()){
 		mportTCP * ptr_mtcp=(*it).second;
 		TMapParam *p=(TMapParam *)(ptr_mtcp->Tag());
-		if(p){//设置IP filter rules
+		if(p){//setIP filter rules
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
-			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL解密服务,设置client证书
+			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL decryption service, set client certificate
 				std::string clicert=p->clicert,clikey=p->clikey;
 				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
 #ifdef _SURPPORT_OPENSSL_
@@ -158,7 +158,7 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 		if(sr<=0){ //start servicefailure
 			if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 			if(buffer.str())
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>启动映射 %s failure, err=%d</retmsg>",mapname,sr);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>startmap %s failure, err=%d</retmsg>",mapname,sr);
 		}
 		if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 		if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"<mapinfo>");
@@ -187,12 +187,12 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的映射 %s 不存在</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
 	}
 	return;
 }
 
-//停止specified的映射服务
+//stopspecified的mapservice
 void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -227,12 +227,12 @@ void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的映射 %s 不存在</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
 	}
 	return;
 }
 
-//deletespecified的映射服务
+//delete the specified mapping service
 void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -246,12 +246,12 @@ void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的映射 %s 不存在</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
 	}
 	return;
 }
 
-//------------------------UDP映射集合----------------------
+//------------------------UDPmapset----------------------
 
 void vidcManager :: xml_list_mudp(cBuffer &buffer)
 {

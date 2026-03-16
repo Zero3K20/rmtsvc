@@ -3,8 +3,8 @@
    *    DESCRIPTION:constants, structures and enum definitions for the UPnP protocol
    *	UPnP - Universal Plug and Play, used to find NAT/router devices that support UPnP for port mapping on the gateway
    *	UPnP devices listen on multicast ports. When a search request is received, the device checks the search criteria to determine if they match.
-   *	如果匹配，一个单播 SSDP（通过 HTTPU）响应将被send到该控制点	
-   *	同样，当将设备插入网络时，它会发出多播 SSDP 展示通知消息，通知它所支持的服务。 
+   *	if matched, a unicast SSDP (via HTTPU) response is sent to the control point	
+   *	similarly, when a device is added to the network, it sends a multicast SSDP advertisement to announce its supported services. 
    *	
    *    AUTHOR:yyc
    *
@@ -16,7 +16,7 @@
 #ifndef __YY_UPNPDEF_H__
 #define __YY_UPNPDEF_H__
 
-#define UPnP_MULTI_ADDR	"239.255.255.250" //UPnP组播address和port
+#define UPnP_MULTI_ADDR	"239.255.255.250" //UPnP multicast address and port
 #define UPnP_MULTI_PORT	1900 
 #define UPnP_MAX_MESAGE_SIZE 4096
 
@@ -24,22 +24,22 @@
 
 typedef struct _TUPnPInfo
 {
-	bool budp; //是否为udptype
+	bool budp; //whether it is UDP type
 	int mapport;
 	int appport;
-	bool bsuccess; //映射是否success
+	bool bsuccess; //mapyesnosuccess
 	std::string appsvr;
 	std::string appdesc;
-	std::string retmsg;  //如果不success返回的error消息
+	std::string retmsg;  //ifnotsuccessreturn的errormessage
 
 }UPnPInfo,*PUPnPInfo;
 
 #endif
-/* 组播address的范围是多少？
-组播的address是保留的D类address从224.0.0.0—239.255.255.255，而且一些address有特定的用处如，
-224.0.0.0—244.0.0.255只能用于局域网中路由器是不会转发的，并且224.0.0.1是所有主机的address，
-224.0.0.2所有路由器的address，224.0.0.5所有ospf路由器的address，224.0.13事PIMv2路由器的address；
-239.0.0.0—239.255.255.255是私有address（如192.168.x..x）；224.0.1.0—238.255.255.255可以用与Internet上的。
+/* what is the range of multicast addresses?
+组播的addressyes保留的Dclassaddress从224.0.0.0—239.255.255.255，而且一些address有特定的用处如，
+224.0.0.0—244.0.0.255只能用于局域网中路由器yesnot会forward的，并且224.0.0.1yesall主机的address，
+224.0.0.2all路由器的address，224.0.0.5allospf路由器的address，224.0.13事PIMv2路由器的address；
+239.0.0.0—239.255.255.255yes私有address（如192.168.x..x）；224.0.1.0—238.255.255.255可以用与Internet上的。
 */
 /*
 [UPnP] Sended Search Packet(len=132), return 132

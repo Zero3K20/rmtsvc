@@ -1,12 +1,12 @@
 /*******************************************************************
    *	Buffer.h
-   *    DESCRIPTION:循环buffer缓冲 和 buffer缓冲
+   *    DESCRIPTION:circular buffer and buffer
    *
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
    *
-   *    DATE:2005-08－19
+   *    DATE:2005-08-19
    *	net4cpp 2.1
    *******************************************************************/
 
@@ -57,7 +57,7 @@ bool cLoopBuffer::Write(const char *s,size_t l)
 	return true;
 }
 
-//从buffer中读取specified的字节
+//从buffer中readspecified的byte
 bool cLoopBuffer::Read(char *s,size_t l)
 {
 	if (l > m_q)
@@ -115,7 +115,7 @@ cBuffer::~cBuffer()
 	delete[] m_buf;
 }
 
-/*//拷贝构造
+/*//copy constructor
 cBuffer::cBuffer(const cBuffer &buf1){
 cBuffer &buf=const_cast<cBuffer &>(buf1);
 	delete[] m_buf;
@@ -126,7 +126,7 @@ cBuffer &buf=const_cast<cBuffer &>(buf1);
 	buf.m_max=0;
 	buf.m_len=0;
 } */
-//拷贝构造
+//copy constructor
 cBuffer::cBuffer(cBuffer &buf){
 	delete[] m_buf;
 	m_buf=buf.m_buf;
@@ -150,7 +150,7 @@ cBuffer & cBuffer::operator = (cBuffer &buf)
 }
 char & cBuffer::operator [] (size_t pos)
 {
-	static char c=0; //越界保护字符
+	static char c=0; //越界保护character
 	if(pos<0 || pos>=m_max) return c;
 	return m_buf[pos];
 }

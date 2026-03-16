@@ -20,8 +20,8 @@ const char msg_err_500[]="500 command unrecognized.\r\n";
 const char msg_err_501[]="501 can not find mportSvr\r\n";
 const char msg_err_502[]="502 failed to new Object\r\n";
 const char msg_err_503[]="503 not support\r\n"; //feature temporarily not supported
-const char msg_err_504[]="504 %d failed to map\r\n"; //映射failure
-const char msg_err_ok[]="200 %d %s success to map\r\n"; //映射success
+const char msg_err_504[]="504 %d failed to map\r\n"; //mapping failed
+const char msg_err_ok[]="200 %d %s success to map\r\n"; //mapping successful
 const char msg_ok_200[]="200 command ok\r\n";
 
 namespace net4cpp21
@@ -37,7 +37,7 @@ namespace net4cpp21
 		virtual socketTCP * connectAppsvr(char *strHost,socketTCP *psock);
 
 	private:
-		vidccSession * m_psession; //此map port相关的vidccSession
+		vidccSession * m_psession; //vidccSession associated with this map port
 	};
 
 	class vidccSession
@@ -52,12 +52,12 @@ namespace net4cpp21
 		time_t ConnectTime() { return m_tmConnected; }
 		bool isConnected() { return (m_psock_command->status()==SOCKS_CONNECTED); }
 		void Close() { if(m_psock_command) m_psock_command->Close(); }
-		void setIfLogdata(bool b); //设置是否对本session映射的所有服务记录日志
+		void setIfLogdata(bool b); //set whether to log all services mapped in this session
 		void xml_list_mapped(cBuffer &buffer);
 		
 		void parseCommand(const char *ptrCommand);
 		void Destroy(); //destroy and free resources
-		bool AddPipe(socketTCP *pipe); //添加一个空闲管道
+		bool AddPipe(socketTCP *pipe); //add一个null闲管道
 		bool DelPipe(socketTCP *pipe); //delete一个管道
 		socketTCP *GetPipe();
 		
@@ -76,10 +76,10 @@ namespace net4cpp21
 		time_t m_tmConnected; //此vIDCcconnectstarttime
 		int m_vidccVer; //connect的vidcclientversion
 		std::string m_strName;
-		std::string m_strDesc; //vIDCc的name或description
-		socketTCP * m_psock_command; //主socket，命令通道socket
-		std::map<std::string,mportTCP_vidcs *> m_tcpsets; //TCP服务映射集合
-		std::vector<socketTCP *> m_pipes; //空闲管道集合
+		std::string m_strDesc; //vIDCc的nameordescription
+		socketTCP * m_psock_command; //主socket，command通道socket
+		std::map<std::string,mportTCP_vidcs *> m_tcpsets; //TCPservicemapset
+		std::vector<socketTCP *> m_pipes; //null闲管道set
 		cMutex m_mutex;
 	};
 }//?namespace net4cpp21

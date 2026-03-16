@@ -37,15 +37,15 @@ namespace net4cpp21
 		//open IP log file and simulate sniff
 		bool openLogfile(const char *logfile);
 
-		//bindip==NULL或==""default绑定local machine第一个ip
-		//否则绑定specified的ip,createRaw socket启动sniff
-		//success返回SOCKSERR_OK，(启动sniff必须绑定IP，以便specified设置promiscuous mode的网卡,否则报10022error)
+		//if bindip==NULL or =="", bind to the local machine's first IP by default
+		//otherwise bind to the specified IP and create a raw socket to start sniffing
+		//returns SOCKSERR_OK on success，(startsniff必须绑定IP，以便specifiedsetpromiscuous mode的网卡,otherwise报10022error)
 		SOCKSRESULT sniff(const char *bindip);
 	protected:
-		//有data到达
+		//data has arrived
 		virtual void onData(char *dataptr);
 	private:
-		std::string m_logfile; //ip包记录文件
+		std::string m_logfile; //IP packet log file
 		iprules m_rules;//过滤规则
 		cThread m_thread;
 		static void sniffThread(sniffer *psniffer);

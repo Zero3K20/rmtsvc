@@ -29,7 +29,7 @@ namespace net4cpp21
 		std::map<std::string,std::string> m_maps;
 	public:
 		time_t m_startTime;//start time when session was created
-		time_t m_lastTime;//最后一次访问此sessiontime
+		time_t m_lastTime;//time of last access to this session
 	public:
 		static const long SESSION_VALIDTIME;
 		static const char SESSION_IDNAME[];
@@ -46,15 +46,15 @@ namespace net4cpp21
 	public:
 		httpServer();
 		virtual ~httpServer();
-		//设置web service的主目录以及虚目录
+		//set web service root directory and virtual directories
 		bool setvpath(const char *vpath,const char *rpath,long lAccess);
 	protected:
 		virtual bool onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &session,
 			std::map<std::string,std::string>& application,httpResponse &httprsp){ return false; }
 
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock);
-		//如果currentconnect数大于current设定的maximum connections则触发此事件
+		//triggered when current connection count exceeds the configured maximum connections
 		virtual void onTooMany(socketTCP *psock);
 		virtual void onIdle(void);
 	protected:
@@ -79,9 +79,9 @@ namespace net4cpp21
 		std::map<std::string,httpSession *> m_sessions;
 		std::map<std::string,std::string> m_application;
 
-		std::map<std::string,std::pair<std::string,long> > m_dirAccess;//目录访问permissions
-			//first --- string : http的虚目录path，例如/ 或 /aa/，虚目录不区分size写全部转化为小写
-			//second --- pair : 此http虚目录对应的实际目录和目录的访问permissions，实际目录必须为\结尾(win平台)
+		std::map<std::string,std::pair<std::string,long> > m_dirAccess;//directory访问permissions
+			//first --- string : http的虚directorypath，例如/ or /aa/，虚directorynot区分size写全部转化为小写
+			//second --- pair : 此http虚directory对应的实际directoryanddirectory的访问permissions，实际directory必须为\结尾(win平台)
 	};
 }//?namespace net4cpp21
 

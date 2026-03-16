@@ -73,7 +73,7 @@ typedef struct _IcmpHeader //define ICMP header
 	{
 		struct {unsigned char uc1,uc2,uc3,uc4;} sUC;
 		struct {unsigned short us_id,us_seq;} sUS; //id -- identification number (typically the process ID)
-												   //seq--报文序列号
+												   //seq -- packet sequence number
 		unsigned long sUL;
 	} sICMP;
 	// Not standard field in header, but reserved nonetheless
@@ -81,7 +81,7 @@ typedef struct _IcmpHeader //define ICMP header
 	unsigned long Receive_Timestamp;
     unsigned long Transmit_Timestamp;
 
-	//Icmpdata包解码
+	//ICMP data packet decoding
 	void decode(const char *ptrbuf,size_t buflen)
 	{
 		struct _IcmpHeader &icmph=*this;
@@ -107,7 +107,7 @@ typedef struct _IcmpHeader //define ICMP header
 		icmph.Transmit_Timestamp=ntohl(icmph.Transmit_Timestamp);
 		return;
 	}
-	//Icmpdata包编码
+	//ICMP data packet encoding
 	size_t encode(const char *data,size_t datalen,char *ptrbuf)
 	{
 		struct _IcmpHeader &icmph=*this;
@@ -128,7 +128,7 @@ typedef struct _IcmpHeader //define ICMP header
 			::memcpy(ptrbuf,data,datalen);
 			ptrbuf+=datalen;
 		}
-		//生成ICMP校验和
+		//generate ICMP checksum
 		icmph.Checksum=net4cpp21::socketRaw::checksum((unsigned short *)pstart_icmp,
 					ptrbuf-pstart_icmp);
 		*((unsigned short *)(pstart_icmp+2))=htons(icmph.Checksum); 

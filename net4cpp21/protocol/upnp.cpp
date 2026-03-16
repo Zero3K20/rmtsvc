@@ -1,6 +1,6 @@
 /*******************************************************************
    *	upnp.cpp
-   *    DESCRIPTION:upnp 类implementation
+   *    DESCRIPTION:UPnP class implementation
    *
    *    AUTHOR:yyc
    *
@@ -18,7 +18,7 @@ using namespace net4cpp21;
 
 static char *UPNP_SEARCH_NAME[] = 
 {
-	"urn:schemas-upnp-org:service:WANPPPConnection:1",  //以service name进行查找
+	"urn:schemas-upnp-org:service:WANPPPConnection:1",  //search by service name
 	"urn:schemas-upnp-org:service:WANIPConnection:1",
 	"urn:schemas-upnp-org:device:InternetGatewayDevice:1" //以设备名进行查找
 }; //因为有些设备支持以service name查找，有些支持设备名查找
@@ -59,7 +59,7 @@ bool upnp :: Search()
 		return false;
 	}
 	
-	char packet[256]; //组播消息
+	char packet[256]; //组播message
 	int l,len=sprintf(packet, "M-SEARCH * HTTP/1.1\r\n"
 							"HOST: %s:%d\r\n"
 							"MAN: \"ssdp:discover\"\r\n"
@@ -82,7 +82,7 @@ void upnp :: onData()
 	if(buflen<=0) return; else buf[buflen]=0;
 	RW_LOG_DEBUG("[UPnP] Received response ,len=%d\r\n%s",buflen,buf);
 	
-	// D-Link 504 竟然不是 HTTP/*.* 而是 HTTP*.*
+	// D-Link 504 竟然notyes HTTP/*.* 而yes HTTP*.*
 	UINT32 maj_ver, min_ver, status_code;
 	if (::sscanf(buf, "HTTP/%u.%u %u", &maj_ver, &min_ver, &status_code) != 3 &&
 		::sscanf(buf, "HTTP%u.%u %u", &maj_ver, &min_ver, &status_code) != 3)
@@ -93,22 +93,22 @@ void upnp :: onData()
 	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nLocation:");
 	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nlocation:");
 	if(ptr_beg==NULL) return; else ptr_beg+=11;
-	while( *ptr_beg==' ') ptr_beg++; //去掉空格
+	while( *ptr_beg==' ') ptr_beg++; //remove spaces
 	const char *ptr_end=strchr(ptr_beg,'\r');
 	if(ptr_end==NULL) return;
 	m_strLocation.assign(ptr_beg,ptr_end-ptr_beg);
 	RW_LOG_DEBUG("[UPnP] Found Loaction: %s\r\n",m_strLocation.c_str());
-	//获取ST的值
+	//getST的值
 	if( (ptr_beg=strstr(buf,"\r\nST:")) ){
 		ptr_beg+=5;
-		while( *ptr_beg==' ') ptr_beg++; //去掉空格
+		while( *ptr_beg==' ') ptr_beg++; //remove spaces
 		if( (ptr_end=strchr(ptr_beg,'\r')) )
 			m_targetName.assign(ptr_beg,ptr_end-ptr_beg);
 	}else m_targetName="";
 	
-	std::string strXml; //获取设备descriptionxml
+	std::string strXml; //get设备descriptionxml
 	if(!GetDevXML(strXml)) return;
-	//获取控制urladdress
+	//get控制urladdress
 	string sverviceType=string("<serviceType>")+m_targetName+string("</serviceType>");
 	ptr_beg=strstr(strXml.c_str(),sverviceType.c_str());
 	if(ptr_beg){
@@ -128,7 +128,7 @@ void upnp :: onData()
 		GetProperty(strXml.c_str(),"URLBase",base_url);
 		if(base_url==""){
 			const char *ptr=(m_strLocation[4]==':')?
-				strchr(m_strLocation.c_str()+7,'/'):  //+7 跳过http://
+				strchr(m_strLocation.c_str()+7,'/'):  //+7 skip http://
 				strchr(m_strLocation.c_str()+8,'/');
 			if(ptr) base_url.assign(m_strLocation.c_str(),ptr-m_strLocation.c_str());
 		}
@@ -145,7 +145,7 @@ void upnp :: onData()
 	RW_LOG_DEBUG("[UPnP] friendlyName: %s\r\n",m_friendlyName.c_str());
 	RW_LOG_DEBUG("[UPnP] manufacturer: %s\r\n",m_manufacturer.c_str());
 	
-	//查找到UPnP device后，进行映射
+	//查foundUPnP device后，进行map
 	std::vector<UPnPInfo *> ::iterator it=m_upnpsets.begin();
 	for(;it!=m_upnpsets.end();it++){
 		UPnPInfo *p=*it;
@@ -156,7 +156,7 @@ void upnp :: onData()
 
 bool upnp :: GetDevXML(std::string &strXml)
 {
-	//获取Locationspecified的xml文件
+	//getLocationspecified的xmlfile
 	httpClient httpsock; int iret;
 TRANS302:
 	httpsock.cls_httpreq();
@@ -169,7 +169,7 @@ TRANS302:
 		if(ptr==NULL) return false;
 		m_strLocation.assign(ptr); goto TRANS302;
 	}
-	else if(iret==200) //响应success
+	else if(iret==200) //responsesuccess
 	{
 		httpResponse & resp=httpsock.Response();
 		resp.recv_remainder(&httpsock,-1);//receive完整的HTTP response体
@@ -183,7 +183,7 @@ TRANS302:
 	}
 	return false;
 }
-//获取公网IPaddress
+//get public IP address
 bool upnp :: GetWanIP(std::string &strRet)
 {
 	std::string reqName("GetExternalIPAddress");
@@ -334,7 +334,7 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	strCmd.assign(resp.szReceivedContent(),resp.lReceivedContent());
 	return (sr==200);
 }
-//attribute获取 ,reqName : 请求attribute名  rspName: 响应name
+//attributeget ,reqName : requestattribute名  rspName: responsename
 bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 {
 	if(!m_bFound || m_control_url=="") return false;

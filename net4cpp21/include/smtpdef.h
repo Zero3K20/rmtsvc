@@ -19,25 +19,25 @@
 #define SMTP_MAX_RESPTIMEOUT 10 //s maximum response delay
 
 
-#define SOCKSERR_SMTP_RESP -301 //命令响应error
+#define SOCKSERR_SMTP_RESP -301 //command response error
 #define SOCKSERR_SMTP_CONN SOCKSERR_SMTP_RESP-1 //connectserverfailure
-#define SOCKSERR_SMTP_AUTH SOCKSERR_SMTP_RESP-2 //smtp认证failure
-#define SOCKSERR_SMTP_SURPPORT SOCKSERR_SMTP_RESP-3 //not supported的smtp认证方式
-#define SOCKSERR_SMTP_RECIPIENT SOCKSERR_SMTP_RESP-4 //没有specified邮件receive者
-#define SOCKSERR_SMTP_FAILED SOCKSERR_SMTP_RESP-5 //一般性error
-#define SOCKSERR_SMTP_EMLFILE SOCKSERR_SMTP_RESP-6 //error的邮件format
-#define SOCKSERR_SMTP_EMAIL SOCKSERR_SMTP_RESP-7 //invalid邮件address
-#define SOCKSERR_SMTP_DNSMX SOCKSERR_SMTP_RESP-8 //MX域名parsefailure
+#define SOCKSERR_SMTP_AUTH SOCKSERR_SMTP_RESP-2 //SMTP authentication failure
+#define SOCKSERR_SMTP_SURPPORT SOCKSERR_SMTP_RESP-3 //unsupported SMTP authentication method
+#define SOCKSERR_SMTP_RECIPIENT SOCKSERR_SMTP_RESP-4 //no email recipient specified
+#define SOCKSERR_SMTP_FAILED SOCKSERR_SMTP_RESP-5 //general error
+#define SOCKSERR_SMTP_EMLFILE SOCKSERR_SMTP_RESP-6 //invalid email format
+#define SOCKSERR_SMTP_EMAIL SOCKSERR_SMTP_RESP-7 //invalid email address
+#define SOCKSERR_SMTP_DNSMX SOCKSERR_SMTP_RESP-8 //MX domain name parse failure
 #define SOCKSERR_SMTP_4XX   SOCKSERR_SMTP_RESP-9
 
 typedef enum         //define支持的SMTPauthenticationtype
 {
 	SMTPAUTH_NONE=0,
 	SMTPAUTH_LOGIN=1, //等效于 PLAIN，只为了与 SMTP authentication的预标准implementation相兼容。缺省情况下，此机制仅可由 SMTP 使用
-	SMTPAUTH_CRAM_MD5=2, //一种询问/响应authentication机制，类似于 APOP，但也适合与其他协议配合使用。在 RFC 2195 中已define
-	SMTPAUTH_DIGEST_MD5=4, //RFC 2831 中define的询问/响应authentication机制
+	SMTPAUTH_CRAM_MD5=2, //一种询问/responseauthentication机制，class似于 APOP，但也适合与其他protocol配合使用。at RFC 2195 中已define
+	SMTPAUTH_DIGEST_MD5=4, //RFC 2831 中define的询问/responseauthentication机制
 	SMTPAUTH_8BITMIME=8,
-	SMTPAUTH_PLAIN=16 //PLAIN 此机制通过网络传递用户的纯文本口令，在网络上很容易窃听口令
+	SMTPAUTH_PLAIN=16 //PLAIN 此机制通过network传递user的纯文本口令，atnetwork上很容易窃听口令
 }SMTPAUTH_TYPE;
 
 
@@ -49,7 +49,7 @@ class mailMessage
 	int m_contentType; //"text/plain" "text/html"
 	std::string m_strSubject;
 	std::string m_strBody;
-	std::string m_strBodyCharset;//email body的编码字符集，default为utf-8
+	std::string m_strBodyCharset;//email body的编码character集，default为utf-8
 	std::vector<std::string> m_attachs;//要send的附件
 
 	std::string m_strName;//send者的name
@@ -59,8 +59,8 @@ class mailMessage
 	std::vector<std::pair<std::string,std::string> > m_vecBc; //暗送,first --收件人email，second 收件人昵称
 	
 	std::string m_strMailFile;//生成的邮件体file pathname
-	long m_lMailFileStartPos;//邮件体文件中邮件体正文的起始位置
-	bool m_bDeleteFile;//对象释放时是否deletem_strMailFile文件
+	long m_lMailFileStartPos;//邮件体file中邮件体正文的起始bit置
+	bool m_bDeleteFile;//objectrelease时yesnodeletem_strMailFilefile
 public:
 	enum RECIPIENT_TYPE { TO, CC, BCC };
 	enum EMAILBODY_TYPE { TEXT_BODY,HTML_BODY };
@@ -83,7 +83,7 @@ public:
 		if(name) m_strName.assign(name);
 	}
 	
-	//设置email subject，正文
+	//setemail subject，正文
 	void setBody(const char *strSubject,const char *strBody,EMAILBODY_TYPE bt=TEXT_BODY)
 	{
 		if(strSubject) m_strSubject.assign(strSubject);
@@ -92,10 +92,10 @@ public:
 	}
 	//add attachment
 	bool AddAtach(const char *filename,const char *filepath,const char *contentID);
-	//添加收件人
+	//add收件人
 	bool AddRecipient(const char *email,const char *nick,RECIPIENT_TYPE rt=TO);
-	//生成Base64编码的邮件体文件
-	//bDelete -- 指示当mailMessage对象释放时是否delete生成的文件
+	//生成Base64 encoding的邮件体file
+	//bDelete -- 指示whenmailMessageobjectrelease时yesnodelete生成的file
 	const char * createMailFile(const char *file,bool bDelete);
 	long MailFileStartPos() const { return m_lMailFileStartPos; }
 	void setBody(const char *mailfile,long startPos)
@@ -110,7 +110,7 @@ public:
 
 #endif
 
-/* 完整协议跟踪
+/* complete protocol trace
 [56 202.108.9.193:25-->127.0.0.1:1159] 220 Coremail SMTP(Anti Spam) System (163c
 om[20050206])
 .
@@ -180,26 +180,26 @@ yycmail=A3=AC=C4=FA=BA=C3=A3=A1
 .
 */
 /*
-211 系统status或系统帮助响应 
+211 系统statusor系统帮助response 
 　　　214 帮助info 
-　　　220 服务就绪 
-　　　221 服务关闭传输信道 
-　　　250 要求的邮件操作完成 
-　　　251 用户非local，将转发向 
+　　　220 service就绪 
+　　　221 serviceclose传输信道 
+　　　250 要求的邮件操作complete 
+　　　251 user非local，将forward向 
 　　　354 start邮件输入，以.end 
-　　　421 服务未就绪，关闭传输信道（当必须关闭时，此应答可以作为对任何命令的响应） 
-　　　450 要求的邮件操作未完成，邮箱不可用（例如，邮箱忙） 
+　　　421 service未就绪，close传输信道（when必须close时，此应答可以作为对任何command的response） 
+　　　450 要求的邮件操作未complete，邮箱not可用（例如，邮箱忙） 
 　　　451 放弃要求的操作；handle过程中出错 
-　　　452 系统存储不足，要求的操作未执行 
-　　　500 format error，命令不可识别（此error也包括命令行过长） 
-　　　501 参数format error 
-　　　502 命令不可implementation 
-　　　503 error的命令序列 
-　　　504 命令参数不可implementation 
-　　　550 要求的邮件操作未完成，邮箱不可用（例如，邮箱未找到，或不可访问） 
-　　　551 用户非local，请尝试 
+　　　452 系统存储not足，要求的操作未执行 
+　　　500 format error，commandnot可识别（此error也packet括command行过长） 
+　　　501 parameterformat error 
+　　　502 commandnot可implementation 
+　　　503 error的command序列 
+　　　504 commandparameternot可implementation 
+　　　550 要求的邮件操作未complete，邮箱not可用（例如，邮箱未found，ornot可访问） 
+　　　551 user非local，请尝试 
 　　　552 过量的存储分配，要求的操作未执行 
-　　　553 邮箱名不可用，要求的操作未执行（例如邮箱format error） 
+　　　553 邮箱名not可用，要求的操作未执行（例如邮箱format error） 
 　　　554 operation failed 
 */
 

@@ -24,13 +24,13 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID);
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<process>
-//<id>序号</id>
+//<id>sequence number</id>
 //<pid>process ID</pid>
-//<ppid>父process ID</ppid>
-//<pname>进程名</pname>
-//<priority>优先级</priority>
-//<threads>线程个数</threads>
-//<ppath>程序path</ppath>
+//<ppid>parent process ID</ppid>
+//<pname>process name</pname>
+//<priority>priority</priority>
+//<threads>thread count</threads>
+//<ppath>program path</ppath>
 //</process>
 //...
 //</xmlroot>
@@ -41,15 +41,15 @@ DWORD procList(cBuffer &buffer,const char *filter)
 		return procList_NT(buffer,filter);
 	return procList_2K(buffer,filter);
 }
-//列出某进程的所有模块
+//列出某process的all模块
 //buffer - returned xml document, format:
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<module>
-//<id>序号</id>
+//<id>sequence number</id>
 //<hmdl></hmdl>
-//<mbase>基address</mbase>
-//<mname>模块名</mname>
+//<mbase>base address</mbase>
+//<mname>module name</mname>
 //</module>
 //...
 //</xmlroot>
@@ -67,9 +67,9 @@ bool webServer::httprsp_plist(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(1024);
 	procList(buffer,NULL);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -81,9 +81,9 @@ bool webServer::httprsp_mlist(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 	cBuffer buffer(1024);
 	moduleList(buffer,pid);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -101,9 +101,9 @@ bool webServer::httprsp_pkill(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 		::CloseHandle(hProcess);
 	}else buflen=sprintf(buf,"Can not open processID %d",pid);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buflen); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buflen,buf,-1);
@@ -111,16 +111,16 @@ bool webServer::httprsp_pkill(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 }
 
 #include "cInjectDll.h"
-//从某个进程中卸载某dll
+//从某个process中卸载某dll
 bool webServer::httprsp_mdattach(socketTCP *psock,httpResponse &httprsp,DWORD pid,HMODULE hmdl,long count)
 {
 	cInjectDll inject(NULL);
 	if(count<=0 || count>100) count=1;
 	for(int i=0;i<count;i++) inject.DeattachDLL(pid,hmdl);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(0); 
 	httprsp.send_rspH(psock,200,"OK");
 	return true;
@@ -141,8 +141,8 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	}//?while
 	return bMatch;
 }
-//枚举NT系统的进程
-//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块info
+//enumNT系统的process
+//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
 DWORD procList_NT(cBuffer &buffer,const char *filter)
 {
 	typedef BOOL (WINAPI *pfnEnumProcesses_D)(
@@ -174,15 +174,15 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	//枚举系统process ID列表
+	//enum系统process IDlist
 	if (pfnEnumProcesses!=NULL && (*pfnEnumProcesses)(aProcesses, sizeof(aProcesses), &cbNeeded ) )
 	{
 		cProcesses = cbNeeded / sizeof(DWORD);
 		HANDLE hProcess;
 		char szProcessName[MAX_PATH];
-		int filternums=0;//过滤条件个数
+		int filternums=0;//过滤condition个数
 		if(filter && filter[0]!=0 )
-			filternums=(strchr(filter,','))?2:1;//2代表多个
+			filternums=(strchr(filter,','))?2:1;//2 means multiple
 		for (unsigned int i = 0; i < cProcesses; i++ )
 		{
 			strcpy(szProcessName,"unknown");
@@ -194,7 +194,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 				::CloseHandle( hProcess );
 			}
 			bool bMatch=true;
-			if(filternums==1) //一个过滤条件
+			if(filternums==1) //一个过滤condition
 				bMatch=MatchingString(szProcessName,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(szProcessName,filter);
@@ -222,9 +222,9 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//枚举win9x/2k系统的进程
-//对于win9x/2k可以通过toolhelp32函数列举进程及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等函数
+//enumwin9x/2k系统的process
+//对于win9x/2k可以通过toolhelp32function列举process及模块info
+//只有2k&&win9x支持CreateToolhelp32Snapshot等function
 DWORD procList_2K(cBuffer &buffer,const char *filter)
 {
 	HINSTANCE hDll=::LoadLibrary("KERNEL32.dll");
@@ -247,20 +247,20 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 	 if ((*pfnProcess32First)(hSnapShot, processInfo))
 	 {
 		const char *ptrFilename=NULL;
-		int filternums=0;//过滤条件个数
-		if(filter && filter[0]!=0 ) filternums=(strchr(filter,','))?2:1;//2代表多个
+		int filternums=0;//过滤condition个数
+		if(filter && filter[0]!=0 ) filternums=(strchr(filter,','))?2:1;//2 means multiple
 		do
 		{
-			//win9x下显示的是file path全名，去掉path
-			//2k下仅仅显示的是filename（因此可以不要此判断）
+			//win9x下显示的yesfile path全名，去掉path
+			//2k下仅仅显示的yesfilename（therefore可以not要此判断）
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
 			else
-				ptrFilename+=1;//去掉'\'
+				ptrFilename+=1;//remove '\'
 			
 			bool bMatch=true;
-			if(filternums==1) //一个过滤条件
+			if(filternums==1) //一个过滤condition
 				bMatch=MatchingString(ptrFilename,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(ptrFilename,filter);
@@ -292,8 +292,8 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//枚举NT系统的进程
-//对于NT操作系统可以用PSAPI.DLL枚举进程以及模块info
+//enumNT系统的process
+//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
 DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -359,9 +359,9 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 	return dwret;
 }
 
-//枚举win9x/2k系统进程的模块
-//对于win9x/2k可以通过toolhelp32函数列举进程及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等函数
+//enumwin9x/2k系统process的模块
+//对于win9x/2k可以通过toolhelp32function列举process及模块info
+//只有2k&&win9x支持CreateToolhelp32Snapshot等function
 DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 {
 	HINSTANCE hDll=::LoadLibrary("KERNEL32.dll");

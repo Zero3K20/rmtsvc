@@ -50,8 +50,8 @@ void docmd_ssls(const char *strParam)
 	if(g_strCaCert!="") getAbsolutfilepath(g_strCaCert);
 	if(g_strCaCRL!="") getAbsolutfilepath(g_strCaCRL);
 }
-//*********************define全局用户自define证书参数  end  ****************************************
-//启动自动监视
+//*********************define global user-defined certificate parameters  end  ****************************************
+//start automatic monitoring
 BOOL MyService::AutoSpy(const char *commandline)
 {
 	std::string strProcessname=(m_bDebug)?"explorer.exe":"winlogon.exe";
@@ -83,7 +83,7 @@ bool MyService::CreateTaskTime(const char *ptrAt,const char *strTask)
 		 ::sscanf(ptrAt,"%d:%d/%c",&task.h,&task.m,&c);
 	else ::sscanf(ptrAt,"%d/%c",&task.h,&c);
 	
-	if(c=='d') //每天定时执行
+	if(c=='d') //execute daily at scheduled time
 		task.type=c;
 	else if(c=='t') //定time隔执行
 		task.type=c;
@@ -93,17 +93,17 @@ bool MyService::CreateTaskTime(const char *ptrAt,const char *strTask)
 	m_tasklist.push_back(task); return true;
 }
 
-//ini文件支持的命令
+//inifile支持的command
 void MyService::parseCommand(const char *strCommand)
 {
 	if(strCommand==NULL || strCommand[0]==0) return;
 	while(*strCommand==' ') strCommand++;
 	char *ptrAt=(char *)strstr(strCommand," at=");
-	if(ptrAt){//此命令为定时任务
+	if(ptrAt){//此command为定时任务
 		*ptrAt='\0';
 		CreateTaskTime(ptrAt+4,strCommand);
 		*ptrAt=' '; return;
-	}//?if(ptrAt){//此命令为定时任务
+	}//?if(ptrAt){//此command为定时任务
 	
 	if(strncasecmp(strCommand,"iprules ",8)==0)
 	{
@@ -114,16 +114,16 @@ void MyService::parseCommand(const char *strCommand)
 		{	m_websvr.docmd_webiprules(strCommand+8); return; }
 		else if(it!=maps.end() && (*it).second=="telnet")
 		{	m_telsvr.docmd_iprules(strCommand+8); return; }
-		//否则接着交m_vidcManager.parseCommand(pstart);解释
+		//otherwise接着交m_vidcManager.parseCommand(pstart);解释
 	}//?if(strncasecmp(strCommand,"iprules ",8)==0)
 
-	if(strncasecmp(strCommand,"sets ",5)==0) //设置本服务的info
+	if(strncasecmp(strCommand,"sets ",5)==0) //set本service的info
 		this->docmd_sets(strCommand+5);
-	else if(strncasecmp(strCommand,"ssls ",5)==0) //设置ssl证书info
+	else if(strncasecmp(strCommand,"ssls ",5)==0) //setsslcertificateinfo
 		docmd_ssls(strCommand+5);
-	else if(strncasecmp(strCommand,"telnet ",7)==0) //设置telnet
+	else if(strncasecmp(strCommand,"telnet ",7)==0) //settelnet
 		m_telsvr.docmd_sets(strCommand+7);
-	else if(strncasecmp(strCommand,"webs ",5)==0) //设置本服务info
+	else if(strncasecmp(strCommand,"webs ",5)==0) //set本serviceinfo
 		m_websvr.docmd_webs(strCommand+5);
 	else if(strncasecmp(strCommand,"user ",5)==0)
 		m_websvr.docmd_user(strCommand+5);
@@ -133,40 +133,40 @@ void MyService::parseCommand(const char *strCommand)
 	else if(strncasecmp(strCommand,"proxy ",6)==0)
 		m_msnbot.docmd_proxy(strCommand+6);
 */ //yyc remove MSN 2010-11-05
-	else if(strncasecmp(strCommand,"kill ",5)==0) //杀死specified的进程
+	else if(strncasecmp(strCommand,"kill ",5)==0) //杀死specified的process
 		::docmd_kill(strCommand+5);
 	else if(strncasecmp(strCommand,"exec ",5)==0) //执行specified的程序
 		::docmd_exec(strCommand+5);
 	else if(strncasecmp(strCommand,"cmdpage ",8)==0)
 		m_preCmdpage.assign(strCommand+8);
-	//否则交m_vidcManager.parseCommand(pstart);解释
+	//otherwise交m_vidcManager.parseCommand(pstart);解释
 	else m_vidcManager.parseCommand(strCommand);
 }
 
-//设置本服务的info
-//命令format: 
-//	sets [log=<log output文件>] [opentype=APPEND] [loglevel=DEBUG|INFO|WARN|ERROR]
-//log=<log output文件> : 设置程序是否数促日志文件，如果不specified则不输出否则输出specified的日志文件
-//opentype=APPEND    : 设置program startup时是否为追加写日志文件还是覆盖写,如果不设置此项则为覆盖写
-//loglevel=DEBUG|INFO|WARN|ERROR : 设置log output的级别，default为INFO级别
-//stop_pswd=<stop service的password> : 设置stop service的password，如果设置了password则不输入password将无法stop service。
-//		如果设置了password用户只能在命令行下通过-e <password> 命令stop service，而无法通过SCMservice control台或net stop命令stop service。
-//		假如程序名为xx.exe,设置了停止password为123，则要停止此服务需在命令行下输入xx.exe -e 123
-//faceless=TRUE : 如果以非服务方式启动且运行时没有specified-d参数则run without a window本程序
-//		例如双击直接运行本程序时，如果设置了此项则run without a window，即使关闭控制台窗口程序也不会end
-//		否则以带窗口的形式运行按Ctrl+c或者关闭窗口则程序将end
+//set本service的info
+//command format: 
+//	sets [log=<log outputfile>] [opentype=APPEND] [loglevel=DEBUG|INFO|WARN|ERROR]
+//log=<log outputfile> : set程序yesno数促logfile，ifnotspecified则not输出otherwise输出specified的logfile
+//opentype=APPEND    : setprogram startup时yesno为追加写logfile还yes覆盖写,if not set此项则为覆盖写
+//loglevel=DEBUG|INFO|WARN|ERROR : setlog output的级别，default为INFO级别
+//stop_pswd=<stop service的password> : setstop service的password，ifset了password则not输入password将无法stop service。
+//		ifset了passworduser只能atcommand行下通过-e <password> commandstop service，而无法通过SCMservice control台ornet stopcommandstop service。
+//		false如程序名为xx.exe,set了stoppassword为123，则要stop此service需atcommand行下输入xx.exe -e 123
+//faceless=TRUE : if以非service方式start且运行时没有specified-dparameter则run without a window本程序
+//		例如双击直接运行本程序时，ifset了此项则run without a window，即使close控制台窗口程序也not会end
+//		otherwise以带窗口的形式运行按Ctrl+cor者close窗口则程序将end
 void MyService :: docmd_sets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
 	if(splitString(strParam,' ',maps)<=0) return;
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("opentype"))!=maps.end())
-	{//设置日志文件为追加写的方式
+	{//setlogfile为追加写的方式
 		if((*it).second=="APPEND")
 			RW_LOG_OPENFILE_APPEND();
 	}
 	if( (it=maps.find("log"))!=maps.end())
-	{//设置日志文件
+	{//setlogfile
 		if((*it).second!="" && (*it).second!="null")
 		{
 			getAbsolutfilepath((*it).second);
@@ -174,7 +174,7 @@ void MyService :: docmd_sets(const char *strParam)
 		}
 	}
 	if( (it=maps.find("loglevel"))!=maps.end())
-	{//设置log output级别
+	{//setlog output级别
 		if((*it).second=="DEBUG")
 			RW_LOG_SETLOGLEVEL(LOGLEVEL_DEBUG)
 		else if((*it).second=="INFO")
@@ -203,23 +203,23 @@ void MyService :: docmd_sets(const char *strParam)
 	}
 }
 
-//设置web service的相关info
-//命令format: 
-//	webs [port=<web serviceport>] [bindip=<本服务绑定的local machineIP>] [root=<主目录>] [access=<对主目录的访问permissions>] [default=<default文档>]
-//port=<服务port>    : 设置服务port，如果不设置则default为7778.设置为0则不start web service <0则随即分配port
-//bindip=<本服务绑定的local machineIP> : 设置本服务绑定的local machineIP，如果不设置则default绑定local machine所有IP
-//root=<主目录>     : specified此web service的根/对应的主目录。主目录是运行本服务local机的实际绝对path
-//					如果主目录中包含空格则要用""将主目录括起
-//					如果主目录等于""或空则default根目录为服务程序所在目录
-//access=<对主目录的访问permissions> : specified此主目录的访问permissions。
-//		如果不设置则default具有ACCESS_NONE访问permissions。设置format和含义如下
-//		<对主目录的访问permissions> : <FILE_READ|FILE_WRITE|FILE_EXEC|DIR_LIST|DIR_NOINHERIT>
+//setweb service的相关info
+//command format: 
+//	webs [port=<web serviceport>] [bindip=<本service绑定的local machineIP>] [root=<主directory>] [access=<对主directory的访问permissions>] [default=<default文档>]
+//port=<serviceport>    : setserviceport，if not set则default为7778.set为0则notstart web service <0则随即分配port
+//bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
+//root=<主directory>     : specified此web service的根/对应的主directory。主directoryyes运行本servicelocal机的实际绝对path
+//					if the home directory contains spaces, enclose it in quotes
+//					if主directory等于""ornull则default根directory为service程序所atdirectory
+//access=<对主directory的访问permissions> : specified此主directory的访问permissions。
+//		if not set则default具有ACCESS_NONE访问permissions。setformatand含义如下
+//		<对主directory的访问permissions> : <FILE_READ|FILE_WRITE|FILE_EXEC|DIR_LIST|DIR_NOINHERIT>
 //		ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_EXEC|DIR_LIST
-//		FILE_READ : 读取 FILE_WRITE : 写入 FILE_EXEC : 执行
-//		DIR_LIST : 目录浏览
-//		DIR_NOINHERIT : 是否允许此虚目录对应的真实path下的子目录继承用户specified的目录访问permissions。
+//		FILE_READ : read FILE_WRITE : write FILE_EXEC : 执行
+//		DIR_LIST : directory listing
+//		DIR_NOINHERIT : yesno允许此虚directory对应的true实path下的子directory继承userspecified的directory访问permissions。
 //default=<default文档>
-//resource=<FALSE> : 不从程序资源中获取文件
+//resource=<FALSE> : not从程序资源中getfile
 void webServer :: docmd_webs(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -227,15 +227,15 @@ void webServer :: docmd_webs(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 
 	if( (it=maps.find("port"))!=maps.end())
-	{//设置服务的port
+	{//set service port
 		m_svrport=atoi((*it).second.c_str());
 	}
 	if( (it=maps.find("bindip"))!=maps.end())
-	{//设置服务绑定IP
+	{//set service binding IP
 		m_bindip=(*it).second;
 	}
 	if( (it=maps.find("poweroff"))!=maps.end())
-	{//是否无需permissions可直接remote关机或重启
+	{//yesno无需permissions可直接remote关机or重启
 		if((*it).second=="ANYONE") m_bPowerOff=true;
 	}
 	if( (it=maps.find("resource"))!=maps.end())
@@ -257,14 +257,14 @@ void webServer :: docmd_webs(const char *strParam)
 		if(strstr(ptr,"DIR_NOINHERIT")) lAccess|=HTTP_ACCESS_SUBDIR_INHERIT;
 		if(strstr(ptr,"ACCESS_ALL")) lAccess=HTTP_ACCESS_ALL;
 	}
-	if(!m_bGetFileFromRes) //如果specified不从exe资源中获取web页面，那么最少需要只read permission
+	if(!m_bGetFileFromRes) //ifspecifiednot从exe资源中getweb页面，那么最少需要只read permission
 			lAccess|=HTTP_ACCESS_READ;
 
 	if( (it=maps.find("default"))!=maps.end())
 		defaultPage=(*it).second;
 	this->setRoot(rootpath.c_str(),lAccess,defaultPage.c_str());
 	
-	//web service的SSL支持配置参数
+	//web service的SSL支持configurationparameter
 	if( (it=maps.find("ssl_enabled"))!=maps.end() && (*it).second=="true")
 		m_bSSLenabled=true;
 	else m_bSSLenabled=false;
@@ -275,10 +275,10 @@ void webServer :: docmd_webs(const char *strParam)
 	return;
 }
 
-//设置web service的ip过滤规则或针对某个account的IP filter rules
-//命令format:
+//setweb service的ip过滤规则or针对某个account的IP filter rules
+//command format:
 //	webiprules [access=0|1] ipaddr="<IP>,<IP>,..."
-//access=0|1     : 对符合下列IP条件的是拒绝还是放行
+//access=0|1     : whether to deny or allow IPs matching the following conditions
 //例如:
 // webiprules access=0 ipaddr="192.168.0.*,192.168.1.10"
 void webServer :: docmd_webiprules(const char *strParam)
@@ -300,24 +300,24 @@ void webServer :: docmd_webiprules(const char *strParam)
 	return;
 }
 
-//设置访问者accountpermissionsinfo
-//命令format：
+//set访问者accountpermissionsinfo
+//commandformat：
 //	user account=<account> [pswd=<account password>] [acess=<account的访问permissions>]
-//account=<访问account> : 必须项. 要添加的rmtsvc访问者account。
+//account=<访问account> : 必须项. 要add的rmtsvc访问者account。
 //pswd=<account password>    : 必须项. specifiedaccount的password
 //access=<account的访问permissions>
-//	如果不设置则default具有ACCESS_NONE访问permissions。设置format和含义如下
+//	if not set则default具有ACCESS_NONE访问permissions。setformatand含义如下
 //		ACCESS_ALL=ACCESS_SCREEN_ALL|ACCESS_FILE_ALL|ACCESS_REGIST_ALL|ACCESS_SERVICE_ALL|ACCESS_TELNET_ALL;
 //		ACCESS_SCREEN_ALL: remote screen完全控制permissions
 //		ACCESS_SCREEN_VIEW: remote查看屏幕permissions
 //		ACCESS_FILE_ALL  : remote file management操作，可读写delete等
 //		ACCESS_FILE_VIEW : remote file management紧紧允许读，download
-//		ACCESS_REGIST_ALL: remoteregistry management可读写添加delete等
+//		ACCESS_REGIST_ALL: remoteregistry management可读写adddelete等
 //		ACCESS_REGIST_VIEW:紧紧可查看registryinfo
 //		ACCESS_SERVICE_ALL:remoteservice management，可完全操作
-//		ACCESS_SERVICE_VIEW:remote服务权利仅仅可查看
+//		ACCESS_SERVICE_VIEW:remoteservice权利仅仅可查看
 //		ACCESS_TELNET_ALL:  remotetelnet管理
-//		ACCESS_FTP_ADMIN : remoteFTP服务配置管理
+//		ACCESS_FTP_ADMIN : remoteFTPserviceconfiguration管理
 void webServer :: docmd_user(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -354,17 +354,17 @@ void webServer :: docmd_user(const char *strParam)
 		std::pair<std::string,long> p(pswd,lAccess);
 		m_mapUsers[user]=p;
 	}
-	m_bAnonymous=false; //如果配置了账号则不允许匿名访问
+	m_bAnonymous=false; //ifconfiguration了account则not允许匿名访问
 }
 /* //yyc remove MSN 2010-11-05
-//设置msn机器人相关info
-//命令format:
-//	msnbot account=<msnaccount>:<password> [trusted=<受信任的msnaccount>] [prefix="<移动MSN返回消息前缀>"]
-//account=<msnaccount>:<password> : specifiedmsn机器人的登录account和password.
+//setmsn机器人相关info
+//command format:
+//	msnbot account=<msnaccount>:<password> [trusted=<受信任的msnaccount>] [prefix="<移动MSNreturnmessage前缀>"]
+//account=<msnaccount>:<password> : specifiedmsn机器人的loginaccountandpassword.
 //trusted=<受信任的msnaccount>: specifiedmsn机器人信任的msnaccount，
-//			  此account和msn机器人聊天控制无需输入控制访问password
-//			  可输入多个account，用','分割
-//prefix="<移动MSN返回消息前缀>"
+//			  此accountandmsn机器人聊天控制无需输入控制访问password
+//			  multiple accounts can be entered, separated by ','
+//prefix="<移动MSNreturnmessage前缀>"
 BOOL msnShell :: docmd_msnbot(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -378,7 +378,7 @@ BOOL msnShell :: docmd_msnbot(const char *strParam)
 		if(ptr)
 		{
 			MyService *ptrService=MyService::GetService();
-			webServer *pwwwSvc=&ptrService->m_websvr;//指向www服务的指针
+			webServer *pwwwSvc=&ptrService->m_websvr;//pointer towwwservice的pointer
 			*(char *)ptr=0; ptr++; char s[128]; 
 			sprintf(s,"account=%s pswd=%s access=ACCESS_ALL",(*it).second.c_str(),ptr);
 			pwwwSvc->docmd_user(s);
@@ -392,13 +392,13 @@ BOOL msnShell :: docmd_msnbot(const char *strParam)
 	if( (it=maps.find("prefix"))!=maps.end())
 	{
 		this->m_prefix==(*it).second;
-	}else this->m_prefix="对方正在使用手机MSN,详见http://mobile.msn.com.cn。";
+	}else this->m_prefix="对方in progress使用手机MSN,详见http://mobile.msn.com.cn。";
 		            
 	return TRUE;
 }
 
-//设置msn机器人的代理info
-//命令format: 
+//setmsn机器人的代理info
+//command format: 
 //	proxy type=HTTPS|SOCKS4|SOCKS5 host=<proxy serviceaddress> port=<proxy service port> [user=<访问proxy serviceaccount>] [pswd=<访问proxy servicepassword>]
 BOOL msnShell :: docmd_proxy(const char *strParam)
 {
@@ -438,7 +438,7 @@ int splitString(const char *str,char delm,std::map<std::string,std::string> &map
 {
 //	printf("split String - %s\r\n",str);
 	if(str==NULL) return 0;
-	while(*str==' ') str++;//delete前导空格
+	while(*str==' ') str++;//delete leading spaces
 	const char *ptr,*ptrStart,*ptrEnd;
 	while( (ptr=strchr(str,'=')) )
 	{
@@ -454,7 +454,7 @@ int splitString(const char *str,char delm,std::map<std::string,std::string> &map
 
 		if(*ptrEnd==0) break;
 		str=ptrEnd+1;
-		while(*str==' ') str++;//delete前导空格
+		while(*str==' ') str++;//delete leading spaces
 	}//?while(ptr)
 	
 //	std::map<std::string,std::string>::iterator it=maps.begin();
@@ -467,7 +467,7 @@ int splitString(const char *str,char delm,std::map<std::string,std::string> &map
 int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxSplit)
 {
 	if(str==NULL) return 0;
-	while(*str==' ') str++;//delete前导空格
+	while(*str==' ') str++;//delete leading spaces
 	const char *ptr=strchr(str,delm);
 	while(true)
 	{
@@ -479,7 +479,7 @@ int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxS
 		vec.push_back(str);
 		if(ptr==NULL) break;
 		*(char *)ptr=delm; str=ptr+1;
-		while(*str==' ') str++;//delete前导空格
+		while(*str==' ') str++;//delete leading spaces
 		ptr=strchr(str,delm);
 	}//?while
 	return vec.size();

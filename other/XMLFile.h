@@ -20,9 +20,9 @@
 
 //typedef const char* LPCTSTR;
 
-//!  XMLFile class 读写XML文件 
+//!  XMLFile class for reading/writing XML files 
 /*!
-  可用来保存应用程序设置。
+  can be used to save application settings.
 */
 
 class CXMLFile
@@ -38,47 +38,47 @@ public:
 public:
 
 	///得到node值(长整型)
-	///保存XML文件
+	///saveXMLfile
 	/** 
 		\param cstrBaseKeyName 基键名.
 		\param cstrValueName 键名(取值名).
 		\param lDefaultValue default长整值.
 	*/
 	long GetLong(const char* cstrBaseKeyName, const char* cstrValueName, long lDefaultValue);
-	///设置node值(长整型)
+	///setnode值(长整型)
 	/** 
 		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(取保存值名).
+		\param cstrValueName 键名(取save值名).
 		\param lDefaultValue default长整值.
 	*/
 	long SetLong(const char* cstrBaseKeyName, const char* cstrValueName, long lValue);
 
-	///得到node值(字符串)
+	///得到node值(character串)
 	/** 
 		\param cstrBaseKeyName 基键名.
 		\param cstrValueName 键名(取值名).
-		\param cstrDefaultValue default字符串值.
+		\param cstrDefaultValue defaultcharacter串值.
 	*/
 	std::string GetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
 	std::string GetStringC(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
-	///设置node值(字符串)
+	///setnode值(character串)
 	/** 
 		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(保存值名).
-		\param cstrDefaultValue default字符串值.
+		\param cstrValueName 键名(save值名).
+		\param cstrDefaultValue defaultcharacter串值.
 	*/
 	long SetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrValue);
 	
 	///得到nodeattribute
 	/** 
 		\param cstrBaseKeyName 基键名.
-		\param cstrValueName 键名(保存attribute键名).
-		\param cstrAttributeName attribute名(保存attribute值名).
+		\param cstrValueName 键名(saveattribute键名).
+		\param cstrAttributeName attribute名(saveattribute值名).
 		\param cstrDefaultAttributeValue defaultattribute值.
 	*/
 	std::string GetAttribute(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrAttributeName, const char* cstrDefaultAttributeValue);
-	///设置nodeattribute
+	///setnodeattribute
 	long SetAttribute(const char* cstrBaseKeyName, const char* cstrValueName,
 					const char* cstrAttributeName, const char* cstrAttributeValue);
 
@@ -87,20 +87,20 @@ public:
 		const char* cstrDefaultValue, std::string& strValue, const char* cstrAttributeName, 
 		const char* cstrDefaultAttributeValue,std::string& strAttributeValue);
 	
-	///设置node值
+	///setnode值
 	long SetNodeValue(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrValue=NULL, const char* cstrAttributeName=NULL,
 		const char* cstrAttributeValue=NULL);
 
-	///delete某node和其所有子node
+	///delete某nodeand其all子node
 	/*!
-      所有子node的键值保存到参数keys_val里.
+      all child node key values are saved in the keys_val parameter.
     */
 	long DeleteSetting(const char* cstrBaseKeyName, const char* cstrValueName);
 
 	///得到某node的子node的键名
 	/*!
-      所有子node的键名保存到参数keys_val里.
+      all child node key names are saved in the keys_val parameter.
     */
 	long GetKeysValue(const char* cstrBaseKeyName, 
 		std::map<std::string, std::string>& keys_val);
@@ -109,24 +109,24 @@ public:
 	long GetKeys(const char* cstrBaseKeyName, 
 		std::vector<std::string>& keys);
 
-	///保存XML文件
+	///saveXMLfile
 	/** 
-		\param filename 保存filename.
+		\param filename savefilename.
 	*/
 	bool save(const char* filename=NULL);
 	
-	///装载XML文件
+	///装载XMLfile
 	/** 
 		\param filename 装入filename.
 	*/
 	bool load(const char* filename, const char* root_name="xmlRoot");
-	//装载xml字符流 //yyc add
+	//装载xmlcharacter流 //yyc add
 	bool loadXML(const char *xmlBuffer, const char* root_name="xmlRoot");
-	//获取装载xmlerror
+	//get装载xmlerror
 	std::string loadError();
-	///不保存改变
+	///notsave改变
 	void DiscardChanges();
-	///清空内容
+	///clear内容
 	void clear();
 
 	//------------------------------------------------------------------------------------

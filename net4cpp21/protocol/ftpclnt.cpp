@@ -32,14 +32,14 @@ void ftpClient::setTimeout(time_t s)
 	return;
 }
 
-//设置ftp服务的account
+//set the FTP service account
 void ftpClient :: setFTPAuth(const char *strAccount,const char *strPwd)
 {
 	if(strAccount) m_strAccount.assign(strAccount);
 	if(strPwd) m_strPwd.assign(strPwd);
 	return;
 }
-//获取dataconnectsocket
+//get data connection socket
 SOCKSRESULT ftpClient::GetDatasock(const char *ftppath,socketTCP &datasock,bool bRetr)
 {
 	char buf[FTP_MAX_COMMAND_SIZE];
@@ -56,9 +56,9 @@ SOCKSRESULT ftpClient::GetDatasock(const char *ftppath,socketTCP &datasock,bool 
 	return SOCKSERR_OK;
 }
 //****************************************
-// 函数功能：downloadspecified的文件 success返回SOCKSERR_OK
-// startPoint : 从specified的位置startdownload
-// lens       : downloadspecified的字节，==-1则download全部
+// function功能：download the specified file returns SOCKSERR_OK on success
+// startPoint: start downloading from the specified position
+// lens: number of bytes to download, ==-1 means download all
 //****************************************
 SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long startPoint,long lsize)
 {
@@ -68,9 +68,9 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	{
 		buflen=sprintf(buf,"REST %d\r\n",startPoint);
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
-			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"该站点not supported断点续传\r\n");
+			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 	}//?if(startPoint>0 )
-	//判断要download的文件是否存在
+	//判断要download的fileyesno存at
 	SOCKSRESULT sr=FileSize(ftppath);
 	if(sr<=0) return SOCKSERR_FTP_NOEXIST;
 	
@@ -79,7 +79,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	if(startPoint>0)
 		::fseek(fp,startPoint,SEEK_SET);
 	else ::fseek(fp,0,SEEK_SET);
-	socketProxy datasock; datasock.setProxy(*this); //设置代理
+	socketProxy datasock; datasock.setProxy(*this); //set代理
 	sr=GetDatasock(ftppath,datasock,true);
 	if( sr!=SOCKSERR_OK ){ ::fclose(fp); return sr; }
 
@@ -90,7 +90,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=datasock.Receive(recvbuf,4096,-1);
 		if(iret<0) break; else received+=iret;
 		::fwrite(recvbuf,sizeof(char),iret,fp);
@@ -100,9 +100,9 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	return SOCKSERR_OK;
 }
 //****************************************
-// 函数功能：上载specified的文件 success返回SOCKSERR_OK
-// ftppath -- specified要upload的位置，如果==NULL,则upload到currentFTP位置，名字和filename相同
-// startPoint : 从specified的位置start上载
+// function功能：上载specified的file returns SOCKSERR_OK on success
+// ftppath -- specifies the upload destination; if ==NULL, upload to current FTP position with the same filename
+// startPoint: start uploading from the specified position
 //****************************************
 SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long startPoint)
 {
@@ -114,7 +114,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 	{
 		buflen=sprintf(buf,"REST %d\r\n",startPoint);
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
-			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"该站点not supported断点续传\r\n");
+			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 		else ::fseek(fp,startPoint,SEEK_SET);
 	}//?if(startPoint>0 )
 	if(ftppath==NULL)
@@ -122,7 +122,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 		const char *ptr=strrchr(filename,'\\');
 		if(ptr) ftppath=ptr+1; else ftppath=filename;
 	}
-	socketProxy datasock; datasock.setProxy(*this); //设置代理
+	socketProxy datasock; datasock.setProxy(*this); //set代理
 	SOCKSRESULT sr=GetDatasock(ftppath,datasock,false);
 	if( sr!=SOCKSERR_OK ){ ::fclose(fp); return sr; }
 	
@@ -131,7 +131,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 	{
 		int iret=::fread(readbuf,sizeof(char),4096,fp);
 		if( datasock.Send(iret,readbuf,-1)<0 ) break;
-		if(iret<4096) break; //文件已读完
+		if(iret<4096) break; //file已读完
 		if(datasock.checkSocket(0,SOCKS_OP_READ)<0) break;
 	}//?while
 	::fclose(fp); datasock.Close();
@@ -140,7 +140,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 }
 
 //****************************************
-// 函数功能：获取specifiedfile size，success返回>=0
+// function: get the specified file size, returns >=0 on success
 //****************************************
 SOCKSRESULT ftpClient :: FileSize(const char *ftppath)
 {
@@ -160,7 +160,7 @@ SOCKSRESULT ftpClient :: FileSize(const char *ftppath)
 }
 
 //****************************************
-// 函数功能：转到specified的目录 success返回SOCKSERR_OK
+// function功能：转到specified的directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: CWD(const char *ftppath)
 {
@@ -178,7 +178,7 @@ SOCKSRESULT ftpClient :: CWD(const char *ftppath)
 }
 
 //****************************************
-// 函数功能：createspecified的目录 success返回SOCKSERR_OK
+// function功能：createspecified的directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: MKD(const char *ftppath)
 {
@@ -198,7 +198,7 @@ SOCKSRESULT ftpClient :: MKD(const char *ftppath)
 }
 
 //****************************************
-// 函数功能：deletespecified的目录 success返回SOCKSERR_OK
+// function功能：deletespecified的directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: RMD(const char *ftppath)
 {
@@ -220,7 +220,7 @@ SOCKSRESULT ftpClient :: RMD(const char *ftppath)
 }
 
 //****************************************
-// 函数功能：deletespecified的文件 success返回SOCKSERR_OK
+// function功能：deletespecified的file returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: Delete(const char *ftppath)
 {
@@ -241,7 +241,7 @@ SOCKSRESULT ftpClient :: Delete(const char *ftppath)
 	return SOCKSERR_OK;
 }
 //****************************************
-// 函数功能：get file list success返回SOCKSERR_OK
+// function功能：get file list returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: LIST(std::string &listbuf)
 {
@@ -251,7 +251,7 @@ SOCKSRESULT ftpClient :: LIST(std::string &listbuf)
 }
 
 //****************************************
-// 函数功能：connectftpserver success返回SOCKSERR_OK
+// function功能：connectftpserver returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpsvr,int ftpport)
 {
@@ -260,7 +260,7 @@ SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpsvr,int ftpport)
 //		RW_LOG_DEBUG("[ftpclnt] Failed to connect FTP server(%s:%d),error=%d\r\n",
 //			ftpsvr,ftpport,sr);
 
-	//等待receiveserver的响应
+	//waitingreceiveserver的response
 	char buf[FTP_MAX_COMMAND_SIZE];
 	if(!sendCommand(220,buf,0,FTP_MAX_COMMAND_SIZE)) return SOCKSERR_FTP_RESP;
 	
@@ -271,14 +271,14 @@ SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpsvr,int ftpport)
 }
 
 //****************************************
-// 函数功能：connectftpserver success返回SOCKSERR_OK
-// ftpurl -- ftp://[account:password@]主机[:port/....
+// function功能：connectftpserver returns SOCKSERR_OK on success
+// ftpurl -- ftp://[account:password@]host[:port/....
 //****************************************
 SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpurl)
 {
 	if(strncasecmp(ftpurl,"ftp://",6)==0)
 		ftpurl+=6;
-	//从ftpurl中parse出account password和host
+	//从ftpurl中parse出account passwordandhost
 	const char *ptrUrlBegin=strchr(ftpurl,'/');
 	if(ptrUrlBegin) *(char *)ptrUrlBegin=0;
 	const char *ptemp,*ptr=strchr(ftpurl,'@');
@@ -307,7 +307,7 @@ SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpurl)
 }
 
 //****************************************
-// 函数功能：serverauthentication success返回SOCKSERR_OK
+// function功能：serverauthentication returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient::Auth_LOGIN()
 {
@@ -315,14 +315,14 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 //		return SOCKSERR_CLOSED;
 	
 	char buf[FTP_MAX_COMMAND_SIZE]; 
-	//send经用户account
+	//send经useraccount
 	int buflen=sprintf(buf,"USER %s\r\n",m_strAccount.c_str());
 	if(!sendCommand(331,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		return SOCKSERR_FTP_RESP;
-	//根据server的返回判断是普通password传输还是MD4/MD5password加密传输
+	//根据server的return判断yes普通password传输还yesMD4/MD5passwordencryption传输
 	const char *ptr=strstr(buf,"otp-");
 	if(ptr==NULL)
-	{//send经用户account
+	{//send经useraccount
 		buflen=sprintf(buf,"PASS %s\r\n",m_strPwd.c_str());
 	}
 #ifdef _SURPPORT_OPENSSL_
@@ -331,10 +331,10 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 		OTP otps; bool bMD5=(strncmp(ptr+4,"md5 ",4)==0);
 		int count=atoi(ptr+8);
 		const char *seed=NULL;
-		if( (seed=strchr(ptr+8,' ')) ) //找到种子的起始位置
+		if( (seed=strchr(ptr+8,' ')) ) //find the starting position of the seed
 		{
-			seed++; //种子的起始位置.
-			//定位种子end位置
+			seed++; //种子的起始bit置.
+			//定bit种子endbit置
 			if( (ptr=strchr(seed,' ')) ) *(char *)ptr=0;
 		}
 		
@@ -342,28 +342,28 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 				   otps.md4(seed,m_strPwd.c_str(),count);
 		buflen=sprintf(buf,"PASS %s\r\n",ptr);
 	}
-	else return SOCKSERR_FTP_SURPPORT;//not supported的加密传输
+	else return SOCKSERR_FTP_SURPPORT;//not supported的encryption传输
 #else
-	else return SOCKSERR_FTP_SURPPORT;//not supported的加密传输
+	else return SOCKSERR_FTP_SURPPORT;//not supported的encryption传输
 #endif
 	
 	if(!sendCommand(230,buf,buflen,FTP_MAX_COMMAND_SIZE))
 	{
 		if(buf[0]==0) return SOCKSERR_FTP_RESP;
-		return SOCKSERR_FTP_AUTH; //认证failure
+		return SOCKSERR_FTP_AUTH; //authenticationfailure
 	}
 	return SOCKSERR_OK;
 }
 
 //****************************************
-// 函数功能：sendPASV获取data传输IP和port success返回data传输port>0
+// function: send PASV to get data transfer IP and port, returns data port (>0) on success
 //****************************************
 SOCKSRESULT ftpClient::sendPASV(char *buf,int MAXBUFSIZE)
 {
 	int buflen=sprintf(buf,"PASV\r\n");
 	if(!sendCommand(227,buf,buflen,MAXBUFSIZE))
 		return SOCKSERR_FTP_FAILED;
-	//获取要connectdata传输主机和port
+	//get要connectdata传输主机andport
 	int i=0,dataport=0; char *ptrIP;
 	char *ptr=(char *)strchr(buf,'(');
 	if(ptr){ 
@@ -391,7 +391,7 @@ SOCKSRESULT ftpClient::sendPASV(char *buf,int MAXBUFSIZE)
 	return dataport;
 }
 //****************************************
-// 函数功能：sendLISTget file list success返回SOCKSERR_OK
+// function功能：sendLISTget file list returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 {
@@ -399,9 +399,9 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 	int buflen=sprintf(buf,"TYPE A\r\n");
 	sendCommand(200,buf,buflen,FTP_MAX_COMMAND_SIZE);
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
-	listbuf.assign(buf); //临时保存data传输IP
+	listbuf.assign(buf); //临时savedata传输IP
 	socketProxy datasock; 
-	datasock.setProxy(*this); //设置代理
+	datasock.setProxy(*this); //set代理
 	
 	SOCKSRESULT sr=datasock.Connect(listbuf.c_str(),dataport);
 	if(sr<0) return SOCKSERR_FTP_DATACONN;
@@ -414,14 +414,14 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 		return SOCKSERR_FTP_LIST;
 	
 	datasock.setParent(this->parent());
-	listbuf.assign("");//start获取data
+	listbuf.assign("");//startgetdata
 	while(datasock.status()==SOCKS_CONNECTED && 
 		  this->status()==SOCKS_CONNECTED  )
 	{
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=datasock.Receive(buf,FTP_MAX_COMMAND_SIZE-1,-1);
 		if(iret<0) break; else buf[iret]=0;
 		listbuf.append(buf);
@@ -432,10 +432,10 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 }
 
 
-//send command，并获取server响应
-//[in] response_expected --- 期望服务的响应码
-//[in] buf send缓冲，同时作为receive responsedata缓冲
-//[in] buflen 要senddata的size， maxbuflen指明buf缓冲的size
+//send command，并getserverresponse
+//[in] response_expected --- 期望service的response码
+//[in] buf sendbuffer，同时作为receive responsedatabuffer
+//[in] buflen 要senddata的size， maxbuflenspecifiesbufbuffer的size
 inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 									  ,int maxbuflen)
 {
@@ -444,7 +444,7 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 //		RW_LOG_DEBUG("[ftpclnt] c--->s:\r\n\t%s",buf);
 		if( this->Send(buflen,buf,-1)<=0 ){ buf[0]=0;  return false; }
 	}
-	//sendsuccess，等待receiveserver响应
+	//sendsuccess，waitingreceiveserverresponse
 	SOCKSRESULT sr=this->Receive(buf,maxbuflen-1,m_lTimeout);
 	if(sr<=0) {
 //		RW_LOG_DEBUG(0,"[ftpclnt] failed to receive responsed message.\r\n");
@@ -453,11 +453,11 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 //	RW_LOG_DEBUG("[ftpclnt] s--->c:\r\n\t%s",buf);
 	int responseCode=atoi(buf);
 
-	//也许会是多行响应,如果不是最后一行则行响应头为 "DDD- ...\r\n"
-	//多行响应的最后一行为 "DDD ...\r\n"
+	//也许会yes多行response,ifnotyeslast一行则行response头为 "DDD- ...\r\n"
+	//多行response的last一行为 "DDD ...\r\n"
 	while(true)
 	{
-		bool bReceivedAll=(buf[sr-1]=='\n'); //有可能receive完
+		bool bReceivedAll=(buf[sr-1]=='\n'); //possibly fully received
 		if(bReceivedAll)
 		{
 			buf[sr-1]=0;
@@ -475,9 +475,9 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 
 /*
 //****************************************
-// 函数功能：上载specified的文件 success返回SOCKSERR_OK
-// ftppath -- specified要upload的位置，如果==NULL,则upload到currentFTP位置，名字和filename相同
-// startPoint : 从specified的位置start上载
+// function功能：上载specified的file returns SOCKSERR_OK on success
+// ftppath -- specifies the upload destination; if ==NULL, upload to current FTP position with the same filename
+// startPoint: start uploading from the specified position
 //****************************************
 SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long startPoint)
 {
@@ -492,7 +492,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 		buflen=sprintf(buf,"REST 0\r\n");
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		{
-			RW_LOG_DEBUG(0,"该站点not supported断点续传\r\n");
+			RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 			return SOCKSERR_FTP_REST;
 		}
 		::fseek(fp,startPoint,SEEK_SET);
@@ -508,9 +508,9 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 }
 
 //****************************************
-// 函数功能：downloadspecified的文件 success返回SOCKSERR_OK
-// startPoint : 从specified的位置startdownload
-// lens       : downloadspecified的字节，==-1则download全部
+// function功能：download the specified file returns SOCKSERR_OK on success
+// startPoint: start downloading from the specified position
+// lens: number of bytes to download, ==-1 means download all
 //****************************************
 SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 								  long startPoint,long lens)
@@ -524,11 +524,11 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 		buflen=sprintf(buf,"REST 0\r\n");
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		{
-			RW_LOG_DEBUG(0,"该站点not supported断点续传\r\n");
+			RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 			return SOCKSERR_FTP_REST;
 		}
 	}//?if(startPoint>0 )
-	//判断要download的文件是否存在
+	//判断要download的fileyesno存at
 	std::string listbuf;
 	SOCKSRESULT sr=sendLIST(ftppath,listbuf);
 	if(sr!=SOCKSERR_OK) return sr;
@@ -549,7 +549,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 	return sr;
 }
 //****************************************
-// 函数功能：downloadspecified的文件，并保存。
+// function功能：download the specified file，并save。
 //****************************************
 SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 {
@@ -559,7 +559,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
 	std::string datahost(buf);
 	socketProxy datasock; 
-	datasock.setProxy(*this); //设置代理
+	datasock.setProxy(*this); //set代理
 
 	SOCKSRESULT sr=datasock.Connect(datahost.c_str(),dataport);
 	if(sr<0){
@@ -580,7 +580,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=datasock.Receive(buf,4096,-1);
 		if(iret<0) break;
 		if(receiveBytes>0)
@@ -599,7 +599,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 	return SOCKSERR_OK;
 }
 //****************************************
-// 函数功能：上载specified的文件到destfile。
+// function: upload the specified file to destfile.
 //****************************************
 SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 {
@@ -609,7 +609,7 @@ SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
 	std::string datahost(buf);
 	socketProxy datasock; 
-	datasock.setProxy(*this); //设置代理
+	datasock.setProxy(*this); //set代理
 	
 	SOCKSRESULT sr=datasock.Connect(datahost.c_str(),dataport);
 	if(sr<0){
@@ -629,7 +629,7 @@ SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 		int iret=::fread(buf,sizeof(char),4096,fp);
 		if(iret>0)
 			if( datasock.Send(iret,buf,-1)<0 ) break;
-		if(iret<4096) break; //文件已读完
+		if(iret<4096) break; //file已读完
 		if(m_parent && m_parent->status()<=SOCKS_CLOSED) break;
 	}//?while
 	datasock.Close();

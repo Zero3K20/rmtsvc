@@ -49,7 +49,7 @@ FTPACCOUNT * cFtpsvr :: getAccount(const char *struser)
 	return NULL;
 }
 
-//添加新accountinfo
+//add new account info
 FTPACCOUNT * cFtpsvr :: newAccount(const char *struser)
 {
 	if(struser==NULL || struser[0]==0) return NULL;
@@ -83,7 +83,7 @@ FTPACCOUNT * cFtpsvr :: newAccount(const char *struser)
 }
 
 
-//有一个新的客户connect此服务
+//a new client connected to this service
 void cFtpsvr :: onConnect(socketTCP *psock,time_t tmOpened,
 						  unsigned long curConnection,unsigned long maxConnection)
 {
@@ -94,61 +94,61 @@ void cFtpsvr :: onConnect(socketTCP *psock,time_t tmOpened,
 	psock->Send(buflen,buf,-1);
 	
 	struct tm * ltime=NULL;
-	if(tmOpened!=0){//currentserver运行status
+	if(tmOpened!=0){//current server running status
 		ltime=localtime(&tmOpened);
-		buflen=sprintf(buf,"220-serverstart运行的time是%04d-%02d-%02d %02d:%02d:%02d\r\n",
+		buflen=sprintf(buf,"220-server start running time is %04d-%02d-%02d %02d:%02d:%02d\r\n",
 				(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 				ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 		psock->Send(buflen,buf,-1);
 	}
 
 	cFtpSession clientSession(psock,this); 
-	clientSession.m_tmLogin=time(NULL); //用户connecttime
+	clientSession.m_tmLogin=time(NULL); //userconnecttime
 	ltime=localtime(&clientSession.m_tmLogin);
-	buflen=sprintf(buf,"220-目前server所在的time是%04d-%02d-%02d %02d:%02d:%02d\r\n"
-					   "220-current登陆用户count %d \r\n"
-					   "220-最大允许connect用户数 %d \r\n"
+	buflen=sprintf(buf,"220-目前server所at的timeyes%04d-%02d-%02d %02d:%02d:%02d\r\n"
+					   "220-current登陆usercount %d \r\n"
+					   "220-maximum允许connectuser数 %d \r\n"
 					   "220 FTP Server for ready...\r\n",
 					   (1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 					   ltime->tm_hour, ltime->tm_min, ltime->tm_sec,
 					   curConnection,maxConnection);
 	psock->Send(buflen,buf,-1);
 
-	buflen=0; //清空命令receive缓冲
+	buflen=0; //clear command receive buffer
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-		if(iret<0) break; //如果登录timeout则关闭connect
-		if(clientSession.m_paccount==NULL && //判断是否登录timeout
+		if(iret<0) break; //iflogin timeout则close connection
+		if(clientSession.m_paccount==NULL && //check whetherlogin timeout
 			(time(NULL)-clientSession.m_tmLogin)>FTP_MAX_LOGINTIMEOUT) break;
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=psock->Receive(buf+buflen,FTP_MAX_COMMAND_SIZE-buflen-1,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		buflen+=iret; buf[buflen]=0;
-		//parseftp命令
+		//parseftpcommand
 		const char *ptrCmd,*ptrBegin=buf;
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
-			*(char *)ptrCmd=0;//startparse命令
-			if(ptrBegin[0]==0) goto NextCMD; //不handle空行data
+			*(char *)ptrCmd=0;//startparsecommand
+			if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
 		
 			parseCommand(clientSession,psock,ptrBegin);
 
-NextCMD:	//移动ptrBegin到下一个命令data起始
+NextCMD:	//移动ptrBegin到nextcommanddata起始
 			ptrBegin=ptrCmd+1; 
-			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //跳过\r\n
+			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//如果有未receive完的命令则移动
+		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//如果ptrBegin-buf==0说明这是一个error命令data包
+		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
 	}//?while
-	psock->Close(); //关闭connect
-	while(clientSession.m_opMode!=0) cUtils::usleep(1000*100);//休眠100ms,等待data传输thread end
+	psock->Close(); //close connection
+	while(clientSession.m_opMode!=0) cUtils::usleep(1000*100);//休眠100ms,waitingdata传输thread end
 	if(clientSession.m_paccount){
 		clientSession.m_paccount->m_loginusers--;
 		onLogEvent(FTP_LOGEVENT_LOGOUT,clientSession);
@@ -165,7 +165,7 @@ void cFtpsvr :: onManyClient(socketTCP *psock)
 	return;
 }
 
-//-------------------FTP 命令parsehandle begin-----------------------------------
+//-------------------FTP commandparsehandle begin-----------------------------------
 void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 									  ,const char *ptrCommand)
 {
@@ -187,7 +187,7 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 		docmd_rein(psock,clientSession);
 	else if(clientSession.m_paccount==NULL) 
 		resp_noLogin(psock);
-	//以下的命令只有在登录后才可用
+	//以下的command只有atlogin后才可用
 	else if(strncasecmp(ptrCommand,"TYPE ",5)==0)
 		docmd_type(psock,ptrCommand+5,clientSession);
 	else if(strncasecmp(ptrCommand,"REST ",5)==0)
@@ -201,11 +201,11 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 		docmd_cdup(psock,clientSession);
 	else if(strncasecmp(ptrCommand,"CWD ",4)==0)
 		docmd_cwd(psock,ptrCommand+4,clientSession);
-	else if(strncasecmp(ptrCommand,"MKD ",4)==0) /*only for windows ftp控制台命令 */
+	else if(strncasecmp(ptrCommand,"MKD ",4)==0) /*only for windows ftp控制台command */
 		docmd_mkd(psock,ptrCommand+4,clientSession);
 	else if(strncasecmp(ptrCommand,"XMKD ",5)==0)
 		docmd_mkd(psock,ptrCommand+5,clientSession);
-	else if(strncasecmp(ptrCommand,"RMD ",4)==0 || /*only for windows ftp控制台命令 */
+	else if(strncasecmp(ptrCommand,"RMD ",4)==0 || /*only for windows ftp控制台command */
 		    strncasecmp(ptrCommand,"XRMD ",5)==0 )
 	{
 		unsigned long lsize=docmd_rmd(psock,ptrCommand+4,clientSession);
@@ -222,7 +222,7 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 				pftpa->m_curdisksize-=lsize;
 		}//?if(pftpa)
 	}
-	else if(strncasecmp(ptrCommand,"DELE ",5)==0) //从serverdeletespecified的文件
+	else if(strncasecmp(ptrCommand,"DELE ",5)==0) //从serverdeletespecified的file
 	{
 		unsigned long lsize=docmd_dele(psock,ptrCommand+5,clientSession);
 		if(clientSession.m_paccount->m_curdisksize<lsize )
@@ -238,11 +238,11 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 				pftpa->m_curdisksize-=lsize;
 		}//?if(pftpa)
 	}
-	else if(strncasecmp(ptrCommand,"RNFR ",5)==0) //更改文件或目录的name
+	else if(strncasecmp(ptrCommand,"RNFR ",5)==0) //更改fileordirectory的name
 		docmd_rnfr(psock,ptrCommand+5,clientSession);
 	else if(strncasecmp(ptrCommand,"RNTO ",5)==0) 
 		docmd_rnto(psock,ptrCommand+5,clientSession);
-	else if(strncasecmp(ptrCommand,"SIZE ",5)==0) //获取specified文件的size
+	else if(strncasecmp(ptrCommand,"SIZE ",5)==0) //getspecifiedfile的size
 		docmd_size(psock,ptrCommand+5,clientSession);
 	else if(strcasecmp(ptrCommand,"PASV")==0)
 		docmd_pasv(psock,clientSession);
@@ -260,7 +260,7 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 		docmd_stor(psock,ptrCommand+5,clientSession);
 	else if(strncasecmp(ptrCommand,"SITE PSWD ",10)==0) 
 		docmd_pswd(psock,ptrCommand+10,clientSession); //modifypassword
-	else if(strcasecmp(ptrCommand,"SITE LIST")==0)//列出所有account
+	else if(strcasecmp(ptrCommand,"SITE LIST")==0)//列出allaccount
 		docmd_sitelist(psock,clientSession);
 	else if(!onCommandEx(psock,ptrCommand,clientSession))
 		resp_unknowed(psock);
@@ -268,7 +268,7 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 	return;
 }
 
-//data传输任务包括LIST，文件的download上载
+//data传输任务packet括LIST，file的download上载
 bool fileio_list(std::string &strPath,long lAccess,bool bDsphidefiles,socketTCP &sock);
 void cFtpsvr::dataTask(cFtpSession *psession)
 {
@@ -290,7 +290,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 
 	SOCKSRESULT sr=SOCKSERR_OK;
 	if(psession->m_dataconnMode==FTP_DATACONN_PORT) //PORT mode
-		sr=datasock.Connect(NULL,0,-1); //要connect的host:port在handlePORT命令时已经设置
+		sr=datasock.Connect(NULL,0,-1); //要connect的host:portathandlePORTcommand时已经set
 	else if(psession->m_datasock.status()==SOCKS_LISTEN) //PASV mode
 		sr=datasock.Accept(-1,NULL);
 	if(sr>0)
@@ -300,10 +300,10 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 			if(!datasock.SSL_Associate()) goto EXIT1;
 #endif
 		resp=resp_ok; resplen=sizeof(resp_ok)-1;
-		//------------------------文件上载操作----------------------------
+		//------------------------file上载操作----------------------------
 		if(psession->m_opMode=='S') 
 		{
-			//即使typespecified为A也不能以文本方式打开文件写，否则用fwrite写入时会对任何的0x0D转换为0x0D 0x0A
+			//即使typespecified为A也not能以文本方式openfile写，otherwise用fwritewrite时会对任何的0x0Dconvert为0x0D 0x0A
 			//If stream is opened in text mode, each carriage return is replaced with a carriage-return – linefeed pair.
 			//The replacement has no effect on the return value.
 			FILE *fp=NULL;
@@ -314,9 +314,9 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 			}
 			else
 				fp=::fopen(psession->m_filename.c_str(),"wb");
-			if(fp){//startreceivedata并写入文件
+			if(fp){//startreceivedata并writefile
 				long filesize=::ftell(fp); 
-				filesize=filesize>>10;//转换为Kbytes
+				filesize=filesize>>10;//convert为Kbytes
 				long maxfilesize=psession->m_paccount->m_maxupfilesize;
 				unsigned long maxdisksize=psession->m_paccount->m_maxdisksize;
 				unsigned long curdisksize=psession->m_paccount->m_curdisksize;
@@ -325,13 +325,13 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 				while(true)
 				{
 					recvlen=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-					if(recvlen<0) break; //判断是否可读
+					if(recvlen<0) break; //check whether可读
 					if(recvlen==0) continue;
 					recvlen=datasock.Receive(recvbuf,SSENDBUFFERSIZE,-1);
-					if(recvlen<0) break; //==0表明receivedata流量超过限制
+					if(recvlen<0) break; //==0 means received data exceeded the limit
 					if(recvlen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }
 					recvlen=::fwrite((const void *)recvbuf,sizeof(char),recvlen,fp);
-					filesize+=(recvlen>>10);//转换为kbytes
+					filesize+=(recvlen>>10);//convert为kbytes
 					if(maxfilesize>0 && filesize>maxfilesize)
 					{
 						resp=resp_limit; resplen=sizeof(resp_limit)-1;
@@ -361,7 +361,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 		else if(psession->m_opMode=='R') 
 		{
 			FILE *fp=::fopen(psession->m_filename.c_str(),"rb");
-			if(fp){//start读文件并send文件data
+			if(fp){//start读file并sendfiledata
 				if(psession->m_startPoint!=0)
 					::fseek(fp,psession->m_startPoint,SEEK_SET);
 				char readbuf[SSENDBUFFERSIZE]; int itemp,readlen=0;
@@ -370,7 +370,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 					if(readlen==0) //读data
 						if( (readlen=::fread(readbuf,sizeof(char),SSENDBUFFERSIZE,fp))<=0 ) break;
 					itemp=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_WRITE);
-					if(itemp<0) break; //判断是否可写
+					if(itemp<0) break; //判断whether writable
 					if(itemp==0) continue;
 					itemp=datasock.Send(readlen,readbuf,-1);
 					if(itemp<0) break; //==0表明senddata流量超过限制
@@ -382,19 +382,19 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 			}//?if(fp)
 			else{ resp=resp_file; resplen=sizeof(resp_file)-1; }
 		}//?else if(psession->m_opMode=='R')
-		//------------------LIST 目录和文件-----------------------------------------
+		//------------------LIST directoryandfile-----------------------------------------
 		else if(psession->m_opMode=='L') //LIST
 		{
 			long lAccess=psession->m_startPoint;
-			if(psession->m_filename=="") //LISTcurrent目录
+			if(psession->m_filename=="") //LISTcurrentdirectory
 			{
 				lAccess=psession->getRealPath(psession->m_filename);
 				if(psession->m_filename!="")
-					psession->m_filename.append("*");//LIST目录
-				//列出current虚目录下的下一级虚目录
+					psession->m_filename.append("*");//LISTdirectory
+				//列出current虚directory下的下一级虚directory
 				psession->list();
 			}//?if(psession->m_filename=="")
-			//此时m_filename指向的是实际系统目录--------------
+			//此时m_filenamepointer to的yes实际系统directory--------------
 			fileio_list(psession->m_filename,lAccess,
 				psession->m_paccount->bDsphidefiles(),datasock);
 		}//?else if(psession->m_opMode=='L')
@@ -410,7 +410,7 @@ EXIT1:
 	return;
 }
 
-//列举文件目录内容
+//列举filedirectory内容
 char *strMonth[12]=
 {
 	"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
@@ -418,13 +418,13 @@ char *strMonth[12]=
 bool fileio_list(std::string &strPath,long lAccess,bool bDsphidefiles,socketTCP &sock)
 {
 	char isDirRead=(lAccess & FTP_ACCESS_DIR_LIST)?'r':'-';
-	char isDirWrite=(lAccess & FTP_ACCESS_DIR_CREATE)?'w':'-';//是否可写
-	char isE=(lAccess & FTP_ACCESS_FILE_EXEC)?'x':'-';//是否可执行
+	char isDirWrite=(lAccess & FTP_ACCESS_DIR_CREATE)?'w':'-';//whether writable
+	char isE=(lAccess & FTP_ACCESS_FILE_EXEC)?'x':'-';//whether executable
 	char isFileRead=(lAccess & FTP_ACCESS_FILE_READ)?'r':'-';
 	char isFileWrite=(lAccess & FTP_ACCESS_FILE_WRITE)?'w':'-';
 	char buf[512]; int buflen=0;
 #ifdef WIN32
-	if(strPath=="") //列举出windows下的所有盘符
+	if(strPath=="") //列举出windows下的all盘符
 	{
 		DWORD d=::GetLogicalDrives();
 		for(int i=0;i<26;i++)
@@ -442,11 +442,11 @@ bool fileio_list(std::string &strPath,long lAccess,bool bDsphidefiles,socketTCP 
 		if(hd==INVALID_HANDLE_VALUE) return false;
 		do{
 			if(bDsphidefiles || !(finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
-			{//判断是否显示隐藏文件
-				char isD=(finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)?'d':'-'; //是否为目录
+			{//check whether to show hidden files
+				char isD=(finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)?'d':'-'; //whether it is a directory
 				char isWrite=(finddata.dwFileAttributes&FILE_ATTRIBUTE_READONLY)?'-':'w';
 				if(isWrite=='w') isWrite=(isD=='d')?isDirWrite:isFileWrite;
-				//先将UTCtime转为localtime
+				//first convert UTC time to local time
 				::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&finddata.ftLastAccessTime);
 				SYSTEMTIME systime; ::FileTimeToSystemTime(&finddata.ftLastAccessTime,&systime);
 				buflen=sprintf(buf,"%c%c%c%c%c%c%c%c%c%c   1 user      group          %d %s %d %d:%d %s\r\n",
@@ -466,7 +466,7 @@ bool fileio_list(std::string &strPath,long lAccess,bool bDsphidefiles,socketTCP 
 
 cFtpsvr::cFtpSession::cFtpSession(socketTCP *psock,cFtpsvr *psvr):m_pcmdsock(psock),m_psvr(psvr)
 {
-	//设置data通道socket的父为命令通道socket这样如果命令通道异常则data通道也要关闭
+	//setdata通道socket的父为command通道socket这样ifcommand通道异常则data通道也要close
 	m_datasock.setParent(psock);
 	m_iAccess=FTP_ACCESS_NONE;//default没有任何的permissions FTP_ACCESS_ALL;
 	m_paccount=NULL;
@@ -475,10 +475,10 @@ cFtpsvr::cFtpSession::cFtpSession(socketTCP *psock,cFtpsvr *psvr):m_pcmdsock(pso
 	m_opMode=0; //L R S
 	m_dataMode='S';
 	m_dataType='A';
-	m_sslMode=0; //SSL加密模式 1)Clear (requested by 'PROT C') 2)Private (requested by 'PROT P')
+	m_sslMode=0; //SSL encryption mode: 1) Clear (requested by 'PROT C'), 2) Private (requested by 'PROT P')
 }
 
-//将相对虚path转换为绝对虚path
+//将相对虚pathconvert为绝对虚path
 inline const char * cFtpsvr::cFtpSession::cvtRelative2Absolute(std::string &vpath)
 {
 	if(vpath[0]=='/') return vpath.c_str();
@@ -509,8 +509,8 @@ inline const char * cFtpsvr::cFtpSession::cvtRelative2Absolute(std::string &vpat
 	*(char *)(p+1)=c;
 	return vpath.c_str();
 }
-//将绝对虚path转换为绝对实path(!!!虚path区分size写)
-//返回对current实path的可操作permissions
+//将绝对虚pathconvert为绝对实path(!!!虚path区分size写)
+//return对current实path的可操作permissions
 //vpath -- [in|out] 输入绝对虚path，输出绝对实path
 inline long cFtpsvr::cFtpSession::cvtVPath2RPath(std::string &vpath)
 {
@@ -531,22 +531,22 @@ inline long cFtpsvr::cFtpSession::cvtVPath2RPath(std::string &vpath)
 		it=itTmp;
 	}while( (ptr=strchr(ptr,'/'))!=NULL );
 
-	//实际上不可能发生这种情况,m_dirAccess总要设置根'/'
+	//this should never actually happen; m_dirAccess always has the root '/' set
 	if(it==ftpa.m_dirAccess.end()) { return FTP_ACCESS_NONE;}
  
 	vpath.erase(0,(*it).first.length());
 	long lAccess=(*it).second.second;
 	if((lAccess & FTP_ACCESS_SUBDIR_INHERIT)!=0)
 	{
-		if(strchr(vpath.c_str(),'/')!=NULL) lAccess=0; //目录permissions禁止继承，则下级目录的permissions为0
+		if(strchr(vpath.c_str(),'/')!=NULL) lAccess=0; //directory permissions inheritance disabled; subdirectory permissions are 0
 	}
 	vpath.insert(0,(*it).second.first.c_str());
 	return lAccess;
 }
 
-//设置current虚目录
-//返回值如果<0则发生error
-//>=0success,返回current目录的访问permissions
+//setcurrent虚directory
+//return值if<0则发生error
+//>=0 success, returns current directory access permissions
 SOCKSRESULT cFtpsvr::cFtpSession::setvpath(const char *vpath_p) 
 {
 //	ASSERT(vpath_p!=NULL && vpath_p[0]!=0);
@@ -558,7 +558,7 @@ SOCKSRESULT cFtpsvr::cFtpSession::setvpath(const char *vpath_p)
 	std::string rpath=vpath;
 	long lAccess=cvtVPath2RPath(rpath);
 	
-	//判断此实目录是否存在
+	//判断此实directoryyesno存at
 	if(rpath!="")
 	{
 		char c=rpath[rpath.length()-1];
@@ -582,8 +582,8 @@ SOCKSRESULT cFtpsvr::cFtpSession::getRealPath(std::string &vpath)
 	cvtRelative2Absolute(vpath);
 	return cvtVPath2RPath(vpath);
 }
-//是否为设置的虚目录
-//如果是则返回虚目录的permissions否则返回0
+//yesno为set的虚directory
+//ifyes则return虚directory的permissionsotherwisereturn0
 SOCKSRESULT cFtpsvr::cFtpSession::ifvpath(std::string &vpath)
 {
 	
@@ -597,7 +597,7 @@ SOCKSRESULT cFtpsvr::cFtpSession::ifvpath(std::string &vpath)
 	if(itTmp==ftpa.m_dirAccess.end()) return 0;
 	return (*itTmp).second.second;
 }
-//List子虚目录
+//list sub-virtual directories
 void cFtpsvr::cFtpSession::list()
 {
 	FTPACCOUNT &ftpa=*m_paccount;
@@ -605,7 +605,7 @@ void cFtpsvr::cFtpSession::list()
 					ftpa.m_dirAccess.find(m_relativePath);
 	if(itTmp==ftpa.m_dirAccess.end()) return;
 	const std::string &vpath=(*itTmp).first;
-	itTmp++;//列出此虚目录下的下一级虚目录
+	itTmp++;//列出此虚directory下的下一级虚directory
 	char buf[128]; int buflen=0; const char *ptr=NULL;
 	for(;itTmp!=ftpa.m_dirAccess.end();itTmp++)
 	{
@@ -613,7 +613,7 @@ void cFtpsvr::cFtpSession::list()
 		if((*itTmp).first.length()>vpath.length() && strncmp(ptr,vpath.c_str(),vpath.length())==0)
 		{
 			long lAccess=(*itTmp).second.second;
-			char isExe=(lAccess & FTP_ACCESS_FILE_EXEC)?'x':'-';//是否可执行
+			char isExe=(lAccess & FTP_ACCESS_FILE_EXEC)?'x':'-';//whether executable
 			buflen=sprintf(buf,"d%c%c%c%c%c%c%c%c%c   1 user      group          0 Feb 6 12:00 ",
 							(lAccess & FTP_ACCESS_DIR_LIST)?'r':'-',
 							(lAccess & FTP_ACCESS_DIR_CREATE)?'w':'-',isExe,

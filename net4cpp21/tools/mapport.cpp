@@ -31,7 +31,7 @@ mapServer :: mapServer()
 mapServer :: ~mapServer()
 {
 	Close();
-	//服务析构前要保证线程都end，因为线程中访问了mapServer类的对象
+	//service析构前要保证thread都end，因为thread中访问了mapServerclass的object
 	m_threadpool.join(); 
 }
 
@@ -55,7 +55,7 @@ socketTCP * mapServer :: connect_mapped(std::pair<std::string,int>* &p)
 	int n=m_mappedApp.size();
 	if(n==1) 
 		p=&m_mappedApp[0];
-	else if(n>0) //随机获取一个application service得info
+	else if(n>0) //随机get一个application service得info
 		p=&m_mappedApp[rand()%n];
 	else return NULL;
 	socketTCP *psock=new socketTCP;
@@ -66,10 +66,10 @@ socketTCP * mapServer :: connect_mapped(std::pair<std::string,int>* &p)
 	delete psock; return NULL;
 }
 
-//当有一个新的客户connect此服务触发此函数
+//triggered when a new client connects to this service
 void mapServer :: onAccept(socketTCP *psock)
 {
-	//connect被映射的服务
+	//connect被map的service
 	std::pair<std::string,int> *p=NULL;
 	socketTCP *ppeer=connect_mapped(p);
 	if(ppeer==NULL){
@@ -84,15 +84,15 @@ void mapServer :: onAccept(socketTCP *psock)
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
 		return;
 	}
-	char buf[MAX_TRANSFER_BUFFER]; //start转发
+	char buf[MAX_TRANSFER_BUFFER]; //startforward
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=psock->Receive(buf,MAX_TRANSFER_BUFFER-1,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		buf[iret]=0; onData(buf,iret,psock,ppeer);
 		iret=ppeer->Send(iret,buf,-1);
@@ -100,11 +100,11 @@ void mapServer :: onAccept(socketTCP *psock)
 	}//?while
 	ppeer->Close(); onData(NULL,0,psock,ppeer);
 	while(ppeer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-	onData(NULL,0,ppeer,psock); //用于通知协议分析打印程序connect已经关闭，可释放相关资源
+	onData(NULL,0,ppeer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关资源
 	delete ppeer; return;
 }
 
-//转发线程
+//forwardthread
 void mapServer :: transThread(socketTCP *psock)
 {
 	if(psock==NULL) return;
@@ -112,21 +112,21 @@ void mapServer :: transThread(socketTCP *psock)
 	if(ppeer==NULL) return;
 	mapServer *psvr=(mapServer *)ppeer->parent();
 
-	char buf[MAX_TRANSFER_BUFFER]; //start转发
+	char buf[MAX_TRANSFER_BUFFER]; //startforward
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=psock->Receive(buf,MAX_TRANSFER_BUFFER-1,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		buf[iret]=0; psvr->onData(buf,iret,psock,ppeer);
 		iret=ppeer->Send(iret,buf,-1);
 		if(iret<0) break;
 	}//?while
 	ppeer->Close(); 
-	psock->setParent(NULL); //用于onAccept线程判断转发线程是否end
+	psock->setParent(NULL); //用于onAcceptthread判断forwardthreadyesnoend
 	return;
 }

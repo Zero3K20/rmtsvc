@@ -68,10 +68,10 @@ SOCKSRESULT vidcClient :: ConnectSvr()
 		//format returned by vIDCs is: 200 <vidccID> <vidcs_ver> <description>
 		m_vidcsinfo.m_vidccID=atoi(m_szLastResponse+4);
 		if( (ptr=strchr(m_szLastResponse+4,' ')) ) m_vidcsinfo.m_vidcsVer=atoi(ptr+1);
-		buflen=sprintf(m_szLastResponse,"ADDR \r\n"); //获取vIDCsserver的IPaddress列表
+		buflen=sprintf(m_szLastResponse,"ADDR \r\n"); //get the IP address list of the vIDCs server
 		if(sendCommand(200,m_szLastResponse,buflen))
 			m_vidcsinfo.m_vidcsIPList.assign(m_szLastResponse+4);
-		//自动映射specified的映射服务
+		//automatically map the specified mapping service
 		std::map<std::string,mapInfo *>::iterator it=m_mapsets.begin();
 		for(;it!=m_mapsets.end();it++)
 		{
@@ -87,14 +87,14 @@ SOCKSRESULT vidcClient :: ConnectSvr()
 	this->Close(); return sr;
 }
 
-//deletespecified的映射服务
+//delete the specified mapping service
 bool vidcClient :: mapinfoDel(const char *mapname)
 {
 	std::map<std::string,mapInfo *>::iterator it=m_mapsets.find(mapname);
 	if(it==m_mapsets.end()) return false;
 	mapInfo *pinfo=(*it).second;
 	m_mapsets.erase(it);
-	Unmap(mapname,pinfo); //先sendubind命令
+	Unmap(mapname,pinfo); //first send the ubind command
 	delete pinfo; return true;
 }
 
@@ -111,7 +111,7 @@ mapInfo * vidcClient :: mapinfoGet(const char *mapname,bool bCreate)
 long getFilesize(const char *file)
 {
 	if(file==NULL || file[0]==0) return 0;
-	//将一个相对path名转换为一个绝对path名
+	//将一个相对path名convert为一个绝对path名
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0;
@@ -128,7 +128,7 @@ long readFile(const char *file,char *readbuf,long readsize)
 {
 	if(readsize<=0) return 0;
 	if(file==NULL || file[0]==0) return 0;
-	//将一个相对path名转换为一个绝对path名
+	//将一个相对path名convert为一个绝对path名
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0;
@@ -141,13 +141,13 @@ long readFile(const char *file,char *readbuf,long readsize)
 	::fclose(fp); return l;
 }
 
-//success返回>0
-int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified的服务
+//successreturn>0
+int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //map the specified service
 {
 //	if(pinfo==NULL || mapname==NULL) return SOCKSERR_PARAM;
 	if(this->status()!=SOCKS_CONNECTED) return SOCKSERR_CLOSED;
-//	BIND type=[TCP|UDP] name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [bindip=<本服务绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<description>]
-//	BIND type=PROXY name=<XXX> mport=<map port> [bindip=<本服务绑定的local machineIP>] [appdesc=<description>]
+//	BIND type=[TCP|UDP] name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [bindip=<本service绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<description>]
+//	BIND type=PROXY name=<XXX> mport=<map port> [bindip=<本service绑定的local machineIP>] [appdesc=<description>]
 	int rspcode,buflen;
 	if(pinfo->m_mapType==VIDC_MAPTYPE_PROXY)
 	{
@@ -163,7 +163,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified�
 					  ((pinfo->m_apptype==MPORTTYPE_FTP)?"FTP":((pinfo->m_apptype==MPORTTYPE_WWW)?"WWW":((pinfo->m_apptype==MPORTTYPE_TCP)?"TCP":"UNK" ) ) ),
 					  pinfo->m_appdesc.c_str() );
 	}
-	//vIDCs返回的format为 200 <map port> <description>
+	//vIDCsreturn的format为 200 <map port> <description>
 	if(sendCommand(200,m_szLastResponse,buflen))
 	{
 		if( (rspcode=atoi(m_szLastResponse+4))>0 ) pinfo->m_mappedPort=rspcode;
@@ -174,7 +174,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified�
 						   mapname,pinfo->m_ipaccess,pinfo->m_ipRules.c_str());
 			sendCommand(200,m_szLastResponse,buflen);
 		}
-		//sendclient证书
+		//sendclientcertificate
 		if(pinfo->m_ssltype==SSLSVR_TCPSVR && pinfo->m_clicert!="")
 		{
 			long certlen=getFilesize(pinfo->m_clicert.c_str());
@@ -196,7 +196,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified�
 				delete[] sbuf;
 			}//?if(sbuf)
 		}//?if(pinfo->m_ssltype==SSLSVR_TCPSVR && pinfo->m_clicert!="")
-		int i;//sendmodifyHTTP请求头和响应头规则
+		int i;//sendmodifyHTTPrequest头andresponse头规则
 		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(m_szLastResponse,"HRSP name=%s %s\r\n",mapname,pinfo->m_hrspRegCond[i].c_str());
@@ -207,7 +207,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified�
 			buflen=sprintf(m_szLastResponse,"HREQ name=%s %s\r\n",mapname,pinfo->m_hreqRegCond[i].c_str());
 			sendCommand(200,m_szLastResponse,buflen);
 		}//?for(i=0;
-		return pinfo->m_mappedPort; //返回映射的port
+		return pinfo->m_mappedPort; //returnmap的port
 	}else rspcode=atoi(m_szLastResponse);
 	if(rspcode==501) return SOCKSERR_VIDC_NAME;
 	else if(rspcode==502) return SOCKSERR_VIDC_MEMO;
@@ -216,13 +216,13 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //映射specified�
 	return SOCKSERR_VIDC_RESP;
 }
 
-int vidcClient :: Unmap(const char *mapname,mapInfo *pinfo) //取消映射specified的服务
+int vidcClient :: Unmap(const char *mapname,mapInfo *pinfo) //cancelmap the specified service
 {
 //	if(pinfo==NULL) return SOCKSERR_PARAM;
 	if(this->status()!=SOCKS_CONNECTED) return SOCKSERR_CLOSED;
 	
 	pinfo->m_mappedPort=0; pinfo->m_mappedSSLv=false;
-	//format: UBND <SP> <映射name> <CRLF>
+	//format: UBND <SP> <mapname> <CRLF>
 	int buflen=sprintf(m_szLastResponse,"UBND %s\r\n",mapname);
 	if(sendCommand(200,m_szLastResponse,buflen))
 		return SOCKSERR_OK;
@@ -274,7 +274,7 @@ void vidcClient :: str_list_mapped(const char *vname,std::string &strini)
 		buflen=sprintf(buf,"iprules type=mtcpr vname=%s name=%s access=%d ipaddr=%s\r\n",
 			vname,(*it).first.c_str(),pinfo->m_ipaccess,pinfo->m_ipRules.c_str());
 		strini.append(buf,buflen);
-		int i;//sendmodifyHTTP请求头和响应头规则
+		int i;//sendmodifyHTTPrequest头andresponse头规则
 		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhrsp vname=%s name=%s %s\r\n",vname,
@@ -312,14 +312,14 @@ void vidcClient :: xml_list_mapped(cBuffer &buffer,VIDC_MAPTYPE maptype)
 	return;
 }
 
-//-------------------vIDC client 命令parsehandle begin-----------------------------------
+//-------------------vIDC client commandparsehandle begin-----------------------------------
 void vidcClient :: parseCommand(const char *ptrCommand)
 {
 	RW_LOG_DEBUG("[vidcc] s--->c:\r\n\t%s\r\n",ptrCommand);
 	
-	if(strncmp(ptrCommand,"PIPE ",5)==0) //vIDCs请求一个管道
+	if(strncmp(ptrCommand,"PIPE ",5)==0) //vIDCsrequest一个管道
 		m_threadpool.addTask((THREAD_CALLBACK *)&onPipeThread,(void *)this,0);
-	else if(atoi(ptrCommand)>0) //vIDCs的命令返回消息
+	else if(atoi(ptrCommand)>0) //vIDCs的commandreturnmessage
 		strcpy(m_szLastResponse,ptrCommand);
 	return;
 }
@@ -342,28 +342,28 @@ void vidcClient :: onCommandThread(vidcClient *pvidcc)
 				tLastSended=time(NULL);
 			}else continue;
 		}
-		//读clientsend的data
+		//read data sent by client
 		iret=pvidcc->Receive(buf+buflen,VIDC_MAX_COMMAND_SIZE-buflen-1,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-		tLastReceived=time(NULL); //最后一次receive到datatime
+		tLastReceived=time(NULL); //last一次receive到datatime
 		buflen+=iret; buf[buflen]=0;
-		//parsevidc命令
+		//parsevidccommand
 		const char *ptrCmd,*ptrBegin=buf;
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
-			*(char *)ptrCmd=0;//startparse命令
-			if(ptrBegin[0]==0) goto NextCMD; //不handle空行data
+			*(char *)ptrCmd=0;//startparsecommand
+			if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
 		
 			pvidcc->parseCommand(ptrBegin);
 
-NextCMD:	//移动ptrBegin到下一个命令data起始
+NextCMD:	//移动ptrBegin到nextcommanddata起始
 			ptrBegin=ptrCmd+1; 
-			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //跳过\r\n
+			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//如果有未receive完的命令则移动
+		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//如果ptrBegin-buf==0说明这是一个error命令data包
+		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -378,13 +378,13 @@ public:
 	virtual ~cProxysvrEx(){}
 	void doProxyReq(socketTCP *psock){ cProxysvr::onConnect(psock); }
 protected:
-	//create转发对任务线程
+	//create forward-to task thread
 	virtual bool onTransferTask(THREAD_CALLBACK *pfunc,void *pargs)
 	{
 		return (m_pthreadpool && m_pthreadpool->addTask(pfunc,pargs,THREADLIVETIME)!=0);
 	}
 private:
-	cThreadPool *m_pthreadpool;//服务thread pool
+	cThreadPool *m_pthreadpool;//servicethread pool
 };
 
 void vidcClient :: onPipeThread(vidcClient *pvidcc)
@@ -392,7 +392,7 @@ void vidcClient :: onPipeThread(vidcClient *pvidcc)
 	if(pvidcc==NULL) return;
 	socketProxy *pipe=new socketProxy;
 	if(pipe==NULL) return;
-	pipe->setProxy(*pvidcc); //设置代理和vidcc的代理一致
+	pipe->setProxy(*pvidcc); //set代理andvidcc的代理一致
 	pipe->setParent(pvidcc);
 	pipe->Connect(pvidcc->m_vidcsinfo.m_vidcsHost.c_str(),pvidcc->m_vidcsinfo.m_vidcsPort,-1);
 
@@ -404,18 +404,18 @@ void vidcClient :: onPipeThread(vidcClient *pvidcc)
 		int iret=pipe->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; else if(iret==0) continue;
 		cProxysvrEx proxysvr(&pvidcc->m_threadpool);
-		proxysvr.doProxyReq(pipe); //否则有data
+		proxysvr.doProxyReq(pipe); //otherwise有data
 		break; //管道thread end
 	}//?while
 	delete pipe; return;
 }
-//send command，并获取server响应
+//send command，并getserverresponse
 inline bool vidcClient :: sendCommand(int response_expected,const char *buf,int buflen)
 {
 	RW_LOG_DEBUG("[vidcc] c--->s:\r\n\t%s",buf);
 	char c=buf[0];
 	if( this->Send(buflen,buf,-1)<=0 ) return false;
-	//sendsuccess，等待receiveserver响应,server的响应存储在m_szLastResponse缓冲中
+	//sendsuccess，waitingreceiveserverresponse,server的response存储atm_szLastResponsebuffer中
 	time_t tStart=time(NULL);
 	while(m_szLastResponse[0]==c){
 		if((time(NULL)-tStart)>m_lTimeout) break; //timeout
@@ -464,7 +464,7 @@ void vidccSets :: autoConnect()
 		{
 			SOCKSRESULT sr=pvidcc->ConnectSvr();
 			if(sr==SOCKSERR_VIDC_VER || sr==SOCKSERR_VIDC_PSWD)
-				pvidcc->vidcsinfo().m_bAutoConn=false; //下次不在尝试重连
+				pvidcc->vidcsinfo().m_bAutoConn=false; //下次notat尝试重连
 		}
 	}
 	m_mutex.unlock();
@@ -527,7 +527,7 @@ bool vidccSets :: xml_info_vidcc(cBuffer &buffer,const char *vname,VIDC_MAPTYPE 
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>1</connected>");
 		time_t t=pvidcc->getStartTime(); struct tm *ltime=localtime(&t);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d年%02d月%02d日 %02d:%02d:%02d</starttime>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d-%02d-%02d %02d:%02d:%02d</starttime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	}
 	else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>0</connected>");

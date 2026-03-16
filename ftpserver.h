@@ -39,18 +39,18 @@ typedef struct _TFTPUser
 	unsigned long maxupratio;//max upload rate K/s, 0 means unlimited
 	unsigned long maxdwratio;//max download rate K/s, 0 means unlimited
 	unsigned long maxupfilesize;//max upload file size in KBytes, 0 means unlimited
-	unsigned long maxdisksize;//限制最大磁盘使用空间 KBytes,0--不限
-	unsigned long curdisksize;//current已使用磁盘空间 KBytes.
-	std::map<std::string,std::pair<std::string,long> > dirAccess;//目录访问permissions,目录区分size写
-			//first --- string : ftp的虚目录path,最后以/end，例如/ 或 /aa/，
-			//second --- pair : 此ftp虚目录对应的实际目录和目录的访问permissions，实际目录必须为\结尾(win平台)
+	unsigned long maxdisksize;//maximum disk space limit in KBytes, 0 means unlimited
+	unsigned long curdisksize;//current used disk space in KBytes.
+	std::map<std::string,std::pair<std::string,long> > dirAccess;//directory access permissions; directory names are case-sensitive
+			//first --- string: FTP virtual directory path, ending with /, e.g. / or /aa/,
+			//second --- pair : 此ftp虚directory对应的实际directoryanddirectory的访问permissions，实际directory必须为\结尾(win平台)
 	long ipaccess;
 	std::string ipRules;//IP access rules
-	long maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
-	time_t limitedTime;//限制此account只在某个date之前有效，==0不限制
+	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
+	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	long pswdmode;
-	long disphidden; //是否显示隐藏文件
-	long forbid; //是否禁用此account
+	long disphidden; //yesno显示隐藏file
+	long forbid; //yesno禁用此account
 }TFTPUser;
 
 class ftpsvrEx : public ftpServer

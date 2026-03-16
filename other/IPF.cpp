@@ -1,8 +1,8 @@
 /*
 **	FILENAME			IPF.h
 **
-**	PURPOSE				图像文件的打开，存储,format转换
-**						目前只支持BMP,JPEG两种图像format
+**	PURPOSE				open, save and convert image file formats
+**						currently supports only BMP and JPEG image formats
 **
 **	CREATION DATE		2003-12-24
 **	LAST MODIFICATION	2003-12-24
@@ -30,12 +30,12 @@
 #pragma comment( lib, "legacy_stdio_definitions.lib" )
 
 
-//打开位图文件 -- 
-//[in] filename ---- 位图filename
-//[out] lpbi ---- 返回位图info
-//[out] lppBits ---- 返回位图data指针(DWORD 对齐),用户必须保证空间足够大
-//				如果lppBits==NULL则仅仅返回位图info
-//返回：如果failure返回0，否则返回非0(图像datasize)
+//openbit图file -- 
+//[in] filename ---- bit图filename
+//[out] lpbi ---- returnbit图info
+//[out] lppBits ---- returnbit图datapointer(DWORD 对齐),user必须保证null间足够大
+//				iflppBits==NULL则仅仅returnbit图info
+//return：iffailurereturn0，otherwisereturn非0(图像datasize)
 IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
 	if(filename==NULL || lpbi==NULL) return 0;
@@ -45,7 +45,7 @@ IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 	BITMAPFILEHEADER bmfHeader;
 	fseek(file,0,SEEK_SET);
 	if( fread((void *)&bmfHeader,1,sizeof(BITMAPFILEHEADER),file)==sizeof(BITMAPFILEHEADER)
-		&& bmfHeader.bfType ==0x4D42 )//是位图文件
+		&& bmfHeader.bfType ==0x4D42 )//yesbit图file
 	{
 		fseek(file,sizeof(BITMAPFILEHEADER),SEEK_SET);
 		fread((void *)lpbi,1,bmfHeader.bfOffBits-sizeof(BITMAPFILEHEADER),file);
@@ -53,7 +53,7 @@ IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 		dataLen=ftell(file)-bmfHeader.bfOffBits;
 		if(lpBits)
 		{ 
-			// 读取位data
+			// readbitdata
 			fseek(file,bmfHeader.bfOffBits,SEEK_SET);
 			fread((void *)lpBits,1,dataLen,file);
 		}//?if(lppBits)
@@ -63,12 +63,12 @@ IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 }
 
 /*
-//打开JPEG文件 -- 
+//openJPEGfile -- 
 //[in] filename ---- JPEGfilename
-//[out] lpbi ---- 返回位图info
-//[out] lpBits ---- 返回位图data指针(DWORD 对齐)，用户必须保证空间足够大
-//				如果lpBits==NULL则仅仅返回位图info
-//返回：如果failure返回0，否则返回非0(图像datasize)
+//[out] lpbi ---- returnbit图info
+//[out] lpBits ---- returnbit图datapointer(DWORD 对齐)，user必须保证null间足够大
+//				iflpBits==NULL则仅仅returnbit图info
+//return：iffailurereturn0，otherwisereturn非0(图像datasize)
 IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
 	if(filename==NULL || lpbi==NULL) return 0;
@@ -118,9 +118,9 @@ IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPB
 	if(lpBits)
 	{ 
 		JSAMPROW ptr=lpBits+lEffWidth*(lpbi->bmiHeader.biHeight-1);
-		//注意jpegdata总是从上到下读，而windows位图的data存储是从最后一行还是存即
+		//注意jpegdatatotalyes从上到下读，而windowsbit图的data存储yes从last一行还yes存即
 		//从下到上
-		//如果颜色不正确则可能RGB的颜色反了，可在"jpeg/jmorecfg.h"文件调整
+		//if颜色not正确则可能RGB的颜色反了，可at"jpeg/jmorecfg.h"file调整
 		// Process data 
 		 while (cinfo.output_scanline < cinfo.output_height) 
 		 {
@@ -136,42 +136,42 @@ IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPB
 }
 */
 /*
-//存储BMP文件 -- 
-//[in] filename ---- 目的位图filename
-//[in] lpbi ---- 位图info
-//[in] lpBits ---- 位图data指针
-//返回：如果failure返回0，否则返回file size
+//存储BMPfile -- 
+//[in] filename ---- 目的bit图filename
+//[in] lpbi ---- bit图info
+//[in] lpBits ---- bit图datapointer
+//return：iffailurereturn0，otherwisereturnfile size
 IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
 	if (lpbi==NULL || lpBits==NULL ) return 0;
 	if (filename==NULL || filename[0]==0) return 0;
 	
-	FILE *fp=::fopen(filename, "w+b");// 用create方式打开文件(二进制)
+	FILE *fp=::fopen(filename, "w+b");// 用create方式openfile(二进制)
 	if(!fp) return 0;
 
 	::fseek(fp, 0, SEEK_SET);
-	//写入文件头info
+	//writefile头info
 	BITMAPFILEHEADER	bmf;	
 	bmf.bfType = 0x4D42;		//('BM')
-	// 文件头尺寸＋info头尺寸＋颜色表尺寸＋位data尺寸
+	// file头尺寸＋info头尺寸＋颜色表尺寸＋bitdata尺寸
 	DWORD dataSize=DIBSCANLINE_WIDTHBYTES(lpbi->bmiHeader.biWidth *lpbi->bmiHeader.biBitCount) 
 		*lpbi->bmiHeader.biHeight;
 	DWORD palSize=PaletteSize((LPBITMAPINFOHEADER)lpbi);
     bmf.bfSize = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+palSize+dataSize;
     bmf.bfReserved1 = 0; 
     bmf.bfReserved2 = 0;
-	// 文件头尺寸＋info头尺寸＋颜色表尺寸
+	// file头尺寸＋info头尺寸＋颜色表尺寸
     bmf.bfOffBits   = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) +palSize;
 	
-	// 写入文件头info
+	// writefile头info
 	::fwrite((const void *)&bmf, sizeof(BITMAPFILEHEADER), 1, fp);
 
-	// 写入info块内容和data
+	// writeinfo块内容anddata
 	LPBYTE lp = lpBits;
 	
 	::fwrite((const void *)lpbi, sizeof(BITMAPINFOHEADER) +palSize, 1, fp);
 	DWORD dwB, dwC;
-	// 以分段方式写入位data，每个段length为32KB。
+	// 以分段方式writebitdata，每个段length为32KB。
 	dwB = dataSize/32768;			// 段数（32768）
 	dwC = dataSize - (dwB*32768);	// 余数
 	for (;dwB!=0;dwB--)
@@ -179,7 +179,7 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 		::fwrite((const void *)lp, 32768, 1, fp);
 		lp = (LPBYTE)((DWORD)lp+32768UL);
 	}
-	// 写入剩余的位data
+	// write剩余的bitdata
 	::fwrite((const void *)lp, dwC, 1, fp);
 
 	::fclose(fp);
@@ -187,28 +187,28 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 }
 */
 
-//存储JPEG文件 -- 
-//目前只支持将8位灰度图或24位真彩色
-//[in] filename ---- 目的位图filename
-//[in] lpbi ---- 位图info
-//[in] lpBits ---- 位图data指针
+//存储JPEGfile -- 
+//目前只支持将8bit灰度图or24bittrue彩色
+//[in] filename ---- 目的bit图filename
+//[in] lpbi ---- bit图info
+//[in] lpBits ---- bit图datapointer
 //[in] quality --- jpeg压缩质量 (0~100)
-//返回：如果failure返回0，否则返回file size
+//return：iffailurereturn0，otherwisereturnfile size
 IPFRESULT cImageF :: IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality)
 {
 	if (lpbih==NULL || lpBits==NULL ) return 0;
 	if (filename==NULL || filename[0]==0) return 0;
-	//目前只支持将8位灰度图或24位真彩色
+	//目前只支持将8bit灰度图or24bittrue彩色
 	if(lpbih->biBitCount!=8 && lpbih->biBitCount!=24) return 0;
-	// not supported压缩位图
+	// not supported压缩bit图
 //	ASSERT(lpbih->biCompression == BI_RGB);
-	//计算原图像的行宽
+	//count算原图像的行宽
 	if(lpbih->biSizeImage==0)
 		lpbih->biSizeImage=lpbih->biHeight * 
 			DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount);
 	long lEffWidth =lpbih->biSizeImage/lpbih->biHeight;
 
-	FILE *fp=::fopen(filename, "w+b");// 用create方式打开文件(二进制)
+	FILE *fp=::fopen(filename, "w+b");// 用create方式openfile(二进制)
 	if(!fp) return 0;
 	::fseek(fp, 0, SEEK_SET);
 
@@ -231,9 +231,9 @@ IPFRESULT cImageF :: IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lp
     cinfo.dct_method = JDCT_FASTEST;
     cinfo.optimize_coding = TRUE;
 	jpeg_start_compress(&cinfo, TRUE);
-	//注意jpegdata总是从上到下读，而windows位图的data存储是从最后一行还是存即
+	//注意jpegdatatotalyes从上到下读，而windowsbit图的data存储yes从last一行还yes存即
 	//从下到上
-	//如果颜色不正确则可能RGB的颜色反了，可在"jpeg/jmorecfg.h"文件调整
+	//if颜色not正确则可能RGB的颜色反了，可at"jpeg/jmorecfg.h"file调整
 	BYTE * IterImage=lpBits+lEffWidth*(cinfo.image_height-1);
 	while (cinfo.next_scanline < cinfo.image_height) 
 	{	
@@ -251,18 +251,18 @@ IPFRESULT cImageF :: IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lp
 
 //lpBuf --- jpegdata流 
 //dwSize --- jpegdata流size
-//返回：如果failure返回0，否则返回file size
+//return：iffailurereturn0，otherwisereturnfile size
 IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSize)
 {
 	if (lpBuf==NULL || dwSize==0 ) return 0;
 	if (filename==NULL || filename[0]==0) return 0;
-	FILE *fp=::fopen(filename, "w+b");// 用create方式打开文件(二进制)
+	FILE *fp=::fopen(filename, "w+b");// 用create方式openfile(二进制)
 	if(!fp) return 0;
 	::fseek(fp, 0, SEEK_SET);
 
 	LPBYTE lp = lpBuf;
 	DWORD dwB, dwC;
-	// 以分段方式写入位data，每个段length为32KB。
+	// 以分段方式writebitdata，每个段length为32KB。
 	dwB = dwSize/32768;			// 段数（32768）
 	dwC = dwSize - (dwB*32768);	// 余数
 	for (;dwB!=0;dwB--)
@@ -270,20 +270,20 @@ IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSi
 		::fwrite((const void *)lp, 32768, 1, fp);
 		lp = (LPBYTE)((DWORD)lp+32768UL);
 	}
-	// 写入剩余的位data
+	// write剩余的bitdata
 	::fwrite((const void *)lp, dwC, 1, fp);
 	::fclose(fp);
 	return dwSize;
 }
 
-//将位图data压缩为JPEGdata流 -- 
-//目前只支持将8位灰度图或24位真彩色
-//[in] lpbih ---- 位图info头
-//[in] lpBits ---- 位图data指针
-//[out] dstBuf ---- 存储转换后的JPEGdata的空间,用户必须保证空间足够大
-//					一般来说分配和原位图一样大的空间即可
+//将bit图data压缩为JPEGdata流 -- 
+//目前只支持将8bit灰度图or24bittrue彩色
+//[in] lpbih ---- bit图info头
+//[in] lpBits ---- bit图datapointer
+//[out] dstBuf ---- 存储convert后的JPEGdata的null间,user必须保证null间足够大
+//					一般来说分配and原bit图一样大的null间即可
 //[in] quality --- jpeg压缩质量 (0~100)
-//返回：如果failure返回0，否则返回压缩成jpeg后data的size
+//return：iffailurereturn0，otherwisereturn压缩成jpeg后data的size
 METHODDEF void init_destination (j_compress_ptr cinfo)
 {
 	return;
@@ -299,16 +299,16 @@ METHODDEF void term_destination (j_compress_ptr cinfo)
 IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYTE dstBuf,int quality)
 {
 	if (lpbih==NULL || lpBits==NULL || dstBuf==NULL ) return 0;
-	//目前只支持将8位灰度图或24位真彩色
+	//目前只支持将8bit灰度图or24bittrue彩色
 	if(lpbih->biBitCount!=8 && lpbih->biBitCount!=24) return 0;
-	//计算原图像的行宽
+	//count算原图像的行宽
 	if(lpbih->biSizeImage==0)
 		lpbih->biSizeImage=lpbih->biHeight * 
 			DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount);
 	long lEffWidth =lpbih->biSizeImage/lpbih->biHeight;
 	LPBYTE lpDstBits=dstBuf;
 	if(dstBuf==lpBits)
-	{//源address和目的address相同
+	{//源addressand目的address相同
 		if( (lpDstBits=(LPBYTE)::malloc(lpbih->biSizeImage))==NULL)
 			return 0;
 	}
@@ -339,9 +339,9 @@ IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYT
 	
 	jpeg_start_compress(&cinfo, TRUE);
 	
-	//注意jpegdata总是从上到下读，而windows位图的data存储是从最后一行还是存即
+	//注意jpegdatatotalyes从上到下读，而windowsbit图的data存储yes从last一行还yes存即
 	//从下到上
-	//如果颜色不正确则可能RGB的颜色反了，可在"jpeg/jmorecfg.h"文件调整
+	//if颜色not正确则可能RGB的颜色反了，可at"jpeg/jmorecfg.h"file调整
 	BYTE * IterImage=lpBits+lEffWidth*(cinfo.image_height-1);
 	while (cinfo.next_scanline < cinfo.image_height) 
 	{	
@@ -354,20 +354,20 @@ IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYT
 	jpeg_destroy_compress(&cinfo);
 
 	if(dstBuf==lpBits)
-	{//源address和目的address相同
+	{//源addressand目的address相同
 		memcpy((void *)lpBits,(const void *)lpDstBits,lEffWidth);
 		::free(lpDstBits);
 	}
 	return lEffWidth;
 }
 /*
-//将jpegdata解压缩为位图data流 -- 
-//[in] srcBuf ---- jpegdata指针
-//[in] dwSize ---- srcBuf指向的空间的size
-//[out] lpbi ---- 返回位图info
-//[out] lpBits ---- 返回位图data指针(DWORD 对齐)，用户必须保证空间足够大
-//				如果lpBits==NULL则仅仅返回位图info
-//返回：如果failure返回0，否则返回非0(图像datasize)
+//将jpegdata解压缩为bit图data流 -- 
+//[in] srcBuf ---- jpegdatapointer
+//[in] dwSize ---- srcBufpointer to的null间的size
+//[out] lpbi ---- returnbit图info
+//[out] lpBits ---- returnbit图datapointer(DWORD 对齐)，user必须保证null间足够大
+//				iflpBits==NULL则仅仅returnbit图info
+//return：iffailurereturn0，otherwisereturn非0(图像datasize)
 IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
 	if(srcBuf==NULL || dwSize<=0 || lpbi==NULL) return 0;
@@ -418,9 +418,9 @@ IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi
 	if(lpBits)
 	{ 
 		JSAMPROW ptr=lpBits+lEffWidth*(lpbi->bmiHeader.biHeight-1);
-		//注意jpegdata总是从上到下读，而windows位图的data存储是从最后一行还是存即
+		//注意jpegdatatotalyes从上到下读，而windowsbit图的data存储yes从last一行还yes存即
 		//从下到上
-		//如果颜色不正确则可能RGB的颜色反了，可在"jpeg/jmorecfg.h"文件调整
+		//if颜色not正确则可能RGB的颜色反了，可at"jpeg/jmorecfg.h"file调整
 		// Process data 
 		 while (cinfo.output_scanline < cinfo.output_height) 
 		 {
@@ -436,16 +436,16 @@ IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi
 }
 */
 //------------------------------------------------------------------------------------------
-//捕捉窗口图像 --- 24位真彩色图像
-//如果hWnd==NULL则捕捉整个屏幕
+//捕捉窗口图像 --- 24bittrue彩色图像
+//ifhWnd==NULL则捕捉整个屏幕
 //lpbih --- 
-//			biCompressionspecified图像data的压缩方式，目前只支持BI_RGB(不压缩)，BI_JPEG(jpeg压缩)
-//			返回图像的info
-//lpBits --- 保存图像data或压缩后的图像data
-//			如果==NULL,则仅仅返回图像data需要的空间size
-//quality --- 如果specified了BI_JPEG压缩则此参数指明jpeg压缩质量
-//failure返回0，否则返回图像datasize
-//ifCapCursor是否捕获鼠标光标
+//			biCompressionspecified图像data的压缩方式，目前只支持BI_RGB(not压缩)，BI_JPEG(jpeg压缩)
+//			return图像的info
+//lpBits --- save图像dataor压缩后的图像data
+//			if==NULL,则仅仅return图像data需要的null间size
+//quality --- ifspecified了BI_JPEG压缩则此parameterspecifiesjpeg压缩质量
+//failurereturn0，otherwisereturn图像datasize
+//ifCapCursoryesno捕获鼠标光标
 IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor)
 {
 	if(lpbih==NULL) return 0;
@@ -455,7 +455,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	RECT rect;
 	::GetClientRect(hWnd, &rect);
 
-	//要保存的原图像区域的起始点坐标和宽高
+	//要save的原图像区域的起始点坐标and宽高
 	long lX=0,tY=0;
 	long lWidth=rect.right - rect.left;
 	long lHeight=rect.bottom - rect.top ;
@@ -472,7 +472,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	long lEffWidth=DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount );
 	DWORD dwRet=lpbih->biSizeImage =lEffWidth * lpbih->biHeight ;
 	if(lpBits==NULL) return dwRet;
-	//是否压缩
+	//yesno压缩
 	BOOL ifComp=(lpbih->biCompression==BI_JPEG);
 	lpbih->biCompression =BI_RGB;
 	
@@ -491,18 +491,18 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 		POINT ptCursor;
 		::GetCursorPos(&ptCursor);
 		//先获得鼠标光标下的窗口句柄，得到该窗口的thread ID
-		//Attatchcurrent thread到specified的窗口线程
+		//Attatchcurrent thread到specified的窗口thread
 		//获得该窗口current鼠标光标句柄
 		//Deattach
-		//!!!如果不这样做，直接调用GetCursor()则总是获得current thread的光标句柄
-		//如果没有设置则获得的总是漏斗光标句柄
+		//!!!ifnot这样做，直接调用GetCursor()则totalyes获得current thread的光标句柄
+		//if没有set则获得的totalyes漏斗光标句柄
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=::GetDesktopWindow();
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
 		HCURSOR hCursor=::GetCursor();
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
-		//获取光标的图标data 
+		//get光标的图标data 
 		ICONINFO IconInfo;
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
@@ -514,7 +514,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 			//if (IconInfo.hbmColor != NULL)
 			//	::DeleteObject(IconInfo.hbmColor);
 		}
-		//在兼容设备description表上画出该光标
+		//at兼容设备description表上画出该光标
 		::DrawIconEx(
 		hMemDC, // handle to device context 
 		ptCursor.x, ptCursor.y,
@@ -529,7 +529,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	if(!::GetDIBits(hWndDC,hMemBmp,0,lHeight,lpBits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
 		dwRet=0;
 	else if(ifComp)
-	{//是否进行jpeg压缩
+	{//yesno进行jpeg压缩
 		dwRet=cImageF::IPF_EncodeJPEG(lpbih,lpBits,lpBits,quality);
 		lpbih->biCompression =BI_JPEG;
 	}
@@ -543,23 +543,23 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 //***********************************************************************************************
 //**********************************************private function ********************************
 /*
-//获取specifiedDIB的调色板尺寸（以字节为单位）
+//getspecifiedDIB的调色板尺寸（以byte为单bit）
 WORD cImageF::PaletteSize(LPBITMAPINFOHEADER lpbih)
 {
 	WORD size, wBitCount;
 
-	// 获得每个像素所占的位数
+	// 获得每个像素所占的bit数
 	wBitCount =lpbih->biBitCount;
 				
-	// 16位和32位位图在颜色表中占用三个DWORD数值来表示
-	// 红、绿、蓝在位data中的掩码
+	// 16bitand32bitbit图at颜色表中占用三个DWORD数值来表示
+	// 红、绿、蓝atbitdata中的掩码
 	if ((wBitCount == 16)||(wBitCount == 32))
 	{
 		return sizeof(DWORD)*3;
 	}
 	else
 	{
-		// not supported压缩位图
+		// not supported压缩bit图
 		//ASSERT(lpbi->biCompression == BI_RGB);
 		WORD wc;
 		if (lpbih->biClrUsed) 
@@ -570,18 +570,18 @@ WORD cImageF::PaletteSize(LPBITMAPINFOHEADER lpbih)
 			{
 				case 1:
 					wc=2;
-					break;          // 单色位图，只有黑白两种颜色
+					break;          // 单色bit图，只有黑白两种颜色
 				case 4:
 					wc=16;		
-					break;			// 标准VGA位图，有16种颜色
+					break;			// 标准VGAbit图，有16种颜色
 				case 8:
 					wc=256;		
-					break;			// SVGA位图，有256种颜色
-				case	16:			// 64K色位图
-				case	24:			// 16M色位图（真彩色）
-				case	32:			// 16M+色位图（真彩色）
+					break;			// SVGAbit图，有256种颜色
+				case	16:			// 64K色bit图
+				case	24:			// 16M色bit图（true彩色）
+				case	32:			// 16M+色bit图（true彩色）
 					wc=0;		
-					break;			// 颜色表中没有颜色data返回0
+					break;			// 颜色表中没有颜色datareturn0
 				default:
 					return 0; //error
 			}

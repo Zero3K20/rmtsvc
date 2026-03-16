@@ -83,8 +83,8 @@ std::string CXMLFile::GetStringC(const char* cstrBaseKeyName, const char* cstrVa
 	std::string strDummy;
 	GetNodeValue(cstrBaseKeyName, cstrValueName, cstrDefaultValue, strValue, 
 		NULL, NULL, strDummy);
-	//从xmlparse出来的字符串将\r去掉了，只有\n.而向msnsend消息是\n不换行，因此
-	//yyc add 将\n转换为\r 2006-02-27
+	//strings parsed from XML have \r removed, only \n remains; MSN messages with only \n don't break lines, therefore
+	//yyc add: convert \n to \r, 2006-02-27
 	char *ptr=(char *)strValue.c_str();
 	while(*ptr){ if(*ptr=='\n') *ptr='\r'; ptr++; }
 	return strValue;
@@ -234,7 +234,7 @@ long CXMLFile::SetNodeValue(const char* cstrBaseKeyName, const char* cstrValueNa
 	return lRetVal;
 }
 
-// xmlfile.DeleteSetting("Settings/who","");delete该键及其所有子键
+// xmlfile.DeleteSetting("Settings/who",""); delete this key and all its subkeys
 // delete a key or chain of keys
 long CXMLFile::DeleteSetting(const char* cstrBaseKeyName, const char* cstrValueName)
 {
@@ -330,7 +330,7 @@ long CXMLFile::GetKeysValue(const char* cstrBaseKeyName, std::map<std::string, s
 std::map<std::string, std::string> mp;
 	std::map<std::string, std::string>::const_iterator iter;
 	std::string strmsg;
-	xmlfile.GetKeysValue("xmlRoot/西安/空军工程大学/学生/入学新生", mp);
+	xmlfile.GetKeysValue("xmlRoot/西安/null军工程大学/学生/入学新生", mp);
 	for(iter=mp.begin(); iter!=mp.end(); ++iter)
 	{
 		strmsg+=" ("+iter->first+", "+ iter->second+") \n";
@@ -468,7 +468,7 @@ static bool FileExist(const char* pszFileName)
 	
 	return (bExist);
 }
-//获取装载xmlerror
+//get装载xmlerror
 std::string CXMLFile::loadError()
 {
 	std::string strError;
@@ -499,7 +499,7 @@ std::string CXMLFile::loadError()
 	return strError;
 }
 
-//装载xml字符流 //yyc add
+//装载xmlcharacter流 //yyc add
 bool CXMLFile::loadXML(const char *xmlBuffer, const char* root_name)
 {
 	if(xmlBuffer==NULL || XmlDocPtr != NULL)

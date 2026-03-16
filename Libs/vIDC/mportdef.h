@@ -26,16 +26,16 @@ typedef enum //port mapping type definitions
 
 typedef enum
 {
-	TCPSVR_TCPSVR=0, //不进行服务转换
-	TCPSVR_SSLSVR,   //将普通TCP服务转换为SSL加密服务
-	SSLSVR_TCPSVR    //将SSL加密服务转换为普通TCP服务
+	TCPSVR_TCPSVR=0, //no service conversion
+	TCPSVR_SSLSVR,   //convert plain TCP service to SSL-encrypted service
+	SSLSVR_TCPSVR    //convert SSL-encrypted service to plain TCP service
 }SSLTYPE;
 
 typedef enum 
 {
-	VIDC_MAPTYPE_TCP=0,		//TCP映射
-	VIDC_MAPTYPE_UDP,		//UDP映射
-	VIDC_MAPTYPE_PROXY		//内网代理映射
+	VIDC_MAPTYPE_TCP=0,		//TCP mapping
+	VIDC_MAPTYPE_UDP,		//UDPmap
+	VIDC_MAPTYPE_PROXY		//内网代理map
 }VIDC_MAPTYPE;
 
 

@@ -60,7 +60,7 @@ unsigned long msnMessager::proxy_senddata(HCHATSESSION hchat,const char *proxyCm
 //host - address and port of the application service to connect to: ip:port
 void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,const char *host)
 {
-	//send代理connect请求
+	//send proxy connect request
 	HTRANSINFO htransinfo(new msnproxy_transInfo);
 	if(htransinfo.get_rep()==NULL) return NULL;
 	htransinfo->local_id=++g_proxyID;
@@ -75,7 +75,7 @@ void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,c
 	m_proxyMutex.lock();
 	m_mapProxyTransInfo[htransinfo->local_id]=htransinfo;
 	m_proxyMutex.unlock();
-	int iTimeout=30; //等待命令返回,最多等待15 seconds
+	int iTimeout=30; //wait for command response, max 15 seconds
 	while(htransinfo->remote_id==0 && --iTimeout>0)
 	{
 		if(htransinfo->psock->checkSocket(0,SOCKS_OP_READ)<SOCKSERR_OK) break;
@@ -85,12 +85,12 @@ void * msnMessager::proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,c
 	m_proxyMutex.lock();
 	m_mapProxyTransInfo.erase(htransinfo->local_id);
 	m_proxyMutex.unlock();
-	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN-Proxy] 通过MSN代理机器人connect远端服务 %s failure!\r\n",host);
+	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN-Proxy] connect to remote service via MSN proxy bot %s failed!\r\n",host);
 	return NULL;
 }
 
-//收到MSN PROXY代理data
-//proxyCmd - 代理命令。format: <command> <remote-id>-<local-id>
+//received MSN PROXY data
+//proxyCmd - 代理command。format: <command> <remote-id>-<local-id>
 void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *undecode_szMsg,int szMsglen)
 {
 //	RW_LOG_PRINT(LOGLEVEL_WARN,"[MSN PROXY] %s msglen=%d\r\n",proxyCmd,szMsglen);
@@ -111,7 +111,7 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 			(*it).second->remote_id=remote_id;
 		m_proxyMutex.unlock();
 	}
-	else if(proxycmd==MSN_PROXY_CLOSED) //对端已关闭
+	else if(proxycmd==MSN_PROXY_CLOSED) //对端已close
 	{
 		m_proxyMutex.lock();
 		std::map<unsigned long,HTRANSINFO>::iterator it=m_mapProxyTransInfo.find(local_id);
@@ -127,7 +127,7 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 		m_proxyMutex.unlock();
 		if(psock && psock->status()==SOCKS_CONNECTED)
 		{
-			//进行Base64解码
+			//进行Base64 decoding
 			szMsglen=cCoder::base64_decode(undecode_szMsg,szMsglen,undecode_szMsg);
 			psock->Send(szMsglen,undecode_szMsg,-1); //forward data
 		}
@@ -167,7 +167,7 @@ void msnMessager::onProxyChat(HCHATSESSION hchat,const char *proxyCmd, char *und
 	return;
 }
 
-//data转发
+//dataforward
 void msnMessager::proxy_transferData(void *param,const char *otherdata,long datalen)
 {
 	msnproxy_transInfo *pinfo=(msnproxy_transInfo *)param;
@@ -189,7 +189,7 @@ void msnMessager::proxy_transferData(void *param,const char *otherdata,long data
 			}
 		}//?if(psock->parent()==NULL)
 		
-		//----------------startdata转发-------------------
+		//----------------startdataforward-------------------
 		sprintf(proxyCmd,"%d %d-%d",MSN_PROXY_DATA,local_id,remote_id);
 		unsigned long trID=0; cCond cond; cond.setArgs(0);
 		int iret; char *buf=new char[1024+SSENDBUFFERSIZE];
@@ -204,22 +204,22 @@ void msnMessager::proxy_transferData(void *param,const char *otherdata,long data
 				iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 				if(iret<0) break; 
 				if(iret==0) continue;
-				//读clientsend的data
+				//read data sent by client
 				iret=psock->Receive(buf,1024,-1);
-				if(iret<0) break; //==0表明receivedata流量超过限制
+				if(iret<0) break; //==0 means received data exceeded the limit
 				if(iret==0){ Sleep(200); continue; }
 			}
-			//进行Base64编码
+			//进行Base64 encoding
 			iret=cCoder::base64_encode(buf,iret,buf+1024);
 			trID=pmsnmeaager->proxy_senddata(pinfo->hchat,proxyCmd,buf+1024,iret);
 			if(trID==0) break;
-			if(trID%4==0) //为了避免send太快导致MSN服务关闭connect，等待响应应答
+			if(trID%4==0) //为了避免send太快导致MSNserviceclose connection，waitingresponse应答
 			{
-				pmsnmeaager->m_conds[trID]=&cond; //延时等待3秒
+				pmsnmeaager->m_conds[trID]=&cond; //延时waiting3秒
 				cond.wait(3); pmsnmeaager->eraseCond(trID);
 			}//?if(trID%4==0)
 		}//?while
-		//----------------data转发end-------------------
+		//----------------dataforwardend-------------------
 
 		if(pinfo->bDelete) delete psock;
 	}//?if(psock

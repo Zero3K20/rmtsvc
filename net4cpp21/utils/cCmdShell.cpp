@@ -1,6 +1,6 @@
 /*******************************************************************
    *	cCmdShell.cpp
-   *    DESCRIPTION:控制台程序的输入输出重定向对象。
+   *    DESCRIPTION:console program input/output redirection object.
    *
    *    AUTHOR:yyc
    *
@@ -14,7 +14,7 @@
 #include "../utils/utils.h"
 
 using namespace net4cpp21;
-//设置default的cmd命令解释程序和path，有些网管会deletesystem32下的cmd.exe或改名
+//setdefault的cmdcommand解释程序andpath，有些网管会deletesystem32下的cmd.exeor改名
 std::string cCmdShell::staCmdPath="cmd.exe";
 cCmdShell::cCmdShell()
 {
@@ -69,7 +69,7 @@ bool cCmdShell::create()
 		saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
 		saAttr.bInheritHandle = true;
 		saAttr.lpSecurityDescriptor = NULL;
-		//保存标准输出句柄
+		//save标准输出句柄
 		hSaveStdout = ::GetStdHandle(STD_OUTPUT_HANDLE);
 		// Create a pipe for the child's STDOUT.
 		if (! ::CreatePipe(&m_hChildStdoutRd, &m_hChildStdoutWr, &saAttr, 0)) break;
@@ -96,7 +96,7 @@ bool cCmdShell::create()
 		   ) break;
 		::CloseHandle(m_hChildStdinWr); m_hChildStdinWr=hChildStdDup; 
 
-		//startcreate要进行重定向的子进程
+		//startcreate要进行重定向的子process
 		m_siStartInfo.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
 		m_siStartInfo.hStdInput = m_hChildStdinRd;
 		m_siStartInfo.hStdOutput = m_hChildStdoutWr;
@@ -126,7 +126,7 @@ bool cCmdShell::create()
 }
 
 /*
-//往shell的输出buffer中写入，可通过read读出
+//往shell的输出buffer中write，可通过read读出
 long cCmdShell::Fill(void *buf,long buflen)
 {
 	if(buf==NULL || buflen<=0) return 0;
@@ -176,7 +176,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 {
 	if(pshell==NULL) return;
 	if(pshell->m_hChildStdoutRd==NULL) return;
-	//为m_buffer分配缓冲空间
+	//为m_buffer分配buffernull间
 	pshell->m_buffer=new char[recvBufferLen];
 	if(pshell->m_buffer==NULL) return;
 	pshell->m_buflen=0; //initializationdatalength
@@ -189,7 +189,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 			if(len<0) break;
 			if(len==0) continue;
 			buf[len]=0;
-		}//?如果len>0说明上次读取的还未写进buffer
+		}//?iflen>0说明上次read的还未写进buffer
 
 		pshell->m_mutex.lock();
 		if( (len+pshell->m_buflen)<recvBufferLen )
@@ -198,7 +198,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 			pshell->m_buflen+=len; len=0;
 		}
 		pshell->m_mutex.unlock();
-		if(len>0) cUtils::usleep(200000) ;//休眠200ms，等待buffer被读取
+		if(len>0) cUtils::usleep(200000) ;//休眠200ms，waitingbuffer被read
 	}//?while(pshell->m_hChildStdoutRd)
 
 	pshell->cCmdShell::destroy(); 

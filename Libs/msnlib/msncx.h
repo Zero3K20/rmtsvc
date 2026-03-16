@@ -24,10 +24,10 @@ namespace net4cpp21
 		bool m_bDataThread_Running;
 		cContactor *m_pcontact;//the chat session object this invitation belongs to
 		msnMessager *m_pmsnmessager;
-		bool m_bSender;//是否为send者还是receive者
-		int m_inviteType;//邀请type, INVITE_TYPE_FILE,INVITE_TYPE_PICTURE,INVITE_TYPE_ROBOT
-		std::string m_filepath;//文件读取或存储path
-		std::string m_filename;//文件传输的filename和size
+		bool m_bSender;//whether this is the sender or receiver
+		int m_inviteType;//invitation type: INVITE_TYPE_FILE, INVITE_TYPE_PICTURE, INVITE_TYPE_ROBOT
+		std::string m_filepath;//file read or storage path
+		std::string m_filename;//filename and size for file transfer
 		long m_filesize;
 	public:
 		explicit cMsncx(msnMessager *pmsnmessager,cContactor *pcontact,int inviteType);
@@ -63,7 +63,7 @@ namespace net4cpp21
 		virtual ~cMsnc0();
 		bool sendmsg_ACCEPT(bool bListen);
 		bool sendmsg_REJECT(const char *errCode);
-		bool sendFile(const char *filename);//sendspecified文件
+		bool sendFile(const char *filename);//sendspecifiedfile
 		void setHostinfo(const char *hostip,int hostport,const char *authCookie);
 		static void msnc0Thread(cMsnc0 *pmsnc0);
 	};
@@ -84,12 +84,12 @@ namespace net4cpp21
 
 		cMsnc1(msnMessager *pmsnmessager,cContactor *pcontact,int inviteType=0);//MSNINVITE_TYPE_UNKNOW
 		virtual ~cMsnc1();
-		//获取某个联系人的头像。 saveas---图像领存为...
+		//get某个联系人的头像。 saveas---图像领存为...
 		bool getPicture(const char *saveas);
 		bool sendPicture(const char *filename);
-		bool sendFile(const char *filename);//sendspecified文件
-//		bool sendRobotInvite(const char *robotname); //send机器人邀请
-		//pheader 指向receiveMSG的 header
+		bool sendFile(const char *filename);//sendspecifiedfile
+//		bool sendRobotInvite(const char *robotname); //sendrobot invitation
+		//pheader pointer toreceiveMSG的 header
 		bool sendmsg_ACK(unsigned char *pheader);
 		bool sendmsg_Got_BYE();
 		bool sendmsg_ACCEPT();

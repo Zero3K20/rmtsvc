@@ -23,53 +23,53 @@
 #define SOCKSERR_PROXY_USER SOCKSERR_PROXY_AUTH-3
 #define SOCKSERR_PROXY_DENY SOCKSERR_PROXY_AUTH-4
 #define SOCKSERR_PROXY_EXPIRED SOCKSERR_PROXY_AUTH-5
-#define SOCKSERR_PROXY_CONNECTIONS SOCKSERR_PROXY_AUTH-6 //connect数太多
+#define SOCKSERR_PROXY_CONNECTIONS SOCKSERR_PROXY_AUTH-6 //too many connections
 
 #define PROXY_MAX_RESPTIMEOUT 10 //s maximum response delay
-#define PROXY_SERVER_PORT	1080 //defaultproxy service的port
+#define PROXY_SERVER_PORT	1080 //default proxy service port
 
-typedef enum //代理typedefine
+typedef enum //proxy type definitions
 {
-	PROXY_NONE=0,//不使用代理
+	PROXY_NONE=0,//no proxy
 	PROXY_HTTPS=1,
 	PROXY_SOCKS4=2,
 	PROXY_SOCKS5=4 
 }PROXYTYPE; 
 
-typedef enum //代理请求typedefine
+typedef enum //proxy request type definitions
 {
 	PROXYREQ_TCP,
 	PROXYREQ_BIND,//
-	PROXYREQ_UDP //仅仅socks5代理协议支持UDP代理
+	PROXYREQ_UDP //UDP proxy is only supported by the SOCKS5 proxy protocol
 }PROXYREQTYPE;
 
 typedef struct _proxyaccount //proxyaccountinfo
 {
-	std::string m_username;//account,account不区分size写(account转换为小写)
-	std::string m_userpwd;//password,如果password==""则，无需password verification
-	net4cpp21::iprules m_ipRules;//源IP access rules
+	std::string m_username;//account name, case-insensitive (converted to lowercase)
+	std::string m_userpwd;//password; if password=="", no password verification is required
+	net4cpp21::iprules m_ipRules;//source IP access rules
 
-	unsigned long m_maxratio;//最大带宽 K/s,如果=0则不限
-	long m_loginusers;//current以此account登录proxy服务的用户个数,只有没用用户connect时才能delete此account
-	long m_maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
-	time_t m_limitedTime;//限制此account只在某个date之前有效，==0不限制
+	unsigned long m_maxratio;//maximum bandwidth K/s, 0 means unlimited
+	long m_loginusers;//current number of users logged in with this account; can only delete this account when no users are connected
+	long m_maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
+	time_t m_limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	
-	net4cpp21::iprules m_dstRules;//目的IP access rules
+	net4cpp21::iprules m_dstRules;//destination IP access rules
 }PROXYACCOUNT;
 
-//设定1字节对齐方式
+//set 1-byte alignment
 //#ifdef WIN32
 //	#pragma pack(push)
 //	#pragma pack(1)
 //#endif
 
-	//sock4请求应答结构
+	//SOCKS4 request/response structure
 	typedef struct _sock4req
 	{
 	char VN; //version ,must be 4
 	char CD; //socks4 command, 1--connect 2--bind
 	unsigned short Port;
-	unsigned long IPAddr; //socks4代理协议not supported服务端域名parse
+	unsigned long IPAddr; //SOCKS4 proxy protocol does not support server-side domain name parsing
 	char other[1];
 	}sock4req;
 	typedef struct _sock4ans
@@ -85,9 +85,9 @@ typedef struct _proxyaccount //proxyaccountinfo
 	unsigned short Port; 
 	unsigned long IPAddr;
 	}sock4ans;
-	//CONNECT响应包中只有VN、CD字段有意义，DSTPORT、DSTIP字段被忽略
+	//in the CONNECT response packet, only the VN and CD fields are meaningful; DSTPORT and DSTIP are ignored
 	//******************************
-	//sock5代理请求应答结构
+	//SOCKS5 proxy request/response structure
 	typedef struct _sock5req
 	{
 	char Ver;
@@ -105,7 +105,7 @@ typedef struct _proxyaccount //proxyaccountinfo
 	char Cmd;// 1=CONNECT, 2=TCP BIND, 3=UDP BIND
 	char Rsv;// must be 0
 	char Atyp;// 1=4 byte IP address, 3=domain name, 4=6 byte IP address
-	char other[1]; // depends on address type， x字节
+	char other[1]; // depends on address type， xbyte
 	//unsigned short port; // should be in BIG ENDIAN format!
 	}sock5req1;
 	typedef struct _sock5ans1
@@ -114,7 +114,7 @@ typedef struct _proxyaccount //proxyaccountinfo
 	char Rep;
 	char Rsv;// must be 0
 	char Atyp;// 1=4 byte IP address, 3=domain name, 4=6 byte IP address
-	//char other[1]; // depends on address type， x字节
+	//char other[1]; // depends on address type， xbyte
 	//unsigned short port; // should be in BIG ENDIAN format!
 	//yyc modify 2003-01-17,only support IP address 
 	unsigned long IPAddr;
@@ -135,11 +135,11 @@ typedef struct _proxyaccount //proxyaccountinfo
 	char Status;
 	}authans;
 
-	//UDP代理包结构
+	//UDP代理packetstructure
 	typedef struct _socks5udp
 	{
 		unsigned short Rsv;  //must be 0
-		char Frag; //是否data报分段重组flag
+		char Frag; //flag for whether to reassemble fragmented data
 		char Atyp;// 1=4 byte IP address, 3=domain name, 4=6 byte IP address
 		unsigned long IPAddr;
 		unsigned short Port;
@@ -151,134 +151,134 @@ typedef struct _proxyaccount //proxyaccountinfo
 #endif
 
 /*   RFC SOCKS4
-SOCKS协议最初由David Koblas设计，后经Ying-Da Lee改进成SOCKS 4。
+The SOCKS protocol was originally designed by David Koblas and later improved by Ying-Da Lee into SOCKS 4.
 
-SOCKS 4只支持TCP转发。
+SOCKS 4 only supports TCP forwarding.
 
-请求报文format如下:
+request message format:
 
 +----+----+----+----+----+----+----+----+----+----+...+----+
 | VN | CD | DSTPORT |      DSTIP        | USERID      |NULL|
 +----+----+----+----+----+----+----+----+----+----+...+----+
    1    1      2              4           variable       1
 
-VN      SOCKS协议version number，应该是0x04
+VN      SOCKS protocol version number, should be 0x04
 
-CD      SOCKS命令，可取如下值:
+CD      SOCKS command, possible values:
 
         0x01    CONNECT
         0x02    BIND
 
-DSTPORT CD相关的portinfo
+DSTPORT port info related to CD
 
-DSTIP   CD相关的addressinfo
+DSTIP address info related to CD
 
-USERID  客户方的USERID
+USERID  client's user ID
 
 NULL    0x00
 
-响应报文format如下:
+response message format:
 
 +----+----+----+----+----+----+----+----+
 | VN | CD | DSTPORT |      DSTIP        |
 +----+----+----+----+----+----+----+----+
    1    1      2              4
 
-VN      应该为0x00而不是0x04
+VN      should be 0x00 not 0x04
 
-CD      可取如下值:
+CD      possible values:
 
-        0x5A    允许转发
-        0x5B    拒绝转发，一般性failure
-        0x5C    拒绝转发，SOCKS 4 Server无法connect到SOCS 4 Client所在主机的
-                IDENT服务
-        0x5D    拒绝转发，请求报文中的USERID与IDENT服务返回值不相符
+        0x5A    forwarding allowed
+        0x5B    forwarding denied, general failure
+        0x5C    forwarding denied, SOCKS 4 Server cannot connect to the IDENT service on the SOCKS 4 Client host
+                IDENTservice
+        0x5D    forwarding denied, USERID in request does not match the IDENT service response
 
-DSTPORT CD相关的portinfo
+DSTPORT port info related to CD
 
-DSTIP   CD相关的addressinfo
+DSTIP address info related to CD
 
-1) CONNECT命令
+1) CONNECT command
 
-对于CONNECT请求，DSTIP/DSTPORT指明转发目的地。
+for CONNECT requests, DSTIP/DSTPORT specifies the forwarding destination.
 
-SOCKS 4 Server根据源IP、DSTPORT、DSTIP、USERID以及可从SOCS 4 Client所在主
-机的IDENT服务(RFC 1413)获取的info进行综合评估，以决定建立相应connect还是拒绝
-转发。
+SOCKS 4 Server evaluates based on源IP、DSTPORT、DSTIP、USERID以及可从SOCS 4 Client所at主
+机的IDENTservice(RFC 1413)get的info进行综合评估，以决定establish the corresponding connection还yes拒绝
+forward。
 
-假设CONNECT请求被允许，SOCKS 4 Server试图建立到转发目的地的TCPconnect，然后向
-SOCKS 4 Clientsend response报文，指明是否success建立转发connect。
+false设CONNECTrequest被允许，SOCKS 4 Server tries toestablish connection toforwarding destination的TCP connection,然后向
+SOCKS 4 Clientsend response packet，specifiesyesnosuccess建立forwarding connection。
 
-如果CONNECT请求被拒绝，SOCKS 4 Server也向SOCKS 4 Clientsend response报文，随后
-立即关闭connect。
+ifCONNECTrequest被拒绝，SOCKS 4 Server也send to SOCKS 4 Client response packet，随后
+立即close connection。
 
-CONNECT响应包中只有VN、CD字段有意义，DSTPORT、DSTIP字段被忽略。如果CD等于
-0x5A，表示success建立转发connect，之后SOCKS 4 Client直接在currentTCPconnect上send待转
+in the CONNECT response packet, only the VN and CD fields are meaningful; DSTPORT and DSTIP are ignored。ifCD等于
+0x5A，表示success建立forwarding connection，之后SOCKS 4 Clientdirectly oncurrentTCPconnect上send待转
 发data。
 
-2) BIND命令
+2) BIND command
 
-FTP协议在某些情况下要求FTP Server主动建立到FTP Client的connect，即FTPdata流。
+The FTP protocol sometimes requires the FTP Server to actively establish a connection to the FTP Client (the FTP data stream).
 
 FTP Client - SOCKS 4 Client - SOCKS 4 Server - FTP Server
 
-a. FTP Client试图建立FTP控制流。SOCKS 4 Client向SOCKS 4 ServersendCONNECT
-   请求，后者响应请求，最终FTP控制流建立。
+a. FTP Client tries toestablish FTP control stream。SOCKS 4 Client向SOCKS 4 Serversend CONNECT
+   request，the latter responds to the request, and the FTP control stream is established.
 
-   CONNECT请求包中指明FTPSERVER.ADDR/FTPSERVER.PORT。
+   The CONNECT request specifies FTPSERVER.ADDR/FTPSERVER.PORT.
 
-b. FTP Client试图建立FTPdata流。SOCKS 4 Client建立新的到SOCKS 4 Server的
-   TCPconnect，并在新的TCPconnect上sendBIND请求。
+b. FTP Client tries toestablish FTP data stream。SOCKS 4 Client建立新的到SOCKS 4 Server的
+   TCP connection, and sends a BIND request on the new TCP connection.
 
-   BIND请求包中仍然指明FTPSERVER.ADDR/FTPSERVER.PORT。
+   The BIND request still specifies FTPSERVER.ADDR/FTPSERVER.PORT.
 
-   SOCKS 4 Server收到BIND请求，根据这两个info以及USERID对BIND请求进行评估。
-   create新套接字，侦听在AddrA/PortA上，并向SOCKS 4 Clientsend第一个BIND响应
-   包。
+   SOCKS 4 Server receives BIND request and evaluates it based on this info and USERID.
+   create a new socket listening on AddrA/PortA, and send to SOCKS 4 Client the first BIND response
+   packet.
 
-   BIND响应包中CD不等于0x5A时表示failure，包中DSTPORT、DSTIP字段被忽略。
+   if CD in the BIND response is not 0x5A, it indicates failure; DSTPORT and DSTIP fields in the packet are ignored.
 
-   BIND响应包中CD等于0x5A时，包中DSTIP/DSTPORT对应AddrA/PortA。如果DSTIP等
-   于0(INADDR_ANY)，SOCKS 4 Client应将其替换成SOCKS 4 Server的IP，当SOCKS
+   BINDresponsepacket中CD等于0x5A时，packet中DSTIP/DSTPORT对应AddrA/PortA。ifDSTIP等
+   to 0 (INADDR_ANY), SOCKS 4 Client should replace it with the SOCKS 4 Server's IP, when SOCKS
    4 Server非多目(multi-homed)主机时就可能出现这种情况。
 
-c. SOCKS 4 Client收到第一个BIND响应包。
+c. SOCKS 4 Client receives the first BIND response packet.
 
-   FTP Client调用getsockname(不是getpeername)获取AddrA/PortA，通过FTP控制
-   流向FTP ServersendPORT命令，通知FTP Server应该主动建立到AddrA/PortA的
-   TCPconnect。
+   FTP Client calls getsockname (not getpeername) to get AddrA/PortA, via FTP control
+   sends PORT command to FTP Server via the control stream, telling FTP Server to actively connect to AddrA/PortA
+   TCP connection.
 
-d. FTP Server收到PORT命令，主动建立到AddrA/PortA的TCPconnect，假设TCPconnect相关
-   四元组是:
+d. FTP Server receivesPORTcommand，主动establish connection toAddrA/PortA的TCP connection,false设TCPconnect相关
+   4-tuple:
 
    AddrB，PortB，AddrA，PortA
 
-e. SOCKS 4 Server收到来自FTP Server的TCPconnect请求，检查这条入connect的源IP(
-   AddrB)是否与FTPSERVER.ADDR匹配，然后向SOCKS 4 Clientsend第二个BIND响应
-   包。
+e. SOCKS 4 Server receives来自FTP Server的TCPconnectrequest，check这条入connect的源IP(
+   AddrB) whether it matches FTPSERVER.ADDR, then sends the second BIND response to SOCKS 4 Client
+   packet.
 
-   源IP不匹配时第二个BIND响应包中CD字段设为0x5B，然后SOCKS 4 Server关闭这
-   条用于send第二个BIND响应包的TCPconnect，同时关闭与FTP Server之间的TCPconnect，
-   但主TCPconnect(与CONNECT请求相关的那条TCPconnect)继续保持中。
+   when source IP does not match, CD in the second BIND response is set to 0x5B, then SOCKS 4 Server closes
+   the TCP connection used to send the second BIND response, as well as the TCP connection to FTP Server,
+   but the main TCP connection (the one related to the CONNECT request) remains open.
 
-   源IP匹配时CD字段设为0x5A。然后SOCKS 4 Serverstart转发FTPdata流。
+   if the source IP matches, CD is set to 0x5A; SOCKS 4 Server starts forwarding the FTP data stream.
 
-   无论如何，第二个BIND响应包中DSTPORT、DSTIP字段被忽略。
+   in any case, DSTPORT and DSTIP fields in the second BIND response are ignored.
 
-对于CONNECT、BIND请求，SOCKS 4 Server有一个定时器(currentCSTCimplementation采用两分钟)。
-假设定时器timeout，而SOCKS 4 Server与Application Server之间的TCPconnect(出connect或
-入connect)仍未建立，SOCKS 4 Server将关闭与SOCKS 4 Client之间相应的TCPconnect并放
-弃相应的转发。
+对于CONNECT、BINDrequest，SOCKS 4 Server有一个定时器(currentCSTCimplementation采用两分钟)。
+false设定时器timeout，而SOCKS 4 Server与Application Server之间的TCPconnect(出connector
+入connect)仍未建立，SOCKS 4 Server将close the connection withSOCKS 4 Client之间相应的TCPconnect并放
+弃相应的forward。
 */
 
 /*       RFC1928 socks5
-SOCKS协议位于传输层(TCP/UDP等)与应用层之间，因而显然地位于网络层(IP)之上。
-诸如IP层报文转发、ICMP协议等等都因太低层而与SOCKS协议无关。
+SOCKSprotocolbit于传输层(TCP/UDP等)与应用层之间，因而显然地bit于network层(IP)之上。
+诸如IP层报文forward、ICMPprotocol等等都因太低层而与SOCKSprotocol无关。
 
-SOCKS 4not supported认证、UDP协议以及remoteparseFQDN。SOCKS 5支持。
+SOCKS 4 does not support authentication, UDP protocol, or remote FQDN parsing. SOCKS 5 supports all of these.
 
-SOCKS Server缺省侦听在1080/TCP口。这是SOCKS Clientconnect到SOCKS Server之后发
-送的第一个报文:
+SOCKS Server缺省listening on1080/TCP口。这yesSOCKS Clientconnect to SOCKS Server之后发
+送的first个报文:
 
 +----+----------+----------+
 |VER | NMETHODS | METHODS  |
@@ -286,12 +286,12 @@ SOCKS Server缺省侦听在1080/TCP口。这是SOCKS Clientconnect到SOCKS Serve
 | 1  |    1     | 1 to 255 |
 +----+----------+----------+
 
-对于SOCKS 5，VER字段为0x05，version4对应0x04。NMETHODS字段specifiedMETHODS域的字节
-数。不知NMETHODS可以为0否，看上图所示，可取值[1,255]。METHODS字段有多少字
-节(假设不重复)，就意味着SOCKS Client支持多少种认证机制。
+对于SOCKS 5，VER字段为0x05，version4对应0x04。NMETHODS字段specifiedMETHODS域的byte
+数。not知NMETHODS可以为0no，看上图所示，可取值[1,255]。METHODS字段有多少字
+节(false设not重复)，就意味着SOCKS Client支持多少种authentication机制。
 
-SOCKS Server从METHODS字段中选中一个字节(一种认证机制)，并向SOCKS Client发
-送响应报文:
+SOCKS Server从METHODS字段中选中一个byte(一种authentication机制)，并向SOCKS Client发
+送response报文:
 
 +----+--------+
 |VER | METHOD |
@@ -299,21 +299,21 @@ SOCKS Server从METHODS字段中选中一个字节(一种认证机制)，并向SO
 | 1  |   1    |
 +----+--------+
 
-目前可用METHOD值有:
+currently available METHOD values:
 
-0x00        NO AUTHENTICATION REQUIRED(无需认证)
+0x00        NO AUTHENTICATION REQUIRED(无需authentication)
 0x01        GSSAPI
-0x02        USERNAME/PASSWORD(username/口令认证机制)
+0x02        USERNAME/PASSWORD(username/口令authentication机制)
 0x03-0x7F   IANA ASSIGNED
-0x80-0xFE   RESERVED FOR PRIVATE METHODS(私有认证机制)
-0xFF        NO ACCEPTABLE METHODS(完全不兼容)
+0x80-0xFE   RESERVED FOR PRIVATE METHODS(私有authentication机制)
+0xFF        NO ACCEPTABLE METHODS(完全not兼容)
 
-如果SOCKS Server响应以0xFF，表示SOCKS Server与SOCKS Client完全不兼容，
-SOCKS Client必须关闭TCPconnect。认证机制协商完成后，SOCKS Client与
-SOCKS Server进行认证机制相关的子协商，参看其它文档。为保持最广泛兼容性，
-SOCKS Client、SOCKS Server必须支持0x01，同时应该支持0x02。
+ifSOCKS Serverresponse以0xFF，表示SOCKS Server与SOCKS Client完全not兼容，
+SOCKS Client必须closeTCP connection.authentication机制协商complete后，SOCKS Client与
+SOCKS Server进行authentication机制相关的子协商，参看其它文档。为保持最广泛兼容性，
+SOCKS Client、SOCKS Server必须支持0x01，同时should支持0x02。
 
-认证机制相关的子协商完成后，SOCKS Client提交转发请求:
+authentication机制相关的子协商complete后，SOCKS Client提交forwardrequest:
 
 +----+-----+-------+------+----------+----------+
 |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
@@ -321,7 +321,7 @@ SOCKS Client、SOCKS Server必须支持0x01，同时应该支持0x02。
 | 1  |  1  | X'00' |  1   | Variable |    2     |
 +----+-----+-------+------+----------+----------+
 
-VER         对于version5这里是0x05
+VER         对于version5这里yes0x05
 
 CMD         可取如下值:
 
@@ -331,27 +331,27 @@ CMD         可取如下值:
 
 RSV         保留字段，必须为0x00
 
-ATYP        用于指明DST.ADDR域的type，可取如下值:
+ATYP        用于specifiesDST.ADDR域的type，可取如下值:
 
             0x01    IPv4address
-            0x03    FQDN(全称域名)
+            0x03    FQDN (fully qualified domain name)
             0x04    IPv6address
 
-DST.ADDR    CMD相关的addressinfo，不要为DST所迷惑
+DST.ADDR    CMD相关的addressinfo，not要为DST所迷惑
 
-            如果是IPv4address，这里是big-endian序的4字节data
+            if IPv4 address, this is 4 bytes of data in big-endian order
 
-            如果是FQDN，比如"www.nsfocus.net"，这里将是:
+            if FQDN, e.g. "www.nsfocus.net", this will be:
 
             0F 77 77 77 2E 6E 73 66 6F 63 75 73 2E 6E 65 74
 
-            注意，没有结尾的NUL字符，非ASCIZ串，第一字节是length域
+            note: no terminating NUL character; not an ASCIZ string; first byte is the length field
 
-            如果是IPv6address，这里是16字节data。
+            if IPv6 address, this is 16 bytes of data.
 
-DST.PORT    CMD相关的portinfo，big-endian序的2字节data
+DST.PORT    CMD相关的portinfo，big-endian序的2bytedata
 
-SOCKS Server评估来自SOCKS Client的转发请求并send response报文:
+SOCKS Server评估来自SOCKS Client的forwardrequest并send response packet:
 
 +----+-----+-------+------+----------+----------+
 |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
@@ -359,121 +359,121 @@ SOCKS Server评估来自SOCKS Client的转发请求并send response报文:
 | 1  |  1  | X'00' |  1   | Variable |    2     |
 +----+-----+-------+------+----------+----------+
 
-VER         对于version5这里是0x05
+VER         对于version5这里yes0x05
 
 REP         可取如下值:
 
             0x00        success
-            0x01        一般性failure
-            0x02        规则不允许转发
-            0x03        网络不可达
-            0x04        主机不可达
-            0x05        connect拒绝
+            0x01        general failure
+            0x02        connection not allowed by ruleset
+            0x03        network unreachable
+            0x04        host unreachable
+            0x05        connection refused
             0x06        TTLtimeout
-            0x07        not supported请求包中的CMD
-            0x08        not supported请求包中的ATYP
+            0x07        command not supported
+            0x08        address type not supported
             0x09-0xFF   unassigned
 
 RSV         保留字段，必须为0x00
 
-ATYP        用于指明BND.ADDR域的type
+ATYP        用于specifiesBND.ADDR域的type
 
-BND.ADDR    CMD相关的addressinfo，不要为BND所迷惑
+BND.ADDR    CMD相关的addressinfo，not要为BND所迷惑
 
-BND.PORT    CMD相关的portinfo，big-endian序的2字节data
+BND.PORT    CMD相关的portinfo，big-endian序的2bytedata
 
-1) CONNECT命令
+1) CONNECT command
 
-假设CMD为CONNECT，SOCKS Client、SOCKS Server之间通信的相关四元组是:
+false设CMD为CONNECT，SOCKS Client、SOCKS Server之间通信的相关4-tuple:
 
 SOCKSCLIENT.ADDR，SOCKSCLIENT.PORT，SOCKSSERVER.ADDR，SOCKSSERVER.PORT
 
-一般SOCKSSERVER.PORT是1080/TCP。
+一般SOCKSSERVER.PORTyes1080/TCP。
 
-CONNECT请求包中的DST.ADDR/DST.PORT指明转发目的地。SOCKS Server可以靠
-DST.ADDR、DST.PORT、SOCKSCLIENT.ADDR、SOCKSCLIENT.PORT进行评估，以决定建立
-到转发目的地的TCPconnect还是拒绝转发。
+CONNECTrequestpacket中的DST.ADDR/DST.PORTspecifiesforwarding destination。SOCKS Server可以靠
+DST.ADDR、DST.PORT、SOCKSCLIENT.ADDR、SOCKSCLIENT.PORTevaluate，以决定建立
+到forwarding destination的TCPconnect还yes拒绝forward。
 
-假设规则允许转发并且success建立到转发目的地的TCPconnect，相关四元组是:
+false设规则forwarding allowed并且successestablish connection toforwarding destination的TCP connection,相关4-tuple:
 
 BND.ADDR，BND.PORT，DST.ADDR，DST.PORT
 
-此时SOCKS Server向SOCKS Clientsend的CONNECT响应包中将指明BND.ADDR/BND.PORT。
-注意，BND.ADDR可能不同于SOCKSSERVER.ADDR，SOCKS Server所在主机可能是多目(
+此时SOCKS Server向SOCKS Clientsend的CONNECTresponsepacket中将specifiesBND.ADDR/BND.PORT。
+注意，BND.ADDR可能not同于SOCKSSERVER.ADDR，SOCKS Server所at主机可能yes多目(
 multi-homed)主机。
 
-假设拒绝转发或未能success建立到转发目的地的TCPconnect，CONNECT响应包中REP字段将
-指明具体原因。
+false设拒绝forwardor未能successestablish connection toforwarding destination的TCP connection,CONNECTresponsepacket中REP字段将
+specifies具体原因。
 
-响应包中REP非零时表示failure，SOCKS Server必须在send response包后不久(不超过10s)关
-闭与SOCKS Client之间的TCPconnect。
+responsepacket中REP非零时表示failure，SOCKS Server必须atsend responsepacket后not久(not超过10s)关
+闭与SOCKS Client之间的TCP connection.
 
-响应包中REP为零时表示success。之后SOCKS Client直接在currentTCPconnect上send待转发数
+responsepacket中REP为零时表示success。之后SOCKS Clientdirectly oncurrentTCPconnect上send待forward数
 据。
 
-2) BIND命令
+2) BIND command
 
-假设CMD为BIND。这多用于FTP协议，FTP协议在某些情况下要求FTP Server主动建立
+false设CMD为BIND。这多用于FTPprotocol，FTPprotocolat某些情况下要求FTP Serveractively establish
 到FTP Client的connect，即FTPdata流。
 
 FTP Client - SOCKS Client - SOCKS Server - FTP Server
 
-a. FTP Client试图建立FTP控制流。SOCKS Client向SOCKS ServersendCONNECT请求，
-   后者响应请求，最终FTP控制流建立。
+a. FTP Client tries toestablish FTP control stream。SOCKS Client向SOCKS Serversend CONNECTrequest，
+   the latter responds to the request, and the FTP control stream is established.
 
-   CONNECT请求包中指明FTPSERVER.ADDR/FTPSERVER.PORT。
+   The CONNECT request specifies FTPSERVER.ADDR/FTPSERVER.PORT.
 
-b. FTP Client试图建立FTPdata流。SOCKS Client建立新的到SOCKS Server的TCP连
-   接，并在新的TCPconnect上sendBIND请求。
+b. FTP Client tries toestablish FTP data stream。SOCKS Client建立新的到SOCKS Server的TCP连
+   ection, and sends a BIND request on the new TCP connection.
 
-   BIND请求包中仍然指明FTPSERVER.ADDR/FTPSERVER.PORT。SOCKS Server应该据此
-   进行评估。
+   The BIND request still specifies FTPSERVER.ADDR/FTPSERVER.PORT. SOCKS Server should accordingly
+   for evaluation.
 
-   SOCKS Server收到BIND请求，create新套接字，侦听在AddrA/PortA上，并向SOCKS
-   Clientsend第一个BIND响应包，包中BND.ADDR/BND.PORT即AddrA/PortA。
+   SOCKS Server receives BIND request, creates new socket listening on AddrA/PortA, and sends to SOCKS
+   Client sends the first BIND response packet with BND.ADDR/BND.PORT as AddrA/PortA.
 
-c. SOCKS Client收到第一个BIND响应包。FTP Client通过FTP控制流向FTP Server发
-   送PORT命令，通知FTP Server应该主动建立到AddrA/PortA的TCPconnect。
+c. SOCKS Client收到first个BINDresponsepacket.FTP Clientvia FTP controlto FTP Server via发
+   send PORT command，notificationFTP Servershould主动establish connection toAddrA/PortA的TCP connection.
 
-d. FTP Server收到PORT命令，主动建立到AddrA/PortA的TCPconnect，假设TCPconnect相关
-   四元组是:
+d. FTP Server receivesPORTcommand，主动establish connection toAddrA/PortA的TCP connection,false设TCPconnect相关
+   4-tuple:
 
    AddrB，PortB，AddrA，PortA
 
-e. SOCKS Server收到来自FTP Server的TCPconnect请求，向SOCKS Clientsend第二个
-   BIND响应包，包中BND.ADDR/BND.PORT即AddrB/PortB。然后SOCKS Serverstart转
-   发FTPdata流。
+e. SOCKS Server收到来自FTP Server的TCPconnectrequest，向SOCKS Clientsend第二个
+   BIND response packet with BND.ADDR/BND.PORT as AddrB/PortB. Then SOCKS Server starts forwarding
+   forward FTP data stream.
 
-下面是一些讨论记录:
+下面yes一些讨论记录:
 
 scz
 
-为什么需要send第二个BIND响应包，指明AddrB/PortB的意义何在。
+为什么需要send the second BIND responsepacket，specifiesAddrB/PortB的意义何at。
 
 knightmare@apue
 
-指明AddrB/PortB的意义在于，FTP Client出于安全考虑，会检查FTPdata流的源IP、
-源port，比如FTPdata流的源端只允许是FTPSERVER.ADDR/20。
+specifiesAddrB/PortB的意义at于，FTP Client出于安全考虑，会checkFTPdata流的源IP、
+源port，比如FTPdata流的源端只允许yesFTPSERVER.ADDR/20。
 
 scz
 
-knightmare的答案是正确的，但我的疑惑可能源于我对SOCKS协议的error理解，以至
-提出一个产生歧义的问题。事实上应该查看David Koblas的原始文档以理解BIND请求
-的全过程。前面关于FTPdata流的description部分已做了修正，因此看不出提问的缘由了。
+knightmare的答案yes正确的，但我的疑惑可能源于我对SOCKSprotocol的error理解，以至
+提出一个产生歧义的问题。事实上should查看David Koblas的原始文档以理解BINDrequest
+的全过程。前面关于FTPdata流的descriptionpartial已做了修正，therefore看not出提问的缘由了。
 
-3) UDP ASSOCIATE命令
+3) UDP ASSOCIATEcommand
 
-假设CMD为UDP ASSOCIATE。此时DST.ADDR与DST.PORT指明sendUDP报文时的源IP、源
-port，而不是UDP转发目的地，SOCKS Server可以据此进行评估以决定是否进行UDP转
-发。如果SOCKS ClientsendUDP ASSOCIATE命令时无法提供DST.ADDR与DST.PORT，则
+false设CMD为UDP ASSOCIATE。此时DST.ADDR与DST.PORTspecifiessendUDP报文时的源IP、源
+port，而notyesUDPforwarding destination，SOCKS Server可以据此evaluate以决定yesno进行UDP转
+发。ifSOCKS ClientsendUDP ASSOCIATEcommand时无法提供DST.ADDR与DST.PORT，则
 必须将这两个域置零。
 
-下面是一些讨论记录:
+下面yes一些讨论记录:
 
 scz
 
-什么情况下SOCKS ClientsendUDP ASSOCIATE命令，又无法提供DST.ADDR与DST.PORT，
-或者说出于什么考虑才需要刻意将这两个域置零。有现实例子存在吗。
+什么情况下SOCKS ClientsendUDP ASSOCIATEcommand，又无法提供DST.ADDR与DST.PORT，
+or者说出于什么考虑才需要刻意将这两个域置零。有现实例子存at吗。
 
 shixudong@163.com
 
@@ -481,22 +481,22 @@ shixudong@163.com
 
 Application Client - SOCKS Client - NAT - SOCKS Server - Application Server
 
-SOCKS Client在UDP ASSOCIATE命令中指明DST.ADDR/DST.PORT，SOCKS Server靠这些
-info决定是否转发某个UDP报文。上图中SOCKS Client与SOCKS Server之间有NAT，前
-者无法预知UDP报文经过NAT后源IP、源port会变成什么样，但肯定会变，因此前者无
-法提前在UDP ASSOCIATE命令中指明DST.ADDR/DST.PORT，如果强行specified非零值，后者
-会检测到待转发UDP报文的源IP、源port与DST.ADDR/DST.PORT不匹配而拒绝转发。针
+SOCKS ClientatUDP ASSOCIATEcommand中specifiesDST.ADDR/DST.PORT，SOCKS Server靠这些
+info决定yesnoforward某个UDP报文。上图中SOCKS Client与SOCKS Server之间有NAT，前
+者无法预知UDP报文经过NAT后源IP、源port会变成什么样，但肯定会变，therefore前者无
+法提前atUDP ASSOCIATEcommand中specifiesDST.ADDR/DST.PORT，if强行specified非零值，后者
+会检测到待forwardUDP报文的源IP、源port与DST.ADDR/DST.PORTnot匹配而拒绝forward。针
 对这种情况，RFC 1928建议SOCKS Client将DST.ADDR/DST.PORT置零，SOCKS Server
-此时不再检查待转发UDP报文的源IP、源port。
+此时not再check待forwardUDP报文的源IP、源port。
 
-在一条TCPconnect上SOCKS Client向SOCKS Serversend了UDP ASSOCIATE命令，后续UDP
-转发要求此TCPconnect继续维持，此TCPconnect关闭时相应的UDP转发也将中止。换句话说，
-UDP转发必然伴随着一个TCPconnect，这将消耗额外的资源。
+at一条TCPconnect上SOCKS Client向SOCKS Serversend了UDP ASSOCIATEcommand，后续UDP
+forward要求此TCPconnectcontinue维持，此TCPconnectclose时相应的UDPforward也将中止。换句话说，
+UDPforward必然伴随着一个TCP connection,这将消耗额外的资源。
 
-SOCKS Server向SOCKS ClientsendUDP ASSOCIATE响应包，BND.ADDR/BND.PORT指明
-SOCKS Client应向哪里send待转发UDP报文。
+SOCKS Server向SOCKS ClientsendUDP ASSOCIATEresponsepacket，BND.ADDR/BND.PORTspecifies
+SOCKS Client应向哪里send待forwardUDP报文。
 
-对于UDP转发，SOCKS Clientsend出去的UDPdata区如下:
+对于UDPforward，SOCKS Clientsend出去的UDPdata区如下:
 
 +----+------+------+----------+----------+----------+
 |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
@@ -508,44 +508,44 @@ RSV         保留字段，必须为0x0000
 
 FRAG        Current fragment number
 
-            0x00        这是一个非碎片的SOCKS UDP报文
-            0x01-0x7F   SOCKS碎片序号
-            0x80-0xFF   最高位置1表示碎片序列end，即这是最后一个SOCKS碎片
+            0x00        this is a non-fragmented SOCKS UDP packet
+            0x01-0x7F   SOCKS fragment sequence number
+            0x80-0xFF   high bit set means end of fragment sequence, i.e. this is the last SOCKS fragment
 
-ATYP        用于指明DST.ADDR域的type，可取如下值:
+ATYP        用于specifiesDST.ADDR域的type，可取如下值:
 
             0x01    IPv4address
-            0x03    FQDN(全称域名)
+            0x03    FQDN (fully qualified domain name)
             0x04    IPv6address
 
-DST.ADDR    转发目标address
+DST.ADDR    forward目标address
 
-DST.PORT    转发目标port
+DST.PORT    forward目标port
 
 DATA        原始UDPdata区
 
-SOCKS Server静静地为SOCKS Client进行UDP转发，并不通知后者转发完成还是被拒
+SOCKS Server静静地为SOCKS Client进行UDPforward，并notnotification后者forwardcomplete还yes被拒
 绝。
 
-FRAG用于支持SOCKS碎片。SOCKS碎片receive方一般implementation有重组队列与重组定时器。假设
-重组定时器timeout或者低序SOCKS碎片后于高序SOCKS碎片到达重组队列，此时必须重置
-重组队列。重组定时器不得小于5 seconds。应该尽可能地避免出现SOCKS碎片。
+FRAG用于支持SOCKS碎片。SOCKS碎片receive方一般implementation有重组queue与重组定时器。false设
+重组定时器timeoutor者低序SOCKS碎片后于高序SOCKS碎片到达重组queue，此时必须reset
+重组queue。重组定时器not得小于5 seconds。should尽可能地避免出现SOCKS碎片。
 
-是否支持SOCKS碎片是可选的，如果一个SOCKSimplementationnot supportedSOCKS碎片，则必须丢弃所
+yesno支持SOCKS碎片yes可选的，if一个SOCKSimplementationnot supportedSOCKS碎片，则必须丢弃所
 有receive到的SOCKS碎片，即那些FRAG字段非零的SOCKS UDP报文。
 
-由于SOCKSimplementation在支持UDP转发时会在原始UDPdata区前增加一个SOCKS协议相关的头，
-因此为UDPdata区分配空间时要为这个头留足空间:
+由于SOCKSimplementationat支持UDPforward时会at原始UDPdata区前增加一个SOCKSprotocol相关的头，
+therefore为UDPdata区分配null间时要为这个头留足null间:
 
-ATYP    头占用字节  原因
-0x01    10          IPv4address占4字节，4+6=10
-0x03    262         length域是一个字节，因此最大0xFF，1+255+6=262
-0x04    20          这里我怀疑是笔误，IPv6address占16字节，16+6=22
+ATYP    头占用byte  原因
+0x01    10          IPv4address占4byte，4+6=10
+0x03    262         length域yes一个byte，thereforemaximum0xFF，1+255+6=262
+0x04    20          这里我怀疑yes笔误，IPv6address占16byte，16+6=22
 
 我怀疑RFC 1928这里有笔误，写信询问mleech@bnr.ca、ietf-web@ietf.org去了。
 */
 /*     RFC 1929
-假设SOCKS V5 Client/Server协商采用username/口令认证机制(0x02)，现在start相应
+false设SOCKS V5 Client/Server协商采用username/口令authentication机制(0x02)，现atstart相应
 子协商。
 
 clientsend如下报文:
@@ -556,7 +556,7 @@ clientsend如下报文:
 | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 +----+------+----------+------+----------+
 
-VER     子协商的currentversion，目前是0x01
+VER     子协商的currentversion，目前yes0x01
 
 ULEN    UNAME字段的length
 
@@ -564,9 +564,9 @@ UNAME   username
 
 PLEN    PASSWD字段的length
 
-PASSWD  口令，注意是明文传输的
+PASSWD  口令，注意yes明文传输的
 
-服务端authentication后send response报文如下:
+server-sideauthentication后send response packet如下:
 
 +----+--------+
 |VER | STATUS |
@@ -574,11 +574,11 @@ PASSWD  口令，注意是明文传输的
 | 1  |   1    |
 +----+--------+
 
-VER     子协商的currentversion，目前是0x01
+VER     子协商的currentversion，目前yes0x01
 
 STATUS  可取如下值:
 
         0x00        success
-        0x01-0xFF   failure，随后SOCKS Server必须关闭与SOCKS Client之间的TCP
+        0x01-0xFF   failure; the SOCKS Server must then close the TCP connection with the SOCKS Client
                     connect
 */

@@ -40,11 +40,11 @@ public:
 	void xml_dele_mudp(cBuffer &buffer,const char *mapname);
 
 	bool readIni(); //read configuration from registry
-	bool saveIni(); //往registry写配置
+	bool saveIni(); //write configuration to registry
 	bool parseIni(char *pbuffer,long lsize);
 	bool parseCommand(const char *pstart);
 	bool saveAsstring(std::string &strini);
-	void initSetting(); //initialization所有配置
+	void initSetting(); //initialize all configurations
 	bool docmd_sslc(const char *strParam);
 	bool docmd_mtcpl(const char *strParam);
 	void docmd_mdhrsp(const char *strParam);
@@ -56,11 +56,11 @@ public:
 	void docmd_upnp(const char *strParam);
 	
 public:
-	vidcServerEx m_vidcsvr; //vidc服务
-	vidccSets m_vidccSets; //vidcclient集合
+	vidcServerEx m_vidcsvr; //vidc service
+	vidccSets m_vidccSets; //vidcc client collection
 	upnp	m_upnp;
 private:
-	std::map<std::string,mportTCP *> m_tcpsets; //TCP服务映射集合
+	std::map<std::string,mportTCP *> m_tcpsets; //TCPservicemapset
 
 };
 

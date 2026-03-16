@@ -1,7 +1,7 @@
 /*******************************************************************
    *	Wutils.cpp
-   *    DESCRIPTION:windows系统utility functions集
-   *    获取系统的cpu占用率和内存使用情况
+   *    DESCRIPTION:windows系统utility functions collection
+   *    get system CPU usage and memory usage
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
@@ -56,7 +56,7 @@ typedef LONG (WINAPI *PROCNTQSI)(UINT,PVOID,ULONG,PULONG);
 PROCNTQSI NtQuerySystemInformation=NULL;
 //***************only for NT/win2000 end*********************
 
-//返回当时cpu的占用率(0-100)
+//returnwhen时cpu的占用率(0-100)
 int Wutils :: getCPUusage()
 {
 	int retv=0;
@@ -131,7 +131,7 @@ int Wutils :: getCPUusage()
 }
 
 //********************************************
-//返回当时mem的使用率(0-100)
+//returnwhen时mem的使用率(0-100)
 int Wutils :: getMEMusage()
 {
 	int retv=0;

@@ -37,10 +37,10 @@
 	#define strprintf sprintf
 	#define fileopen fopen
 	#endif
-#elif defined MAC //��ʱ��֧��
+#elif defined MAC //temporarily not supported
 	typedef unsigned short WCHAR;
 	//...
-#else  //unix/linuxƽ̨
+#else  //unix/linux platform
 	//Sun unix��û�ж���˳�����linux����/usr/include/bits/socket.h�ж����д˳���
 	//EPIPE  The local end has been shut down on a connection oriented socket.  
 	//In this case the  process  will  also receive a SIGPIPE unless MSG_NOSIGNAL is set.

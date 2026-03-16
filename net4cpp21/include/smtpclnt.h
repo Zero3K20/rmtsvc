@@ -29,17 +29,17 @@ namespace net4cpp21
 		void setTimeout(time_t s){ if((m_lTimeout=s)<1) m_lTimeout=SMTP_MAX_RESPTIMEOUT; }
 		//set SMTP service authentication type and account
 		void setSMTPAuth(SMTPAUTH_TYPE authType,const char *strAccount,const char *strPwd);
-		// 函数功能：connectsmtpserver ，sendspecified邮件。success返回SOCKSERR_OK
+		// function功能：connect to SMTP server and send the specified email. Returns SOCKSERR_OK on success
 		SOCKSRESULT sendMail(mailMessage &mms,const char *smtpsvr,int smtpport);
 		SOCKSRESULT sendMail_MX(mailMessage &mms,const char *dnssvr,int dnsport);
 		//****************************************
-		// 函数功能：邮件直投。success返回SOCKSERR_OK
-		//emlfile : 邮件format文件，两种format文件. email body前!开头的为comment行
-		//如果第一行为Email body is base64 encoded，则代表是smtpsvrreceive的要转发的邮件
-		//否则为用户编辑要send的邮件,format:
-		//FROM: <发件人>\r\n
+		// function功能：direct mail delivery. Returns SOCKSERR_OK on success
+		//emlfile : 邮件formatfile，两种formatfile. email body前!开头的为comment行
+		//iffirst行为Email body is base64 encoded，则代表yessmtpsvrreceive的要forward的邮件
+		//otherwise为user编辑要send的邮件,format:
+		//FROM: <sender>\r\n
 		//TO: <收件人>,<收件人>,...\r\n
-		//Attachs: <附件>,<附件>,...\r\n
+		//Attachs: <attachment>,<attachment>,...\r\n
 		//Subject: <主题>\r\n
 		//Bodytype: <TEXT|HTML>\r\n
 		//\r\n
@@ -56,10 +56,10 @@ namespace net4cpp21
 		bool sendCommand(int response_expected,char *buf,int buflen,int maxbuflen);
 
 	private:
-		SMTPAUTH_TYPE m_authType;//smtp服务是否需要authentication,目前仅仅支持LOGINauthentication方式
-		std::string m_strAccount;//LOGINauthentication的account和password
+		SMTPAUTH_TYPE m_authType;//smtpserviceyesno需要authentication,目前仅仅支持LOGINauthentication方式
+		std::string m_strAccount;//account and password for LOGIN authentication
 		std::string m_strPwd;
-		time_t m_lTimeout;//最大等待timeout返回s
+		time_t m_lTimeout;//maximum wait timeout return in seconds
 		std::vector<std::string> m_errors; //记录send时的error
 		std::string m_ehloName;
 	};

@@ -1,11 +1,11 @@
 /*******************************************************************
    *	cTime.h
-   *    DESCRIPTION:和MFC中CTime类似的datetime类
+   *    DESCRIPTION:datetime class similar to CTime in MFC
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
    *
-   *    HISTORY: 改自 CGoodTime类
+   *    HISTORY: adapted from CGoodTime class
    *
    *    DATE:2005-08-22
    *	net4cpp 2.0
@@ -402,20 +402,20 @@ bool ParseMonth(char* pszToken, int& nMonth)
 bool cTime::parseDate(const char *strDate)
 {
 	int lDateLen=(strDate)?strlen(strDate):0;
-	if( lDateLen<8 ) return false; //最少8位例如 YY-MM-DD
+	if( lDateLen<8 ) return false; //最少8bit例如 YY-MM-DD
 	char *szDatePtr,*szDate=new char[lDateLen+1];
 	if(szDate==NULL) return false;
-	strcpy(szDate,strDate); szDatePtr=szDate; //用于释放
+	strcpy(szDate,strDate); szDatePtr=szDate; //用于release
 	SYSTEMTIME time; ::memset((void *)&time,0,sizeof(SYSTEMTIME));
 
-	//我们总是假定week是,分割的
+	//我们totalyesfalse定weekyes,分割的
 	char* pszToken=strchr(szDate,',');
 	if(pszToken){
 		*pszToken='\0'; int nWeekDay=0;
 		if(ParseWeekDay(szDate, nWeekDay)) time.wDayOfWeek = (WORD) nWeekDay;
 		szDate=pszToken+1;
-		while(*szDate==' ') szDate++; //delete前导空格
-	}//?跳过week域
+		while(*szDate==' ') szDate++; //delete leading spaces
+	}//?skipweek域
 	char seps[] = " :-"; bool bSuccess=false;
 	pszToken = strtok(szDate, seps);
 	while( pszToken ){
@@ -430,7 +430,7 @@ bool cTime::parseDate(const char *strDate)
 		time.wDay=(WORD)atoi(pszToken);
 		bSuccess= ((pszToken = strtok(NULL, seps))!=NULL);
 		if(!bSuccess) break;
-		time.wYear = (WORD)atoi(pszToken); //可能是YY或YYYY
+		time.wYear = (WORD)atoi(pszToken); //可能yesYYorYYYY
 		if(time.wYear<50) time.wYear+=2000;
 		else if(time.wYear<100) time.wYear+=1900;
 	}else if(iNum>=1900){ //examples: YYYY MM DD
@@ -450,7 +450,7 @@ bool cTime::parseDate(const char *strDate)
 		time.wMonth =(WORD)iNum;
 		bSuccess= ((pszToken = strtok(NULL, seps))!=NULL);
 		if(!bSuccess) break;
-		time.wYear = (WORD)atoi(pszToken); //可能是YY或YYYY
+		time.wYear = (WORD)atoi(pszToken); //可能yesYYorYYYY
 		if(time.wYear<50) time.wYear+=2000;
 		else if(time.wYear<100) time.wYear+=1900;
 	}
@@ -464,8 +464,8 @@ bool cTime::parseDate(const char *strDate)
 	pszToken = strtok(NULL, seps);
 	if(pszToken==NULL) break;
 	time.wSecond = (WORD) atoi(pszToken);
-	//handle时区info  GMT UTC 或+0800或-0700等 ...
-	break; //handleend，退出
+	//handle时区info  GMT UTC or+0800or-0700等 ...
+	break; //handleend，exit
 	}//?while( pszToken )
 	
 	if(bSuccess) { cTime timeT(time, -1); *this = timeT; }

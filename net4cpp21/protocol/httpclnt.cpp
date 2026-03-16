@@ -19,15 +19,15 @@
 using namespace std;
 using namespace net4cpp21;
 
-//send HTTP request lstartRange,lendRange告诉web service请求文件的范围
+//send HTTP request; lstartRange and lendRange specify the requested file range
 //strurlformat http[s]://[username:password@]host[:port]/...
-//例如 http://127.0.0.1
+//example: http://127.0.0.1
 //	   https://aa:bb@17.0.0.1:81/aa.htm
-//success返回SOCKSERR_OK
+//returns SOCKSERR_OK on success
 SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long lstartRange,long lendRange)
-{//send HTTP response头，不等待返回
+{//send HTTP response header, do not wait for return
 	if(strurl==NULL) return SOCKSERR_PARAM;
-	while(*strurl==' ') strurl++;//delete前导空格
+	while(*strurl==' ') strurl++;//delete leading spaces
 	if(strncasecmp(strurl,"http://",7) && strncasecmp(strurl,"https://",8) ) return SOCKSERR_PARAM;
 
 	std::string webhost,struser,strpswd;
@@ -35,9 +35,9 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试分离访问account和password
+	//先尝试分离访问accountandpassword
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
-	if(ptr){//设置了访问account和password
+	if(ptr){//set了访问accountandpassword
 		*(char *)ptr=0;
 		if( (ptr1=strchr(strurl+iOffset,':')) )
 		{
@@ -49,7 +49,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//分离出http服务的address:port和实际的URL
+	//分离出httpservice的address:portand实际的URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);
@@ -60,7 +60,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	m_httpreq.set_requestRange(lstartRange,lendRange);
 	if(struser!="") m_httpreq.set_Authorization(struser.c_str(),strpswd.c_str());
 	std::map<std::string,std::string> &header=m_httpreq.Header();
-	header["Host"]=webhost; //设置Hostinfo
+	header["Host"]=webhost; //setHostinfo
 	//要进行socketconnect,connectspecified的web service
 	SOCKSRESULT sr=this->Connect(webhost.c_str(),webport,lTimeOut);
 	if(sr<=0)
@@ -70,16 +70,16 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	}
 #ifdef _SURPPORT_OPENSSL_
 	else if(strurl[4]!=':')
-	{ //访问的是http SSL服务
+	{ //访问的yeshttp SSLservice
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient
 		if(!this->SSL_Associate()){ this->Close(); return SOCKSERR_SSLASSCIATE; }
 	}
 #endif
-	//send请求
+	//sendrequest
 	return (ptrURL==NULL)?m_httpreq.send_req(this,"/"):m_httpreq.send_req(this,ptrURL);
 }
 
-//返回HTTP response码，如果发生error返回<0
+//returnHTTP response码，if发生errorreturn<0
 SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long lendRange)
 {
 	SOCKSRESULT sr=send_httpreq_head(strurl,lstartRange,lendRange);
@@ -116,11 +116,11 @@ void httpClient::set_reqPostdata(const char *buf,long buflen)
 }
 
 /*
-//返回HTTP response码，如果发生error返回<0
+//returnHTTP response码，if发生errorreturn<0
 SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long lendRange)
 {
 	if(strurl==NULL) return SOCKSERR_PARAM;
-	while(*strurl==' ') strurl++;//delete前导空格
+	while(*strurl==' ') strurl++;//delete leading spaces
 	if(strncasecmp(strurl,"http://",7) && strncasecmp(strurl,"https://",8) ) return SOCKSERR_PARAM;
 
 	std::string webhost,struser,strpswd;
@@ -128,9 +128,9 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试分离访问account和password
+	//先尝试分离访问accountandpassword
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
-	if(ptr){//设置了访问account和password
+	if(ptr){//set了访问accountandpassword
 		*(char *)ptr=0;
 		if( (ptr1=strchr(strurl+iOffset,':')) )
 		{
@@ -142,7 +142,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//分离出http服务的address:port和实际的URL
+	//分离出httpservice的address:portand实际的URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);
@@ -153,7 +153,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	m_httpreq.set_requestRange(lstartRange,lendRange);
 	if(struser!="") m_httpreq.set_Authorization(struser.c_str(),strpswd.c_str());
 	std::map<std::string,std::string> &header=m_httpreq.Header();
-	header["Host"]=webhost; //设置Hostinfo
+	header["Host"]=webhost; //setHostinfo
 	//要进行socketconnect,connectspecified的web service
 	SOCKSRESULT sr=this->Connect(webhost.c_str(),webport);
 	if(sr<=0)
@@ -163,12 +163,12 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	}
 #ifdef _SURPPORT_OPENSSL_
 	else if(strurl[4]!=':')
-	{ //访问的是http SSL服务
+	{ //访问的yeshttp SSLservice
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient
 		if(!this->SSL_Associate()){ this->Close(); return SOCKSERR_SSLASSCIATE; }
 	}
 #endif
-	//send请求
+	//sendrequest
 	sr=(ptrURL==NULL)?m_httpreq.send_req(this,"/"):m_httpreq.send_req(this,ptrURL);
 	if(sr!=SOCKSERR_OK) return SOCKSERR_HTTP_SENDREQ;
 	return m_httprsp.recv_rspH(this);

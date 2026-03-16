@@ -34,26 +34,26 @@ namespace net4cpp21
 	protected:
 		//get account info, return the specified account object
 		PROXYACCOUNT *getAccount(const char *struser);
-		//添加新accountinfo
+		//add new account info
 		PROXYACCOUNT *newAccount(const char *struser);
 		SOCKSRESULT delAccount(const char *struser);
-		void onConnect(socketTCP *psock);//有一个用户connect上来
-		//create转发对任务线程
+		void onConnect(socketTCP *psock);//a user has connected
+		//create forward-to task thread
 		virtual bool onTransferTask(THREAD_CALLBACK *pfunc,void *pargs)
 		{
 			return false;
 		}
-		//收到forward data，用于data分析handle
+		//received forwarded data, used for data analysis handling
 		virtual void onData(char *buf,long len,socketTCP *from,socketTCP *to)
 		{ return; }
 	private:
-		std::pair<std::string,int> * GetCassvr(){ //获取secondary proxy设置
+		std::pair<std::string,int> * GetCassvr(){ //get secondary proxy settings
 			std::pair<std::string,int> *p=NULL;
 			int n=m_vecCassvr.size();
 			if(n==1) p=&m_vecCassvr[0];
 			else if(n>1){
 				srand(clock());
-				p=&m_vecCassvr[rand()%n]; //随机获取一个application service得info
+				p=&m_vecCassvr[rand()%n]; //随机get一个application service得info
 			}
 			return p; 
 		}
@@ -66,18 +66,18 @@ namespace net4cpp21
 		static void transThread(void *pthreadParam);
 	private:
 		int m_proxytype;//本proxy service支持的代理type
-		bool m_bProxyAuthentication;//本服务是否需要authentication
+		bool m_bProxyAuthentication;//本serviceyesno需要authentication
 		//此proxy service的accountinfo
 		std::map<std::string,PROXYACCOUNT> m_accounts;
-		//secondary proxy相关参数
-		bool m_bCascade; //是否支持secondary proxy,支持多个二级proxy service器，随机选择
+		//secondary proxy related parameters
+		bool m_bCascade; //yesno支持secondary proxy,支持多个secondary proxy service器，随机选择
 		std::vector<std::pair<std::string,int> > m_vecCassvr;
-//		std::string m_casProxysvr; //二级proxy service port
+//		std::string m_casProxysvr; //secondary proxy service port
 //		int m_casProxyport; 
-		int m_casProxytype; //二级proxy supported types
-		bool m_casProxyAuthentication; //secondary proxy是否需要authentication
+		int m_casProxytype; //secondary proxy supported types
+		bool m_casProxyAuthentication; //whether secondary proxy requires authentication
 		std::pair<std::string,std::string> m_casAccessAuth;
-		bool m_bLogdatafile; //是否记录proxy service转发的data到日志文件
+		bool m_bLogdatafile; //yesno记录proxy serviceforward的data到logfile
 	};
 
 	class proxyServer : public socketSvr,public cProxysvr
@@ -86,13 +86,13 @@ namespace net4cpp21
 		proxyServer();
 		virtual ~proxyServer();
 	private:
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock)
 		{
 			cProxysvr::onConnect(psock);
 			return;
 		}
-		//create转发对任务线程
+		//create forward-to task thread
 		virtual bool onTransferTask(THREAD_CALLBACK *pfunc,void *pargs)
 		{
 			return (m_threadpool.addTask(pfunc,pargs,THREADLIVETIME)!=0);

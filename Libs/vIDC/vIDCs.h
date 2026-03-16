@@ -32,17 +32,17 @@ namespace net4cpp21
 		void xml_info_vidcc(cBuffer &buffer,long vidccID);
 
 	protected:
-		void onConnect(socketTCP *psock);//有一个用户connect上来
-		void Destroy(); //对象释放前，销毁释放资源动作
+		void onConnect(socketTCP *psock);//a user has connected
+		void Destroy(); //destroy and free resources before object is released
 		vidccSession * docmd_helo(socketTCP *psock,const char *param);
 		vidccSession * AddPipeFromVidcSession(socketTCP *pipe,long vidccID);
 		bool DelPipeFromVidcSession(socketTCP *pipe,long vidccID);
 	private:
-		bool m_bAuthentication; //vIDCs是否需要authentication
-		std::string m_strPswd; //vIDCs的authenticationpassword
+		bool m_bAuthentication; //whether vIDCs requires authentication
+		std::string m_strPswd; //vIDCs authentication password
 		cMutex m_mutex;
 		//key - vidccID
-		std::map<long,vidccSession *> m_sessions; //current已connect的vIDCcclient集合
+		std::map<long,vidccSession *> m_sessions; //current已connect的vIDCcclientset
 	};
 //***********************************************************************************	
 	class vidcServer : public socketSvr,public vidcsvr
@@ -52,7 +52,7 @@ namespace net4cpp21
 		virtual ~vidcServer(){}
 		void Stop();
 	private:
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock)
 		{
 			vidcsvr::onConnect(psock);

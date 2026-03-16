@@ -20,30 +20,30 @@
 
 //FTP constant definitions
 #define FTP_SERVER_PORT	21 //default FTP service port
-#define FTP_MAX_COMMAND_SIZE 256 //FTP命令最大字节length
-#define FTP_MAX_LOGINTIMEOUT 10 //s FTPclient最长登录延时，超过此time则关闭connect
+#define FTP_MAX_COMMAND_SIZE 256 //maximum byte length of FTP commands
+#define FTP_MAX_LOGINTIMEOUT 10 //s maximum FTP client login delay; close connection if exceeded
 
-//ftp返回结果常量define
-#define SOCKSERR_FTP_RESP -301 //命令响应error
-#define SOCKSERR_FTP_AUTH SOCKSERR_FTP_RESP-1 //ftp认证failure
-#define SOCKSERR_FTP_SURPPORT SOCKSERR_FTP_RESP-2 //not supported的ftppassword加密传输方式
-#define SOCKSERR_FTP_REST SOCKSERR_FTP_RESP-3 //该站点not supported断点续传
-#define SOCKSERR_FTP_DATACONN SOCKSERR_FTP_RESP-4 //不能connectdataport
-#define SOCKSERR_FTP_LIST SOCKSERR_FTP_RESP-5 //List应答error
-#define SOCKSERR_FTP_RETR SOCKSERR_FTP_RESP-6 //RETR应答error
-#define SOCKSERR_FTP_STOR SOCKSERR_FTP_RESP-7 //Stor应答error
-#define SOCKSERR_FTP_FILE SOCKSERR_FTP_RESP-8 //文件操作error
-#define SOCKSERR_FTP_FAILED SOCKSERR_FTP_RESP-9 //一般性error
-#define SOCKSERR_FTP_DENY SOCKSERR_FTP_RESP-10 //访问拒绝
-#define SOCKSERR_FTP_NOEXIST SOCKSERR_FTP_RESP-11 //目录或file does not exist
-#define SOCKSERR_FTP_EXIST SOCKSERR_FTP_RESP-12 //目录或文件存在
-#define SOCKSERR_FTP_USER SOCKSERR_FTP_RESP-13 //不存在的account
+//FTP return result constant definitions
+#define SOCKSERR_FTP_RESP -301 //command response error
+#define SOCKSERR_FTP_AUTH SOCKSERR_FTP_RESP-1 //FTP authentication failure
+#define SOCKSERR_FTP_SURPPORT SOCKSERR_FTP_RESP-2 //FTP password encryption transfer method not supported
+#define SOCKSERR_FTP_REST SOCKSERR_FTP_RESP-3 //this site does not support resume transfer
+#define SOCKSERR_FTP_DATACONN SOCKSERR_FTP_RESP-4 //cannot connect to data port
+#define SOCKSERR_FTP_LIST SOCKSERR_FTP_RESP-5 //LIST response error
+#define SOCKSERR_FTP_RETR SOCKSERR_FTP_RESP-6 //RETR response error
+#define SOCKSERR_FTP_STOR SOCKSERR_FTP_RESP-7 //STOR response error
+#define SOCKSERR_FTP_FILE SOCKSERR_FTP_RESP-8 //file operation error
+#define SOCKSERR_FTP_FAILED SOCKSERR_FTP_RESP-9 //general error
+#define SOCKSERR_FTP_DENY SOCKSERR_FTP_RESP-10 //access denied
+#define SOCKSERR_FTP_NOEXIST SOCKSERR_FTP_RESP-11 //directory or file does not exist
+#define SOCKSERR_FTP_EXIST SOCKSERR_FTP_RESP-12 //directory or file exists
+#define SOCKSERR_FTP_USER SOCKSERR_FTP_RESP-13 //non-existent account
 #define SOCKSERR_FTP_UNKNOWED SOCKSERR_FTP_RESP-14 //unknown error
 
-#define FTP_DATACONN_PORT 0 //FTPdata传输模式
+#define FTP_DATACONN_PORT 0 //FTP data transfer mode
 #define FTP_DATACONN_PASV 1
 
-//ftp日志事件define
+//ftplogeventdefine
 #define FTP_LOGEVENT_LOGIN 1
 #define FTP_LOGEVENT_LOGOUT 2
 #define FTP_LOGEVENT_UPLOAD 4
@@ -52,7 +52,7 @@
 #define FTP_LOGEVENT_RMD 32
 #define FTP_LOGEVENT_SITE 64
 
-//password verification加密方式
+//password verificationencryption方式
 #define OTP_NONE 0
 #define OTP_MD4 1
 #define OTP_MD5 2
@@ -64,24 +64,24 @@
 
 typedef struct _ftpaccount //ftpaccountinfo
 {
-	std::string m_username;//account,account不区分size写(account转换为小写)
-	std::string m_userpwd;//password,如果password==""则，无需password verification
-	std::string m_username_root;//此account隶属的ROOTpermissions用户，如果此值不为空说明此account是ROOT用户动态create的
+	std::string m_username;//account name, case-insensitive (converted to lowercase)
+	std::string m_userpwd;//password; if password=="", no password verification is required
+	std::string m_username_root;//此account隶属的ROOTpermissionsuser，if此值not为null说明此accountyesROOTuser动态create的
 	unsigned long m_maxupratio;//max upload rate K/s, 0 means unlimited
 	unsigned long m_maxdwratio;//max download rate K/s, 0 means unlimited
 	unsigned long m_maxupfilesize;//max upload file size in KBytes, 0 means unlimited
-	unsigned long m_maxdisksize;//限制最大磁盘使用空间 KBytes,0--不限
-	unsigned long m_curdisksize;//current已使用磁盘空间 KBytes.
-	std::map<std::string,std::pair<std::string,long> > m_dirAccess;//目录访问permissions,目录区分size写
-			//first --- string : ftp的虚目录path，最后以/end。例如/ 或 /aa/，
-			//second --- pair : 此ftp虚目录对应的实际目录和目录的访问permissions，实际目录必须为\结尾(win平台)
+	unsigned long m_maxdisksize;//maximum disk space limit in KBytes, 0 means unlimited
+	unsigned long m_curdisksize;//current used disk space in KBytes.
+	std::map<std::string,std::pair<std::string,long> > m_dirAccess;//directory access permissions; directory names are case-sensitive
+			//first --- string : ftp的虚directorypath，last以/end。例如/ or /aa/，
+			//second --- pair : 此ftp虚directory对应的实际directoryanddirectory的访问permissions，实际directory必须为\结尾(win平台)
 	net4cpp21::iprules m_ipRules;//IP access rules
-	long m_loginusers;//current以此account登录ftp服务的用户个数,只有没用用户connect时才能delete此account
-	long m_maxLoginusers;//限制此account的最大同时登录用户数,<=0则不限制 
-	time_t m_limitedTime;//限制此account只在某个date之前有效，==0不限制
+	long m_loginusers;//current以此accountloginftpservice的user个数,只有没用userconnect时才能delete此account
+	long m_maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
+	time_t m_limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	long m_bitQX; //0~1bit password verification方式
 				  //2~3bit defineaccounttype
-				  //4bit 是否显示隐藏文件
+				  //4bit yesno显示隐藏file
 
 	bool bDsphidefiles() { return ((m_bitQX & 0x10)!=0); }
 	void bDsphidefiles(bool b)
@@ -108,15 +108,15 @@ typedef struct _ftpaccount //ftpaccountinfo
 	}
 }FTPACCOUNT;
 
-//FTP读write permission常量define
-#define FTP_ACCESS_FILE_READ 1 //文件读允许
-#define FTP_ACCESS_FILE_WRITE 2 //文件写允许
-#define FTP_ACCESS_FILE_DELETE 4 //file delete允许
-#define FTP_ACCESS_FILE_EXEC 8 //文件执行允许
-#define FTP_ACCESS_DIR_LIST 16 //允许目录浏览
-#define FTP_ACCESS_DIR_CREATE 32 //允许create directory
-#define FTP_ACCESS_DIR_DELETE 64 //允许delete directory
-#define FTP_ACCESS_SUBDIR_INHERIT 128 //子目录继承禁止
+//FTP read/write permission constant definitions
+#define FTP_ACCESS_FILE_READ 1 //file read allowed
+#define FTP_ACCESS_FILE_WRITE 2 //file write allowed
+#define FTP_ACCESS_FILE_DELETE 4 //file delete allowed
+#define FTP_ACCESS_FILE_EXEC 8 //file execute allowed
+#define FTP_ACCESS_DIR_LIST 16 //allow directory listing
+#define FTP_ACCESS_DIR_CREATE 32 //allow create directory
+#define FTP_ACCESS_DIR_DELETE 64 //allow delete directory
+#define FTP_ACCESS_SUBDIR_INHERIT 128 //subdirectory inheritance disabled
 
 #define FTP_ACCESS_ALL 0x7f
 #define FTP_ACCESS_NONE 0x0
@@ -192,7 +192,7 @@ The following are the FTP commands:
 
 /*
 >>3.3 ssl FTP扩展
-在RFC 2228中，ftp协议扩展了如下指令:
+atRFC 2228中，ftpprotocol扩展了如下指令:
 AUTH (Authentication/Security Mechanism),
 ADAT (Authentication/Security Data),
 PROT (Data Channel Protection Level),
@@ -202,10 +202,10 @@ MIC (Integrity Protected Command),
 CONF (Confidentiality Protected Command), and
 ENC (Privacy Protected Command).
 
-其中和SSL扩展相关的主要指令有以下几条:
-AUTH (协商扩展authentication): specified扩展认证方法,SSL或TLS；
+其中andSSL扩展相关的主要指令有以下几条:
+AUTH (协商扩展authentication): specified扩展authenticationmethod,SSLorTLS；
 PBSZ (协商保护buffer): 制定保护buffer,SSL/TLS模式中必须为0；
-PROT (切换保护级别): 切换保护级别，可以为"C"无保护，或"P"保护级别；
+PROT (切换保护级别): 切换保护级别，可以为"C"无保护，or"P"保护级别；
 */
 
 /*

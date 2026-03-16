@@ -21,14 +21,14 @@ int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxS
 
 //after successful login, the NS server sends the following messages
 // SBS 0 null\r\n     --- meaning unknown
-//MSG Hotmail Hotmail 514 ---本account登录info,见MSG消息handle说明
+//MSG Hotmail Hotmail 514 ---this account's login info; see MSG message handling notes
 // GTC A.   --- meaning unknown
-// BLP AL.  --- 指示当某个联系人加了你之后，如果你还没有加他，则default是AL，即好像他可以access你
-// PRP MFN yyc:). --- 本account的昵称
-// PRP HSB 1.  --- 本account有MSN Space空间
-// PRP MBE N.  --- 没有绑定移动消息的功能
+// BLP AL.  --- indicates that when a contact adds you, if you haven't added them back, the default is AL, meaning they can access you
+// PRP MFN yyc:). --- this account's nickname
+// PRP HSB 1.  --- this account has an MSN Space
+// PRP MBE N.  --- mobile messaging not bound
 // PRP WWE 0.  --- meaning unknown
-//接下来是LSG LST等消息
+//followed by LSG, LST and other messages
 
 /*MSG Hotmail Hotmail 514
 MIME-Version: 1.0
@@ -63,16 +63,16 @@ ABCHMigrated: 1
 4 - User is under 13
 5 - User is between the ages of 13 and 18 (or is 13 exactly)
 */
-int contact_counts=0;//联系人个数 receive完搜有联系人info后可send上线status
-std::string last_contact_email=""; //最后一次收到LST的联系人email
-//NSserversend的命令
+int contact_counts=0;//number of contacts; can send online status after receiving all contact info
+std::string last_contact_email=""; //email of the last contact received via LST
+//command sent by NS server
 unsigned long msnMessager :: nscmd_sbs(socketTCP *psock,const char *pcmd)
 {
 	return 0;
 }
-//NSserversend的命令 Profile Messages MSNP8及以后version
+//command sent by NS server - Profile Messages, MSNP8 and later versions
 //In all known cases, immediately after sending the final USR, the NS will send a profile message. This is a message with a Content-Type of text/x-msmsgsprofile. This message has a large header with lots of fields, and no body. 
-//从NS的MSG Hotmailinfo中parse本client的IPaddress，以便知道本client是否是通过NAT或代理出去的
+//parse the client's IP address from the NS MSG Hotmail info to determine if the client is behind NAT or proxy
 unsigned long msnMessager :: nscmd_msg(socketTCP *psock,const char *pcmd)
 {
 	if(last_contact_email==""){
@@ -85,16 +85,16 @@ unsigned long msnMessager :: nscmd_msg(socketTCP *psock,const char *pcmd)
 			*(char *)ptr1='\r';
 		}//?if(ptr)
 	}
-//	else //后续的消息也会有MSG消息出现，例如通知用户status时
+//	else //subsequent messages may also include MSG messages, e.g. when notifying user status
 // ILN 10 NLN tanhuijian@hotmail.com tanago....\r\n
 //UBX tanhuijian@hotmail.com 68\r\n
-//<Data><PSM>闆ㄥ�ｅ啀鏉ヤ�?/PSM><CurrentMedia></CurrentMedia></Data>
+//<Data><PSM>�ｅ啀鏉ヤ�?/PSM><CurrentMedia></CurrentMedia></Data>
 //MSG Hotmail Hotmail 290\r\n
 //MIME-Version: 1.0\r\n
 //Content-Type: text/x-msmsgsinitialmdatanotification; charset=UTF-8\r\n...
 	return 0;
 }
-//NSserver对SYN命令的响应
+//NS server response to the SYN command
 //format SYN trID Time1 Time2 listnumbers groupnumbers
 //例如: SYN 8 1 0 0 0
 //例如: SYN 8 2005-06-24T02:53:13.8170000-07:00 2005-06-19T19:39:19.9730000-07:00 107 4
@@ -105,7 +105,7 @@ unsigned long msnMessager :: nscmd_syn(socketTCP *psock,const char *pcmd)
 	int group_counts=0;
 	contact_counts=0; 
 	last_contact_email="";
-	if(iret>=6){//得到总的联系人个数和组个数
+	if(iret>=6){//get total number of contacts and groups
 		contact_counts=atoi(v[4].c_str());
 		group_counts=atoi(v[5].c_str());
 		onSYN(contact_counts,group_counts);
@@ -113,7 +113,7 @@ unsigned long msnMessager :: nscmd_syn(socketTCP *psock,const char *pcmd)
 	}
 	return (unsigned long)atol(v[1].c_str());
 }
-//NSserversend的命令  MSNP11 Challenge
+//command sent by NS server - MSNP11 Challenge
 //MSN Messenger 7.0.0813 uses: 
 char *szClientID="PROD0101{0RM?UBW";  
 char *szClientCode="CFHUR$52U_{VIX5T"; 
@@ -126,18 +126,18 @@ unsigned long msnMessager :: nscmd_chl(socketTCP *psock,const char *pcmd)
 	psock->Send("QRY %d %s 32\r\n%s",msgID(),szClientID,v[2].c_str());
 	return 0;
 }
-//NSserversend的命令. 收到联系人组info
-//format:LSG 组名 组ID  //组名可能mime编码+utf8编码
+//command sent by NS server: received contact group info
+//format:LSG 组名 组ID  //group name may be MIME-encoded + UTF-8 encoded
 //例如:LSG 鍚屼簨 582cbb4e-8695-4028-8b72-5b947bbb543d
 unsigned long msnMessager :: nscmd_lsg(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
 	int iret=splitstring(pcmd,' ',v);
 	if(iret<3) return 0;
-	//先对组名进行mime解码
+	//first MIME-decode the group name
 	iret=cCoder::mime_decode(v[1].c_str(),v[1].length(),(char *)v[1].c_str());
 	v[1][iret]=0; 
-	//然后进行utf8解码
+	//then UTF-8 decode
 	wchar_t *gnameW=new wchar_t[iret+1];
 	if(gnameW==NULL) return 0;
 	iret=cCoder::utf8_decodeW(v[1].c_str(),iret,gnameW);
@@ -146,16 +146,16 @@ unsigned long msnMessager :: nscmd_lsg(socketTCP *psock,const char *pcmd)
 
 	delete[] gnameW; return 0;
 }
-//NSserversend的命令. 收到联系人info
+//command sent by NS server: received contact info
 //format LST N=email [F=nick] [C=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx] 标识 [组ID]\r\n
-//nick --- utf8编码 ，mime编码
+//nick --- UTF-8 encoded, MIME encoded
 //the C= hex string is a GUID (globally unique identifier) that is used to identify the contact in the ADC and REM commands.
-//组ID --- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.可能隶属多个组，各个组ID之间以,分割
+//group ID --- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. May belong to multiple groups, IDs separated by commas
 //标识 the principle is a part of, in the same format as MSNP8 - bitwise number where 1=Forward, 2=Allow, 4=Block ,8=Reverse. composed of:FL: 1 AL: 2 BL: 4 RL: 8
-//		FL --- 说名此联系人在本account的联系人列表中
-//		AL --- 本account允许此联系人看到
-//		BL --- 本account阻止了这个联系人
-//		RL --- 说明本account在这个联系人的列表中.
+//		FL --- indicates this contact is in this account's contact list
+//		AL --- this account allows this contact to see it
+//		BL --- this account has blocked this contact
+//		RL --- indicates this account is in this contact's list.
 //If the contact is not in a group then the last parameter is omitted. When in more than one, comes as comma-separated values (x...-xxxx-...x,x...-xxxx-...x,...). 
 //If the contact is not part of the Forward list at all, then the parameters F= and C= are omitted too, leaving only a N= and lists value. 
 //范例:
@@ -171,10 +171,10 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 	RW_LOG_DEBUG("[msnlib] <-- LST N=%s, contact_counts=%d\r\n",pcon->m_email.c_str(),contact_counts);
 	for(int i=2; i<iret;i++){
 		if(v[i][0]=='F' && v[i][1]=='=')
-		{//先对nick进行mime解码
+		{//first MIME-decode the nickname
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[i].c_str(),v[i].length(),(char *)v[i].c_str());
-			//然后进行utf8解码
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[i].c_str(),len,nickW);
 				pcon->m_nick.assign(nickW+2);
@@ -196,7 +196,7 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 //	printf(" %s",v[i].c_str());
 		}
 		else
-		{//可能隶属多个组，各个组ID之间以,分割
+		{//may belong to multiple groups, group IDs separated by commas
 			const char *ptr=strchr(v[i].c_str(),',');
 			if(ptr==NULL)
 				pcon->m_gid=v[i];
@@ -210,19 +210,19 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 	}//?for(...
 //	printf("\r\n");
 	onLST(pcon->m_email.c_str(),pcon->m_nick.c_str(),pcon->m_flags);
-	if(--contact_counts==0){//收完所有联系人info
+	if(--contact_counts==0){//finished receiving all contact info
 		onSIGN();
 	}else if(contact_counts<0) contact_counts=0;
 	return 0;
 }
-//NSserversend的命令
-//format: BPR [PHH|PHW|PHM|HSB|MOB] [tel:<电话>] <其他>
-//BPR PHH tel:86%2068036142 0  //联系人的家庭电话 后面的数字meaning unknown
-//BPR PHW tel:86%2065188989 0  //联系人的办公电话 后面的数字meaning unknown
-//BPR PHM tel:86%2013301338823 0 //联系人的移动电话 后面的数字meaning unknown
-//BPR MOB Y //指示此人可receive移动消息
+//command sent by NS server
+//format: BPR [PHH|PHW|PHM|HSB|MOB] [tel:<phone>] <other>
+//BPR PHH tel:86%2068036142 0  //contact's home phone; trailing number meaning unknown
+//BPR PHW tel:86%2065188989 0  //contact's work phone; trailing number meaning unknown
+//BPR PHM tel:86%2013301338823 0 //contact's mobile phone; trailing number meaning unknown
+//BPR MOB Y //indicates this person can receive mobile messages
 //BPR HSB 1 //It is used to indicate that the principle has an updated MSN Space blog. 
-//BPR总是设定最近receive的LST的联系人的attribute
+//BPR always sets the attribute of the most recently received LST contact
 //This command is sent by the notification server immediately after it sends a LST command while synchronising. It contains no way of identifying the principle that it refers to, so you must assume that it is for the most recently sent LST. 
 //New in MSNP11 is the HSB setting. Other values are PHM (Phone Mobile), PHW (Phone Work), PHH (Phone Home) and MOB (Mobile). 
 unsigned long msnMessager :: nscmd_bpr(socketTCP *psock,const char *pcmd)
@@ -265,11 +265,11 @@ unsigned long msnMessager :: nscmd_prp(socketTCP *psock,const char *pcmd)
 	int iret=splitstring(pcmd,' ',v);
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<3) return trID;
-	if(trID==0){//发过来的是本account的PRPinfo
+	if(trID==0){//received this account's PRP info
 		if(v[1]=="MFN"){
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[2].c_str(),v[2].length(),(char *)v[2].c_str());
-			//然后进行utf8解码
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[2].c_str(),len,nickW);
 				m_curAccount.m_nick.assign(nickW);
@@ -286,8 +286,8 @@ unsigned long msnMessager :: nscmd_prp(socketTCP *psock,const char *pcmd)
 	}
 	return trID;
 }
-//NSserver对CHG命令的响应
-//ILN 本client上线后，NSserversend的联系人status
+//NS server response to the CHG command
+//ILN: after this client goes online, the NS server sends contact status
 //format ILN TrID status email nick clientID...
 //范例 ILN 9 NLN yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
 unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
@@ -304,7 +304,7 @@ unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
 	if(iret>=5){//nick
 		int len; wchar_t *nickW=NULL;
 		len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-		//然后进行utf8解码
+		//then UTF-8 decode
 		if( (nickW=new wchar_t[len+1]) ){
 			cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 			pcon->m_nick.assign(nickW);
@@ -316,12 +316,12 @@ unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
 	if(iret>=6) pcon->m_clientID=(unsigned long)atol(v[5].c_str());
 	if(iret>=7) pcon->m_strMsnObj=v[6].c_str();
 
-	if(pcon->m_status!="FLN") onLine((HCHATSESSION)pcon,last_contact_email.c_str()); //某个用户上线
+	if(pcon->m_status!="FLN") onLine((HCHATSESSION)pcon,last_contact_email.c_str()); //a user came online
 	onNLN((HCHATSESSION)pcon,last_contact_email.c_str(),(0x80000000 | 0x0f) );
 	return trID;
 }
-//NSserversend的命令. 好友改变/匿称status
-//NLN 当联系人status改变或name改变后send的消息
+//command sent by NS server: friend status change / nickname change
+//NLN: message sent when a contact's status or name changes
 //format NLN status email nick clientID...
 //范例 NLN BSY yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
 unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
@@ -339,17 +339,17 @@ unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 		bOnline=(pcon->m_status=="FLN");
 		pcon->m_status=v[1]; flags|=1;
 		
-	} //status改变
+	} //status changed
 	if(iret>=4){//nick
 		int len; wchar_t *nickW=NULL;
 		len=cCoder::mime_decode(v[3].c_str(),v[3].length(),(char *)v[3].c_str());
-		//然后进行utf8解码
+		//then UTF-8 decode
 		if( (nickW=new wchar_t[len+1]) ){
 			cCoder::utf8_decodeW(v[3].c_str(),len,nickW);
-			if(wcscmp(pcon->m_nick.c_str(),nickW)!=0) //昵称改变
+			if(wcscmp(pcon->m_nick.c_str(),nickW)!=0) //nickname changed
 			{
 				pcon->m_nick.assign(nickW);
-				flags|=2; //昵称改变
+				flags|=2; //nickname changed
 				wchar2chars(pcon->m_nick.c_str(),(char *)v[3].c_str(),v[3].length());
 				pcon->m_nick_char.assign(v[3].c_str());
 			}delete[] nickW;
@@ -362,15 +362,15 @@ unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 	}
 	if(iret>=6 && pcon->m_strMsnObj!=v[5]){
 		pcon->m_strMsnObj=v[5];
-		flags|=8;//头像改变
+		flags|=8;//avatar changed
 	}
-	if(bOnline) onLine((HCHATSESSION)pcon,v[2].c_str()); //某个用户上线
+	if(bOnline) onLine((HCHATSESSION)pcon,v[2].c_str()); //a user came online
 	onNLN((HCHATSESSION)pcon,v[2].c_str(),flags);
 	return 0;
 }
-//好友离线 //FLN yycnet@hotmail.com
-//如果某个联系人阻止了你，你也会收到对方下线的消息
-//当对方取消阻止时你将会收到一个NLN消息
+//friend went offline //FLN yycnet@hotmail.com
+//if某个联系人阻止了你，你也会收到对方下线的message
+//when对方cancel阻止时你将会收到一个NLNmessage
 unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
@@ -381,10 +381,10 @@ unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 	if(it==m_contacts.end()) return 0;
 	cContactor *pcon=(*it).second; if(pcon==NULL) return 0;
 	pcon->m_status="FLN"; pcon->m_chatSock.Close();
-	offLine((HCHATSESSION)pcon,v[1].c_str()); //某个用户下线
+	offLine((HCHATSESSION)pcon,v[1].c_str()); //某个user下线
 	return 0;
 }
-//NSserversend的命令或REM命令的响应
+//command sent by NS serverorREMcommand的response
 //format REM 0 RL email
 //范例 REM 0 RL yycnet@hotmail.com
 //	   REM 207 FL 7bae0ef9-575b-42d5-b13d-61ebd3e69ab8
@@ -395,9 +395,9 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<4) return trID;
 	cContactor *pcon=NULL;
-	if(trID && v[2]=="FL") //从localdelete联系人的响应
+	if(trID && v[2]=="FL") //从localdelete联系人的response
 	{
-		const char *ptr=strchr(v[3].c_str(),'@'); //判断是邮件还是uid
+		const char *ptr=strchr(v[3].c_str(),'@'); //check whether it is email or UID
 		std::map<std::string, cContactor *>::iterator it1;
 		if(ptr)
 		{
@@ -427,7 +427,7 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	else if(v[2]=="RL")
 	{
 		pcon->m_flags &=0xfffffff7;
-		if(trID==0) //NSserversend过来的某个用户delete了本account的消息
+		if(trID==0) //NSserversend过来的某个userdelete了本account的message
 		{
 			iret=onREM((HCHATSESSION)pcon,v[3].c_str());
 			if( (iret & 1) )//delete此account
@@ -442,8 +442,8 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	}
 	return trID;
 }
-//NSserversend的命令或ADC命令的响应
-//某个用户添加了你或ADC命令的NS响应返回
+//command sent by NS serverorADCcommand的response
+//某个useradd了你orADCcommand的NSresponsereturn
 //ADC 0 RL N=yycnet@hotmail.com F=yyc:)
 //ADC 196 FL N=yycnet@163.com F=yycnet@163.com C=7bae0ef9-575b-42d5-b13d-61ebd3e69ab8
 unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
@@ -453,7 +453,7 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<4) return trID; 
 	const char *strEmail=::_strlwr((char *)v[3].c_str()+2);
-	if(trID){//ADC命令的NS响应返回
+	if(trID){//ADCcommand的NSresponsereturn
 		std::map<std::string, cContactor *>::iterator it=m_contacts.find(strEmail);
 		if(it==m_contacts.end()) return trID; 
 		cContactor *pcon=(*it).second; if(pcon==NULL) return trID; 
@@ -463,7 +463,7 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 			{
 				int len; wchar_t *nickW=NULL;
 				len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-				//然后进行utf8解码
+				//then UTF-8 decode
 				if( (nickW=new wchar_t[len+1]) ){
 					cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 					pcon->m_nick.assign(nickW+2);
@@ -483,15 +483,15 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 			pcon->m_flags |=0x8;
 		onADD((HCHATSESSION)pcon,strEmail);
 	}//?if(trID)
-	else{ //serversend的某个联系人添加了本account的消息
+	else{ //serversend的某个联系人add了本account的message
 		if(v[2]!="RL") return trID; 
 		cContactor *pcon=_newContact(strEmail,NULL);
 		if(pcon==NULL) return trID; pcon->m_flags |=0x08;
 		if(iret>=5 && v[4][0]=='F' && v[4][1]=='=')
-		{//先对nick进行mime解码
+		{//first MIME-decode the nickname
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-			//然后进行utf8解码
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 				pcon->m_nick.assign(nickW+2);
@@ -510,7 +510,7 @@ unsigned long msnMessager :: nscmd_ubx(socketTCP *psock,const char *email,const 
 	return 0;
 }
 
-//从NS收到聊天请求命令
+//从NS收到聊天requestcommand
 //format：RNG 178257 207.46.108.53:1863 CKI 1090569642.21212 yycnet@hotmail.com yyc:)
 //RNG 17485110 207.46.108.87:1863 CKI 1090571470.9784 yycnet@hotmail.com yyc:)
 unsigned long msnMessager :: nscmd_rng(socketTCP *psock,const char *pcmd)

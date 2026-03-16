@@ -1,7 +1,7 @@
 /*******************************************************************
    *	cLogger.cpp
-   *    DESCRIPTION:logging implementation，用于程序输出打印各种info
-   *			可以output to console，文件，窗口或tcp socket通道
+   *    DESCRIPTION:logging implementation, used for the program to output and print various info
+   *			can output to console, file, window or TCP socket channel
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
@@ -19,7 +19,7 @@
 
 using namespace net4cpp21;
 
-cLogger *cLogger::plogger=new cLogger();//静态日志类实例指针
+cLogger *cLogger::plogger=new cLogger();//静态logclass实例pointer
   
 cLogger::cLogger()
 {
@@ -69,7 +69,7 @@ LOGTYPE cLogger::setLogType(LOGTYPE lt,long lParam)
 void cLogger::printTime()
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
+		return; //ifspecifiednotoutput log且没有setcallback
 	time_t tNow=time(NULL);
 	struct tm * ltime=localtime(&tNow);
 	TCHAR buf[64];
@@ -83,8 +83,8 @@ void cLogger::printTime()
 void cLogger::dump(LOGLEVEL ll,size_t len,LPCTSTR buf)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(ll<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(ll<m_loglevel) return;//此级别的lognot输出
 	if(m_hout==0 || buf==NULL) return;
 	if(len<=0) len=stringlen(buf);
 	if(m_bOutputTime) printTime();//打印time
@@ -95,15 +95,15 @@ void cLogger::dump(LOGLEVEL ll,size_t len,LPCTSTR buf)
 void cLogger::dump(LOGLEVEL ll,LPCTSTR fmt,...)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(ll<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(ll<m_loglevel) return;//此级别的lognot输出
 	if(m_hout==0) return;
 	TCHAR buffer[1024]; buffer[0]=0;
 	va_list args;
 	va_start(args,fmt);
 	int len=vsnprintf(buffer,1024,fmt,args);
 	va_end(args);
-	if(len==-1){//写入data超过了给定的buffer空间size
+	if(len==-1){//writedata超过了给定的buffernull间size
 		buffer[1018]=buffer[1019]=buffer[1020]='.';
 		buffer[1021]='.'; buffer[1022]='\r';
 		buffer[1023]='\n';
@@ -117,8 +117,8 @@ void cLogger::dump(LOGLEVEL ll,LPCTSTR fmt,...)
 void cLogger::debug(size_t len,LPCTSTR buf)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的lognot输出
 	if(m_hout==0 || buf==NULL) return;
 	if(len<=0) len=stringlen(buf);
 	if(m_bOutputTime) printTime();//打印time
@@ -128,15 +128,15 @@ void cLogger::debug(size_t len,LPCTSTR buf)
 void cLogger::debug(LPCTSTR fmt,...)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的lognot输出
 	if(m_hout==0) return;
 	TCHAR buffer[1024]; buffer[0]=0;
 	va_list args;
 	va_start(args,fmt);
 	int len=vsnprintf(buffer,1024,fmt,args);
 	va_end(args);
-	if(len==-1){//写入data超过了给定的buffer空间size
+	if(len==-1){//writedata超过了给定的buffernull间size
 		buffer[1018]=buffer[1019]=buffer[1020]='.';
 		buffer[1021]='.'; buffer[1022]='\r';
 		buffer[1023]='\n';
@@ -178,7 +178,7 @@ inline void cLogger::_dump(LPCTSTR buf,size_t len)
 #endif
 			break;
 		case LOGTYPE_SOCKET:
-			if(m_hout!=-1) //有效的socket句柄
+			if(m_hout!=-1) //valid的socket句柄
 				::send(m_hout,(const char *)buf,len*sizeof(TCHAR),MSG_NOSIGNAL);
 			break;
 	}//?switch
@@ -189,14 +189,14 @@ inline void cLogger::_dump(LPCTSTR buf,size_t len)
 void cLogger::dumpBinary(const char *buf,size_t len)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的lognot输出
 	if(buf==NULL || len==0) return;
 
 	if(m_bOutputTime) printTime();//打印time
 	
-	int i,j,lines=(len+15)/16; //计算共多少行
-	size_t count=0;//打印字符计数
+	int i,j,lines=(len+15)/16; //count算共多少行
+	size_t count=0;//打印charactercounting
 	printf("Output Binary data,size=%d, lines=%d\r\n",len,lines);
 	for(i=0;i<lines;i++)
 	{
@@ -223,8 +223,8 @@ void cLogger::dumpBinary(const char *buf,size_t len)
 void cLogger::dumpMaps(std::map<std::string,std::string> &maps,const char *desc)
 {
 	if(m_logtype==LOGTYPE_NONE && m_pcallback==NULL) 
-		return; //如果specified不output log且没有设置callback
-	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的日志不输出
+		return; //ifspecifiednotoutput log且没有setcallback
+	if(LOGLEVEL_DEBUG<m_loglevel) return;//此级别的lognot输出
 	char buffer[256];
 	int buflen=sprintf(buffer,"****** %s start ******",(desc)?desc:"dump std::map");
 	_dump(buffer,buflen);

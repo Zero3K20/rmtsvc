@@ -32,37 +32,37 @@ smtpServer :: smtpServer()
 
 smtpServer :: ~smtpServer()
 {
-//本服务没有线程，因此无需进行下面的析构前handle
+//本service没有thread，therefore无需进行下面的析构前handle
 //	Close();
 //	m_threadpool.join();
 }
 
 
-//当有一个新的客户connect此服务触发此函数
+//triggered when a new client connects to this service
 void smtpServer :: onAccept(socketTCP *psock)
 {
 	RW_LOG_DEBUG("%s is connected\r\n",psock->getRemoteIP());
 	char buf[SMTP_MAX_PACKAGE_SIZE]; int buflen=0;
 	buflen=sprintf(buf,"220 SMTP Server[mailpost1.0] for ready\r\n");
 	psock->Send(buflen,buf,-1);
-//	某些SMTPclientnot supported多行SMTP服务connect应答
+//	某些SMTPclientnot supported多行SMTPserviceconnect应答
 /*	buflen=sprintf(buf,"220-SMTP Server[mailpost1.0] for ready\r\n"
 					   "220-copyright @yyc 2006. http://yycnet.yeah.net\r\n"
 					   "%s",m_helloTip.c_str());
 	psock->Send(buflen,buf,-1);
-	//currentserver运行status
+	//current server running status
 	struct tm * ltime=localtime(&m_tmOpened);
-	buflen=sprintf(buf,"220-serverstart运行的time是%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	buflen=sprintf(buf,"220-server start running time is %04d-%02d-%02d %02d:%02d:%02d\r\n",
 				(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 				ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	psock->Send(buflen,buf,-1);
 */	
 	cSmtpSession clientSession; 
-	clientSession.m_tmLogin=time(NULL); //用户connecttime
+	clientSession.m_tmLogin=time(NULL); //userconnecttime
 /*	ltime=localtime(&clientSession.m_tmLogin);
-	buflen=sprintf(buf,"220-目前server所在的time是%04d-%02d-%02d %02d:%02d:%02d\r\n"
-					   "220-current登陆用户count %d \r\n"
-					   "220-最大允许connect用户数 %d \r\n"
+	buflen=sprintf(buf,"220-目前server所at的timeyes%04d-%02d-%02d %02d:%02d:%02d\r\n"
+					   "220-current登陆usercount %d \r\n"
+					   "220-maximum允许connectuser数 %d \r\n"
 					   "220 SMTP Server for ready...\r\n",
 					   (1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 					   ltime->tm_hour, ltime->tm_min, ltime->tm_sec,
@@ -70,35 +70,35 @@ void smtpServer :: onAccept(socketTCP *psock)
 	psock->Send(buflen,buf,-1);
 */
 	if(this->m_authType==SMTPAUTH_NONE) clientSession.m_bAccess=true;
-	buflen=0; //清空命令receive缓冲
+	buflen=0; //clear command receive buffer
 	while(psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-		if(iret<0) break; //如果登录timeout则关闭connect
-		if(!clientSession.m_bAccess && //判断是否登录timeout
+		if(iret<0) break; //iflogin timeout则close connection
+		if(!clientSession.m_bAccess && //check whetherlogin timeout
 			(time(NULL)-clientSession.m_tmLogin)>SMTP_MAX_RESPTIMEOUT) break;
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=psock->Receive(buf+buflen,SMTP_MAX_PACKAGE_SIZE-buflen-1,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		buflen+=iret; buf[buflen]=0;
-		//parsesmtp命令
+		//parsesmtpcommand
 		const char *ptrCmd,*ptrBegin=buf;
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
-			*(char *)ptrCmd=0;//startparse命令
-			if(ptrBegin[0]==0) goto NextCMD; //不handle空行data
+			*(char *)ptrCmd=0;//startparsecommand
+			if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
 		
 			parseCommand(clientSession,psock,ptrBegin);
 
-NextCMD:	//移动ptrBegin到下一个命令data起始
+NextCMD:	//移动ptrBegin到nextcommanddata起始
 			ptrBegin=ptrCmd+1; 
-			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //跳过\r\n
+			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//如果有未receive完的命令则移动
+		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//如果ptrBegin-buf==0说明这是一个error命令data包
+		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -109,7 +109,7 @@ NextCMD:	//移动ptrBegin到下一个命令data起始
 	return;
 }
 
-//如果currentconnect数大于current设定的maximum connections则触发此事件
+//triggered when current connection count exceeds the configured maximum connections
 void smtpServer :: onTooMany(socketTCP *psock)
 {
 	char resp[]="220 access denied, Too many users.\r\n";
@@ -117,7 +117,7 @@ void smtpServer :: onTooMany(socketTCP *psock)
 	return;
 }
 
-//-------------------SMTP 命令parsehandle begin-----------------------------------
+//-------------------SMTP commandparsehandle begin-----------------------------------
 void smtpServer :: parseCommand(cSmtpSession &clientSession,socketTCP *psock,const char *ptrCommand)
 {
 	RW_LOG_DEBUG("[smtpsvr] c--->s:\r\n\t%s\r\n",ptrCommand);
@@ -160,10 +160,10 @@ inline void smtpServer :: resp_unknowed(socketTCP *psock)
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//注意smtp服务的多行data的响应，如果不是最后一行则响应行的响应码和description之间要用-connect
+//注意smtpservice的多行data的response，ifnotyeslast一行则response行的response码anddescription之间要用-connect
 void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉命令参数的前导空格
+	//去掉commandparameter的前导null格
 	while(*strParam==' ') strParam++;
 	clientSession.m_ehlo.assign(strParam);
 	const char resp[]="250-PIPELINING\r\n"
@@ -177,7 +177,7 @@ void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉命令参数的前导空格
+	//去掉commandparameter的前导null格
 	while(*strParam==' ') strParam++;
 	int authType=SMTPAUTH_NONE;
 	if(strcasecmp(strParam,"LOGIN")==0)
@@ -200,19 +200,19 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	}
 	else
 	{
-		const char resp[]="504-命令参数不可implementation\r\n"
+		const char resp[]="504-commandparameternot可implementation\r\n"
 						  "504 only Surpport LOGIN,8BITMIME\r\n";
 		response(psock,resp,sizeof(resp)-1);
 		psock->Close(); return;
 	}
-	//等待用户sendauthenticationaccount和password
+	//waitingusersendauthenticationaccountandpassword
 	std::string strAccount,strPwd;
 	char buf[SMTP_MAX_PACKAGE_SIZE];
 	int iret=psock->Receive(buf,SMTP_MAX_PACKAGE_SIZE-1,SMTP_MAX_RESPTIMEOUT);
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strAccount.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//进行Base64解码
+	{//进行Base64 decoding
 		iret=cCoder::base64_decode((char *)strAccount.c_str(),strAccount.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strAccount.assign(buf);
@@ -232,12 +232,12 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 		const char resp[]="334 Password:\r\n";
 		response(psock,resp,sizeof(resp)-1);
 	}
-	//获取password
+	//getpassword
 	iret=psock->Receive(buf,SMTP_MAX_PACKAGE_SIZE-1,SMTP_MAX_RESPTIMEOUT);
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strPwd.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//进行Base64解码
+	{//进行Base64 decoding
 		iret=cCoder::base64_decode((char *)strPwd.c_str(),strPwd.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strPwd.assign(buf);	
@@ -249,7 +249,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 		strPwd.assign(buf);	
 	}
 	
-	//authenticationaccount和password
+	//authenticationaccountandpassword
 	if(!onAccess(strAccount.c_str(),strPwd.c_str()))
 	{
 		const char resp[]="551 Authentication unsuccessful\r\n";
@@ -267,7 +267,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉命令参数的前导空格
+	//去掉commandparameter的前导null格
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -284,7 +284,7 @@ void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,c
 
 void smtpServer :: docmd_rcptto(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉命令参数的前导空格
+	//去掉commandparameter的前导null格
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -326,17 +326,17 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 				 "\t%s\r\n",clientSession.m_ehlo.c_str(),psock->getRemoteIP(),
 				 buf);
 
-	bool bRecvALL=false; //信体是否正常收完
+	bool bRecvALL=false; //信体yesno正常收完
 	while( psock->status()==SOCKS_CONNECTED )
 	{
-		//读clientsend的data
-		//如果超过SMTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+		//read data sent by client
+		//if超过SMTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
 		buflen=psock->Receive(buf,4095,SMTP_MAX_RESPTIMEOUT);
 		if(buflen<0){
 			RW_LOG_PRINT(LOGLEVEL_WARN,"[smtpsvr] Failed to receive mail DATA,error=%d\r\n",buflen);
 			break; 
 		}
-		if(buflen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0表明receivedata流量超过限制
+		if(buflen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 		buf[buflen]=0;
 		if(buflen>=5 && strcmp(buf+buflen-5,"\r\n.\r\n")==0)
 		{ 

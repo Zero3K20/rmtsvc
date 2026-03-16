@@ -1,6 +1,6 @@
 /*******************************************************************
    *	Wutils.h
-   *    DESCRIPTION:windows系统utility functions集
+   *    DESCRIPTION:windows系统utility functions collection
    *
    *    AUTHOR:yyc
    *
@@ -39,31 +39,31 @@ class Wutils
 public:
 	static const char *getLastInfo() { return m_buffer; }
 	static const char *computeName();
-	//返回cpu个数
+	//return the number of CPUs
 	static int cpuInfo(MSOSTYPE ostype);
-	//获取windows操作系统type
+	//getwindows操作系统type
 	static MSOSTYPE winOsType();
-	//获取操作系统current的status
+	//get操作系统current的status
 	static MSOSSTATUS winOsStatus();
-	//列出local machine所有进程
-	//返回符合条件filter进程的个数.支持*?通配符号
+	//列出local machineallprocess
+	//return符合conditionfilterprocess的个数.支持*?通配符号
 	static DWORD procList(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter);
 	//模拟Ctrl+Alt+Del按键
 	static BOOL SimulateCtrlAltDel();
-	//锁定工作站
+	//lock工作站
 	static BOOL LockWorkstation();
 	//捕获current桌面图像
 	static BOOL snapWindows(int quality,const char *filename,bool ifCapCursor);
-	//modify本进程的permissions
+	//modify本process的permissions
 	static BOOL EnablePrivilege(LPCTSTR lpszPrivilegeName,bool bEnable);
-	//获取specified的remote进程的ID，根据name
+	//getspecified的remoteprocess的ID，根据name
 	static DWORD GetPIDFromName(LPCTSTR szRemoteProcessName);
 	static const char *GetNameFromPID(DWORD pid);
 	static BOOL FindPassword(const char *ptr);
 	static BOOL FindPassword(const char *strDomain,const char *strAccount);	
-	static int getCPUusage(); //返回当时cpu的占用率(0-100)
-	static int getMEMusage(); //返回当时mem的使用率(0-100)
+	static int getCPUusage(); //returnwhen时cpu的占用率(0-100)
+	static int getMEMusage(); //returnwhen时mem的使用率(0-100)
 
 	static BOOL ShutDown()
 	{
@@ -98,15 +98,15 @@ public:
 	static void selectDesktop(){
 		if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
 	}
-	//send键盘鼠标消息时的附加info值
+	//send键盘鼠标message时的附加info值
 	static DWORD mskbEvent_dwExtraInfo;
 private:
-	static char m_buffer[MAX_PATH]; //用来临时保存返回的字符串
+	static char m_buffer[MAX_PATH]; //用来临时savereturn的character串
 	
 	//模拟send key press
-	//通过剪切板输入字符串，可输入任何的文字
+	//通过剪切板输入character串，可输入任何的文字
 	static BOOL sendTextbyClipboard(const char *strTxt);
-	//模拟按键输入字符串，仅仅可输入ascii字符串
+	//模拟按键输入character串，仅仅可输入asciicharacter串
 	static BOOL sendText(const char *strTxt);
 
 	// Determine whether the thread's current desktop is the input one

@@ -70,7 +70,7 @@ bool cMsnc0 :: sendmsg_ACCEPT(bool bListen)
 		m_authCookie=m_inviteCookie;
 		len+=sprintf(buf+56+len,"IP-Address: %s\r\nPort: %d\r\nAuthCookie: %s\r\n",
 			m_pcontact->m_chatSock.getLocalIP(),listenport,m_authCookie.c_str());
-		if(!m_bSender) //被邀请者或文件receive者，要求send者connect
+		if(!m_bSender) //invitee or file receiver, requesting sender to connect
 			len+=sprintf(buf+56+len,"Sender-Connect: TRUE\r\n");
 	}//?if(bListen)
 	len+=sprintf(buf+56+len,"Launch-Application: FALSE\r\nRequest-Data: IP-Address:\r\n");
@@ -78,7 +78,7 @@ bool cMsnc0 :: sendmsg_ACCEPT(bool bListen)
 	memmove(buf+(56-iret),buf,iret);
 	return (m_pcontact->m_chatSock.Send(len+iret,buf+(56-iret),-1)>0)?true:false;
 }
-/* Cancel-Code:代码含义
+/* Cancel-Code: meaning
 FAIL 
 The receiving client does not know any of the specified Session-protocols 
 FTTIMEOUT 
@@ -104,7 +104,7 @@ bool cMsnc0 :: sendmsg_REJECT(const char *errCode)
 	return (m_pcontact->m_chatSock.Send(len+iret,buf+(32-iret),-1)>0)?true:false;
 }
 
-bool cMsnc0 :: sendFile(const char *filename) //sendspecified文件
+bool cMsnc0 :: sendFile(const char *filename) //sendspecifiedfile
 {
 	if(filename==NULL || filename[0]==0 ) return false;
 	FILE *fp=::fopen(filename,"rb");
@@ -147,7 +147,7 @@ void cMsnc0 :: setHostinfo(const char *hostip,int hostport,const char *authCooki
 	return;
 }
 
-//msnc0:msnftp协议的文件send或receivehandle线程
+//msnc0:msnftpprotocol的filesendorreceivehandlethread
 #define MAXMSNDATALENGTH 4096
 void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 {
@@ -155,34 +155,34 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 	pmsnc0->m_bDataThread_Running=true;
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"msnc0:data-thread of msnMessager has been started.\r\n");
 	socketTCP *pchatsession=&pmsnc0->m_pcontact->m_chatSock;
-	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //是否是侦听等待对方进行dataconnect
+	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //yesnoyes侦听waiting对方进行dataconnect
 		pmsnc0->m_datasock.Accept(MSN_MAX_RESPTIMEOUT,NULL);
-	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//connectspecified的对端data传输服务
+	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//connectspecified的对端data传输service
 		pmsnc0->m_datasock.Connect(NULL,0,MSN_MAX_RESPTIMEOUT);
 
 	socketTCP *pdatasock=&pmsnc0->m_datasock;
 	const char *toEmail=pmsnc0->m_pcontact->m_email.c_str();
 	const char *fromEmail=pmsnc0->m_pmsnmessager->thisEmail();
 	if(pdatasock->status()==SOCKS_CONNECTED)
-	{   //邀请receive者先sendVER命令
+	{   //邀请receive者先sendVERcommand
 		if(!pmsnc0->m_bSender) pdatasock->Send(0,"VER MYPROTO MSNFTP\r\n",-1);
 		char cmdBuf[MAXMSNDATALENGTH]; //receive client commands
-		int cmdbufLen=0;//buffer中命令的length
-		long receivedbytes=0; FILE *fp=NULL;//打开写文件句柄
+		int cmdbufLen=0;//buffer中command的length
+		long receivedbytes=0; FILE *fp=NULL;//open写file句柄
 		while(pchatsession->status()==SOCKS_CONNECTED)
 		{
 			int iret=pdatasock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret<0) break; //此socket发生error
-			if(iret==0) continue; //没有data
-			//有data到达,receivedata
+			if(iret==0) continue; //no data
+			//data has arrived,receivedata
 			iret=pdatasock->Receive(cmdBuf+cmdbufLen,MAXMSNDATALENGTH-cmdbufLen-1,-1);
-			if(iret<=0) break; //对方已经关闭或发生一个系统error
+			if(iret<=0) break; //对方已经closeor发生一个系统error
 			cmdbufLen+=iret; cmdBuf[cmdbufLen]=0;
-			char *ptrCmd=NULL,*pcmdbuf=cmdBuf;//handle命令
-			if(fp){//如果打开文件写，则收到的data应该是文件data而不是命令data
-				//第1字节为0 ,2-3字节为data包length
-				//按照协议上说第1字节还可能为1，2-3字节为0 。代表文件sendend，可能为老version
-				//协议规定每包datalength最大为2045字节，加上3字节的头，则最大包长为2048
+			char *ptrCmd=NULL,*pcmdbuf=cmdBuf;//handlecommand
+			if(fp){//ifopenfile写，则收到的datashouldyesfiledata而notyescommanddata
+				//第1byte为0 ,2-3byte为datapacketlength
+				//按照protocol上说第1byte还可能为1，2-3byte为0 。代表filesendend，可能为老version
+				//protocol规定每packetdatalengthmaximum为2045byte，加上3byte的头，则maximumpacket长为2048
 				while(cmdbufLen>0){
 					long len=256*((unsigned char)pcmdbuf[2])+(unsigned char)pcmdbuf[1];
 					if(cmdbufLen<len) break;
@@ -206,7 +206,7 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 				{
 					*ptrCmd=0; 
 					RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc0] recevied Command: %s.\r\n",pcmdbuf);
-					if(pcmdbuf[0]!=0){//仅仅handle非空字符串
+					if(pcmdbuf[0]!=0){//仅仅handle非nullcharacter串
 						if(strncmp(pcmdbuf,"VER ",4)==0)
 						{
 							if(!pmsnc0->m_bSender) //receive者
@@ -222,9 +222,9 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 						{
 							pmsnc0->m_filesize=atoi(pcmdbuf+4);
 							if( (fp=pmsnc0->m_fp)==NULL ) {pdatasock->Close(); break; }
-							pdatasock->Send(5,"TFR\r\n",-1); //准备好startreceive文件
+							pdatasock->Send(5,"TFR\r\n",-1); //准备好startreceivefile
 						}//?else if(strncmp(pcmdbuf,"FIL ",4)==0)
-						else if(strcmp(pcmdbuf,"TFR")==0)//startsend文件data
+						else if(strcmp(pcmdbuf,"TFR")==0)//startsendfiledata
 						{
 							long sendbytes=0; FILE *rfp=pmsnc0->m_fp;
 							if(rfp==NULL) {pdatasock->Close(); break; }
@@ -243,14 +243,14 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 							pdatasock->Close(); break;
 						}//?else if(strcmp(pcmdbuf,"TFR")==0)
 						else if(strncmp(pcmdbuf,"BYE ",4)==0 || strncmp(pcmdbuf,"CCL",3)==0)
-						{//文件send完毕
+						{//filesend完毕
 							pdatasock->Close(); break;
 						}
 
 					}//?if(pcmdbuf[0]!=0)
-					pcmdbuf=ptrCmd+1; while(*pcmdbuf=='\r' || *pcmdbuf=='\n') pcmdbuf++; //跳过\r\n
+					pcmdbuf=ptrCmd+1; while(*pcmdbuf=='\r' || *pcmdbuf=='\n') pcmdbuf++; //skip \r\n
 				}//?while( (ptrCmd=strchr(pcmdbuf,'\r')) )
-				//如果有未receive完的命令则移动
+				//if有未receive完的command则移动
 				if( (iret=cmdbufLen-(pcmdbuf-cmdBuf))>0 ){
 					if( (cmdbufLen=iret)>=MAXMSNDATALENGTH-1) cmdbufLen=0;
 					if(pcmdbuf>cmdBuf) memmove((void *)cmdBuf,pcmdbuf,cmdbufLen);

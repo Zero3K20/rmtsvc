@@ -56,40 +56,40 @@ namespace net4cpp21
 		}
 		void SetCookie(const char *cookiename,const char *cookieval,const char *path);
 		const char *Header(const char *pheader)
-		{//获取specified的HTTP request header
+		{//get the specified HTTP request header
 			std::map<std::string,std::string>::iterator it=
 				(pheader)?m_httprsp_HEADER.find(pheader):m_httprsp_HEADER.end();
 			return (it!=m_httprsp_HEADER.end())?((*it).second.c_str()):NULL;
 		}
 		
 		//---------------------------------------------------------------
-		void init_httprsp();//initializationHTTP response准备send/receive新的HTTP response
+		void init_httprsp();//initialize HTTP response to prepare for sending/receiving a new HTTP response
 		std::map<std::string,std::string> &Header() { return m_httprsp_HEADER; }
 		std::map<std::string,TNew_Cookie> &Cookies() { return m_httprsp_SETCOOKIE; }
-		//-------------------解码handleHTTP response----------------------------
+		//-------------------decode handle HTTP response----------------------------
 		SOCKSRESULT recv_rspH(socketTCP *psock,time_t timeout=HTTP_MAX_RESPTIMEOUT);
 		bool recv_remainderX(socketTCP *psock,long receiveBytes,time_t timeout);
 		bool recv_remainder(socketTCP *psock,long receiveBytes=-1){
-			//receive剩余HTTP响应未receive完的Bodydata
+			//receive remaining unfinished HTTP response body data
 			return recv_remainderX(psock,receiveBytes,HTTP_MAX_RESPTIMEOUT);
 		}
-		//保存HTTP response为specified的文件(不包含HTTP response header)
-		//返回保存文件的size，==0发生error
+		//saveHTTP response为specified的file(notcontainsHTTP response header)
+		//returnsavefile的size，==0发生error
 		unsigned long save_resp(socketTCP *psock,const char *filename);
 		//--------------------编码send HTTP response---------------------------
 		void AddHeader(std::string &headName,std::string &headValue){ m_httprsp_HEADER[headName]=headValue;}
-		//设置catch控制头
+		//setcatch控制头
 		//"No-cache" - Do not cache this page at all, even if for use by the same client
 		//"No-store" - The response and the request that created it must not be stored on any cache, 
 		//				whether shared or private. The storage inferred here is non-volatile storage, 
 		//				such as tape backups. This is not an infallible security measure.
 		//"Private" , "Public"
 		void CacheControl(const char *str){ if(str) m_httprsp_HEADER["Cache-control"]=std::string(str);}
-		void NoCache(); //禁止缓存
+		void NoCache(); //disable cache
 		
 		//send HTTP response头
 		SOCKSRESULT send_rspH(socketTCP *psock,int respcode,const char *respDesc);
-		//send文件，success返回SOCKSERR_OK
+		//sendfile，returns SOCKSERR_OK on success
 		SOCKSRESULT sendfile(socketTCP *psock,const char *filename,
 			MIMETYPE_ENUM mt=MIMETYPE_UNKNOWED,long startPos=0,long endPos=-1);
 		SOCKSRESULT sendfile(socketTCP *psock,const char *filename,
@@ -97,7 +97,7 @@ namespace net4cpp21
 
 		static MIMETYPE_ENUM MimeType(const char *filename);
 	private:
-		//parse HTTP response头，返回响应码
+		//parse HTTP response头，returnresponse码
 		int ParseResponse(const char *httprspH);
 		void parse_SetCookie(const char *strParam);
 		void parseParam(char *strParam,char delm,
@@ -106,13 +106,13 @@ namespace net4cpp21
 							 std::map<std::string,std::string> &maps);
 	private:
 		int m_respcode;
-		DWORD m_httprsp_dwVer; //http协议version
+		DWORD m_httprsp_dwVer; //httpprotocolversion
 		long m_httprsp_lContentlen;
 		std::map<std::string,std::string> m_httprsp_HEADER;
-		//httprsp响应receive的新设置的cookieinfo
+		//httprspresponsereceive的新set的cookieinfo
 		std::map<std::string,TNew_Cookie> m_httprsp_SETCOOKIE;
-		bool m_httprsp_bReceiveALL;//是否已经HTTP request完整receive
-		cBuffer m_httprsp_data; //保存receive的部分/全部响应Bodydata
+		bool m_httprsp_bReceiveALL;//yesno已经HTTP request完整receive
+		cBuffer m_httprsp_data; //savereceive的partial/全部responseBodydata
 	};
 
 }//?namespace net4cpp21

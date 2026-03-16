@@ -25,15 +25,15 @@ namespace net4cpp21
 		virtual ~vidcClient();
 		VIDCSINFO &vidcsinfo() { return m_vidcsinfo; }
 		void Destroy(); //destroy and free resources
-		//connectspecified的vIDCs服务
+		//connect to the specified vIDCs service
 		SOCKSRESULT ConnectSvr();
-		void DisConnSvr(); //disconnect和vIDCs的connect
+		void DisConnSvr(); //disconnect from vIDCs
 		bool mapinfoDel(const char *mapname);
 		mapInfo * mapinfoGet(const char *mapname,bool bCreate);
 		
-		//success返回SOCKSERR_OK
-		int Mapped(const char *mapname,mapInfo *pinfo); //映射specified的服务
-		int Unmap(const char *mapname,mapInfo *pinfo); //取消映射specified的服务
+		//returns SOCKSERR_OK on success
+		int Mapped(const char *mapname,mapInfo *pinfo); //map the specified service
+		int Unmap(const char *mapname,mapInfo *pinfo); //cancelmap the specified service
 
 		void xml_list_mapped(cBuffer &buffer,VIDC_MAPTYPE maptype);
 		void str_list_mapped(const char *vname,std::string &strini);
@@ -43,14 +43,14 @@ namespace net4cpp21
 		static void onPipeThread(vidcClient *pvidcc);
 		static void onCommandThread(vidcClient *pvidcc);
 	private:
-		std::map<std::string,mapInfo *> m_mapsets; //映射集合
-		time_t m_lTimeout;//最大等待timeout返回s
+		std::map<std::string,mapInfo *> m_mapsets; //mapset
+		time_t m_lTimeout;//maximum wait timeout return in seconds
 		std::string m_strName; //本vidcc的name
 		std::string m_strDesc;
 		VIDCSINFO m_vidcsinfo;
-		cThreadPool m_threadpool;//服务thread pool
+		cThreadPool m_threadpool;//servicethread pool
 
-		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //保存最近一次从vIDCs的命令返回
+		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //save最近一次从vIDCs的commandreturn
 	};
 	
 	class vidccSets

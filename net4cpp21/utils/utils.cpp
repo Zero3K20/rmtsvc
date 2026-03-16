@@ -1,6 +1,6 @@
 /*******************************************************************
    *	utils.cpp
-   *    DESCRIPTION:utility functions集
+   *    DESCRIPTION:utility functions collection
    *
    *    AUTHOR:yyc
    *
@@ -22,10 +22,10 @@ using namespace net4cpp21;
 
 #ifdef WIN32
 
-//返回delete directory的size KBytes
+//returndelete directory的size KBytes
 unsigned long FILEIO::fileio_deleteDir(const char *spath)
 {
-	//要delete的目录必须是空目录,因此必须先删空目录下地东西
+	//要delete的directory必须yesnulldirectory,therefore必须先删nulldirectory下地东西
 	string Path(spath);
 	if(Path[Path.length()-1]!='\\') Path.append("\\");
 	unsigned long lsize=0;
@@ -57,9 +57,9 @@ unsigned long FILEIO::fileio_deleteDir(const char *spath)
 	return lsize;
 }
 
-//如果file does not exist则返回-1
-//如果specified的path是一个目录则返回-2
-//否则返回file sizeBytes
+//iffile does not exist则return-1
+//ifspecified的pathyes一个directory则return-2
+//otherwisereturnfile sizeBytes
 long FILEIO::fileio_exist(const char *spath)
 {
 	if(spath==NULL || spath[0]==0) return -1;
@@ -115,7 +115,7 @@ long FILEIO::fileio_filesize(const char *filename)
 	::fclose(fp); return filelen;
 }
 
-//判断某个目录或文件是否存在
+//判断某个directoryorfileyesno存at
 #include<io.h>
 bool FILEIO::fileio_exist(const char *spath)
 {

@@ -44,13 +44,13 @@
 //</files>
 //</xmlroot>
 static char DRIVE_TYPE[][16]={"unknown type","NO_ROOT_DIR","removable disk","local disk","network drive",
-				"光盘","RAM 磁盘",""};
+				"CD-ROM","RAM Disk",""};
 const char * getFileType(const char *filename);
 const char * getFileOpmode(const char *filename);
 double folderSize(const char *spath,const char *name,unsigned long &folders,unsigned long &files);
 bool folderList(cBuffer &buffer,const char *spath,bool bdsphide);
 bool fileList(cBuffer &buffer,const char *spath,bool bdsphide);
-//listWhat -- 指明列举什么项目 1 : list folder 2 : list file
+//listWhat -- specifies what to enumerate: 1=list folder, 2=list file
 bool webServer :: httprsp_filelist(socketTCP *psock,httpResponse &httprsp,const char *spath,int listWhat,bool bdsphide)
 {
 	bool bret=false;
@@ -66,9 +66,9 @@ bool webServer :: httprsp_filelist(socketTCP *psock,httpResponse &httprsp,const 
 	
 //	printf("**************************************\r\n%s\r\n",buffer.str());
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	if(!bret)
 		httprsp.send_rspH(psock,400,"Bad Request");
@@ -77,7 +77,7 @@ bool webServer :: httprsp_filelist(socketTCP *psock,httpResponse &httprsp,const 
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//delete子目录
+//delete子directory
 bool webServer :: httprsp_folder_del(socketTCP *psock,httpResponse &httprsp,const char *spath,
 									 const char *fname,bool bdsphide)
 {
@@ -89,7 +89,7 @@ bool webServer :: httprsp_folder_del(socketTCP *psock,httpResponse &httprsp,cons
 	}
 	return httprsp_filelist(psock,httprsp,spath,3,bdsphide);
 }
-//更名子目录
+//更名子directory
 bool webServer :: httprsp_folder_ren(socketTCP *psock,httpResponse &httprsp,const char *spath,
 									 const char *fname,const char *newname,bool bdsphide)
 {
@@ -102,7 +102,7 @@ bool webServer :: httprsp_folder_ren(socketTCP *psock,httpResponse &httprsp,cons
 	}
 	return httprsp_filelist(psock,httprsp,spath,3,bdsphide);
 }
-//新建子目录
+//新建子directory
 bool webServer :: httprsp_folder_new(socketTCP *psock,httpResponse &httprsp,const char *spath,
 									 const char *fname,bool bdsphide)
 {
@@ -126,7 +126,7 @@ bool webServer :: httprsp_file_del(socketTCP *psock,httpResponse &httprsp,const 
 	}
 	return httprsp_filelist(psock,httprsp,spath,2,bdsphide);
 }
-//更名文件
+//更名file
 bool webServer :: httprsp_file_ren(socketTCP *psock,httpResponse &httprsp,const char *spath,
 									 const char *fname,const char *newname,bool bdsphide)
 {
@@ -139,7 +139,7 @@ bool webServer :: httprsp_file_ren(socketTCP *psock,httpResponse &httprsp,const 
 	}
 	return httprsp_filelist(psock,httprsp,spath,2,bdsphide);
 }
-//remote运行/打开文件
+//remote运行/openfile
 bool webServer :: httprsp_file_run(socketTCP *psock,httpResponse &httprsp,const char *spath)
 {
 	cBuffer buffer(512);
@@ -147,34 +147,34 @@ bool webServer :: httprsp_file_run(socketTCP *psock,httpResponse &httprsp,const 
 	unsigned long iret=(unsigned long)::ShellExecute(NULL,"open",spath,NULL,NULL,SW_SHOW );
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	if(iret>32)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行success!</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行success!</retmsg>");
 	else if(iret==ERROR_FILE_NOT_FOUND)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! ERROR_FILE_NOT_FOUND</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! ERROR_FILE_NOT_FOUND</retmsg>");
 	else if(iret==ERROR_BAD_FORMAT)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! The .exe file is invalid.</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! The .exe file is invalid.</retmsg>");
 	else if(iret==ERROR_FILE_NOT_FOUND)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! ERROR_FILE_NOT_FOUND</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! ERROR_FILE_NOT_FOUND</retmsg>");
 	else if(iret==SE_ERR_ACCESSDENIED)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! system denied access to the specified file</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! system denied access to the specified file</retmsg>");
 	else if(iret==SE_ERR_ASSOCINCOMPLETE )
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! The file name association is incomplete or invalid</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! The file name association is incomplete or invalid</retmsg>");
 	else if(iret==SE_ERR_NOASSOC)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! There is no application associated with the given file name extension</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! There is no application associated with the given file name extension</retmsg>");
 	else if(iret==SE_ERR_OOM)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure! There was not enough memory to complete the operation</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure! There was not enough memory to complete the operation</retmsg>");
 	else 
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>命令执行failure!</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>command执行failure!</retmsg>");
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//获取file attributes 
+//getfile attributes 
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<fname></fname>
@@ -195,11 +195,11 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 
 	WIN32_FIND_DATA finddata; SYSTEMTIME st; //FILETIME localFtime;
 	HANDLE hd=::FindFirstFile(spath, &finddata);
-	//获取path和filename
+	//getpathandfilename
 	const char *ptr_name=strrchr(spath,'\\');
 	if(hd!=INVALID_HANDLE_VALUE && ptr_name)
 	{
-		if(prof) //设置file attributes
+		if(prof) //setfile attributes
 		{
 			DWORD dwFileAttributes=finddata.dwFileAttributes;
 			if(strchr(prof,'R'))
@@ -220,7 +220,7 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftype>%s</ftype>",getFileType(ptr_name));
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",spath);
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<opmode>%s</opmode>",getFileOpmode(ptr_name));
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%d KB (%d 字节)</fsize>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%d KB (%d byte)</fsize>",
 			finddata.nFileSizeLow/1024,finddata.nFileSizeLow);
 		 
 //		::FileTimeToLocalFileTime(&finddata.ftCreationTime,&localFtime);
@@ -250,16 +250,16 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//获取文件夹attribute 
+//getfile夹attribute 
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<fname></fname>
@@ -278,11 +278,11 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 	{
 		WIN32_FIND_DATA finddata; SYSTEMTIME st; //FILETIME localFtime;
 		HANDLE hd=::FindFirstFile(spath, &finddata);
-		//获取path和filename
+		//getpathandfilename
 		const char *ptr_name=strrchr(spath,'\\');
 		if(hd!=INVALID_HANDLE_VALUE && ptr_name)
 		{
-			if(prof) //设置文件夹attribute
+			if(prof) //setfile夹attribute
 			{
 				DWORD dwFileAttributes=finddata.dwFileAttributes;
 				if(strchr(prof,'R'))
@@ -312,9 +312,9 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 					((finddata.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)?'A':' '));
 			unsigned long folders=0,files=0;
 			double dbsize=folderSize(spath,ptr_name,folders,files);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%lu KB (%lu 字节)</fsize>",
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%lu KB (%lu byte)</fsize>",
 				(unsigned long)(dbsize/1024),(unsigned long)dbsize);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsubs>%d 个文件 , %d 个文件夹</fsubs>",files,folders);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsubs>%d 个file , %d 个file夹</fsubs>",files,folders);
 		}//?if(ptr)
 		::FindClose(hd);
 	}//?if(spath && strlen(spath)>=2)
@@ -323,16 +323,16 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//获取驱动器attribute 
+//get驱动器attribute 
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<fname></fname>
@@ -351,9 +351,9 @@ bool webServer :: httprsp_prodrive(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		char dr[4]; char volumname[64],FileSystemName[16];
 		dr[0]=spath[0];dr[1]=':';dr[2]='\\';dr[3]=0;
-		if(svolu) SetVolumeLabel(dr,svolu); //设置卷标名
+		if(svolu) SetVolumeLabel(dr,svolu); //set卷标名
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fname>驱动器 %c</fname>",spath[0]);
-		UINT drtype=::GetDriveType(dr); //获取type
+		UINT drtype=::GetDriveType(dr); //gettype
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftype>%s</ftype>",DRIVE_TYPE[drtype]);
 		BOOL bret=::GetVolumeInformation(dr,volumname,64,0,0,0,FileSystemName,16);
 		if(!bret){ volumname[0]=0; FileSystemName[0]=0;}
@@ -374,16 +374,16 @@ bool webServer :: httprsp_prodrive(socketTCP *psock,httpResponse &httprsp,const 
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//获取upload file的进度
+//getupload file的进度
 bool webServer :: httprsp_get_upratio(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
 	cBuffer buffer(256);
@@ -396,16 +396,16 @@ bool webServer :: httprsp_get_upratio(socketTCP *psock,httpResponse &httprsp,htt
 
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//handlexmlhttp文件上载
+//handlexmlhttpfile上载
 bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session)
 {
 	bool bSuccess=false;
@@ -414,8 +414,8 @@ bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpRespo
 
 	session["up_ratio"]="0%"; //upload进度 百分比
 	session["up_speed"]="0";  //upload速度
-	session["up_rbyte"]="0"; //current已receive字节
-	session["up_abyte"]="0"; //总file size
+	session["up_rbyte"]="0"; //current已receivebyte
+	session["up_abyte"]="0"; //totalfile size
 	if(ptr_path && ptr_name)
 	{
 		string destpath(ptr_path); 
@@ -430,15 +430,15 @@ bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpRespo
 			receivedBytes=buff.len();
 			if(buff.len()>0) ::fwrite(buff.str(),sizeof(char),buff.len(),fp);
 			
-			time_t t,tStart=time(NULL); //计算网速
+			time_t t,tStart=time(NULL); //count算网速
 			sprintf(fmtbuf,"%d",allbytes); session["up_abyte"]=string(fmtbuf);
 			sprintf(fmtbuf,"%d",receivedBytes); session["up_rbyte"]=string(fmtbuf);
 			while(receivedBytes<allbytes)
 			{
-				//如果超过HTTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+				//if超过HTTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
 				int wlen=psock->Receive(buff.str(),buff.size(),HTTP_MAX_RESPTIMEOUT);
 				if(wlen<0) break;
-				if(wlen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0表明receivedata流量超过限制
+				if(wlen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 				::fwrite(buff.str(),sizeof(char),wlen,fp); receivedBytes+=wlen;
 				sprintf(fmtbuf,"%d",receivedBytes); session["up_rbyte"]=string(fmtbuf);
 				sprintf(fmtbuf,"%d%%",receivedBytes*100/allbytes); session["up_ratio"]=string(fmtbuf);
@@ -450,13 +450,13 @@ bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpRespo
 	}//?if(ptr_path && ptr_name)
 
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(0);
 	httprsp.send_rspH(psock,((bSuccess)?200:500),"OK");	
 	return true;
 }
 
-#define FILEVERINFOLEN 128 //FileVerInfo每个域的最大length
+#define FILEVERINFOLEN 128 //maximum length of each field in FileVerInfo
 typedef struct _TFileVerInfo
 {
 	char Comments[FILEVERINFOLEN]; //comment
@@ -464,8 +464,8 @@ typedef struct _TFileVerInfo
 	char ProductName[FILEVERINFOLEN]; //产品名
 	char ProductVersion[FILEVERINFOLEN]; //产品version
 	char InternalName[FILEVERINFOLEN]; //内部name
-	char FileDescription[FILEVERINFOLEN]; //文件description
-	char FileVersion[FILEVERINFOLEN]; //文件version
+	char FileDescription[FILEVERINFOLEN]; //filedescription
+	char FileVersion[FILEVERINFOLEN]; //fileversion
 	char OriginalFilename[FILEVERINFOLEN]; //原始filename
 	char LegalCopyright[FILEVERINFOLEN]; //合法版权
 //	char LegalTrademarks[FILEVERINFOLEN]; //合法商标
@@ -473,7 +473,7 @@ typedef struct _TFileVerInfo
 //	char PrivateBuild[FILEVERINFOLEN]; //私有编译号
 }FileVerInfo;
 bool GetVersionInfo(LPTSTR filename,FileVerInfo & fverinfo);
-//获取文件version information 
+//getfileversion information 
 bool webServer :: httprsp_profile_verinfo(socketTCP *psock,httpResponse &httprsp,const char *spath)
 {
 	cBuffer buffer(2048);
@@ -498,9 +498,9 @@ bool webServer :: httprsp_profile_verinfo(socketTCP *psock,httpResponse &httprsp
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
@@ -509,7 +509,7 @@ bool webServer :: httprsp_profile_verinfo(socketTCP *psock,httpResponse &httprsp
 }
 
 //-------------------------------------------------------------------------------
-//获取目录的size(KB) 和目录中包含的子目录和文件个数
+//getdirectory的size(KB) anddirectory中contains的子directoryandfile个数
 double folderSize(const char *spath,const char *name,unsigned long &folders,unsigned long &files)
 {
 	double dblsize=0;
@@ -562,7 +562,7 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 	
 	long lret=0;
 	if(spath==NULL || spath[0]==0)
-	{//列出所有磁盘
+	{//列出all磁盘
 		char s[4]; char volumname[64];
 		s[0]=0;s[1]=':';s[2]='\\';s[3]=0;
 		DWORD dwDrives=::GetLogicalDrives();
@@ -570,17 +570,17 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 		{
 			if( (dwDrives & (1<<i))==0 ) continue;
 			s[0]='A'+i; volumname[0]=0;
-			UINT drtype=::GetDriveType(s); //获取type
+			UINT drtype=::GetDriveType(s); //gettype
 			if(drtype!=DRIVE_REMOVABLE || i!=0)  //避免读软驱A yyc modify 2006-09-14
 				::GetVolumeInformation(s,volumname,64,0,0,0,0,0);
-			++lret; s[2]=0; //去掉最后的反斜杠
+			++lret; s[2]=0; //去掉last的反斜杠
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),
 				"<fitem><bhide></bhide><hassub>+</hassub><alias>%s</alias><fname>%s(%c:) %c %s</fname><fsize></fsize><ftype></ftype><ftime></ftime></fitem>"
 				,s,DRIVE_TYPE[drtype],s[0],((volumname[0]==0)?' ':'-'), volumname);
 			if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 			if(buffer.str()==NULL) break;
 		}//?for(int i=0
-	}else if(spath[1]==':'){ //有效的path
+	}else if(spath[1]==':'){ //valid path
 		WIN32_FIND_DATA finddata; SYSTEMTIME st; //FILETIME localFtime;
 		string strPath; strPath.assign(spath); strPath.append("\\*");
 		HANDLE hd=::FindFirstFile(strPath.c_str(), &finddata);
@@ -596,13 +596,13 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 					if(fnlen<256) fnlen=256;
 					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
 					if(buffer.str()==NULL) break;
-					++lret; //判断此目录是否有子目录
+					++lret; //判断此directoryyesno有子directory
 					bool bHas=ifHasSubDir(spath,finddata.cFileName);
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
 //					::FileTimeToSystemTime(&localFtime,&st);
 					::FileTimeToSystemTime(&finddata.ftLastWriteTime,&st);
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),
-						"<fitem><bhide>%c</bhide><hassub>%c</hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize></fsize><ftype>文件夹</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
+						"<fitem><bhide>%c</bhide><hassub>%c</hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize></fsize><ftype>file夹</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
 						,((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)?'*':' '),
 						((bHas)?'+':' '),finddata.cFileName,st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);				
 				}//?if(
@@ -630,7 +630,7 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 		if(hd!=INVALID_HANDLE_VALUE)
 		{
 			do{
-				if((finddata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)==0) //非文件夹
+				if((finddata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)==0) //非file夹
 				{
 					if((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !bdsphide) continue;
 					long fnlen=strlen(finddata.cFileName);
@@ -658,11 +658,11 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 }
 const char * getFileType(const char *filename)
 {
-	static string ftype; ftype="文件";
+	static string ftype; ftype="file";
 	if(filename==NULL || filename[0]==0) return ftype.c_str();
 	const char *ptr=strrchr(filename,'.');
 	if(ptr==NULL) return ftype.c_str();
-	ftype.assign(ptr+1); ftype.append(" 文件");
+	ftype.assign(ptr+1); ftype.append(" file");
 	HKEY  hKEY; char regPath[255]; regPath[0]=0;
 	if(::RegOpenKeyEx(HKEY_CLASSES_ROOT, (LPCTSTR)ptr, 0, KEY_READ, &hKEY)==ERROR_SUCCESS)
 	{
@@ -685,7 +685,7 @@ const char * getFileType(const char *filename)
 	if(ftype.length()>40) ftype[40]=0;
 	return ftype.c_str();
 }
-//获取文件的打开模式
+//getfile的open模式
 const char * getFileOpmode(const char *filename)
 {
 	static string fopmode; fopmode="unknown应用程序";
@@ -706,7 +706,7 @@ const char * getFileOpmode(const char *filename)
 				if(::RegQueryValueEx(hKEY, NULL, NULL,&dwType,(LPBYTE)regPath,&dwLen)==ERROR_SUCCESS)
 				{
 					regPath[dwLen]=0; fopmode.assign(regPath);
-					::RegCloseKey(hKEY); //获取打开的exe程序名
+					::RegCloseKey(hKEY); //getopen的exe程序名
 					const char *p=strrchr(regPath,'\\');
 					const char *p1=(p)?strchr(p+1,'"'):NULL;
 					if(p && p1)
@@ -756,7 +756,7 @@ bool GetVersionInfo(LPTSTR filename,FileVerInfo & fverinfo)
 	}
 	
 	DWORD bufsize=(*ptr_GetFileVersionInfoSize)(filename,NULL);
-	//bufsize==0 说明此文件无version information
+	//bufsize==0 说明此file无version information
 	if(bufsize==0){ ::FreeLibrary(hmdl); return false; }
 	char *pBlock=new char[bufsize];
 	if(pBlock==NULL) return false;
@@ -778,84 +778,84 @@ bool GetVersionInfo(LPTSTR filename,FileVerInfo & fverinfo)
 	TCHAR SubBlock[64]; LPVOID lpBuffer; UINT dwBytes;
 	
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.Comments,0,FILEVERINFOLEN);  //获取文件comment
+	::memset((void *)fverinfo.Comments,0,FILEVERINFOLEN);  //getfilecomment
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\Comments"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.Comments,lpBuffer,dwBytes);
 	
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.CompanyName,0,FILEVERINFOLEN);  //获取公司名
+	::memset((void *)fverinfo.CompanyName,0,FILEVERINFOLEN);  //get公司名
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\CompanyName"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.CompanyName,lpBuffer,dwBytes);
 	
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.ProductName,0,FILEVERINFOLEN);  //获取产品名
+	::memset((void *)fverinfo.ProductName,0,FILEVERINFOLEN);  //get产品名
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\ProductName"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.ProductName,lpBuffer,dwBytes);
 	
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.ProductVersion,0,FILEVERINFOLEN);  //获取产品version
+	::memset((void *)fverinfo.ProductVersion,0,FILEVERINFOLEN);  //get产品version
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\ProductVersion"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.ProductVersion,lpBuffer,dwBytes);
 	
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.InternalName,0,FILEVERINFOLEN);  //获取内部name
+	::memset((void *)fverinfo.InternalName,0,FILEVERINFOLEN);  //get内部name
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\InternalName"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.InternalName,lpBuffer,dwBytes);
 
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.FileDescription,0,FILEVERINFOLEN);  //获取文件description
+	::memset((void *)fverinfo.FileDescription,0,FILEVERINFOLEN);  //getfiledescription
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\FileDescription"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.FileDescription,lpBuffer,dwBytes);
 
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.FileVersion,0,FILEVERINFOLEN);  //获取文件version
+	::memset((void *)fverinfo.FileVersion,0,FILEVERINFOLEN);  //getfileversion
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\FileVersion"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.FileVersion,lpBuffer,dwBytes);
 
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.OriginalFilename,0,FILEVERINFOLEN);  //获取原始filename
+	::memset((void *)fverinfo.OriginalFilename,0,FILEVERINFOLEN);  //get原始filename
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\OriginalFilename"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.OriginalFilename,lpBuffer,dwBytes);
 
 	lpBuffer=NULL;  dwBytes=0;
-	::memset((void *)fverinfo.LegalCopyright,0,FILEVERINFOLEN);  //获取合法版权
+	::memset((void *)fverinfo.LegalCopyright,0,FILEVERINFOLEN);  //get合法版权
 	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\LegalCopyright"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.LegalCopyright,lpBuffer,dwBytes);
 	
 //	lpBuffer=NULL;  dwBytes=0;
-//	::memset((void *)fverinfo.LegalTrademarks,0,FILEVERINFOLEN);  //获取合法商标
+//	::memset((void *)fverinfo.LegalTrademarks,0,FILEVERINFOLEN);  //get合法商标
 //	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\LegalTrademarks"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 //	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 //	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 //	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.LegalTrademarks,lpBuffer,dwBytes);
 
 //	lpBuffer=NULL;  dwBytes=0;
-//	::memset((void *)fverinfo.SpecialBuild,0,FILEVERINFOLEN);  //获取SpecialBuild
+//	::memset((void *)fverinfo.SpecialBuild,0,FILEVERINFOLEN);  //getSpecialBuild
 //	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\SpecialBuild"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 //	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 //	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界
 //	if(lpBuffer && dwBytes!=0) ::memcpy((void *)fverinfo.SpecialBuild,lpBuffer,dwBytes);
 
 //	lpBuffer=NULL;  dwBytes=0;
-//	::memset((void *)fverinfo.PrivateBuild,0,FILEVERINFOLEN);  //获取PrivateBuild
+//	::memset((void *)fverinfo.PrivateBuild,0,FILEVERINFOLEN);  //getPrivateBuild
 //	wsprintf( SubBlock, TEXT("\\StringFileInfo\\%04x%04x\\PrivateBuild"),lpTranslate[0].wLanguage,lpTranslate[0].wCodePage);
 //	(*ptr_VerQueryValue)(pBlock, SubBlock, &lpBuffer, &dwBytes);
 //	if(dwBytes>=FILEVERINFOLEN) dwBytes=FILEVERINFOLEN-1; //防止越界

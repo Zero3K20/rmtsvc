@@ -44,7 +44,7 @@ bool vidcManager :: parseIni(char *pbuffer,long lsize)
 	const char *ptr=strchr(pstart,'\r');
 	while(true){
 		if(ptr) *(char *)ptr=0;
-		if(pstart[0]!='!') //不解释comment行
+		if(pstart[0]!='!') //do not interpret comment lines
 			parseCommand(pstart);
 		if(ptr==NULL) break;
 		*(char *)ptr='\r'; pstart=ptr+1;
@@ -58,7 +58,7 @@ bool vidcManager::parseCommand(const char *pstart)
 {
 	if(strncasecmp(pstart,"mtcpl ",6)==0) //local port mapping
 		docmd_mtcpl(pstart+6);
-	else if(strncasecmp(pstart,"sslc ",5)==0) //设置client证书
+	else if(strncasecmp(pstart,"sslc ",5)==0) //set client certificate
 		docmd_sslc(pstart+5);
 	else if(strncasecmp(pstart,"iprules ",8)==0)
 		docmd_iprules(pstart+8);
@@ -66,9 +66,9 @@ bool vidcManager::parseCommand(const char *pstart)
 		docmd_mdhrsp(pstart+7);
 	else if(strncasecmp(pstart,"mdhreq ",7)==0)
 		docmd_mdhreq(pstart+7);
-	else if(strncasecmp(pstart,"vidcs ",6)==0) //vIDCs服务配置
+	else if(strncasecmp(pstart,"vidcs ",6)==0) //vIDCs service configuration
 		docmd_vidcs(pstart+6);
-	else if(strncasecmp(pstart,"vidcc ",6)==0) //remote port mapping配置的远端vidcsinfo
+	else if(strncasecmp(pstart,"vidcc ",6)==0) //remote vidcs info for remote port mapping configuration
 		docmd_vidcc(pstart+6);
 	else if(strncasecmp(pstart,"mtcpr ",6)==0) //remote port mapping
 		docmd_mtcpr(pstart+6);
@@ -82,7 +82,7 @@ bool vidcManager::parseCommand(const char *pstart)
 bool vidcManager :: saveAsstring(std::string &strini)
 {
 	char buf[256]; int len=0;
-	len=sprintf(buf,"!local port mapping配置info\r\n"); strini.append(buf,len);
+	len=sprintf(buf,"!local port mappingconfigurationinfo\r\n"); strini.append(buf,len);
 	std::map<std::string,mportTCP *>::iterator it_tcpsets=m_tcpsets.begin();
 	for(;it_tcpsets!=m_tcpsets.end();it_tcpsets++)
 	{
@@ -108,9 +108,9 @@ bool vidcManager :: saveAsstring(std::string &strini)
 		}//?if(p)
 		ptr_mtcp->str_info_regcond((*it_tcpsets).first.c_str(),strini);
 	}//?for(;it_tcpsets!=
-	len=sprintf(buf,"!remote port mapping配置info\r\n"); strini.append(buf,len);
+	len=sprintf(buf,"!remote port mappingconfigurationinfo\r\n"); strini.append(buf,len);
 	this->m_vidccSets.str_list_vidcc(strini);
-	len=sprintf(buf,"!vIDCs服务配置info\r\n"); strini.append(buf,len);
+	len=sprintf(buf,"!vIDCs service configurationinfo\r\n"); strini.append(buf,len);
 	len=sprintf(buf,"vidcs port=%d bindip=%s autorun=%d bauth=%d pswd=%s\r\n",
 		m_vidcsvr.m_svrport,m_vidcsvr.m_bindip.c_str(),
 		((m_vidcsvr.m_autorun)?1:0),
@@ -121,7 +121,7 @@ bool vidcManager :: saveAsstring(std::string &strini)
 		m_vidcsvr.m_ipaccess,m_vidcsvr.m_ipRules.c_str());
 	strini.append(buf,len);
 
-	len=sprintf(buf,"!UPnPport mapping配置info\r\n"); strini.append(buf,len);
+	len=sprintf(buf,"!UPnPport mappingconfigurationinfo\r\n"); strini.append(buf,len);
 	std::vector<UPnPInfo *> &upnpsets=m_upnp.upnpinfo();
 	std::vector<UPnPInfo *> ::iterator it_upnpsets=upnpsets.begin();
 	for(;it_upnpsets!=upnpsets.end();it_upnpsets++){
@@ -136,7 +136,7 @@ bool vidcManager :: saveAsstring(std::string &strini)
 	return true;
 }
 
-//保存currentvIDC的配置到registry
+//savecurrentvIDC的configuration到registry
 bool vidcManager :: saveIni()
 {
 	std::string strini;
@@ -158,12 +158,12 @@ bool vidcManager :: saveIni()
 	return true;
 }
 //更改HTTP response header
-//命令format:
-//	mdhrsp vname=<XXX> name=<XXX> cond=<HTTP response代码> header=<响应头name>
-//							  pattern=<匹配模式> replto=<替换字符串>
-//cond=<HTTP response代码> - 确定更改HTTP响应代码为specified代码的头
-//pattern=<匹配模式>  - 如果匹配模式为空则直接用repltospecified的字符串替换
-//replto=<替换字符串> - 如果replto为空则直接delete此头
+//command format:
+//	mdhrsp vname=<XXX> name=<XXX> cond=<HTTP response代码> header=<response头name>
+//							  pattern=<匹配模式> replto=<替换character串>
+//cond=<HTTP response代码> - 确定更改HTTPresponse代码为specified代码的头
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
+//replto=<替换character串> - ifreplto为null则直接delete此头
 void vidcManager :: docmd_mdhrsp(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -172,7 +172,7 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("name"))!=maps.end() )
 		mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //转换为小写
+	::strlwr((char *)mapname.c_str()); //convert为小写
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -191,13 +191,13 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 	else strReplto="";
 	if(mapname=="" || strHeader=="") return;
 	if(vname=="") //local port mapping
-	{//设置local port mapping的HTTP响应头modify规则
+	{//setlocal port mapping的HTTPresponse头modify规则
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		mportTCP *ptr_mtcp=(it1==m_tcpsets.end())?NULL:(*it1).second;
 		if(ptr_mtcp==NULL) return;	
 		ptr_mtcp->addRegCond(rspcode,strHeader.c_str(),strPattern.c_str(),strReplto.c_str());
 	}else //remote port mapping
-	{//设置remote port mapping的HTTP响应头modify规则
+	{//setremote port mapping的HTTPresponse头modify规则
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		mapInfo * pinfo=(pvidcc)?pvidcc->mapinfoGet(mapname.c_str(),false):NULL;
 		if(pvidcc==NULL || pinfo==NULL) return;
@@ -208,12 +208,12 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 	}//remote port mapping
 }
 //更改HTTP request header
-//命令format:
-//	mdhreq vname=<XXX> name=<XXX> cond=<HTTP requesturl> header=<响应头name>
-//							  pattern=<匹配模式> replto=<替换字符串>
-//cond=<HTTP requesturl>  - 更改符合条件的HTTP请求头，请求的Url和specified的cond包含匹配
-//pattern=<匹配模式>  - 如果匹配模式为空则直接用repltospecified的字符串替换
-//replto=<替换字符串> - 如果replto为空则直接delete此头
+//command format:
+//	mdhreq vname=<XXX> name=<XXX> cond=<HTTP requesturl> header=<response头name>
+//							  pattern=<匹配模式> replto=<替换character串>
+//cond=<HTTP requesturl>  - 更改符合condition的HTTPrequest头，request的Urlandspecified的condcontains匹配
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
+//replto=<替换character串> - ifreplto为null则直接delete此头
 void vidcManager :: docmd_mdhreq(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -222,7 +222,7 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("name"))!=maps.end() )
 		mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //转换为小写
+	::strlwr((char *)mapname.c_str()); //convert为小写
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -242,13 +242,13 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 	//yyc modify 2010-02-23 增加了URL重写功能，此时header无意义
 	if(mapname=="") return; // || strHeader=="") return; 
 	if(vname=="") //local port mapping
-	{//设置local port mapping的HTTP响应头modify规则
+	{//setlocal port mapping的HTTPresponse头modify规则
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		mportTCP *ptr_mtcp=(it1==m_tcpsets.end())?NULL:(*it1).second;		
 		if(ptr_mtcp==NULL) return;
 		ptr_mtcp->addRegCond(strUrl.c_str(),strHeader.c_str(),strPattern.c_str(),strReplto.c_str());
 	}else //remote port mapping
-	{//设置remote port mapping的HTTP响应头modify规则
+	{//setremote port mapping的HTTPresponse头modify规则
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		mapInfo * pinfo=(pvidcc)?pvidcc->mapinfoGet(mapname.c_str(),false):NULL;
 		if(pvidcc==NULL || pinfo==NULL) return;
@@ -258,10 +258,10 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 		pinfo->m_hreqRegCond.push_back(buf);
 	}//remote port mapping
 }
-//设置port mapping service的clientauthentication证书info
-//仅仅对于那些－ssl的映射服务有效
-//format: sslc vname=<XXX> name=<XXX> cert=<client证书>,<证书私钥>,<私钥password>
-//如果没有specifiedvname则是local port mapping，否则为remote port mapping
+//setport mapping service的clientauthenticationcertificateinfo
+//仅仅对于那些－ssl的mapservicevalid
+//format: sslc vname=<XXX> name=<XXX> cert=<clientcertificate>,<certificate私钥>,<私钥password>
+//if没有specifiedvname则yeslocal port mapping，otherwise为remote port mapping
 bool vidcManager :: docmd_sslc(const char *strParam)
 {
 	if(strParam==NULL) return false;
@@ -272,7 +272,7 @@ bool vidcManager :: docmd_sslc(const char *strParam)
 	if( (it=maps.find("name"))==maps.end() || (*it).second=="")
 		return false;
 	else mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //转换为小写
+	::strlwr((char *)mapname.c_str()); //convert为小写
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -316,8 +316,8 @@ bool vidcManager :: docmd_sslc(const char *strParam)
 	return true;
 }
 //local port mapping
-//命令format: 
-//	mtcpl name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<本服务绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [maxconn=<最大并发connect数>] [maxratio=<>] [appdesc=<description>]
+//command format: 
+//	mtcpl name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<本service绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [maxconn=<maximumconcurrentconnect数>] [maxratio=<>] [appdesc=<description>]
 bool vidcManager :: docmd_mtcpl(const char *strParam)
 {
 	if(strParam==NULL) return false;
@@ -328,12 +328,12 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	if( (it=maps.find("appsvr"))==maps.end() || (*it).second=="")
 		return false;
 
-	//生成一个临时的映射service name称
+	//生成一个临时的mapservice name称
 	char strMapname[32]; sprintf(strMapname,"mtcpl_%d",m_tcpsets.size());
 	const char *mapname=strMapname;
 	if( (it=maps.find("name"))!=maps.end() && (*it).second!="" )
 		mapname=(*it).second.c_str();
-	::strlwr((char *)mapname); //转换为小写
+	::strlwr((char *)mapname); //convert为小写
 
 	mportTCP *ptr_mtcp=NULL;
 	std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
@@ -394,12 +394,12 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 		}
 		if(mportBegin<0) mportBegin=0;
 		if(mportEnd<0) mportEnd=0;	
-	}//?parseport mapping参数
+	}//?parseport mappingparameter
 
 	long ltmp; it=maps.find("maxratio"); //限制带宽
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	ptr_mtcp->setMaxRatio( ((ltmp<0)?0:ltmp) );
-	it=maps.find("maxconn"); //限制maximum connections
+	it=maps.find("maxconn"); //limit maximum connections
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	ptr_mtcp->maxConnection( ((ltmp<0)?0:ltmp) );
 	if( (it=maps.find("blogd"))!=maps.end() && (*it).second=="1")
@@ -412,10 +412,10 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	return true;
 }
 
-//设置ip过滤规则和自动启动flag
-//命令format:
-//	iprules type=[mtcpl|mupl|mtcpr] name=<映射service name称>] [autorun=[1|0] [access=0|1] ipaddr="<IP>,<IP>,..."
-//access=0|1     : 对符合下列IP条件的是拒绝还是放行
+//setip过滤规则and自动startflag
+//command format:
+//	iprules type=[mtcpl|mupl|mtcpr] name=<mapservice name称>] [autorun=[1|0] [access=0|1] ipaddr="<IP>,<IP>,..."
+//access=0|1     : whether to deny or allow IPs matching the following conditions
 void vidcManager :: docmd_iprules(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -424,17 +424,17 @@ void vidcManager :: docmd_iprules(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("type"))==maps.end()) return;
 	if((*it).second=="vidcs")
-	{//设置proxy service IP filtering规则
+	{//setproxy service IP filtering规则
 		if( (it=maps.find("access"))!=maps.end())
 			m_vidcsvr.m_ipaccess=atoi((*it).second.c_str());
 		
 		if( (it=maps.find("ipaddr"))!=maps.end())
 			m_vidcsvr.m_ipRules=(*it).second;
 	}else if((*it).second=="mtcpl")
-	{//设置local port mapping的IP filter rules
+	{//setlocal port mapping的IP filter rules
 		if( (it=maps.find("name"))==maps.end()) return;
 		std::string mapname=(*it).second;
-		::strlwr((char *)mapname.c_str()); //转换为小写
+		::strlwr((char *)mapname.c_str()); //convert为小写
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		if(it1==m_tcpsets.end()) return;
 		mportTCP *ptr_mtcp=(*it1).second;
@@ -453,13 +453,13 @@ void vidcManager :: docmd_iprules(const char *strParam)
 			p->ipRules=(*it).second;
 	}//?else if((*it).second=="mtcpl")
 	else if((*it).second=="mtcpr")
-	{//设置remote port mapping的IP filter rules
+	{//setremote port mapping的IP filter rules
 		std::string vname,mapname;
 		std::map<std::string,std::string>::iterator it;
 		if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-		::strlwr((char *)vname.c_str()); //转换为小写
+		::strlwr((char *)vname.c_str()); //convert为小写
 		if( (it=maps.find("name"))!=maps.end()) mapname=(*it).second;
-		::strlwr((char *)mapname.c_str()); //转换为小写
+		::strlwr((char *)mapname.c_str()); //convert为小写
 		if(vname=="" || mapname=="") return;
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		if(pvidcc==NULL) return;
@@ -470,8 +470,8 @@ void vidcManager :: docmd_iprules(const char *strParam)
 	}//?else if((*it).second=="mtcpr")
 	return;
 }
-//设置vIDCs服务参数
-//命令format:
+//setvIDCsserviceparameter
+//command format:
 //	vidcs port= [bindip=] [bauth=<1|0>] [pswd=<password>] [autorun=[1|0]"
 void vidcManager :: docmd_vidcs(const char *strParam)
 {
@@ -499,8 +499,8 @@ void vidcManager :: docmd_vidcs(const char *strParam)
 	else m_vidcsvr.accessPswd()="";
 }
 
-//设置vidccconnect的远端vidcsinfo
-//命令format:
+//setvidccconnect的远端vidcsinfo
+//command format:
 //	vidcc vname=<name> vhost=<host:port> vpswd=<访问password> autorun<0|1>"
 void vidcManager :: docmd_vidcc(const char *strParam)
 {
@@ -510,7 +510,7 @@ void vidcManager :: docmd_vidcc(const char *strParam)
 	std::string vname,vhost; int vport=0;
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-	::strlwr((char *)vname.c_str()); //转换为小写
+	::strlwr((char *)vname.c_str()); //convert为小写
 	if( (it=maps.find("vhost"))!=maps.end()){
 		const char *ptr=strchr((*it).second.c_str(),':');
 		if(ptr){
@@ -529,10 +529,10 @@ void vidcManager :: docmd_vidcc(const char *strParam)
 	return;
 }
 
-//设置remote port mappinginfo
-//命令format:
-//	mtcpr type=[TCP|UDP] vname=<vidccname> name=<映射name> appsvr=<application service> mport=<map port>[+-ssl] [sslverify=0|1] bindip=<绑定ip> apptype=<FTP|WWW|TCP|UNK> automap=<0|1> appdesc=<description>"
-//	mtcpr type=PROXY vname=<vidccname> name=<映射name> mport=<map port> bindip=<绑定ip> svrtype=<HTTPS|SOCKS4|SOCKS5> bauth=<0|1> account=<account:password> automap=<0|1> appdesc=<description>"
+//setremote port mappinginfo
+//command format:
+//	mtcpr type=[TCP|UDP] vname=<vidccname> name=<mapname> appsvr=<application service> mport=<map port>[+-ssl] [sslverify=0|1] bindip=<绑定ip> apptype=<FTP|WWW|TCP|UNK> automap=<0|1> appdesc=<description>"
+//	mtcpr type=PROXY vname=<vidccname> name=<mapname> mport=<map port> bindip=<绑定ip> svrtype=<HTTPS|SOCKS4|SOCKS5> bauth=<0|1> account=<account:password> automap=<0|1> appdesc=<description>"
 void vidcManager :: docmd_mtcpr(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -541,9 +541,9 @@ void vidcManager :: docmd_mtcpr(const char *strParam)
 	std::string vname,mapname;
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-	::strlwr((char *)vname.c_str()); //转换为小写
+	::strlwr((char *)vname.c_str()); //convert为小写
 	if( (it=maps.find("name"))!=maps.end()) mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //转换为小写
+	::strlwr((char *)mapname.c_str()); //convert为小写
 	if(vname=="" || mapname=="") return;
 	vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 	if(pvidcc==NULL) return;
@@ -578,7 +578,7 @@ void vidcManager :: docmd_mtcpr(const char *strParam)
 	long ltmp; it=maps.find("maxratio"); //限制带宽
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	pinfo->m_maxratio=ltmp;
-	it=maps.find("maxconn"); //限制maximum connections
+	it=maps.find("maxconn"); //limit maximum connections
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	pinfo->m_maxconn=ltmp;
 
@@ -639,7 +639,7 @@ void vidcManager :: docmd_mtcpr(const char *strParam)
 }
 
 //UPnPport mappinginfo
-//命令format:
+//command format:
 //	upnp type=[TCP|UDP] appsvr=<application service> mport=<map port> appdesc=<description>"
 void vidcManager :: docmd_upnp(const char *strParam)
 {

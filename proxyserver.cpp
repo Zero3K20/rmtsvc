@@ -48,9 +48,9 @@ bool proxysvrEx :: Start()
 
 	//set IP filter rules
 	this->rules().addRules_new(RULETYPE_TCP,m_settings.ipaccess,m_settings.ipRules.c_str());
-	//配置proxy访问accountinfo
+	//configure proxy access account info
 	this->setProxyAuth(m_settings.bAuth);
-	this->delAccount((const char *)-1); //清空所有accountinfo
+	this->delAccount((const char *)-1); //clear all account info
 	std::map<std::string,TProxyUser>::iterator it=m_userlist.begin();
 	for(;it!=m_userlist.end();it++)
 	{
@@ -58,7 +58,7 @@ bool proxysvrEx :: Start()
 		if(proxyuser.forbid==0) modiUser(proxyuser);
 	}
 
-	//启动proxy service
+	//startproxy service
 	const char *ip=(m_settings.bindip=="")?NULL:m_settings.bindip.c_str();
 	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许port重用
 	SOCKSRESULT sr=this->Listen( m_settings.svrport ,bReuseAddr,ip);
@@ -71,8 +71,8 @@ void proxysvrEx :: Stop()
 	Close();
 	return;
 }
-//deletespecified的用户,返回0success
-//返回1invalidaccount,返回2deletefailure
+//deletespecified的user,return0success
+//return1invalidaccount,return2deletefailure
 int proxysvrEx::deleUser(const char *ptr_user)
 {
 	std::map<std::string,TProxyUser>::iterator it=m_userlist.end();
@@ -82,7 +82,7 @@ int proxysvrEx::deleUser(const char *ptr_user)
 	m_userlist.erase(it);
 	return 0;
 }
-//添加/modify用户
+//add/modifyuser
 bool proxysvrEx::modiUser(TProxyUser &proxyuser)
 {
 	PROXYACCOUNT *ptr_account=this->getAccount(proxyuser.username.c_str());
@@ -92,10 +92,10 @@ bool proxysvrEx::modiUser(TProxyUser &proxyuser)
 	ptr_account->m_maxratio=proxyuser.maxratio;
 	ptr_account->m_maxLoginusers=proxyuser.maxLoginusers;
 	ptr_account->m_limitedTime=proxyuser.limitedTime;
-	ptr_account->m_ipRules.addRules(NULL); //清空所有过滤规则
+	ptr_account->m_ipRules.addRules(NULL); //clearall过滤规则
 	ptr_account->m_ipRules.addRules_new(RULETYPE_TCP,proxyuser.ipaccess,proxyuser.ipRules.c_str());
 
-	ptr_account->m_dstRules.addRules(NULL); //清空所有目的过滤规则
+	ptr_account->m_dstRules.addRules(NULL); //clearall目的过滤规则
 	ptr_account->m_dstRules.addRules_new(RULETYPE_TCP,proxyuser.bAccessDest,proxyuser.strAccessDest.c_str());
 
 	return true;
@@ -112,12 +112,12 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	cBuffer buffer(1024);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"run")==0) //运行ftp服务
+	if(strcasecmp(ptr_cmd,"run")==0) //运行ftpservice
 		proxysvr.Start();
 	else if(strcasecmp(ptr_cmd,"stop")==0)
 		proxysvr.Stop();
 	else if(strcasecmp(ptr_cmd,"setting")==0) 
-	{//保存proxy service参数
+	{//saveproxy serviceparameter
 		if( (ptr=httpreq.Request("svrport")) )
 		{ 
 			if( (settings.svrport=atoi(ptr))<=0 ) settings.svrport=0;
@@ -153,21 +153,21 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 		proxysvr.saveIni(); //save configuration parameters
 	}//?else if(strcasecmp(ptr_cmd,"setting")==0) 
 
-	//获取proxy service的参数设置和status----start---------------------------------------------
+	//getproxy service的parametersetandstatus----start---------------------------------------------
 	struct tm * ltime=NULL; time_t t;
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<proxy_status>");
-	if(proxysvr.status()==SOCKS_LISTEN) //服务已运行
+	if(proxysvr.status()==SOCKS_LISTEN) //service已运行
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",proxysvr.getLocalPort());
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>%d</connected>",proxysvr.curConnection());
 		t=proxysvr.getStartTime(); ltime=localtime(&t);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d年%02d月%02d日 %02d:%02d:%02d</starttime>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d-%02d-%02d %02d:%02d:%02d</starttime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	}
 	else
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>0</status>");
 	t=time(NULL); ltime=localtime(&t);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04d年%02d月%02d日 %02d:%02d:%02d</curtime>",
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04d-%02d-%02d %02d:%02d:%02d</curtime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrport>%d</svrport>",settings.svrport);
@@ -175,7 +175,7 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<autorun>%d</autorun>",(settings.autorun)?1:0);
 	//绑定local machineIP
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<bindip>%s</bindip><localip>",settings.bindip.c_str());
-	std::vector<std::string> vec;//得到local machineIP，返回得到local machineIP的个数
+	std::vector<std::string> vec;//get local machine IPs, returns the count of local machine IPs
 	long n=socketBase::getLocalHostIP(vec);
 	for(int i=0;i<n;i++) buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s ",vec[i].c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</localip>");
@@ -202,16 +202,16 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	if(buffer.Space()<(settings.ipRules.length()+64)) buffer.Resize(buffer.size()+(settings.ipRules.length()+64));
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ipaddr>%s</ipaddr>",settings.ipRules.c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</ipfilter>");
-	//获取proxy service的参数设置和status---- end ---------------------------------------------
+	//getproxy service的parametersetandstatus---- end ---------------------------------------------
 
 	if(buffer.Space()<32) buffer.Resize(buffer.size()+32);
 	if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</proxy_status></xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
@@ -219,7 +219,7 @@ bool webServer::httprsp_proxysets(socketTCP *psock,httpRequest &httpreq,httpResp
 	return true;
 }
 
-//返回用户列表XML
+//returnuserlistXML
 void listuser(cBuffer &buffer,std::map<std::string,TProxyUser> &userlist)
 {
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<userlist>");
@@ -241,7 +241,7 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"list")==0) //列出所有Proxyaccount
+	if(strcasecmp(ptr_cmd,"list")==0) //列出allProxyaccount
 		listuser(buffer,psvr->m_userlist);
 	else if(strcasecmp(ptr_cmd,"dele")==0)
 	{
@@ -256,7 +256,7 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>deleteaccountsuccess!</retmsg>");
 		}
 	}//?else if(strcasecmp(ptr_cmd,"dele")==0)
-	else if(strcasecmp(ptr_cmd,"save")==0) //添加或modifyaccount
+	else if(strcasecmp(ptr_cmd,"save")==0) //addormodifyaccount
 	{
 		const char *ptr,*ptr_user=httpreq.Request("account");
 		if(ptr_user && ptr_user[0]!=0)
@@ -266,7 +266,7 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 			TProxyUser *ptr_puser=NULL;
 			if(it!=psvr->m_userlist.end()) //modifyspecifiedaccount的info
 				ptr_puser=&(*it).second;
-			else{ //添加一个account
+			else{ //add一个account
 				TProxyUser puser; 
 				puser.username.assign(ptr_user);
 				puser.ipaccess =1;
@@ -289,8 +289,8 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 				else{
 					struct tm ltm; ::memset((void *)&ltm,0,sizeof(ltm));
 					::sscanf(ptr,"%d-%d-%d",&ltm.tm_year,&ltm.tm_mon,&ltm.tm_mday);
-					ltm.tm_year-=1900; //年份从1900start计数
-					ltm.tm_mon-=1;//月份从0start计数
+					ltm.tm_year-=1900; //year counts from 1900
+					ltm.tm_mon-=1;//month counts from 0
 					if(ltm.tm_year>100 && ltm.tm_year<200 && 
 							ltm.tm_mon>=0 && ltm.tm_mon<=11 && 
 							ltm.tm_mday>=1 && ltm.tm_mday<=31 )
@@ -315,7 +315,7 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 
 			psvr->modiUser(*ptr_puser);
 			listuser(buffer,psvr->m_userlist);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>添加modifyaccountsuccess!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>addmodifyaccountsuccess!</retmsg>");
 			psvr->saveIni();
 		}//?if(ptr_user && ptr_user[0]!=0)
 		else
@@ -370,16 +370,16 @@ bool webServer::httprsp_proxyusers(socketTCP *psock,httpRequest &httpreq,httpRes
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//Proxy service配置的导入导出
+//Proxy serviceconfiguration的导入导出
 bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -388,7 +388,7 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	if(strcasecmp(ptr_cmd,"out")==0) //导出Proxy service配置
+	if(strcasecmp(ptr_cmd,"out")==0) //导出Proxy serviceconfiguration
 	{
 		std::string strini;
 		psvr->saveAsstring(strini);
@@ -396,7 +396,7 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 		if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<settings><![CDATA[%s]]></settings>",strini.c_str());
 	}
-	else if(strcasecmp(ptr_cmd,"in")==0) //导入Proxy service配置
+	else if(strcasecmp(ptr_cmd,"in")==0) //导入Proxy serviceconfiguration
 	{
 		const char *ptr=httpreq.Request("ini");
 		if(ptr){
@@ -413,9 +413,9 @@ bool webServer::httprsp_proxyini(socketTCP *psock,httpRequest &httpreq,httpRespo
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIMEtype，default为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	

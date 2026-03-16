@@ -26,27 +26,27 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 {
 	char buf[SOCKS4_MAX_PACKAGE_SIZE];
 	int iret,recvlen=0;
-	if(m_bProxyAuthentication) return; //socks4代理协议not supported认证,但proxy service要求认证
+	if(m_bProxyAuthentication) return; //SOCKS4 proxy protocol does not support authentication, but the proxy service requires it
 
 	while( (iret=psock->Receive(buf+recvlen,SOCKS4_MAX_PACKAGE_SIZE-recvlen,PROXY_MAX_RESPTIMEOUT))>0 )
 	{
 		recvlen+=iret;
 		sock4req *psock4req=(sock4req *)buf;
 		if(recvlen>1 && psock4req->CD!=0x01 && psock4req->CD!=0x02) break;
-		if( recvlen<9 ) continue; //data未receive完
-		if((psock4req->IPAddr&0x00ffffff)==0) //socks4A请求
-		{//支持socks4A协议 [version] [命令] [port] [0.0.0.X] [0] [hostdomain] [0]
-			if(recvlen<(buf[8]+9)) continue; //data未receive完
+		if( recvlen<9 ) continue; //data not fully received yet
+		if((psock4req->IPAddr&0x00ffffff)==0) //socks4Arequest
+		{//支持socks4Aprotocol [version] [command] [port] [0.0.0.X] [0] [hostdomain] [0]
+			if(recvlen<(buf[8]+9)) continue; //data not fully received yet
 		}
-		//否则receive了完整SOCKS4的协议data,start协议handle
+		//otherwisereceive了完整SOCKS4的protocoldata,startprotocolhandle
 		sock4ans ans; ans.CD =91; ans.VN =0;
 		ans.Port =0;ans.IPAddr =0;
 
-		char *hostip=NULL; int hostport=0; //要connect的目的服务ip和port
+		char *hostip=NULL; int hostport=0; //要connect的目的serviceipandport
 		if((psock4req->IPAddr&0x00ffffff)==0) hostip=(char *)psock4req+9; //socks4A
 		
 		socketProxy peer; peer.setParent(psock);
-		if(m_bCascade){ //设置了secondary proxy
+		if(m_bCascade){ //set了secondary proxy
 			PROXYTYPE ptype=PROXY_SOCKS4;
 			if((m_casProxytype & PROXY_SOCKS4)==0) //secondary proxynot supportedSOCKS4代理
 			{
@@ -55,19 +55,19 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 				else if(m_casProxytype & PROXY_SOCKS5)
 					ptype=PROXY_SOCKS5;
 			}
-			std::pair<std::string,int> * p=GetCassvr(); //获取二级proxy service设置
+			std::pair<std::string,int> * p=GetCassvr(); //getsecondary proxy serviceset
 			if(m_casProxyAuthentication)
 				peer.setProxy(ptype,p->first.c_str(),p->second,m_casAccessAuth.first.c_str(),m_casAccessAuth.second.c_str());
 			else
 				peer.setProxy(ptype,p->first.c_str(),p->second,"","");
 		}//?if(m_bCascade)
-		if(psock4req->CD==1) //CONNECT请求
-		{//connectspecified的remote主机,如果success则建立data转发对
+		if(psock4req->CD==1) //CONNECTrequest
+		{//connectspecified的remote主机,ifsuccess则建立dataforward对
 			hostport=ntohs(psock4req->Port);
 			
 //			RW_LOG_DEBUG("[ProxySvr] SOCKS4 - Connecting %s:%d ... \r\n",((hostip)?hostip:socketBase::IP2A(psock4req->IPAddr)),hostport);
 			
-			if(m_bCascade) //设置了secondary proxy
+			if(m_bCascade) //set了secondary proxy
 			{//通过secondary proxyconnectspecified的application service
 				if(hostip==NULL){
 					strcpy(buf,socketBase::IP2A(psock4req->IPAddr));
@@ -81,9 +81,9 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 			}
 			ans.CD=(peer.status()==SOCKS_CONNECTED)?90:92;
 		}//?if(psock4req->CD==1)
-		else if(psock4req->CD==2) //BIND请求
-		{//client请求在socks 服务端建立一个临时侦听服务，等待specifiedhostip的connect到来
-			if(m_bCascade) //设置了secondary proxy
+		else if(psock4req->CD==2) //BINDrequest
+		{//clientrequestatsocks server-side建立一个临时侦听service，waitingspecifiedhostip的connect到来
+			if(m_bCascade) //set了secondary proxy
 			{
 				std::string svrip; int svrport=hostport;
 				if(hostip) svrip.assign(hostip); 
@@ -94,7 +94,7 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 					ans.Port =htons(svrport); ans.IPAddr =peer.getRemoteip();
 					psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
 					ans.Port =0;ans.IPAddr =0;
-					ans.CD=91; //等待对方connect，并send第二个响应
+					ans.CD=91; //waiting对方connect，并send第二个response
 					if(peer.WaitForBinded(PROXY_MAX_RESPTIMEOUT,false))
 						ans.CD=90; //connected successfully
 					else ans.CD=92;
@@ -105,14 +105,14 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 				ans.Port =htons(iret); ans.IPAddr =0; //psock->getLocalip();
 				psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
 				ans.Port =0;ans.IPAddr =0;
-				ans.CD=91; //等待对方connect，并send第二个响应
+				ans.CD=91; //waiting对方connect，并send第二个response
 				if(peer.Accept(PROXY_MAX_RESPTIMEOUT,NULL)>0)
 					ans.CD=90; //connected successfully
 			}else ans.CD=92;
 		}//?else if(psock4req->CD==2)
 
 		psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
-		if(ans.CD==90) //SOCKS4命令success,create转发对
+		if(ans.CD==90) //SOCKS4commandsuccess,createforward对
 			transData(psock,&peer,NULL,0);
 		else RW_LOG_PRINT(LOGLEVEL_WARN,"[ProxySvr] SOCKS4 failed - CD=%d, host:port=%s:%d\r\n",
 					psock4req->CD,((hostip)?hostip:peer.getRemoteIP()),hostport);

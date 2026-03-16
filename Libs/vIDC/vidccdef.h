@@ -22,36 +22,36 @@ typedef struct _VIDCSINFO
 	bool m_bAutoConn;
 
 	long m_vidccID; //ID assigned by vIDCs after connecting to vIDCs
-	std::string m_vidcsIPList; //vIDCs返回的vidcs主机的IPaddress列表
-	int m_vidcsVer; //vIDCs的version
+	std::string m_vidcsIPList; //IP address list of vIDCs hosts returned by vIDCs
+	int m_vidcsVer; //vIDCs version
 }VIDCSINFO;
 
 class mapInfo
 {
 public:
 	VIDC_MAPTYPE m_mapType;
-	std::string m_appsvr;//application serviceaddress和port，可,分割多个。
+	std::string m_appsvr;//application service address and port; multiple can be separated by commas.
 	std::string m_appdesc;
 	SSLTYPE m_ssltype;
-	bool m_sslverify;  //是否需要进行client证书authentication，仅仅ssltype==TCPSVR_SSLSVR有效
+	bool m_sslverify;  //whether client certificate authentication is required; only valid when ssltype==TCPSVR_SSLSVR
 	int m_proxyType; //支持的代理type
 	std::string m_proxyuser;
 	std::string m_proxypswd;
-	bool m_proxyauth; //代理是否需要authentication
+	bool m_proxyauth; //代理yesno需要authentication
 	MPORTTYPE m_apptype;
 	int m_mportBegin;  //要求map port范围
 	int m_mportEnd;
 	char m_bindLocalIP[16]; //要求绑定的localIP
-	bool m_bAutoMap; //当connect上vIDCs后是否自动映射
+	bool m_bAutoMap; //whenconnect上vIDCs后yesno自动map
 	long m_ipaccess;
 	std::string m_ipRules;//IP access rules 
-	std::string m_clicert; //客户authentication证书info
+	std::string m_clicert; //客户authenticationcertificateinfo
 	std::string m_clikey;
 	std::string m_clikeypswd;
-	int m_mappedPort; //实际映射的port
-	bool m_mappedSSLv; //映射后的服务port是否需要进行客户证书authentication
+	int m_mappedPort; //实际map的port
+	bool m_mappedSSLv; //map后的serviceportyesno需要进行客户certificateauthentication
 	
-	unsigned long m_maxconn; //限制最大connect，限制最大带宽 kb/s
+	unsigned long m_maxconn; //限制maximumconnect，限制maximum带宽 kb/s
 	unsigned long m_maxratio;
 	std::vector<std::string> m_hrspRegCond;
 	std::vector<std::string> m_hreqRegCond;

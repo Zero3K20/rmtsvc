@@ -27,12 +27,12 @@ namespace net4cpp21
 	{
 		std::string strHeader; //HTTP header to modify
 		std::string strPattern;//Regexp match pattern
-		std::string strReplto; //要替换的字符串
+		std::string strReplto; //string to replace
 		_RegCond(){}
 		~_RegCond(){}
 	}RegCond;
-	//HTTP请求、响应头parse对象
-	//localTCPport mapping service类
+	//HTTP request/response header parser object
+	//local TCP port mapping service class
 	class mportTCP : public socketSvr
 	{
 	public:
@@ -43,11 +43,11 @@ namespace net4cpp21
 		bool getIfLogdata() const { return m_bLogdatafile; }
 		void setIfLogdata(bool b){ m_bLogdatafile=b; }
 		SOCKSRESULT Start(const char *strMyCert,const char *strMyKey,const char *strKeypwd,
-					   const char *strCaCert,const char *strCaCRL); //启动映射服务
+					   const char *strCaCert,const char *strCaCRL); //start mapping service
 		SOCKSRESULT StartX();
-		void Stop(); //停止映射服务
+		void Stop(); //stopmapservice
 		
-		//设置要mapped application service
+		//set要mapped application service
 		void setAppsvr(const char *appsvr,int apport,const char *appdesc,MPORTTYPE apptype=MPORTTYPE_UNKNOW);
 		void setMapping(int mportStart,int mportEnd,const char *bindip=NULL);
 		void setSSLType(SSLTYPE ssltype,bool bSSLVerify);
@@ -67,30 +67,30 @@ namespace net4cpp21
 			if(n==1) p=&m_appSvr[0];
 			else if(n>1){
 				srand(clock());
-				p=&m_appSvr[rand()%n]; //随机获取一个application service得info
+				p=&m_appSvr[rand()%n]; //随机get一个application service得info
 			}
 			return p; 
 		}
 
 	private:
-		virtual void onAccept(socketTCP *psock); //当有一个新的客户connect此服务触发此函数
+		virtual void onAccept(socketTCP *psock); //triggered when a new client connects to this service
 		bool AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP *ppeer);
 		static void transDataThread(std::pair<socketTCP *,FILE *> *p);
 	private:
-		//被mapped application service
+		//mapped application service
 		std::vector<std::pair<std::string,int> > m_appSvr;
-		MPORTTYPE m_apptype;//映射application servicetype
+		MPORTTYPE m_apptype;//mapapplication servicetype
 		int m_mportBegin;  //要求map port范围
 		int m_mportEnd;
 		char m_bindLocalIP[16]; //要求绑定的localIP
-		SSLTYPE m_ssltype; //SSL转换type
-		bool m_bSSLVerify; //SSL服务是否需要authenticationclient证书
-		long m_lUserTag; //用于自define的扩充flag,对于本类无意义
-		unsigned long m_maxratio; //限制最大带宽 kb/s
-		bool m_bLogdatafile; //是否记录proxy service转发的data到日志文件
-		//modifyHTTP响应头info int - HTTP response代码
+		SSLTYPE m_ssltype; //SSLconverttype
+		bool m_bSSLVerify; //SSLserviceyesno需要authenticationclientcertificate
+		long m_lUserTag; //用于自define的扩充flag,对于本class无意义
+		unsigned long m_maxratio; //限制maximum带宽 kb/s
+		bool m_bLogdatafile; //yesno记录proxy serviceforward的data到logfile
+		//modifyHTTPresponse头info int - HTTP response代码
 		std::map<int,std::vector<RegCond> > m_modRspHeader;
-		//modifyHTTP请求头info string - 匹配HTTP requestURL
+		//modifyHTTPrequest头info string - 匹配HTTP requestURL
 		std::map<std::string,std::vector<RegCond> > m_modReqHeader;
 		//yyc add 2010-02-13 增加对url重写支持
 		//first - 要匹配的url(支持Regexp) ，second - 替换为(Regexp)

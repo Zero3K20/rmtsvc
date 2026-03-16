@@ -25,10 +25,10 @@ SOCKSRESULT msnMessager :: passport_auth(std::string &strKey,const char *strAcco
 	httpClient httpsock; 
 	std::string httpsURL; int iret;
 	//by default, first get the real HTTPS URL from nexus.passport.com
-	//此url应为https://loginnet.passport.com/login2.srf
-	//一般情况下不会变，但为了保险起见还是从微软网站获得比较好
+	//this URL should be https://loginnet.passport.com/login2.srf
+	//generally this doesn't change, but it's better to fetch from Microsoft's site to be safe
 /*	iret=httpsock.send_httpreq("https://nexus.passport.com:443/rdr/pprdr.asp");
-	if(iret==200){//返回success
+	if(iret==200){//return success
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("PassportURLs");
 		if(ptr && (ptr=strstr(ptr,"DALogin=")) )
@@ -44,9 +44,9 @@ SOCKSRESULT msnMessager :: passport_auth(std::string &strKey,const char *strAcco
 	}//?if(iret==200)
 	else
 		RW_LOG_DEBUG("Failed to access https://nexus.passport.com:443/rdr/pprdr.asp,err=%d\r\n",iret);
-*/ //yyc remove 2006-02-28 经常connectnexus.passport.com后进行SSL协商时陷入死等,因此不执行此步
+*/ //yyc remove 2006-02-28: often gets stuck during SSL negotiation after connecting to nexus.passport.com, therefore skip this step
 
-	//如果获取failure，尝试使用default的https URL
+	//ifgetfailure，尝试使用default的https URL
 	if(httpsURL=="") httpsURL.assign("https://loginnet.passport.com/login2.srf");
 	char buf[512]; std::string strMimeAccount;
 	iret=cCoder::mime_encode(strAccount,strlen(strAccount),buf); buf[iret]=0;
@@ -65,7 +65,7 @@ TRANS302:
 		if(ptr==NULL) return SOCKSERR_MSN_AUTH;
 		httpsURL.assign(ptr); goto TRANS302;
 	}
-	else if(iret==200) //响应success
+	else if(iret==200) //responsesuccess
 	{
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("Authentication-Info");
@@ -78,7 +78,7 @@ TRANS302:
 		strKey.assign(ptr,i); return MSN_ERR_OK;
 	}//?else if(iret==200)
 	else if(iret==401) //HTTP/1.1 401 Unauthorized
-		return SOCKSERR_MSN_EMAIL; //invalidaccount或password
+		return SOCKSERR_MSN_EMAIL; //invalidaccountorpassword
 	return SOCKSERR_MSN_AUTH;
 }
 
@@ -132,8 +132,8 @@ bool msnMessager :: MSNP11Challenge(std::string &strChallenge,const char *szClie
 	return true;
 }
 
-//对文件进行sha-1算法的运算，获得一个20字节流
-//再用base64进行加码获得的字符串
+//对file进行sha-1算法的运算，获得一个20byte流
+//再用base64进行加码获得的character串
 bool msnMessager :: SHA1File(FILE *fp,string &strRet)
 {
 	if(fp==NULL) return false;
@@ -182,7 +182,7 @@ bool msnMessager :: MD5Buf(const char *buf,long len,string &strRet)
 
 //------------------------------------------------------------------------------------------
 //----------------------------private function----------------------------------------------
-//添加一个新联系人
+//add一个新联系人
 cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 {
 	if(email==NULL || email[0]==0) return NULL;
@@ -202,7 +202,7 @@ cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 		pcon->m_email.assign(email);
 		//复制代理info
 		pcon->m_chatSock.setProxy(m_curAccount.m_chatSock);
-		//设置其他chatSock的父为和NSconnect的socket，一旦命令connect通道disconnect则异常
+		//set其他chatSock的父为andNSconnect的socket，一旦commandconnect通道disconnect则异常
 		pcon->m_chatSock.setParent((socketBase *)&m_curAccount.m_chatSock);
 		m_contacts[pcon->m_email]=pcon;
 
@@ -213,7 +213,7 @@ cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 			wchar2chars(nickW,(char *)tmpS.c_str(),tmpS.length());
 			pcon->m_nick_char.assign(tmpS.c_str());
 		}
-		else //default昵称和email相同
+		else //default昵称andemail相同
 		{
 			pcon->m_nick_char=pcon->m_email; wchar_t *nickw=NULL;
 			if( (nickw=new wchar_t[pcon->m_email.length()+1]) )
@@ -241,7 +241,7 @@ bool msnMessager :: connectSvr(socketProxy &sock,const char *strhost,int iport)
 int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxSplit)
 {
 	if(str==NULL) return 0;
-	while(*str==' ') str++;//delete前导空格
+	while(*str==' ') str++;//delete leading spaces
 	const char *ptr=strchr(str,delm);
 	while(true)
 	{
@@ -253,7 +253,7 @@ int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxS
 		vec.push_back(str);
 		if(ptr==NULL) break;
 		*(char *)ptr=delm; str=ptr+1;
-		while(*str==' ') str++;//delete前导空格
+		while(*str==' ') str++;//delete leading spaces
 		ptr=strchr(str,delm);
 	}//?while
 	return vec.size();

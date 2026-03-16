@@ -28,7 +28,7 @@ namespace net4cpp21
 		void setTimeout(time_t s);
 		//set the account for accessing the FTP service
 		void setFTPAuth(const char *strAccount,const char *strPwd);
-		//connectspecified的ftpserver
+		//connect to the specified FTP server
 		SOCKSRESULT ConnectSvr(const char *ftpsvr,int ftpport);
 		SOCKSRESULT ConnectSvr(const char *ftpurl);
 		SOCKSRESULT GetDatasock(const char *ftppath,socketTCP &datasock,bool bRetr);
@@ -52,9 +52,9 @@ namespace net4cpp21
 		bool sendCommand(int response_expected,char *buf,int buflen,int maxbuflen);
 
 	private:
-		std::string m_strAccount;//LOGINauthentication的account和password
+		std::string m_strAccount;//account and password for LOGIN authentication
 		std::string m_strPwd;
-		time_t m_lTimeout;//最大等待timeout返回s
+		time_t m_lTimeout;//maximum wait timeout return in seconds
 		
 	};
 }//?namespace net4cpp21

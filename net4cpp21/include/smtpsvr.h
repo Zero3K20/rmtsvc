@@ -27,17 +27,17 @@ namespace net4cpp21
 		{
 		public:
 			bool m_bAccess; //whether this client session has passed authentication
-			time_t m_tmLogin;//登录time
+			time_t m_tmLogin;//login time
 			std::string m_ehlo;
-			std::string m_fromemail;//邮件send者
-			std::vector<std::string> m_recp;//邮件receive者
+			std::string m_fromemail;//email sender
+			std::vector<std::string> m_recp;//email recipient
 			cSmtpSession():m_bAccess(false){}
 			~cSmtpSession(){}
 		};
 	public:
 		smtpServer();
 		virtual ~smtpServer();
-		//设置receive邮件的path
+		//set path for receiving email
 		const char * setRecvPath(const char *recvpath)
 		{
 			if(recvpath)
@@ -57,9 +57,9 @@ namespace net4cpp21
 			return;
 		}
 	private:
-		//当有一个新的客户connect此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock);
-		//如果currentconnect数大于current设定的maximum connections则触发此事件
+		//triggered when current connection count exceeds the configured maximum connections
 		virtual void onTooMany(socketTCP *psock);
 
 		void parseCommand(cSmtpSession &clientSession,socketTCP *psock,const char *ptrCommand);
@@ -72,7 +72,7 @@ namespace net4cpp21
 		void resp_unknowed(socketTCP *psock);
 		void resp_OK(socketTCP *psock);
 	private:
-		SMTPAUTH_TYPE m_authType;//SMTP服务是否要求authentication
+		SMTPAUTH_TYPE m_authType;//SMTPserviceyesno要求authentication
 		std::string m_receivedpath;//receive邮件存放path，以\结尾
 		std::string m_helloTip;
 	};

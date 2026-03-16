@@ -26,7 +26,7 @@ using namespace net4cpp21;
 // Content-Type: text/x-msmsgscontrol\r\n
 // TypingUser: yycnet@hotmail.com\r\n
 // \r\n
-//或
+//or
 // MSG yycnet@hotmail.com yyc:) 139\r\n
 // MIME-Version: 1.0\r\n
 // Content-Type: text/plain; charset=UTF-8\r\n
@@ -34,21 +34,21 @@ using namespace net4cpp21;
 // \r\n
 // gdgdfggdgdgfd
 
-//email --- send此msg消息的联系人
+//email --- send此msgmessage的联系人
 unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,char *pcmd,int cmdlen)
 {
-	char *pBodyData=NULL;//消息体
-	int bodyDataLen=0; //消息体length
-	const char *ptr_ContentType=NULL;//消息体type
+	char *pBodyData=NULL;//message体
+	int bodyDataLen=0; //message体length
+	const char *ptr_ContentType=NULL;//message体type
 	char *ptr_fmtFonts=NULL; //聊天字体format
 	char *ptr_p4Context=NULL;//聊天人display name称
-	const char *ptr_TypingUser=NULL;//正输入的用户email
-	const char *ptr_P2pDest=NULL;//指向P2P-Dest内容
+	const char *ptr_TypingUser=NULL;//正输入的useremail
+	const char *ptr_P2pDest=NULL;//pointer toP2P-Dest内容
 	
 	const char *ptr_MSNProxy=NULL; //为MSN代理功能自define的标签
 
 //	RW_LOG_PRINT(LOGLEVEL_DEBUG,"MSG len=%d, %s.\r\n",cmdlen,pcmd);
-	//startparse消息头-----------start-------------------------
+	//startparsemessage头-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=pcmd;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -71,8 +71,8 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 				ptr_MSNProxy=tmpptr+2;
 #endif
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		int i=1; while(*(ptr+i)=='\r' || *(ptr+i)=='\n') i++; //跳过\r\n
-		if(i>2){ //碰到了两个\r\n，下面的内容为消息体。消息体的内容由ContentType决定
+		int i=1; while(*(ptr+i)=='\r' || *(ptr+i)=='\n') i++; //skip \r\n
+		if(i>2){ //碰到了两个\r\n，下面的内容为message体。message体的内容由ContentType决定
 			pBodyData=ptr+i;
 			bodyDataLen=cmdlen-(pBodyData-pcmd);
 			break; 
@@ -80,16 +80,16 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 		pStart=ptr+i;
 	}//?while(...
 	if(ptr_ContentType==NULL) return 0;
-	//parse消息头end----------- end -------------------------
+	//parsemessage头end----------- end -------------------------
 
-	//根据ContentTypehandle消息
+	//根据ContentTypehandlemessage
 	if(strcmp(ptr_ContentType,"text/x-msmsgscontrol")==0)
-	{//收到一个输入控制消息,TypingUser:指明某个用户正在输入聊天info
+	{//收到一个输入控制message,TypingUser:specifies某个userin progress输入聊天info
 		onChatSession((HCHATSESSION)pcon,MSN_CHATSESSION_TYPING,ptr_TypingUser,0);
 	}//?if(strcmp(ptr_ContentType,"text/x-msmsgscontrol")==0)
 
 	else if(strncmp(ptr_ContentType,"text/plain",10)==0)
-	{//收到一个聊天消息
+	{//收到一个聊天message
 		if(pBodyData==NULL) return 0;
 #ifdef __SURPPORT_MSNPROXY__
 		if(ptr_MSNProxy)
@@ -111,16 +111,16 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 	}//?else if(strncmp(ptr_ContentType,"text/plain",10)==0)
 
 	else if(strncmp(ptr_ContentType,"text/x-msmsgsinvite",10)==0)
-	{//msnc0协议消息.文件传输采用msnftp。msnp10以后用msnc1协议
-	//netmeeting,音频聊天以及msnftp都是使用的msnc0协议。yyc comment 2005-07-21
+	{//msnc0protocolmessage.file transfer采用msnftp。msnp10以后用msnc1protocol
+	//netmeeting,voice/audio chat以及msnftp都yes使用的msnc0protocol。yyc comment 2005-07-21
 		msnc0_parse(pcon,msg_email,pBodyData); //,bodyDataLen
 	}//?else if(strncmp(ptr_ContentType,"text/x-msmsgsinvite",10)==0)
 
 	else if(strcmp(ptr_ContentType,"application/x-msnmsgrp2p")==0)
-	{//msnc1协议 - msnp2p消息. 网络摄像头功能以及msnp9以后的文件/头像传输都是使用此协议
-		//msnp2p消息由三部分组成 48字节的Binary stuff + option Data + 4字节的footer,见msnc1协议说明
+	{//msnc1protocol - msnp2pmessage. network摄像头功能以及msnp9以后的file/头像传输都yes使用此protocol
+		//msnp2pmessage由三partial组成 48byte的Binary stuff + option Data + 4byte的footer,见msnc1protocol说明
 		unsigned char *pheader=(unsigned char *)pBodyData;  
-		unsigned long lfooter;//最后四个字节为footer,in Big Endian order
+		unsigned long lfooter;//last四个byte为footer,in Big Endian order
 		*((char *)&lfooter)=*(pBodyData+bodyDataLen-1);
 		*((char *)&lfooter+1)=*(pBodyData+bodyDataLen-2);
 		*((char *)&lfooter+2)=*(pBodyData+bodyDataLen-3);
@@ -133,24 +133,24 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 //	{//对方send一个传情动漫
 /*	format MIME-Version: 1.0\r\n
 		 Content-Type: text/x-msnmsgr-datacast\r\n                    
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n      //唯一标识一个动漫消息ID
-		 Chunks: 3\r\n                                               //表示此动漫data要经过几个MSG块send完，此处为3块。剩下每个MSG块的Message-ID和此MSG的Message-ID相同
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n      //唯一标识一个动漫message ID
+		 Chunks: 3\r\n                                               //表示此动漫data要经过几个MSG块send完，此处为3块。剩下每个MSG块的Message-IDand此MSG的Message-ID相同
 		 \r\n
-		 ID: 2\r\n													//ID=2表明此处为一个传情动漫,如果等于1则是一个闪屏震动
+		 ID: 2\r\n													//ID=2表明此处为一个传情动漫,if等于1则yes一个闪屏震动
 		 Data: <msnobj Creator="yycnet@hotmail.com" Size="23427" Type="8"...
 */
-/*	如果一块无法传送完，下面块的内容如下
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //表示此块为那个动漫消息的后续块
-		 Chunk: 1												   //表示此块为那个动漫消息的后续的第几块，共Chunks-1块
+/*	if a block cannot be fully transferred, the content of the following block is:
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //表示此块为那个动漫message的后续块
+		 Chunk: 1												   //表示此块为那个动漫message的后续的第几块，共Chunks-1块
 		 \r\n
 		 <后续data>...
 
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //表示此块为那个动漫消息的后续块
-		 Chunk: 2												   //表示此块为那个动漫消息的后续的第几块，共Chunks-1块
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //表示此块为那个动漫message的后续块
+		 Chunk: 2												   //表示此块为那个动漫message的后续的第几块，共Chunks-1块
 		 \r\n
 		 <后续data>...
 */
-/*	闪屏震动消息
+/*	screen flash/vibration message
 		  MIME-Version: 1.0\r\n
 		  Content-Type: text/x-msnmsgr-datacast\r\n
 		  \r\n
@@ -162,55 +162,55 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 }
 
 /*
-//头像获取流程
+//头像get流程
 Sender                  SS                Recver
- <-------  send获取头像邀请 --------
+ <-------  sendget头像邀请 --------
   ---------Acknowledged Message----->
-  -------   send同意响应 200 OK ---->
+  -------   send agree response 200 OK ---->
   <--------Acknowledged Message------
-  ------- send准备senddata消息 ----->
-  <--------Acknowledged Message------             //send端receive到receive端的send准备应答后才能startsenddata
+  ------- send ready to send data message ---->
+  <--------Acknowledgeledged Message------             //send端receive到receive端的send准备应答后才能startsenddata
   ------- senddata  ---------------->              field6 20 00 00 00
-  <--------Acknowledged Message------              //当所有datareceive完毕后send一个ACK消息
+  <--------Acknowledgeledged Message------              //whenalldatareceive完毕后send一个ACKmessage
   <-------   Bye message ------------
   ---------Acknowledged Message----->			  //And finally if the Bye message is received by the SC and everything is fine, 
 												  //it can send an Acknowledged Message back to the RC
 
-  //BYE消息总是由RC(receive者/被邀请者)send
+  //BYE message is always sent by RC (receiver/invitee)
   //the RC must send a Bye Message to the SC to say that the session can be closed.
 
-文件获取流程
+fileget流程
 sender                                   Recver
-  ------- send文件传输邀请 ---------->
+  ------- send file transfer invitation ---------->
   <--------Acknowledged Message-------
-  <------ 同意receive 200 OK-------------
+  <------ agree to receive 200 OK-------------
   ----------Acknowledged Message----->
   - invite(Direct-Connect handshake)->  ---				//Content-Type: application/x-msnmsgr-transreqbody
 										  |  此步骤可有可无
   <--- ... ...Handshake end.. ...--->   ---
-  ------ send文件data --------------->              field 30 00 00 01
-  <--------Acknowledged Message-------              //当所有datareceive完毕后send一个ACK消息
-  -------   Bye message ------------->				//send端会回送一个Bye消息
-  --------- has sended bye ---------->              //filed6 40 00 000 00 和Got bye同样结构
+  ------ sendfiledata --------------->              field 30 00 00 01
+  <--------Acknowledgeledged Message-------              //whenalldatareceive完毕后send一个ACKmessage
+  -------   Bye message ------------->				//send端会回送一个Byemessage
+  --------- has sent bye ---------->              //filed6 40 00 000 00 andGot bye同样structure
   <-------- has got bye --------------				//filed6 40 00 000 00
   
 */
 
-//handlemsnc1协议 - parsemsnp2p部分
+//handlemsnc1protocol - parsemsnp2ppartial
 void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned char *pBinarystuff,
 								char *ptrmsg,unsigned long lfooter)
-{ //先parse48字节Binary stuff
+{ //先parse48byteBinary stuff
 	//The first field is a DWORD and is the SessionID, which is zero when the Clients are negotiating about the session
 	long sessionID=*((long *)pBinarystuff);
 	//The second field is a DWORD and is the Identifier which identifies the message, the first message you receive from the other Client is the BaseIndentifier, 
 	//the other messages contains this Identifier +1 or -2 or something like that, the BaseIdentifier is random generated. The Identifier can be in range from 4 to a max of 4294967295, I think.
 	unsigned long messageID=*((unsigned long *)(pBinarystuff+4));
-	unsigned long dataOffset=*((unsigned long *)(pBinarystuff+8));//这个域应该8字节长
-	unsigned long totalSize=*((unsigned long *)(pBinarystuff+16));//这个域应该8字节长
+	unsigned long dataOffset=*((unsigned long *)(pBinarystuff+8));//这个域should8byte长
+	unsigned long totalSize=*((unsigned long *)(pBinarystuff+16));//这个域should8byte长
 	unsigned long dataMessageSize=*((unsigned long *)(pBinarystuff+24));
 	//The sixth field is a DWORD and is the Flag field, it's 0x0 when no flags are specified, 
 	//0x2 if it's an reply to a received message, 0x8 if there is an error on the binary level, 
-	//0x20 when the data is for User Display Images or Emoticons, 0x40 --- sended bye或者got bye
+	//0x20 when the data is for User Display Images or Emoticons, 0x40 --- sended byeor者got bye
 	//0x01000030 if it's the data of a file.
 	unsigned long dwFlags=*((unsigned long *)(pBinarystuff+28));
 	//The seventh field is a DWORD and is an important field, if the SessionID field is zero and the data doesn't contain the SessionID then this field contains the Identifier of the previous received message, 
@@ -221,13 +221,13 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 //		sessionID,messageID,dataMessageSize,dataOffset,totalSize,dwFlags,field7,lfooter);
 //	if(lfooter==0) RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc1] msg=%s.\r\n",ptrmsg);
 
-	//照协议上说明，如果lfooter=0x00 ---协商过程 0x01 --- for User Display Images and Emoticons, 0x02 --- for File Transfers
+	//照protocol上说明，iflfooter=0x00 ---协商过程 0x01 --- for User Display Images and Emoticons, 0x02 --- for File Transfers
 	
-	//只有 "got bye"消息和ACK应答消息 的dataMessageSize=0
-	if(dwFlags==0x02) return; //收到一个应答消息.忽略，不做任何handle
-	if(dataMessageSize==0) return; //收到一个0length消息，不做任何handle。譬如GOT/SENDED_BYE消息。
+	//只有 "got bye"messageandACK应答message 的dataMessageSize=0
+	if(dwFlags==0x02) return; //收到一个应答message.忽略，not做任何handle
+	if(dataMessageSize==0) return; //收到一个0lengthmessage，not做任何handle。譬如GOT/SENDED_BYEmessage。
 	
-	if(lfooter!=0) //处于传输会话status，此时sessionID不为0
+	if(lfooter!=0) //处于传输会话status，此时sessionIDnot为0
 	{
 		if(sessionID==0) return; //{ printf("aaaaErr: lfooter=%d, sessionID==0\r\n",lfooter);	return; }
 		std::map<long,cMsnc1 *>::iterator it=pcon->m_msnc1Maps.find(sessionID);
@@ -237,31 +237,31 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		if(lfooter==MSNINVITE_TYPE_PICTURE) //0x01) //User Display Images and Emoticons
 		{
 			if(dwFlags==0) //准备startsendDisplay Images and Emoticonsdata，注意receive
-			{//打开文件准备写
+			{//openfile准备写
 				pmsnc1->beginWrite();
-				pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACK消息
+				pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACKmessage
 				return;
 			}
 			else if(dwFlags==0x20) //Display Images and Emoticonsdata
 			{
 				pmsnc1->writeFile(ptrmsg,dataMessageSize);
-				if((dataMessageSize+dataOffset)<totalSize) return;//data未receive完毕
+				if((dataMessageSize+dataOffset)<totalSize) return;//data not fully received yet毕
 			}//?else if(dwFlags==0x20)
 		}//?if(lfooter==0x01)
 		else if(lfooter==MSNINVITE_TYPE_FILE) //0x02//for File Transfers
 		{
-			if(dwFlags==0x01000030) //文件data包
-			{//此消息包含地是文件传输data.totalSize是file size
+			if(dwFlags==0x01000030) //filedatapacket
+			{//此messagecontains地yesfile transferdata.totalSizeyesfile size
 				pmsnc1->writeFile(ptrmsg,dataMessageSize);
-				if((dataMessageSize+dataOffset)<totalSize) return;//data未receive完毕
-			}//?if(dwFlags==0x01000030) //文件data包
+				if((dataMessageSize+dataOffset)<totalSize) return;//data not fully received yet毕
+			}//?if(dwFlags==0x01000030) //filedatapacket
 		}//?else if(lfooter==0x02)
 /*		else if(lfooter==MSNINVITE_TYPE_ROBOT)
 		{//ptrmsgformat:
 			return;
 		} */
-		pmsnc1->endWrite();//写文件end
-		pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACK消息
+		pmsnc1->endWrite();//写fileend
+		pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACKmessage
 
 		//yyc add 2006-05-19
 		onInvite((HCHATSESSION)pcon,pmsnc1->inviteType(),MSNINVITE_CMD_COMPLETED,pmsnc1);
@@ -278,8 +278,8 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 	if(sessionID!=0) return;//{ printf("aaaaErr: lfooter=0, sessionID==0x%x\r\n",sessionID);	return; }
 
 	//------------------------------------------------------------------------------------------
-	//----------------------------handle消息------------------------------------------------------
-	//保证接受完整地消息，parse的总是一条完整得消息
+	//----------------------------handlemessage------------------------------------------------------
+	//保证接受完整地message，parse的totalyes一条完整得message
 	if(dataOffset!=0)
 	{
 		if(pcon->m_buffer.size()<totalSize) return;
@@ -290,7 +290,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		dataOffset=0; dataMessageSize=totalSize;
 	}
 	else if(dataMessageSize<totalSize)
-	{//消息未接受完
+	{//message未接受完
 		if(pcon->m_buffer.size()<totalSize){
 			pcon->m_buffer.Resize(0);
 			pcon->m_buffer.Resize(totalSize);
@@ -302,13 +302,13 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		return;
 	}//?else if(dataMessageSize<totalSize)
 	
-	const char *ptr_CallID=NULL;//指向Call-ID
-	const char *ptr_ContentType=NULL;//指向Content-Type
+	const char *ptr_CallID=NULL;//pointer toCall-ID
+	const char *ptr_ContentType=NULL;//pointer toContent-Type
 	const char *ptr_Context=NULL; int ptr_Context_len=0;
-	const char *ptr_SessionID=NULL;//指向 SessionID
+	const char *ptr_SessionID=NULL;//pointer to SessionID
 	const char *ptr_AppID=NULL;
 	const char *ptr_branch=NULL;
-	//startparse消息-----------start-------------------------
+	//startparsemessage-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=ptrmsg;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -330,7 +330,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 			}
 			else if(strcmp(pStart,"Context")==0)
 			{
-				ptr_Context=tmpptr+2; //Context是经过base64 encoding地要解码
+				ptr_Context=tmpptr+2; //Contextyes经过base64 encoding地要解码
 				ptr_Context_len=strlen(ptr_Context);
 				ptr_Context_len=cCoder::base64_decode((char *)ptr_Context,ptr_Context_len,(char *)ptr_Context);
 				*((char *)ptr_Context+ptr_Context_len)=0;
@@ -338,16 +338,16 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 //				for(int ii=0;ii<ptr_Context_len;ii++){	printf("0x%x ",*((unsigned char *)ptr_Context+ii)); if(((ii+1)%16)==0) printf("\r\n");} 
 			}
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //跳过\r\n
+		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //skip \r\n
 	}//?while(...
-	//parse消息end----------- end -------------------------
+	//parsemessageend----------- end -------------------------
 	if(ptr_ContentType==NULL) return;//{ printf("aaaaErr: ptr_ContentType=NULL.\r\n");	return; }
 	if(ptr_CallID==NULL) return;//{ printf("aaaaErr: sessionID==0 && ptr_CallID==NULL.\r\n");	return; }
 
 	cMsnc1 *pmsnc1=NULL;
 	std::map<std::string,cMsncx *>::iterator it=pcon->m_msncxMaps.find(ptr_CallID);
 	if(it!=pcon->m_msncxMaps.end()) pmsnc1=(cMsnc1 *)(*it).second;
-	if(pmsnc1) pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACK消息
+	if(pmsnc1) pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACKmessage
 	if(strncmp(ptrmsg,"BYE ",4)==0)
 	{
 		if(pmsnc1==NULL) return;
@@ -389,31 +389,31 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 			if(ptr_SessionID) pmsnc1->m_sessionID.assign(ptr_SessionID);
 			if(ptr_branch) pmsnc1->m_branch.assign(ptr_branch);
 			pmsnc1->m_callID.assign(ptr_CallID);
-			pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACK消息
-			if(inviteTypeID==MSNINVITE_TYPE_PICTURE) //某个用户send请求获取本account的头像
+			pmsnc1->sendmsg_ACK(pBinarystuff); //回应ACKmessage
+			if(inviteTypeID==MSNINVITE_TYPE_PICTURE) //某个usersendrequestget本account的头像
 				pmsnc1->m_offsetIdentifier-=3;
 			
 			//parseptr_Context的内容
 			long filesize=0;//传送file size
 			if(inviteTypeID==MSNINVITE_TYPE_FILE)
-			{//文件传输请求，parse要传输的filename和file size，见cmsnc1::sendFile函数
+			{//file transferrequest，parse要传输的filenameandfile size，见cmsnc1::sendFilefunction
 				filesize=*((long *)(ptr_Context+8));
-				//filename是unicode编码
+				//filenameyesunicode编码
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context+20),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
-				//设置filename和size，以便onInvite事件可以通过msncx对象get filename和size，决定是否receive
+				//setfilenameandsize，以便onInviteevent可以通过msncxobjectget filenameandsize，决定yesnoreceive
 				pmsnc1->filename().assign(ptr_Context);
 				pmsnc1->filesize(filesize);
 			}
 /*			else if(inviteTypeID==MSNINVITE_TYPE_CAM)
-			{//context的内容是unicode编码的UID字符串format类似于{4BD96FC0-AB17-4425-A14A-439185962DC8}
+			{//context的内容yesunicode编码的UIDcharacter串formatclass似于{4BD96FC0-AB17-4425-A14A-439185962DC8}
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
 			}//?else if(inviteTypeID==INVITE_TYPE_CAM)
-			else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //机器人邀请
-			{//context的内容是unicode编码的<邀请type>;1;<机器人name>
+			else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //robot invitation
+			{//context的内容yesunicode编码的<邀请type>;1;<机器人name>
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
@@ -424,10 +424,10 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 									MSNINVITE_CMD_INVITE,pmsnc1);
 			if(bAccept)
 			{
-				pmsnc1->sendmsg_ACCEPT();//接受请求
+				pmsnc1->sendmsg_ACCEPT();//接受request
 				bool bValid=false;
 				if(inviteTypeID==MSNINVITE_TYPE_PICTURE)
-				{//准备send本account的头像data,context的内容是没经过mime编码的msnobj对象字符串
+				{//准备send本account的头像data,context的内容yes没经过mime编码的msnobjobjectcharacter串
 					if( (bValid=pmsnc1->sendPicture(m_photofile.c_str())) )
 						m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc1::sendThread,(void *)pmsnc1,THREADLIVETIME);
 				}
@@ -440,7 +440,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 						pcon->m_msnc1Maps[sessionID]=pmsnc1;
 					}
 				}//?else if(inviteTypeID==INVITE_TYPE_FILE)
-/*				else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //机器人邀请
+/*				else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //robot invitation
 				{
 					RW_LOG_PRINT(LOGLEVEL_INFO,"[msnc1] Robot invite,context=%s\r\n",ptr_Context);
 				} */
@@ -449,7 +449,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 				if(bValid){ pcon->m_msncxMaps[ptr_CallID]=pmsnc1; pmsnc1=NULL; }
 			}//?if(bAccept)
 			else
-				pmsnc1->sendmsg_REJECT();//拒绝请求
+				pmsnc1->sendmsg_REJECT();//拒绝request
 			delete pmsnc1; return;
 		}//?f(strcmp(ptr_ContentType,...
 		else
@@ -469,7 +469,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 	return;
 }
 
-//parsemsnc0消息协议
+//parsemsnc0messageprotocol
 /*
 MSG yycnet@hotmail.com yyc:) 29\r\n
 MSG len=293, MIME-Version: 1.0\r\n
@@ -483,7 +483,7 @@ Invitation-Cookie: 25402056\r\n
 Session-ID: {C4E9035F-CCEB-40F0-8F17-135FB734073B}\r\n
 \r\n\r\n
 */
-/*   音频聊天
+/*   voice/audio chat
 MSG yycnet@hotmail.com yyc:) 491\r\n
 MSG len=491, MIME-Version: 1.0\r\n
 Content-Type: text/x-msmsgsinvite; charset=UTF-8\r\n
@@ -508,27 +508,27 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 {
 	std::map<std::string,cMsncx *> &msncxMaps=pcon->m_msncxMaps;
 
-	const char *ptr_InviteCommand=NULL;//指向Invitation-Command
-	const char *ptr_InviteCookie=NULL;//指向Invitation-Cookie
-	const char *ptr_ApplicationName=NULL;//指向Application-Name 邀请typedescription
-	const char *ptr_ApplicationGUID=NULL;//指向Application-GUID 邀请type的UID
+	const char *ptr_InviteCommand=NULL;//pointer toInvitation-Command
+	const char *ptr_InviteCookie=NULL;//pointer toInvitation-Cookie
+	const char *ptr_ApplicationName=NULL;//pointer toApplication-Name 邀请typedescription
+	const char *ptr_ApplicationGUID=NULL;//pointer toApplication-GUID 邀请type的UID
 	
-	const char *ptr_Connectivity=NULL;//指向Connectivity 邀请发起者是否是直接connect，即不在防火墙后面
-	const char *ptr_ApplicationFile=NULL;//指向Application-File 文件传输的filename
-	const char *ptr_ApplicationFileSize=NULL;//指向Application-FileSize 文件传输的size
+	const char *ptr_Connectivity=NULL;//pointer toConnectivity 邀请发起者yesnoyes直接connect，即notat防火墙后面
+	const char *ptr_ApplicationFile=NULL;//pointer toApplication-File file transfer的filename
+	const char *ptr_ApplicationFileSize=NULL;//pointer toApplication-FileSize file transfer的size
 
-	//接受邀请，dataconnect的IP和port
-	const char *ptr_IPAddress=NULL;//指向IP-Address
-	const char *ptr_Port=NULL;//指向Port
-	const char *ptr_IPAddress_Internal=NULL;//指向IP-Address
-	const char *ptr_PortX=NULL;//指向Port
+	//接受邀请，dataconnect的IPandport
+	const char *ptr_IPAddress=NULL;//pointer toIP-Address
+	const char *ptr_Port=NULL;//pointer toPort
+	const char *ptr_IPAddress_Internal=NULL;//pointer toIP-Address
+	const char *ptr_PortX=NULL;//pointer toPort
 
-	const char *ptr_AuthCookie=NULL;//指向AuthCookie
+	const char *ptr_AuthCookie=NULL;//pointer toAuthCookie
 	//拒绝邀请
-	const char *ptr_CancelCode=NULL; //指向Cancel-Code，拒绝的原因
+	const char *ptr_CancelCode=NULL; //pointer toCancel-Code，拒绝的原因
 	
 //	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc0] %s.\r\n",ptrmsg);
-	//startparse消息-----------start-------------------------
+	//startparsemessage-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=ptrmsg;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -563,14 +563,14 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 			else if(strcmp(pStart,"Connectivity")==0)
 				ptr_Connectivity=tmpptr+2;
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //跳过\r\n
+		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //skip \r\n
 	}//?while(...
-	//parse消息end----------- end -------------------------
+	//parsemessageend----------- end -------------------------
 	if(ptr_InviteCommand==NULL) return;
 	if(ptr_InviteCookie==NULL) return;
 
 	if(strcmp(ptr_InviteCommand,"INVITE")==0)
-	{//邀请请求
+	{//邀请request
 		if(ptr_ApplicationGUID==NULL) return;//GUID代表邀请的type
 		int inviteType=MSNINVITE_TYPE_UNKNOW;
 		if(strcmp(ptr_ApplicationGUID,"{5D3E02AB-6190-11d3-BBBB-00C04F795683}")==0)
@@ -578,7 +578,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		else if(strcmp(ptr_ApplicationGUID,"{44BBA842-CC51-11CF-AAFA-00AA00B6015C}")==0)
 			inviteType=MSNINVITE_TYPE_NETMEET;
 		else if(strcmp(ptr_ApplicationGUID,"{2175E8D4-7CAA-49DD-A520-C2786E891F6F}")==0)
-			inviteType=MSNINVITE_TYPE_AUDIO;//音频聊天
+			inviteType=MSNINVITE_TYPE_AUDIO;//voice/audio chat
 		if(inviteType==MSNINVITE_TYPE_UNKNOW){
 			RW_LOG_PRINT(LOGLEVEL_INFO,"[msnc0] unknowed invite,GUID=%s.\r\n",ptr_ApplicationGUID); 
 			return;
@@ -587,7 +587,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		if(pmsnc0==NULL) return;//{ printf("aaaaErr: new pmsnc0==NULL.\r\n");	return; }
 		
 		long filesize=0; std::string filename;
-		if(inviteType==MSNINVITE_TYPE_FILE) //文件传输请求
+		if(inviteType==MSNINVITE_TYPE_FILE) //file transferrequest
 		{
 			filesize=(ptr_ApplicationFileSize)?atol(ptr_ApplicationFileSize):0;
 			if(ptr_ApplicationFile){//进行utf8解码
@@ -602,14 +602,14 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 			pmsnc0->sendmsg_ACCEPT(bListen);
 			pmsnc0->beginWrite(filename.c_str(),filesize);
 			//yyc add 2006-05-19 begin
-			if( bListen && //启动侦听，等待对方connect
+			if( bListen && //start侦听，waiting对方connect
 			    m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0 )
 				pmsnc0=NULL;
 			else { msncxMaps[ptr_InviteCookie]=pmsnc0; pmsnc0=NULL; }
 			//yyc add 2006-05-19 end
 			//yyc remove 2006-05-19 begin 
 //			msncxMaps[ptr_InviteCookie]=pmsnc0; pmsnc0=NULL;
-//			if(bListen) //启动侦听，等待对方connect
+//			if(bListen) //start侦听，waiting对方connect
 //				m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)
 			//yyc remove 2006-05-19 end
 		}//?if(bAccept)
@@ -617,7 +617,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		delete pmsnc0; return;
 	}//?if(strcmp(ptr_InviteCommand,"INVITE")==0)
 	else if(strcmp(ptr_InviteCommand,"ACCEPT")==0)
-	{//确认receive的应答
+	{//confirmreceive的应答
 		std::map<std::string,cMsncx *>::iterator it=msncxMaps.find(ptr_InviteCookie);
 		if(it==msncxMaps.end()) return;
 		cMsnc0 *pmsnc0=(cMsnc0 *)(*it).second;
@@ -626,13 +626,13 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		if( (ptr_IPAddress_Internal || ptr_IPAddress) && ptr_Port )
 		{
 			const char *iphost=(ptr_IPAddress_Internal)?ptr_IPAddress_Internal:ptr_IPAddress;
-			//设置要connect的对方data传输侦听服务，用线程异步connect
+			//set要connect的对方data传输侦听service，用threadasyncconnect
 			pmsnc0->setHostinfo(iphost,atoi(ptr_Port),ptr_AuthCookie);
 			bValid=(m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0);
 		}//?if(ptr_IPAddress && ptr_Port )
-		else if(pmsnc0->bSender() && m_Connectivity=='Y') //如果我是邀请者，且对方的响应没有addressinfo
-		{//本account开侦听服务port，进行data传输
-			pmsnc0->sendmsg_ACCEPT(true);//启动一个侦听，等待对方connect
+		else if(pmsnc0->bSender() && m_Connectivity=='Y') //if I am the inviter and the other party's response has no address info
+		{//本account开侦听serviceport，进行data传输
+			pmsnc0->sendmsg_ACCEPT(true);//start一个侦听，waiting对方connect
 			bValid=(m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0);
 		}
 		if(!bValid){//发生error
@@ -645,7 +645,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		//yyc add 2006-05-19 end
 	}//?else if(strcmp(ptr_InviteCommand,"ACCEPT")==0)
 	else if(strcmp(ptr_InviteCommand,"CANCEL")==0)
-	{//用户拒绝了请求
+	{//user拒绝了request
 		std::map<std::string,cMsncx *>::iterator it=msncxMaps.find(ptr_InviteCookie);
 		if(it==msncxMaps.end()) return;
 		cMsnc0 *pmsnc0=(cMsnc0 *)(*it).second;

@@ -56,7 +56,7 @@ bool webServer :: httprsp_reglist(socketTCP *psock,httpResponse &httprsp,const c
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置response content length
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	if(!bret)
 		httprsp.send_rspH(psock,400,"Bad Request");
@@ -72,7 +72,7 @@ bool webServer::httprsp_regkey_del(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -104,7 +104,7 @@ bool webServer::httprsp_regkey_add(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL,hkSub=NULL;
@@ -137,7 +137,7 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -162,13 +162,13 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	}//?if(spath && spath[0]=='\\')
 	return httprsp_reglist(psock,httprsp,spath,2);
 }
-//将二进制string conversion为二进制数组，返回数组size
+//将二进制string conversion为二进制array，returnarraysize
 DWORD cvtBinaryString2Binary(char *strBinary)
 {
 	LPBYTE pbyte=(LPBYTE)strBinary;
 	char *p,*ptr=strBinary;
-	while(*ptr==' ') ptr++; //去掉前导空格
-	::strupr(ptr);//转换为大写
+	while(*ptr==' ') ptr++; //remove leading spaces
+	::strupr(ptr);//convert为大写
 	while(true)
 	{
 		p=strchr(ptr,' ');
@@ -176,7 +176,7 @@ DWORD cvtBinaryString2Binary(char *strBinary)
 		*pbyte++=(BYTE)cCoder::hex_atol(ptr);
 		if(p==NULL) break;
 		*p=' '; ptr=p+1;
-		while(*ptr==' ') ptr++; //去掉前导空格
+		while(*ptr==' ') ptr++; //remove leading spaces
 	}
 	return pbyte-(LPBYTE)strBinary;
 }
@@ -188,7 +188,7 @@ bool webServer::httprsp_regitem_add(socketTCP *psock,httpResponse &httprsp,const
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -217,7 +217,7 @@ bool webServer::httprsp_regitem_add(socketTCP *psock,httpResponse &httprsp,const
 			}//?if(strcmp(stype,"REG_BINARY")==0)
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//转换为大写
+				::strupr((char *)svalue);//convert为大写
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			} 
@@ -236,7 +236,7 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -265,7 +265,7 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 			}
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//转换为大写
+				::strupr((char *)svalue);//convert为大写
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			}
@@ -295,7 +295,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 		lret=5;
 	}else if(skey[0]=='\\'){
 		skey++; const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(skey,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -335,14 +335,14 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 						if( (dwBufferSize+=80)<256 ) dwBufferSize=256;
 						if(buffer.Resize(buffer.size()+dwBufferSize)==NULL) break;
 					}
-					//获取此键，子键的个数 start----------------------------------
+					//get此键，子键的个数 start----------------------------------
 					dwSubKeys=0; HKEY hsubKey=NULL;
 					if(::RegOpenKeyEx(hKEY_ROOT, ((ptr_tmpbuf[0]=='\\')?(ptr_tmpbuf+1):ptr_tmpbuf), 0, KEY_READ|KEY_ENUMERATE_SUB_KEYS, &hsubKey)==ERROR_SUCCESS)
 					{
 						::RegQueryInfoKey(hsubKey,NULL,NULL,NULL,&dwSubKeys,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 						::RegCloseKey(hsubKey);
 					}
-					////获取此键，子键的个数 end-----------------------------
+					////get此键，子键的个数 end-----------------------------
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),
 						"<kitem><id>%d</id><subkeys>%c</subkeys><regkey>%s</regkey></kitem>",
 						++lret, ((dwSubKeys>0)?'+':' '), subkey_buffer);
@@ -356,7 +356,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 	
 	if(lret==0 && buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),
-					"<kitem><id></id><regkey>(none - 没有data项)</regkey></kitem>");
+					"<kitem><id></id><regkey>(none - no data项)</regkey></kitem>");
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regkeys>");
 	return (lret<0)?false:true;
@@ -379,7 +379,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 	if(skey && skey[0]=='\\')
 	{
 		skey++; const char *lpregpath=NULL;
-		//分离出HKEY_ROOT和RegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(skey,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -426,8 +426,8 @@ bool regitemList(cBuffer &buffer,const char *skey)
 					
 					if(dwType==REG_BINARY)
 					{
-						int i,j,lines=(dwValueBufferSize+15)/16; //计算共多少行
-						size_t count=0;//打印字符计数
+						int i,j,lines=(dwValueBufferSize+15)/16; //count算共多少行
+						size_t count=0;//打印charactercounting
 						if(lines>10) lines=10; //只显示10行的data
 
 						if((int)buffer.Space()<(lines*50+20)){
@@ -491,7 +491,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str()) 
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(default)</rname>"
-						"<rdlen>0</rdlen><rdata>(data未设置)</rdata></vitem>");
+						"<rdlen>0</rdlen><rdata>(data未set)</rdata></vitem>");
 	}
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regitems>");

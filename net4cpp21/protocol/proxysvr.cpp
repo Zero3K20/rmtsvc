@@ -25,12 +25,12 @@ cProxysvr :: cProxysvr()
 	m_proxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5;
 	m_bProxyAuthentication=false;
 
-	//secondary proxy相关参数
+	//secondary proxy related parameters
 	m_bCascade=false; //defaultnot supportedsecondary proxy
 //	m_casProxysvr="";
 //	m_casProxyport=0; 
-	m_casProxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5; //二级proxy supported types
-	m_casProxyAuthentication=false; //secondary proxy是否需要authentication
+	m_casProxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5; //secondary proxy supported types
+	m_casProxyAuthentication=false; //whether secondary proxy requires authentication
 	m_bLogdatafile=false;
 }
 
@@ -57,7 +57,7 @@ PROXYACCOUNT * cProxysvr :: getAccount(const char *struser)
 	return NULL;
 }
 
-//添加新accountinfo
+//add new account info
 PROXYACCOUNT * cProxysvr :: newAccount(const char *struser)
 {
 	if(struser==NULL || struser[0]==0) return NULL;
@@ -80,10 +80,10 @@ PROXYACCOUNT * cProxysvr :: newAccount(const char *struser)
 	return &(*it).second;
 }
 
-//设置secondary proxy相关参数 m_vecCassvr
+//set secondary proxy related parameters m_vecCassvr
 bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *user,const char *pswd)
 {
-	m_vecCassvr.clear(); //清空secondary proxy
+	m_vecCassvr.clear(); //clearsecondary proxy
 	if(casHost && casHost[0]!=0)
 	{
 		const char *ptrEnd,*ptrBegin=casHost;
@@ -97,7 +97,7 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			int hostport=casPort;
 			if(ptr){ *(char *)ptr=0; hostport=atoi(ptr+1);}
 			if(hostport>0 && ptrBegin[0]!=0)
-			{ //二级proxy serviceaddress和port有效
+			{ //secondary proxy serviceaddressandportvalid
 				std::pair<std::string,int> p(ptrBegin,hostport);
 				m_vecCassvr.push_back(p);
 			}
@@ -108,7 +108,7 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			ptrBegin=ptrEnd+1;
 		}//?while
 	}//?if(casHost && casHost[0]!=0) 
-	m_bCascade=(m_vecCassvr.size()>0)?true:false; //如果设了则支持secondary proxy
+	m_bCascade=(m_vecCassvr.size()>0)?true:false; //if设了则支持secondary proxy
 /*	if(casHost==NULL || casHost[0]==0 || casPort<=0)
 	{//not supportedsecondary proxy
 		m_bCascade=false;
@@ -133,8 +133,8 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 {
 	if(perrCode) *perrCode=SOCKSERR_PROXY_USER;
 	if(user==NULL || psock==NULL) return NULL;
-	while(*user==' ') user++;//delete前导空格
-	::_strlwr((char *)user);//将account转换为小写
+	while(*user==' ') user++;//delete leading spaces
+	::_strlwr((char *)user);//convert account name to lowercase
 	std::map<std::string,PROXYACCOUNT>::iterator it=m_accounts.find(user);
 	if(it==m_accounts.end()) return NULL;
 	
@@ -142,7 +142,7 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	std::string strPwd;
 	if(pwd) strPwd.assign(pwd);
 	if(proa.m_userpwd!="" && proa.m_userpwd!=strPwd)
-		return NULL; //passworderror //password设成空则无需password verification
+		return NULL; //passworderror //password设成null则无需password verification
 	
 	if(proa.m_limitedTime>0 && time(NULL)>proa.m_limitedTime ){
 		if(perrCode) *perrCode=SOCKSERR_PROXY_EXPIRED;
@@ -158,7 +158,7 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	}
 
 	if(perrCode) *perrCode=SOCKSERR_OK;
-	proa.m_loginusers++; //设置data通道的流量限制
+	proa.m_loginusers++; //setdata通道的流量限制
 	psock->setSpeedRatio(proa.m_maxratio*1024,proa.m_maxratio*1024);
 	return &proa;
 }
@@ -172,17 +172,17 @@ void cProxysvr::onConnect(socketTCP *psock)
 	if(iret<=0) return;
 	
 	//判断proxy service的type
-	if(ctype==0x04) //可能收到socks4代理请求
+	if(ctype==0x04) //可能收到socks4proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS4)==0) return; //本代理not supportedsocks4代理协议
+		if((m_proxytype & PROXY_SOCKS4)==0) return; //本代理not supportedSOCKS4 proxy protocol
 		doSock4req(psock);
 	}
-	else if(ctype==0x05) //可能收到socks5代理请求
+	else if(ctype==0x05) //可能收到socks5proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS5)==0) return; //本代理not supportedsocks5代理协议
+		if((m_proxytype & PROXY_SOCKS5)==0) return; //本代理not supportedsocks5代理protocol
 		doSock5req(psock);
 	}
-	else if((m_proxytype & PROXY_HTTPS)!=0) //本代理支持HTTPS代理协议
+	else if((m_proxytype & PROXY_HTTPS)!=0) //本代理支持HTTPS代理protocol
 		doHttpsreq(psock);
 	return;
 }
@@ -194,15 +194,15 @@ typedef struct _TransThread_Param
 	cProxysvr *psvr;
 }TransThread_Param;
 
-//data转发
+//dataforward
 void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending_buf,long sending_size)
 {
 //	ASSERT(psock);
 //	ASSERT(peer);
 	char buf[SSENDBUFFERSIZE];
 	FILE *fp=NULL;
-	if(m_bLogdatafile){ //是否记录代理data记录
-		char logfilename[256]; //记录日志filename
+	if(m_bLogdatafile){ //whether to log proxy data
+		char logfilename[256]; //记录logfilename
 		int logfilenameLen=sprintf(logfilename,"%s(%d)-",psock->getRemoteIP(),psock->getRemotePort());
 		logfilenameLen+=sprintf(logfilename+logfilenameLen,"%s(%d).log",peer->getRemoteIP(),peer->getRemotePort());
 		logfilename[logfilenameLen]=0;
@@ -220,7 +220,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 	{
 		onData((char*)sending_buf,sending_size,psock,peer);
 		peer->Send(sending_size,sending_buf,-1);
-///#ifdef PROXYDATA_LOG //是否记录代理data记录
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 		if(fp){
 			::fwrite("\r\nC ---> S\r\n",1,12,fp);
 			::fwrite(sending_buf,1,sending_size,fp);
@@ -239,11 +239,11 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 			int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret<0) break; 
 			if(iret==0) continue;
-			//读clientsend的data
+			//read data sent by client
 			iret=psock->Receive(buf,SSENDBUFFERSIZE,-1);
-			if(iret<0) break; //==0表明receivedata流量超过限制
+			if(iret<0) break; //==0 means received data exceeded the limit
 			if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-///#ifdef PROXYDATA_LOG //是否记录代理data记录
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 			if(fp){
 				::fwrite("\r\nC ---> S\r\n",1,12,fp);
 				::fwrite(buf,1,iret,fp);
@@ -253,15 +253,15 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 			iret=peer->Send(iret,buf,-1);
 			if(iret<0) break;
 		}//?while
-		peer->Close(); //等待转发thread end
+		peer->Close(); //waitingforwardthread end
 		while(peer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-		onData(NULL,0,peer,psock); //用于通知协议分析打印程序connect已经关闭，可释放相关资源
+		onData(NULL,0,peer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关资源
 	}else{//?if(onTransferTask
 		peer->Close(); peer->setParent(NULL);
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
 	}
 
-///#ifdef PROXYDATA_LOG //是否记录代理data记录
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 	if(fp){
 		::fwrite("\r\n***Proxy End*** \r\n",1,20,fp);
 		::fclose(fp);
@@ -270,7 +270,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 	return;
 }
 
-//转发线程
+//forwardthread
 void cProxysvr :: transThread(void *pthreadParam)
 {	
 //	std::pair<socketTCP *,FILE *> &p=*(std::pair<socketTCP *,FILE *> *)pthreadParam;
@@ -285,17 +285,17 @@ void cProxysvr :: transThread(void *pthreadParam)
 	socketTCP *ppeer=(socketTCP *)psock->parent();
 	if(ppeer==NULL) return;
 
-	char buf[SSENDBUFFERSIZE]; //start转发
+	char buf[SSENDBUFFERSIZE]; //startforward
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//读clientsend的data
+		//read data sent by client
 		iret=psock->Receive(buf,SSENDBUFFERSIZE,-1);
-		if(iret<0) break; //==0表明receivedata流量超过限制
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-///#ifdef PROXYDATA_LOG //是否记录代理data记录
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 			if(fp){
 				::fwrite("\r\nS ---> C\r\n",1,12,fp);
 				::fwrite(buf,1,iret,fp);
@@ -307,7 +307,7 @@ void cProxysvr :: transThread(void *pthreadParam)
 	}//?while
 	
 	ppeer->Close(); 
-	psock->setParent(NULL); //用于onAccept线程判断转发线程是否end
+	psock->setParent(NULL); //用于onAcceptthread判断forwardthreadyesnoend
 	return;
 }
 

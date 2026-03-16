@@ -21,16 +21,16 @@ using namespace net4cpp21;
 
 //MSNC1 protocol consists of MSNC1 header + MSNP2P protocol
 //MSNP2P protocol consists of 48-byte binary stuff + MSNSLP protocol
-/* //MSNC1协议format
-MSNC1协议头			--------------|
-48字节binary stuff  ---|          |
+/* //MSNC1 protocol format
+MSNC1 header			--------------|
+48bytebinary stuff  ---|          |
 Optional Data       ---| msnp2p   | msnc1
-4字节的footer       ---|          |
+4byte的footer       ---|          |
 */ //				--------------|
 
-//MSNC1协议头 format如下
-// MSG yycnet@hotmail.com yyc:) 91  //receive时的起始行
-// MSG <trID> D <content-length>    //send时的起始行
+//MSNC1 protocol头 format如下
+// MSG yycnet@hotmail.com yyc:) 91  //starting line when receiving
+// MSG <trID> D <content-length>    //starting line when sending
 //MIME-Version: 1.0\r\n
 //Content-Type: application/x-msnmsgrp2p\r\n
 //P2P-Dest: <dest-email>\r\n
@@ -42,12 +42,12 @@ Optional Data       ---| msnp2p   | msnc1
 //but it has some binary stuff in it. The message has a 48-byte binary header in Little Endian order, 
 //then optional plain text(MSNSLP) data and after that a 4-byte binary footer which is in Big Endian order.
 
-//48字节binary stuff结构说明如下
+//48-byte binary stuff structure description:
 //The 48-byte binary header consists of 6 DWORDs and 3 QWORDS, which are all in Little Endian order, where a DWORD is 32-bit unsigned integer. The first field is a DWORD and is the SessionID, which is zero when the Clients are negotiating about the session. 
 //The second field is a DWORD and is the Identifier which identifies the message, the first message you receive from the other Client is the BaseIndentifier, the other messages contains this Identifier +1 or -2 or something like that, the BaseIdentifier is random generated. The Identifier can be in range from 4 to a max of 4294967295, I think. 
 //The third field is a QWORD and is the Offset which is only being used if the data which is being sent is larger then 1202 bytes. For example: if you have some data which has a length 1496 bytes, then the first P2P Message contains an Offset field of 0 and the second contains an Offset of 1202 if the length of the data in the first message is 1202 bytes. 
 //The fourth field is a QDWORD and represents the total size of the data which is being sended, if this message contains no data then the field should be the length of the data of the previous received message and the Flag field should be 0x2 then. 
-//The fifth field is a DWORD and is the length of the data which is being transferred in this message. (不包括48字节binary stuff和4字节的footer)
+//The fifth field is a DWORD and is the length of the data which is being transferred in this message. (notpacket括48bytebinary stuffand4byte的footer)
 //The sixth field is a DWORD and is the Flag field, it's 0x0 when no flags are specified, 0x2 if it's an reply to a received message, 0x8 if there is an error on the binary level, 0x20 when the data is for User Display Images or Emoticons, 0x01000030 if it's the data of a file. 
 //The seventh field is a DWORD and is an important field, if the SessionID field is zero and the data doesn't contain the SessionID then this field contains the Identifier of the previous received message, most of the time the Flag field is 0x2 then. If the data contains the SessionID or if the SessionID field is non-zero then this field is just some random generated number. 
 //The eigth field is a DWORD and is also important, because if it met the conditions explained with DWORD nine, then this field contains Field 9 of the previous received message. 
@@ -63,7 +63,7 @@ Optional Data       ---| msnp2p   | msnc1
 //and for Games it's specified by the Start Menu code.
 
 
-/* //MSNSLP协议
+/* //MSNSLP protocol
 start-Line
 message-header
 CRLF
@@ -71,7 +71,7 @@ CRLF
 */
 /* //MSNSLP start-Line
 Method SPACE MSNMSGR:buddy@mail.com SPACE MSNSLP-Version CRLF
-或
+or
 MSNSLP-version SPACE Status-Code SPACE Reason-Phrase CRLF
 */
 //Methods
@@ -101,11 +101,11 @@ cMsnc1 :: ~cMsnc1()
 	m_cond.active();
 }
 
-//获取某个联系人的头像。 
+//get某个联系人的头像。 
 bool cMsnc1 :: getPicture(const char *saveas)
 {
 	if(saveas==NULL || saveas[0]==0) return false;
-	//从msnobject中获取头像的filename和size
+	//从msnobject中get头像的filenameandsize
 	char msnobj_buf[512]; 
 	int msnobj_len=sprintf(msnobj_buf,"%d",rand()+0x11111111);
 	msnobj_buf[msnobj_len]=0; m_sessionID.assign(msnobj_buf);//生成sessionID
@@ -118,7 +118,7 @@ bool cMsnc1 :: getPicture(const char *saveas)
 	m_inviteType=MSNINVITE_TYPE_PICTURE;
 	return sendmsg_INVITE(msnobj_buf,msnobj_len);	
 }
-//send本联系人的头像，filename --- 本联系人的头像文件
+//send本联系人的头像，filename --- 本联系人的头像file
 bool cMsnc1 :: sendPicture(const char *filename)
 {
 	if(filename==NULL || filename[0]==0 ) return false;
@@ -137,7 +137,7 @@ bool cMsnc1 :: sendPicture(const char *filename)
 	m_inviteType=MSNINVITE_TYPE_PICTURE;
 	return true;
 }
-//sendspecified文件
+//sendspecifiedfile
 bool cMsnc1 :: sendFile(const char *filename)
 {
 	if(filename==NULL || filename[0]==0 ) return false;
@@ -170,7 +170,7 @@ bool cMsnc1 :: sendFile(const char *filename)
 	return sendmsg_INVITE(context_buf,638);
 }
 /*
-//send一个机器人邀请
+//send一个robot invitation
 bool cMsnc1 :: sendRobotInvite(const char *robotname)
 {
 	m_bSender=true;
@@ -181,7 +181,7 @@ bool cMsnc1 :: sendRobotInvite(const char *robotname)
 		 context_len=sprintf(context_buf,"%d;1;robot",MSNINVITE_TYPE_ROBOT);
 	else context_len=sprintf(context_buf,"%d;1;%s",MSNINVITE_TYPE_ROBOT,robotname);
 	context_buf[context_len]=0;
-	unsigned short contextW_buf[256];//将单字节编码转换为unicode双字节编码
+	unsigned short contextW_buf[256];//将单byte编码convert为unicode双byte编码
 	int contextW_len=MultiByteToWideChar(CP_ACP,0,context_buf,context_len,contextW_buf,255);
 	return sendmsg_INVITE((const char *)contextW_buf,contextW_len*sizeof(unsigned short));
 }
@@ -194,7 +194,7 @@ bool cMsnc1 :: sendRobotInvite(const char *robotname)
 //The "Acknowledged Unique Identifier" field contains the Unique Identifier (eigth field) of the message to which this is an Acknowledgement. 
 //The "Acknowledged Data Size" field contains the value from the "Message Length" of the Acknowledged message. 
 //The rest of the fields is always zero, except the Session Identifier field and the Identifier field of the message. Those are determined by the client. 
-//pheader 指向receiveMSG的 header
+//pheader pointer toreceiveMSG的 header
 bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 {
 	char binary_stuff[48+4]; 
@@ -203,7 +203,7 @@ bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 	//sessionID
 	memcpy((void *)binary_stuff,(const void *)pheader,4);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//total size
@@ -217,7 +217,7 @@ bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 	//ack data size
 	memcpy((void *)(binary_stuff+40),(const void *)(pheader+16),8);
 
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+2]=*( ((char *)&lfooter)+1 );
@@ -234,13 +234,13 @@ bool cMsnc1 :: sendmsg_Got_BYE()
 	long lTmp=atol(m_sessionID.c_str());
 	memcpy((void *)binary_stuff,(const void *)&lTmp,4); //sessionID
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//flag
 	binary_stuff[28]=(char)0x40;
 
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+2]=*( ((char *)&lfooter)+1 );
@@ -256,7 +256,7 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 	const char *fromEmail=m_pmsnmessager->thisEmail();
 
 	int contentLength=sprintf(binary_stuff,"SessionID: %s\r\n\r\n",m_sessionID.c_str());
-	binary_stuff[contentLength]=0; contentLength++; //内容最后补一个'\0'
+	binary_stuff[contentLength]=0; contentLength++; //append a '\0' at end of content
 
 	int len=sprintf(pmsnslp,"MSNSLP/1.0 200 OK\r\nTo: <msnmsgr:%s>\r\nFrom: <msnmsgr:%s>\r\n"
 						"Via: MSNSLP/1.0/TLP ;branch=%s\r\nCSeq: 1\r\nCall-ID: %s\r\n"
@@ -266,12 +266,12 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 						,m_branch.c_str(),m_callID.c_str(),
 						contentLength,binary_stuff);
 	
-	pmsnslp[len]=0; len++;//包含Content最后的'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -279,7 +279,7 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -295,7 +295,7 @@ bool cMsnc1 :: sendmsg_REJECT()
 	const char *fromEmail=m_pmsnmessager->thisEmail();
 
 	int contentLength=sprintf(binary_stuff,"SessionID: %s\r\n\r\n",m_sessionID.c_str());
-	binary_stuff[contentLength]=0; contentLength++; //内容最后补一个'\0'
+	binary_stuff[contentLength]=0; contentLength++; //append a '\0' at end of content
 
 	int len=sprintf(pmsnslp,"MSNSLP/1.0 603 Decline\r\nTo: <msnmsgr:%s>\r\nFrom: <msnmsgr:%s>\r\n"
 						"Via: MSNSLP/1.0/TLP ;branch=%s\r\nCSeq: 1\r\nCall-ID: %s\r\n"
@@ -305,12 +305,12 @@ bool cMsnc1 :: sendmsg_REJECT()
 						,m_branch.c_str(),m_callID.c_str(),
 						contentLength,binary_stuff);
 	
-	pmsnslp[len]=0; len++;//包含Content最后的'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -318,7 +318,7 @@ bool cMsnc1 :: sendmsg_REJECT()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -346,7 +346,7 @@ bool cMsnc1 :: sendmsg_ERROR()
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -354,7 +354,7 @@ bool cMsnc1 :: sendmsg_ERROR()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -376,12 +376,12 @@ bool cMsnc1 :: sendmsg_BYE()
 						,toEmail,toEmail,fromEmail
 						,m_branch.c_str(),m_callID.c_str());
 	
-	pmsnslp[len]=0; len++;//包含Content最后的'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -389,7 +389,7 @@ bool cMsnc1 :: sendmsg_BYE()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -414,7 +414,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	memcpy((void *)(binary_stuff),(const void *)&sessionID,4);
 
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -422,7 +422,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -431,7 +431,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	return sendMSNC1(binary_stuff,52+len);
 }
 
-//添加MSNC1协议头，然后sendMSNC1消息
+//addMSNC1 protocol头，然后sendMSNC1message
 //Splitting Messages
 //When the content of the message between de binary header and footer is larger then 1202 characters 
 //(or 1352 in case of a Direct Connection), you should split the data in seperate parts and add a message header, 
@@ -453,12 +453,12 @@ unsigned long  cMsnc1 :: sendMSNC1(const char *ptr_msnp2p,long p2p_length)
 		memmove(buf+(32-iret),buf,iret); 
 		return (m_pcontact->m_chatSock.Send(datalen+iret,buf+(32-iret),-1)>0)?trID:0;
 	}
-	//split 消息
+	//split message
 	const char *ptr_Binarystuff=ptr_msnp2p;
 	const char *ptr_msnslp=ptr_msnp2p+48;
 	long offset=0;
 	unsigned long lfooter=*((unsigned long *)(ptr_msnp2p+p2p_length-4));
-	//如果length_msnslp>1202要进行split
+	//iflength_msnslp>1202要进行split
 	while(length_msnslp>0)
 	{
 		long datalen=(length_msnslp>1202)?1202:length_msnslp;
@@ -490,7 +490,7 @@ char *INVITE_GUID[]={
 					"{A4268EEC-FEC5-49E5-95C3-F126696BDBF6}", //Display picture
 					"{5D3E02AB-6190-11D3-BBBB-00C04F795683}", //FILE trans
 					"",
-					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //网络摄像头
+					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //network摄像头
 					};
 //char *INVITE_ROBOT_GUID="{6A13AF9C-5308-4F35-923A-67E8DDA40C2F}"; //MSNINVITE_TYPE_ROBOT
 bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
@@ -516,10 +516,10 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 							"Context: %s\r\n\r\n",INVITE_GUID[m_inviteType-1],
 							m_sessionID.c_str(),m_inviteType,pmsnslp);
 						
-	contextBuf[contextLen]=0; contextLen++; //包含Content最后的'\0'
+	contextBuf[contextLen]=0; contextLen++; //includes the trailing '\0' of Content
 	cCoder::m_LineWidth=oldLineWidth;
 
-	//生成branch ID和 call ID
+	//生成branch IDand call ID
 	if(m_branch==""){
 		len=createUID(pmsnslp); 
 		pmsnslp[len]=0; m_branch.assign(pmsnslp);
@@ -537,12 +537,12 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 						,toEmail,toEmail,fromEmail
 						,m_branch.c_str(),m_callID.c_str()
 						,contextLen,contextBuf);
-	pmsnslp[len]=0; len++;//包含Content最后的'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//跳过0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -551,7 +551,7 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	memcpy((void *)(binary_stuff+32),(const void *)&m_BaseIdentifier,4);
 
-	//设置lfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -578,8 +578,8 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		long sessionID=atol(pmsnc1->m_sessionID.c_str());//sessionID
 		memcpy((void *)(binary_stuff),(const void *)&sessionID,4);
 		long Identifier=pmsnc1->m_BaseIdentifier+pmsnc1->m_offsetIdentifier++;
-		if(pmsnc1->m_offsetIdentifier==0) pmsnc1->m_offsetIdentifier++;//跳过0
-		//MessageID ,data传输期间messageID保持不变
+		if(pmsnc1->m_offsetIdentifier==0) pmsnc1->m_offsetIdentifier++;//skip0
+		//MessageID ,data传输期间messageID保持not变
 		memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 		memcpy((void *)(binary_stuff+16),(const void *)&pmsnc1->m_filesize,4);
 
@@ -593,9 +593,9 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		else if(pmsnc1->m_inviteType==MSNINVITE_TYPE_PICTURE)
 		{
 			binary_stuff[28]=0x20;
-			//send the data preparation message,send准备startsend头像data消息
+			//send the data preparation message,send准备startsend头像datamessage
 			unsigned long trID=pmsnc1->sendmsg_READY2TRANS();
-			//send准备send头像消息后要等待对方的应答才能send头像data，这里等待服务应答就可以.
+			//send准备send头像message后要waiting对方的应答才能send头像data，这里waitingservice应答就可以.
 			conds[trID]=&pmsnc1->m_cond; pmsnc1->m_cond.wait(5);//MSN_MAX_TIMEOUT);
 			pmsnc1->m_pmsnmessager->eraseCond(trID); 
 		}
@@ -610,7 +610,7 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 			//message size
 			memcpy((void *)(binary_stuff+24),(const void *)&readLen,4);
 			offset+=readLen;
-			//设置lfooter,in Big Endian order 
+			//setlfooter,in Big Endian order 
 			binary_stuff[48+readLen]=*( ((char *)&lfooter)+3 );
 			binary_stuff[48+readLen+1]=*( ((char *)&lfooter)+2 );
 			binary_stuff[48+readLen+2]=*( ((char *)&lfooter)+1 );
@@ -621,7 +621,7 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 				pmsnc1->m_pmsnmessager->eraseCond(trID); 
 			}else break;
 //-------------------------------------------------------------------
-			if(readLen<1200) break; //文件读取完毕
+			if(readLen<1200) break; //fileread完毕
 		}//?while
 		if(pmsnc1->m_inviteType==MSNINVITE_TYPE_FILE) pmsnc1->sendmsg_BYE();
 		if(pmsnc1->m_fp){ ::fclose(pmsnc1->m_fp); pmsnc1->m_fp=NULL; }
@@ -663,14 +663,14 @@ bool cMsncx:: beginWrite(const char *filename,long filesize)
 	return beginWrite();
 }
 
-/* 文件传输
+/* file transfer
 First, the Sending Client (SC) need to send the Receiving Client (RC) an Invitation to start a session. 
 The Identifier field of that Invitation should contain a generated BaseIdentifier, 
 the Identifier field of the following messages should be calculated from that BaseIdentifier. 
-首先SC需要向RCsend一个start邀请的Session请求(INVITE message),消息头的msgid域是一个自动产生的BaseIdentifier
-接下来send的消息头的msgid域的值由BaseIdentifier计算出来。
+首先SC需要向RCsend一个start邀请的Sessionrequest(INVITE message),message头的msgid域yes一个自动产生的BaseIdentifier
+接下来send的message头的msgid域的值由BaseIdentifiercount算出来。
 The Identifier fields of the next messages sent by the RC should be BaseIdentifier + 1, BaseIdentifier + 2 and so on.
-RCsend的下一个消息头的msgid域的值应是BaseIdentifier + 1, BaseIdentifier + 2等等
+RCsend的nextmessage头的msgid域的值应yesBaseIdentifier + 1, BaseIdentifier + 2等等
 The SC should on its turn send messages with BaseIdentifier + 1, BaseIdentifier + 2 and so on as values for the Identifier field. 
 The only thing which is different here is that both Identifier fields will always be BaseIdentifier + a number.
 */
@@ -678,11 +678,11 @@ The only thing which is different here is that both Identifier fields will alway
 //display picture 
 EUF-GUID: {A4268EEC-FEC5-49E5-95C3-F126696BDBF6}
 AppID: 1
-context==msnobj对象
+context==msnobjobject
 //file
 EUF-GUID: {5D3E02AB-6190-11D3-BBBB-00C04F795683}
 AppID: 2
-context: base64 encoding 8~12字节为file size 20字节start为filename(unicode编码)
+context: base64 encoding 8~12byte为file size 20bytestart为filename(unicode编码)
 //video cam
 EUF-GUID: {4BD96FC0-AB17-4425-A14A-439185962DC8}
 AppID: 4
@@ -690,7 +690,7 @@ context:
 */
 
 //example
-/* invite session请求
+/* invite sessionrequest
 INVITE MSNMSGR:yycnet@163.com MSNSLP/1.0
 To: <msnmsgr:yycnet@163.com>
 From: <msnmsgr:yycnet@hotmail.com>
@@ -715,7 +715,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAAAAAAA
 */
-/* //请求文件传输
+/* //request file transfer
 INVITE MSNMSGR:rmtsvc8@hotmail.com MSNSLP/1.0
 To: <msnmsgr:rmtsvc8@hotmail.com>
 From: <msnmsgr:yycnet@hotmail.com>

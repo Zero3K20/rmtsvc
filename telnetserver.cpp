@@ -44,7 +44,7 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 	const char *strParam=strchr(strCommand,' ');
 	if(strParam) { *(char *)strParam=0; strParam++; }
 
-	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //升级或download
+	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //upgrade or download
 	{
 		if(strParam==NULL) return;
 		bool bUpdate=(strcasecmp(strCmd,"update")==0);
@@ -54,7 +54,7 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 		else if(strncasecmp(strurl,"https://",8)==0) iType=1;
 		else if(strncasecmp(strurl,"ftp://",6)==0) iType=2;
 		std::string strSaveas;
-		if(iType>0){//downloadspecified的文件
+		if(iType>0){//download the specified file
 			clsOutput_sock sout(psock);
 			const char *ptr=strchr(strurl,' ');
 			if( ptr ){ *(char *)ptr=0; ptr+=1;
@@ -62,7 +62,7 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 			}
 			if(strSaveas==""){ if( (ptr=strrchr(strurl,'/')) ) strSaveas.assign(ptr+1); }
 			if(strSaveas[0]!='\\' && strSaveas[1]!=':') strSaveas.insert(0,g_savepath);
-			if(bUpdate) strSaveas.append(".upd"); //防止download的文件和要升级的程序重名
+			if(bUpdate) strSaveas.append(".upd"); //防止download的fileand要升级的程序重名
 			bRet=(iType==2)?downfile_ftp(strurl,strSaveas.c_str(),sout):downfile_http(strurl,strSaveas.c_str(),sout);
 			strurl=(bRet)?strSaveas.c_str():NULL;
 		}else if(!bUpdate) strOutput.append("Failed , wrong URLs.\r\n");
@@ -70,9 +70,9 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 		if(bUpdate)  bRet=updateRV(strurl,strOutput);
 	}else if(strcasecmp(strCmd,"telnet")==0) //开启telnet
 		bRet=FALSE;
-	else //执行扩展命令
+	else //执行扩展command
 		bRet=doCommandEx(strCmd,strParam,strOutput);
-//----------  扩展控制命令  end ------------------------------
+//----------  扩展控制command  end ------------------------------
 	
 	if(bRet)
 	{
@@ -104,7 +104,7 @@ telServerEx :: ~telServerEx()
 //start service
 bool telServerEx :: Start() 
 {
-	if(m_svrport==0) return true; //不start service
+	if(m_svrport==0) return true; //notstart service
 	
 	const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
 	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许port重用
@@ -136,11 +136,11 @@ SOCKSRESULT telServerEx :: revConnect(const char *host,int port,time_t lWaitout)
 	return sr;
 }
 
-//设置telnet service的相关info
-//命令format: 
-//	telnet [port=<服务port>] [bindip=<本服务绑定的local machineIP>]  [account=<访问account:password>] 
-//port=<服务port>    : 设置服务port，如果不设置则default为0.设置为0则不start web service <0则随即分配port
-//bindip=<本服务绑定的local machineIP> : 设置本服务绑定的local machineIP，如果不设置则default绑定local machine所有IP
+//settelnet service的相关info
+//command format: 
+//	telnet [port=<serviceport>] [bindip=<本service绑定的local machineIP>]  [account=<访问account:password>] 
+//port=<serviceport>    : setserviceport，if not set则default为0.set为0则notstart web service <0则随即分配port
+//bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
 //account=<访问account:password>
 void telServerEx :: docmd_sets(const char *strParam)
 {
@@ -149,11 +149,11 @@ void telServerEx :: docmd_sets(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 
 	if( (it=maps.find("port"))!=maps.end())
-	{//设置服务的port
+	{//set service port
 		m_svrport=atoi((*it).second.c_str());
 	}
 	if( (it=maps.find("bindip"))!=maps.end())
-	{//设置服务绑定IP
+	{//set service binding IP
 		m_bindip=(*it).second;
 	}
 	
@@ -169,10 +169,10 @@ void telServerEx :: docmd_sets(const char *strParam)
 	
 	return;
 }
-//设置服务的ip过滤规则或针对某个account的IP filter rules
-//命令format:
+//setservice的ip过滤规则or针对某个account的IP filter rules
+//command format:
 //	iprules [access=0|1] ipaddr="<IP>,<IP>,..."
-//access=0|1     : 对符合下列IP条件的是拒绝还是放行
+//access=0|1     : whether to deny or allow IPs matching the following conditions
 //例如:
 // iprules access=0 ipaddr="192.168.0.*,192.168.1.10"
 void telServerEx :: docmd_iprules(const char *strParam)
