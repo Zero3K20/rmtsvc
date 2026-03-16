@@ -22,7 +22,6 @@ webServer :: webServer():m_svrport(7778)
 		
 		m_quality=30;
 		m_dwImgSize=0;
-		m_bGetFileFromRes=true;
 
 		m_defaultPage="index.htm";
 
@@ -537,63 +536,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		}
 	}//?if((lAccess & RMTSVC_ACCESS_VIDC_ADMIN)==RMTSVC_ACCESS_VIDC_ADMIN)
 
-	DWORD dwFileLen=0;
-	const char *ptrfiledata=(!m_bGetFileFromRes)?NULL: //determine whether to retrieve the file from resources
-							GetFileFromRes(httpreq.url().c_str()+1,dwFileLen);
-	if(ptrfiledata)
-	{
-		if(setLastModify(psock,httpreq,httprsp))
-		{//if the requested file is newer than the time in the HTTP request, it has been modified -- send it; otherwise respond that the file has not been modified
-			MIMETYPE_ENUM mt=httpResponse::MimeType(httpreq.url().c_str());
-			httprsp.set_mimetype(mt); //set MIME type
-			httprsp.lContentLength(dwFileLen); //set response content length
-			httprsp.send_rspH(psock,200,"OK");
-			psock->Send(dwFileLen,ptrfiledata,-1);
-		}
-		return true;
-	}
 	return false;
-}
-
-//Get the specified file from resources. Resource file format:
-//Find the specified file in the resource file. The first two bytes are 'YY', followed by two bytes for the file count,
-//12 bytes reserved, then n file descriptor structures, then the file contents
-typedef struct tagFILERESOURCE
-{
-	DWORD filesize;
-	char  filepath[28];
-}FILERESOURCE;
-#include "resource.h"
-const char * webServer :: GetFileFromRes(const char *filepath,DWORD &flength)
-{
-	static const char *ptrResource=NULL; //pointer to the resource data
-	if(ptrResource==NULL) //get resource pointer
-	{
-		HRSRC hrs=::FindResource(NULL,MAKEINTRESOURCE(IDR_HTMLPAGE),RT_HTML);
-		if(hrs!=NULL)
-		{
-			HGLOBAL hg=::LoadResource(NULL,hrs);
-			if(hg!=NULL)
-				ptrResource=(const char *)::LockResource(hg);
-		}
-	}//?if(ptrResource==NULL)
-	if(ptrResource==NULL) return NULL;
-	if(*(short *)ptrResource!=0x5959) return NULL;
-	//get the file count
-	short filenums=*(short *)(ptrResource+2);
-	FILERESOURCE *ptr_fileres=(FILERESOURCE *)(ptrResource+16);
-	const char *ptr_filedata=ptrResource+16+filenums*sizeof(FILERESOURCE);
-	for(short i=0;i<filenums;i++)
-	{
-		if(strcasecmp(ptr_fileres->filepath,filepath)==0)
-		{
-			flength=ptr_fileres->filesize;
-			return ptr_filedata;
-		}
-		ptr_filedata+=ptr_fileres->filesize;
-		ptr_fileres++; 
-	} 
-	return NULL;
 }
 
 //Set the last modified date of the resource file 
@@ -623,61 +566,4 @@ bool webServer :: setLastModify(socketTCP *psock,httpRequest &httpreq,httpRespon
 	httprsp.Header()["Date"]=string(buf);
 	return true;
 }
-/* 
-//generate the specified HTML resource format file
-DWORD createHTMLFILERESOURCE(std::string &htmlpath)
-{
-	WIN32_FIND_DATA finddata;
-	HANDLE hd=INVALID_HANDLE_VALUE;
-	std::string htmlpage; 
-	getAbsolutfilepath(htmlpath);
-	if(htmlpath[htmlpath.length()-1]=='\\'){ htmlpage=htmlpath+string("htmlpage"); htmlpath.append("*"); }
-	else{ htmlpage=htmlpath+string("\\htmlpage"); htmlpath.append("\\*"); }
-	FILE *fp=::fopen(htmlpage.c_str(),"w+b");
-	if(fp==NULL) return 0;
-
-	DWORD dwret=0; short filenums=0; FILERESOURCE fres;
-	filenums=0x5959; ::fwrite(&filenums,sizeof(filenums),1,fp);
-	filenums=0x0; ::fwrite(&filenums,sizeof(filenums),1,fp);
-	for(int j=0;j<6;j++) ::fwrite(&filenums,sizeof(filenums),1,fp);
-	dwret=16; //reserve 12 bytes; header is 16 bytes total
-	hd=::FindFirstFile(htmlpath.c_str(), &finddata);
-	if(hd==INVALID_HANDLE_VALUE){ ::fclose(fp); return 0; }
-	do{
-		if(!(finddata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY))
-		{
-			const char *ptr=strrchr(finddata.cFileName,'.');
-			if(ptr && (strcasecmp(ptr,".htm")==0 || strcasecmp(ptr,".js")==0 || strcasecmp(ptr,".css")==0) )
-			{ 
-				fres.filesize=finddata.nFileSizeLow;
-				::memset(fres.filepath,0,sizeof(fres.filepath));
-				strcpy(fres.filepath,finddata.cFileName);
-				::fwrite(&fres,sizeof(fres),1,fp);
-				filenums++; dwret+=sizeof(fres);
-			}
-		}
-	}while(::FindNextFile(hd,&finddata));
-	::FindClose(hd); htmlpath.erase(htmlpath.length()-1); //remove the trailing "*"
-	printf("[createHRES] total %d files in %s\r\n",filenums,htmlpath.c_str());
-	::fseek(fp,2,SEEK_SET); ::fwrite(&filenums,sizeof(filenums),1,fp);
-	for(short i=0;i<filenums;i++)
-	{
-		::fseek(fp,16+i*sizeof(fres),SEEK_SET);
-		::fread(&fres,sizeof(fres),1,fp);
-		printf("[createHRES] %d reading %s, filesize=%d\r\n,",i+1,fres.filepath,fres.filesize);
-		char *pbuf=new char[fres.filesize];
-		if(pbuf==NULL){ printf("[createHRES] failed to memory alloc\r\n"); break; }
-		htmlpage=htmlpath+string(fres.filepath);
-		FILE *fp_read=::fopen(htmlpage.c_str(),"rb");
-		if(fp_read==NULL){ 
-			printf("[createHRES] failed to open %s\r\n",htmlpage.c_str());
-			delete pbuf; break; }
-		::fread(pbuf,sizeof(char),fres.filesize,fp_read);
-		::fseek(fp,0,SEEK_END);
-		::fwrite(pbuf,sizeof(char),fres.filesize,fp);
-		::fclose(fp_read); delete pbuf; dwret+=fres.filesize;
-	}
-	::fclose(fp); return dwret;
-}
-*/
 

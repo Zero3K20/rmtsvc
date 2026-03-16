@@ -2,7 +2,6 @@
 // Microsoft Developer Studio generated include file.
 // Used by Script1.rc
 //
-#define IDR_HTMLPAGE                    102
 
 // Next default values for new objects
 // 
