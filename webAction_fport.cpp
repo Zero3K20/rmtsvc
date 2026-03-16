@@ -111,8 +111,8 @@ BOOL portList(cBuffer &buffer)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dllfailure
-	//getfunctionpointer // XP and later - 实际test2k也能用
+	if(hModule==NULL) return FALSE; //load DLL failed
+	//getfunctionpointer // XP and later - actually tested on 2k as well
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
@@ -202,8 +202,8 @@ BOOL portList(string &strret)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dllfailure
-	//getfunctionpointer // XP and later - 实际test2k也能用
+	if(hModule==NULL) return FALSE; //load DLL failed
+	//getfunctionpointer // XP and later - actually tested on 2k as well
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
