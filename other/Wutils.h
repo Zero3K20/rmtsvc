@@ -1,6 +1,6 @@
 /*******************************************************************
    *	Wutils.h
-   *    DESCRIPTION:windows系统utility functions collection
+   *    DESCRIPTION:windowssystemutility functions collection
    *
    *    AUTHOR:yyc
    *
@@ -41,9 +41,9 @@ public:
 	static const char *computeName();
 	//return the number of CPUs
 	static int cpuInfo(MSOSTYPE ostype);
-	//getwindows操作系统type
+	//getwindows操作systemtype
 	static MSOSTYPE winOsType();
-	//get操作系统current的status
+	//get操作systemcurrent的status
 	static MSOSSTATUS winOsStatus();
 	//列出local machineallprocess
 	//return符合conditionfilterprocess的个数.支持*?通配符号
@@ -51,9 +51,9 @@ public:
 					   const char *filter);
 	//模拟Ctrl+Alt+Del按键
 	static BOOL SimulateCtrlAltDel();
-	//lock工作站
+	//lockworker站
 	static BOOL LockWorkstation();
-	//捕获current桌面图像
+	//捕获currentdesktopimage
 	static BOOL snapWindows(int quality,const char *filename,bool ifCapCursor);
 	//modify本process的permissions
 	static BOOL EnablePrivilege(LPCTSTR lpszPrivilegeName,bool bEnable);
@@ -98,15 +98,15 @@ public:
 	static void selectDesktop(){
 		if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
 	}
-	//send键盘鼠标message时的附加info值
+	//send键盘mousemessage时的附加info值
 	static DWORD mskbEvent_dwExtraInfo;
 private:
-	static char m_buffer[MAX_PATH]; //用来临时savereturn的character串
+	static char m_buffer[MAX_PATH]; //用来temporarysavereturn的string
 	
 	//模拟send key press
-	//通过剪切板输入character串，可输入任何的文字
+	//通过剪切板inputstring，可input任何的文字
 	static BOOL sendTextbyClipboard(const char *strTxt);
-	//模拟按键输入character串，仅仅可输入asciicharacter串
+	//模拟按键inputstring，仅仅可inputasciistring
 	static BOOL sendText(const char *strTxt);
 
 	// Determine whether the thread's current desktop is the input one

@@ -28,7 +28,7 @@ namespace net4cpp21
 		std::string m_telTip;//command line prompt
 		char m_cmd_prefix; //extended command prefix
 
-		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//收到user输入command
+		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//收到userinputcommand
 		virtual bool onLogin(){ return false; }//有一个usertelnetloginsuccess,returntrue则直接createcmd shell
 		void onConnect(socketTCP *psock);//a user has connected
 	public:

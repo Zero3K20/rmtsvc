@@ -66,18 +66,18 @@ namespace net4cpp21
 		static void transThread(void *pthreadParam);
 	private:
 		int m_proxytype;//本proxy service支持的代理type
-		bool m_bProxyAuthentication;//本serviceyesno需要authentication
+		bool m_bProxyAuthentication;//本servicewhether需要authentication
 		//此proxy service的accountinfo
 		std::map<std::string,PROXYACCOUNT> m_accounts;
 		//secondary proxy related parameters
-		bool m_bCascade; //yesno支持secondary proxy,支持多个secondary proxy service器，随机选择
+		bool m_bCascade; //whether支持secondary proxy,支持multiplesecondary proxy service器，随机选择
 		std::vector<std::pair<std::string,int> > m_vecCassvr;
 //		std::string m_casProxysvr; //secondary proxy service port
 //		int m_casProxyport; 
 		int m_casProxytype; //secondary proxy supported types
 		bool m_casProxyAuthentication; //whether secondary proxy requires authentication
 		std::pair<std::string,std::string> m_casAccessAuth;
-		bool m_bLogdatafile; //yesno记录proxy serviceforward的data到logfile
+		bool m_bLogdatafile; //whether记录proxy serviceforward的data到logfile
 	};
 
 	class proxyServer : public socketSvr,public cProxysvr

@@ -58,7 +58,7 @@ unsigned long FILEIO::fileio_deleteDir(const char *spath)
 }
 
 //iffile does not exist则return-1
-//ifspecified的pathyes一个directory则return-2
+//ifspecified的pathis adirectory则return-2
 //otherwisereturnfile sizeBytes
 long FILEIO::fileio_exist(const char *spath)
 {
@@ -115,7 +115,7 @@ long FILEIO::fileio_filesize(const char *filename)
 	::fclose(fp); return filelen;
 }
 
-//判断某个directoryorfileyesno存at
+//判断a certaindirectoryorfilewhetherexists
 #include<io.h>
 bool FILEIO::fileio_exist(const char *spath)
 {

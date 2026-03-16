@@ -111,7 +111,7 @@ bool webServer::httprsp_pkill(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 }
 
 #include "cInjectDll.h"
-//从某个process中卸载某dll
+//从a certainprocess中卸载某dll
 bool webServer::httprsp_mdattach(socketTCP *psock,httpResponse &httprsp,DWORD pid,HMODULE hmdl,long count)
 {
 	cInjectDll inject(NULL);
@@ -141,8 +141,8 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	}//?while
 	return bMatch;
 }
-//enumNT系统的process
-//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
+//enumNTsystem的process
+//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
 DWORD procList_NT(cBuffer &buffer,const char *filter)
 {
 	typedef BOOL (WINAPI *pfnEnumProcesses_D)(
@@ -174,7 +174,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	//enum系统process IDlist
+	//enumsystemprocess IDlist
 	if (pfnEnumProcesses!=NULL && (*pfnEnumProcesses)(aProcesses, sizeof(aProcesses), &cbNeeded ) )
 	{
 		cProcesses = cbNeeded / sizeof(DWORD);
@@ -222,7 +222,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//enumwin9x/2k系统的process
+//enumwin9x/2ksystem的process
 //对于win9x/2k可以通过toolhelp32function列举process及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等function
 DWORD procList_2K(cBuffer &buffer,const char *filter)
@@ -252,7 +252,7 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 		do
 		{
 			//win9x下显示的yesfile path全名，去掉path
-			//2k下仅仅显示的yesfilename（therefore可以not要此判断）
+			//2k下仅仅显示的yesfilename（therefore可以do not此判断）
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
@@ -292,8 +292,8 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//enumNT系统的process
-//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
+//enumNTsystem的process
+//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
 DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -359,7 +359,7 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 	return dwret;
 }
 
-//enumwin9x/2k系统process的模块
+//enumwin9x/2ksystemprocess的模块
 //对于win9x/2k可以通过toolhelp32function列举process及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等function
 DWORD moduleList_2K(cBuffer &buffer,DWORD processID)

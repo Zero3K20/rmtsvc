@@ -143,7 +143,7 @@ void httpServer::httprsp_fileNoFind(socketTCP *psock,httpResponse &httprsp)
 "    <td width=\"400\" colspan=\"2\"> <font style=\"COLOR:000000; FONT: 9pt/11pt 宋体\">\r\n"
 "	<hr color=\"#C0C0C0\" noshade>\r\n"
 "<p>Please try the following:</p>\r\n"
-"	<ul><li>if您at“address”栏中键入了网页address，请check其拼写yesno正确。<br></li>\r\n"
+"	<ul><li>if您at“address”栏中键入了网页address，请check其拼写whether正确。<br></li>\r\n"
 "	<li>单击<a href=\"javascript:history.back(1)\">后退</a>按钮尝试其他链接。</li></ul>\r\n"
 "<h2 style=\"font:9pt/11pt 宋体; color:000000\">HTTP 404 - 无法foundfile<br> Internet infoservice<BR></h2>\r\n"
 "	<hr color=\"#C0C0C0\" noshade>\r\n"

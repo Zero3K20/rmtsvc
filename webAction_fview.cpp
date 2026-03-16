@@ -435,7 +435,7 @@ bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpRespo
 			sprintf(fmtbuf,"%d",receivedBytes); session["up_rbyte"]=string(fmtbuf);
 			while(receivedBytes<allbytes)
 			{
-				//if超过HTTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+				//if data is not received within HTTP_MAX_RESPTIMEOUT, the client may be abnormal
 				int wlen=psock->Receive(buff.str(),buff.size(),HTTP_MAX_RESPTIMEOUT);
 				if(wlen<0) break;
 				if(wlen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
@@ -596,7 +596,7 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 					if(fnlen<256) fnlen=256;
 					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
 					if(buffer.str()==NULL) break;
-					++lret; //判断此directoryyesno有子directory
+					++lret; //判断此directorywhether有子directory
 					bool bHas=ifHasSubDir(spath,finddata.cFileName);
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
 //					::FileTimeToSystemTime(&localFtime,&st);

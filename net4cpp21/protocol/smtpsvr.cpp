@@ -45,7 +45,7 @@ void smtpServer :: onAccept(socketTCP *psock)
 	char buf[SMTP_MAX_PACKAGE_SIZE]; int buflen=0;
 	buflen=sprintf(buf,"220 SMTP Server[mailpost1.0] for ready\r\n");
 	psock->Send(buflen,buf,-1);
-//	某些SMTPclientnot supported多行SMTPserviceconnect应答
+//	someSMTPclientnot supported多行SMTPserviceconnect应答
 /*	buflen=sprintf(buf,"220-SMTP Server[mailpost1.0] for ready\r\n"
 					   "220-copyright @yyc 2006. http://yycnet.yeah.net\r\n"
 					   "%s",m_helloTip.c_str());
@@ -98,7 +98,7 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 		}//?while
 		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
+		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -160,10 +160,10 @@ inline void smtpServer :: resp_unknowed(socketTCP *psock)
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//注意smtpservice的多行data的response，ifnotyeslast一行则response行的response码anddescription之间要用-connect
+//注意smtpservice的多行data的response，ifis notlast一行则response行的response码anddescription之间要用-connect
 void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导null格
+	//去掉commandparameter的前导spaces
 	while(*strParam==' ') strParam++;
 	clientSession.m_ehlo.assign(strParam);
 	const char resp[]="250-PIPELINING\r\n"
@@ -177,7 +177,7 @@ void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导null格
+	//去掉commandparameter的前导spaces
 	while(*strParam==' ') strParam++;
 	int authType=SMTPAUTH_NONE;
 	if(strcasecmp(strParam,"LOGIN")==0)
@@ -186,7 +186,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 		const char resp[]="334 VXNlcm5hbWU6\r\n"; //VXNlcm5hbWU6为Username:的base64 encoding
 		response(psock,resp,sizeof(resp)-1);
 	}
-	else if(strcasecmp(strParam,"PLAIN")==0) //明文传输
+	else if(strcasecmp(strParam,"PLAIN")==0) //明文transfer
 	{
 		authType=SMTPAUTH_PLAIN;
 		const char resp[]="334 Username:\r\n";
@@ -195,7 +195,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	else if(strcasecmp(strParam,"8BITMIME")==0)
 	{
 		authType=SMTPAUTH_8BITMIME;
-		const char resp[]="334 Username%3A\r\n"; //Username%3A为Username:的Mime编码
+		const char resp[]="334 Username%3A\r\n"; //Username%3A为Username:的Mimeencoding
 		response(psock,resp,sizeof(resp)-1);
 	}
 	else
@@ -267,7 +267,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导null格
+	//去掉commandparameter的前导spaces
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -284,7 +284,7 @@ void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,c
 
 void smtpServer :: docmd_rcptto(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导null格
+	//去掉commandparameter的前导spaces
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -306,7 +306,7 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 	response(psock,resp,sizeof(resp)-1);
 	//下面startreceive信体data,直到收到<CR><LF>.<CR><LF>
 	char buf[4096]; int buflen=0;
-	std::string emlfile;//生成临时filename
+	std::string emlfile;//生成temporaryfilename
 	time_t tNow=time(NULL);
 	srand( (unsigned)clock() );
 	struct tm * ltime=localtime(&tNow);
@@ -326,11 +326,11 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 				 "\t%s\r\n",clientSession.m_ehlo.c_str(),psock->getRemoteIP(),
 				 buf);
 
-	bool bRecvALL=false; //信体yesno正常收完
+	bool bRecvALL=false; //信体whether正常收完
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		//read data sent by client
-		//if超过SMTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+		//if exceedsSMTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
 		buflen=psock->Receive(buf,4095,SMTP_MAX_RESPTIMEOUT);
 		if(buflen<0){
 			RW_LOG_PRINT(LOGLEVEL_WARN,"[smtpsvr] Failed to receive mail DATA,error=%d\r\n",buflen);

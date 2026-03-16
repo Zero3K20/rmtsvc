@@ -166,7 +166,7 @@ void cProxysvr :: doHttpsreq(socketTCP *psock)
 	
 	socketProxy peer; peer.setParent(psock);
 	
-	bool bAccessDest=true; //yesnoallow access目的service
+	bool bAccessDest=true; //whetherallow access目的service
 	if(ptr_proa && ptr_proa->m_dstRules.rules()>0)
 	{
 		unsigned long IPAddr=socketBase::Host2IP(hostip);

@@ -25,7 +25,7 @@ MyService :: MyService(LPCTSTR ServiceName, LPCTSTR ServiceDesc)
 //create stopEvent based on the stop password
 void MyService :: CreateStopEvent(const char *stop_pswd)
 {//objects created in service mode cannot be accessed by the application (debug mode)
-//therefore必须改变createeventobject的访问permissions，以便application能够访问此event
+//therefore we must change the access permissions of the created event object so that the application can access this event
 	if(stop_pswd==NULL || stop_pswd[0]==0) return;
 	SECURITY_ATTRIBUTES sa;
 	SECURITY_DESCRIPTOR sd;
@@ -33,11 +33,11 @@ void MyService :: CreateStopEvent(const char *stop_pswd)
 	sa.bInheritHandle = FALSE;
 	sa.lpSecurityDescriptor = &sd;
 	::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);	
-	//加入一个null的安全description符，为了能使得其他程序都能访问。
+	//add a null security descriptor so that other programs can access it.
 	::SetSecurityDescriptorDacl(&sd, TRUE, (PACL)NULL, FALSE);
 	std::string strStopswd(m_lpServiceName); strStopswd.append(stop_pswd);
 	int nlen=cCoder::Base64EncodeSize(strStopswd.length());
-	char *tmpbuf=new char[nlen+1];//BASE64编码
+	char *tmpbuf=new char[nlen+1];//BASE64 encoding
 	if(tmpbuf==NULL) return;
 	nlen=cCoder::base64_encode((char *)strStopswd.c_str(),strStopswd.length(),tmpbuf);
 	tmpbuf[nlen]=0;
@@ -49,7 +49,7 @@ void MyService :: SetStopEvent(const char *stop_pswd)
 	if(stop_pswd==NULL || stop_pswd[0]==0) return;
 	std::string strStopswd(m_lpServiceName); strStopswd.append(stop_pswd);
 	int nlen=cCoder::Base64EncodeSize(strStopswd.length());
-	char *tmpbuf=new char[nlen+1];//BASE64编码
+	char *tmpbuf=new char[nlen+1];//BASE64 encoding
 	if(tmpbuf==NULL) return;
 	nlen=cCoder::base64_encode((char *)strStopswd.c_str(),strStopswd.length(),tmpbuf);
 	tmpbuf[nlen]=0;
@@ -61,7 +61,7 @@ void MyService :: SetStopEvent(const char *stop_pswd)
 void MyService :: Stop_Request() //service stoppedrequestevent
 {	
 	if(m_hStopEvent && WaitForSingleObject(m_hStopEvent, 100) != WAIT_OBJECT_0)
-		return; //otherwise允许receiveSERVICE_ACCEPT_STOP
+		return; //otherwise allow receiving SERVICE_ACCEPT_STOP
 	m_dwControlsAccepted |=SERVICE_ACCEPT_STOP;
 	ReportStatus(SERVICE_RUNNING);
 }
@@ -82,8 +82,8 @@ void MyService :: Shutdown() //system shutdownhandle
 //-----------------------------------------------------------------------
 
 #define MAX_SAVEEXE_PARAMLENGTH 4096
-long fileparam_flags=0x31323334;//file末尾的parameter起始flag
-//从本file末尾读出configurationdata
+long fileparam_flags=0x31323334;//starting flag for parameters at the end of the file
+//read configuration data from the end of this file
 bool readParamfromfile(std::string &strret,const char *strexefile)
 {
 	char modalname[MAX_PATH]; char *pbuf=NULL;
@@ -92,7 +92,7 @@ bool readParamfromfile(std::string &strret,const char *strexefile)
 	else strcpy(modalname,strexefile);
 	FILE *fp=fopen(modalname,"rb");
 	if(fp==NULL) return false;
-	//读出configurationparameter的length，notcontainsflagcharacterand本域length
+	//read the length of the configuration parameter, not including the flag character and this field's length
 	::fseek(fp,0-sizeof(long),SEEK_END);
 	::fread((void *)modalname,sizeof(long),1,fp);
 	int i;
@@ -112,16 +112,16 @@ bool readParamfromfile(std::string &strret,const char *strexefile)
 	}
 	paramlen=::fread((void *)pbuf,sizeof(char),paramlen,fp);
 	pbuf[paramlen]=0;
-	//先andflag进行逐byte异or
+	//first XOR each byte with the flag
 	for(i=0;i<paramlen;i++)
 		pbuf[i]^=*( (char *)&fileparam_flags+i%sizeof(fileparam_flags) );
-	//此时得到的yes一个base64 encoding的character串,先进行base64 decoding
+	//the result is a base64-encoded string; first perform base64 decoding
 	paramlen=cCoder::base64_decode(pbuf,paramlen,pbuf);
 	pbuf[paramlen]=0; strret.append(pbuf);
 	delete[] pbuf;
 	::fclose(fp); return true;
 }
-//将specified的parameterencryptionwrite到specifiedexe的末尾
+//encrypt and write the specified parameter to the end of the specified exe
 bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 {
 	if(param==NULL || paramlen<=0)
@@ -135,7 +135,7 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 		RW_LOG_PRINT(LOGLEVEL_ERROR,"failed to open %s for writing.\r\n",strexefile);
 		return false;
 	}
-	//encryption编码要write的parameter
+	//encrypt and encode the parameter to write
 	int buflen=cCoder::Base64EncodeSize(paramlen)+sizeof(long)+sizeof(fileparam_flags);
 	char *pbuf=new char[buflen];
 	if(pbuf==NULL){ ::fclose(fp); return false; }
@@ -149,7 +149,7 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 	pstart+=paramlen;
 	for(i=0;i<sizeof(long);i++)
 		pstart[i]=*((char *)&paramlen+i) ^ *((char *)&fileparam_flags+i);
-	//total共要追加write的bytesize
+	//total byte size to append and write
 	paramlen+=sizeof(long)+sizeof(fileparam_flags);
 	
 	//-------------------
@@ -174,7 +174,7 @@ bool writeParamintofile(const char *strexefile,const char *param,long paramlen)
 	return true;
 }
 
-//生成新的exefile
+//generate new exe file
 bool saveAsExe(std::string &saveasfile)
 {
 	if(saveasfile=="") return false;
@@ -193,7 +193,7 @@ bool saveAsExe(std::string &saveasfile)
 			filelen=::fread(buf+l,sizeof(char),filelen,fp)+l;
 			buf[filelen]=0;
 
-			char modalname[MAX_PATH]; //复制file
+			char modalname[MAX_PATH]; //copy file
 			::GetModuleFileName( NULL, modalname, MAX_PATH-1);
 			if(::CopyFile(modalname,ptr_saveasfile,FALSE))
 			{
@@ -217,29 +217,29 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 {
 	// report to the SCM that we're about to start
 	ReportStatus(SERVICE_START_PENDING);
-	//setdefaultlog output级别为LOGLEVEL_INFO
+	//set default log output level to LOGLEVEL_INFO
 	RW_LOG_SETLOGLEVEL(LOGLEVEL_INFO);
 	
-	bool bReadedIni=false; //useryesno进行iniparameterconfiguration
-	//getexe本身的configurationparameter start----------------------------
+	bool bReadedIni=false; //whether user has configured ini parameters
+	//get exe's own configuration parameters start----------------------------
 	std::string strParam;
 	if(bReadedIni=readParamfromfile(strParam,NULL))
-	{//parseexe本身的configurationinfo
+	{//parse the exe's own configuration info
 		const char *pstart=strParam.c_str();
 		const char *ptr=strchr(pstart,'\r');
 		while(true){
 			if(ptr) *(char *)ptr=0;
-			//告诉应用程序not要read configurationfile
+			//tell the application not to read the configuration file
 			if(strcmp(pstart,"No-ini")==0) g_cfgfile="";
 			if(pstart[0]!='!') //do not interpret comment lines
-				parseCommand(pstart); //解释command行pstartparameter含义
+				parseCommand(pstart); //interpret the meaning of command-line parameter pstart
 			if(ptr==NULL) break;
 			*(char *)ptr='\r'; pstart=ptr+1;
 			if(*pstart=='\n') pstart++;
 			ptr=strchr(pstart,'\r');
 		}//?while
 	}//?if(readParamfromfile(strParam,NULL))
-	//getexe本身的configurationparameter  end ----------------------------
+	//get exe's own configuration parameters  end ----------------------------
 	//read configurationfileinfo start---------------------------------
 	FILE *fp=(g_cfgfile=="")?NULL:(::fopen(g_cfgfile.c_str(),"r"));
 	if(fp){
@@ -248,7 +248,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 			if(sline[0]!='!'){ //do not interpret comment lines
 				int len=strlen(sline); len--;
 				while(len>=0 &&(sline[len]=='\n' || sline[len]=='\r')) sline[len--]=0;
-				parseCommand(sline); //解释command行slineparameter含义
+				parseCommand(sline); //interpret the meaning of command-line parameter sline
 			}
 		}//?while( ::fgets(sline,1024,fp)
 		::fclose(fp);
@@ -270,18 +270,18 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 					if(Argv[0][2]>='0' && Argv[0][2]<='4') 
 						RW_LOG_SETLOGLEVEL((LOGLEVEL)('4'-Argv[0][2]));
 					break;
-//*********************user其他代码 statrt ****************************************
-//*********************user其他代码  end  ****************************************
+//*********************user additional code start ****************************************
+//*********************user additional code end  ****************************************
 			}//?switch( Argv[0][1] ) 
 		}//?if( Argv[0][0] == TEXT('-') ) 
 	}//?while( ++Argv, --Argc )
 	}//?if(Argc>0){	
 	//getcommand-line arguments------------------------------------------
-	if(!m_bDebug) m_bFaceless=true;//service模式运行,没有控制台窗口
-	//if没有控制台且specifiedoutput to console则cancel输出
+	if(!m_bDebug) m_bFaceless=true;//running in service mode, no console window
+	//if no console and output to console is specified, cancel output
 	if(m_bFaceless) ::FreeConsole();
 	if(m_bFaceless){ if(RW_LOG_LOGTYPE()==LOGTYPE_STDOUT) RW_LOG_SETNONE();}
-	else RW_LOG_OUTSTDOUT(true);//if有控制台界面则synchronizeoutput to console
+	else RW_LOG_OUTSTDOUT(true);//if console interface exists, synchronize output to console
 	//createstop serviceevent
 	m_hStop = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 	if(m_hStop==NULL){
@@ -289,8 +289,8 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 		ReportStatus(SERVICE_STOPPED,3000,0); return;
 	}
 	if(m_bDebug && m_hStopEvent){ ::CloseHandle(m_hStopEvent); m_hStopEvent=NULL; }
-	//yesno禁止通过控制台stop service
-	if(m_hStopEvent) m_dwControlsAccepted &=(~SERVICE_ACCEPT_STOP); // 禁止receiveSTOPevent
+	//whether to prohibit stopping the service via console
+	if(m_hStopEvent) m_dwControlsAccepted &=(~SERVICE_ACCEPT_STOP); // prohibit receiving STOP event
 	ReportStatus(SERVICE_START_PENDING);
 	
 	//servicestartstart------------------------------
@@ -330,13 +330,13 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	}
 	m_vidcManager.mtcpl_Start();
 	DWORD dwCount_vidcc=1;	//,dwCount_msnbot=1; //yyc remove MSN 2010-11-05
-	//user双击临时start的程序且没有configurationiniparameter且web servicestart了，匿名访问方式。则defaultstartIE
+	//user双击temporarystart的程序且没有configurationiniparameter且web servicestart了，匿名访问方式。则defaultstartIE
 	if(!bReadedIni && !m_bFaceless && m_websvr.status()==SOCKS_LISTEN){
 		char execmd[128]; 
 		sprintf(execmd,"exec -shell http://127.0.0.1:%d/",m_websvr.getLocalPort());
 		parseCommand(execmd);
 	}//?if(!bReadedIni && !m_bFaceless)
-//*********************user其他代码  end  ****************************************
+//*********************user additional code end  ****************************************
 	ReportStatus(SERVICE_RUNNING);
 	time_t tStartTime=time(NULL); 
 	//waitingserviceend
@@ -358,11 +358,11 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 			}else dwCount_msnbot=1;
 		}//?if(!m_msnbot.ifSigned()) */ //yyc remove MSN 2010-11-05
 
-		//ifset了自动重连远端vIDCs，则检测并自动重连
+		//if set,auto重连远端vIDCs，则检测并auto重连
 		if(--dwCount_vidcc==0){ dwCount_vidcc=10; m_vidcManager.m_vidccSets.autoConnect();}
-//*********************user其他代码  end  ****************************************
+//*********************user additional code end  ****************************************
 		if(m_tasklist.size()>0)
-		{//handle定时执行任务list
+		{//handle定时执行tasklist
 			time_t tNow=time(NULL);
 			struct tm * ltime=localtime(&tNow);
 			for(int i=0;i<(int)m_tasklist.size();i++)
@@ -377,9 +377,9 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 				}else if(task.type=='d'){ //execute daily at scheduled time
 					if(task.h==ltime->tm_hour && task.m==ltime->tm_min)
 					{	
-						if(task.flag==0) //whether executable此定时任务
+						if(task.flag==0) //whether executable此定时task
 							task.flag=1,parseCommand(sTask.c_str());
-					}else task.flag=0; //可以执行此定时任务
+					}else task.flag=0; //可以执行此定时task
 				}
 			}//?for(int i=0;i<m_tasklist.size();i++)
 		}//?if(m_tasklist.size()>0)
@@ -392,17 +392,17 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	m_ftpsvr.saveIni();   //saveftpservice的configurationinfo
 	m_proxysvr.saveIni();
 	m_vidcManager.saveIni(); //saveconfigurationvIDC的info
-	m_vidcManager.Destroy(); //stopvidc相关service并销毁release相关资源
+	m_vidcManager.Destroy(); //stopvidc相关service并销毁release相关resource
 	m_ftpsvr.Stop(); //stopFTPservice
 	m_proxysvr.Stop();
 	m_websvr.Stop();
 	m_telsvr.Stop();
 //	m_msnbot.signout();//exitlogin  //yyc remove MSN 2010-11-05
-//*********************user其他代码  end  ****************************************
+//*********************user additional code end  ****************************************
 
 	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //打印end运行time
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"program end!\r\n");
-	//ifset了password保护，exit时检测serveryesno安装正常
+	//if set,password保护，exit时检测serverwhether安装正常
 	if(m_hStopEvent)
 	{
 		QUERY_SERVICE_CONFIG sc;
@@ -474,7 +474,7 @@ void getDefaultSvrname(std::string &svrname)
 //将一个相对path名convert为一个绝对path名
 void getAbsolutfilepath(std::string &spath)
 {
-	if(spath!="" && spath[1]==':') return; //本身yes一个绝对path
+	if(spath!="" && spath[1]==':') return; //本身is a绝对path
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0; 
@@ -483,7 +483,7 @@ void getAbsolutfilepath(std::string &spath)
 	*(char *)(ptr+1)=0;
 	spath.insert(0,buf); return;
 }
-//delete升级后的临时file
+//delete升级后的temporaryfile
 void delUpdateTmpfile()
 {
 	char buf[MAX_PATH];
@@ -532,19 +532,19 @@ int main(int argc, char* argv[])
 			}else printf("Error param : -c/C new_filename\r\n");
 		}
 		//*********************user其他代码 start ****************************************
-		//*********************user其他代码  end  ****************************************
+		//*********************user additional code end  ****************************************
 	}//?for(int i=1;i<argc;i++){
 	if(svrname=="") regsvrname(svrkey.c_str(),svrname,false);
 	//configurationfilename，default为exe同filename的inifile
 	if(g_cfgfile=="") 
 		getDefaultCfgfile(g_cfgfile);
-	else //ifuser输入的yes相对path则at以service方式start时可能找not到configurationfile
+	else //ifuserinput的yes相对path则at以service方式start时可能找not到configurationfile
 		getAbsolutfilepath(g_cfgfile);
 	//将parameterwrite，另存为新的exe 
 	if(saveasfile!=""){ saveAsExe(saveasfile); return 0; }
-	delUpdateTmpfile();//delete升级后的临时file
+	delUpdateTmpfile();//delete升级后的temporaryfile
 	MyService serv(svrname.c_str(),sServiceDesc);
-	//输入了stop servicepassword,尝试此passwordstop service
+	//input了stop servicepassword,尝试此passwordstop service
 	if(ptr_stoppswd) serv.SetStopEvent(ptr_stoppswd);
 	serv.RegisterService(argc, argv);
 	return 0;

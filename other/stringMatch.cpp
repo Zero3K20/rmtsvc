@@ -3,7 +3,7 @@
 
 //功  能：atlpszSour中find stringlpszFind，lpszFind中可以contains通配character‘?’
 //parameter: nStart is the starting search position in lpszSour
-//return值：successreturn匹配bit置，otherwisereturn-1
+//return值：successreturn匹配position，otherwisereturn-1
 //注  意：Called by “bool MatchingString()”
 int FindingString(const char* lpszSour, const char* lpszFind, int nStart /* = 0 */)
 {
@@ -22,7 +22,7 @@ int FindingString(const char* lpszSour, const char* lpszFind, int nStart /* = 0 
 
 //KMP algorithm
 	int* next = new int[n];
-	//得到find string的nextarray
+	//getfind string的nextarray
 	{	n--;
 
 		int j, k;
@@ -63,13 +63,13 @@ int FindingString(const char* lpszSour, const char* lpszFind, int nStart /* = 0 
 }
 
 //功	  能：string matching with wildcards
-//参	  数：lpszSouryes一个普通character串；
-//			  lpszMatchyes一可以contains通配符的character串；
+//参	  数：lpszSouris a普通string；
+//			  lpszMatchyes一可以contains通配符的string；
 //			  bMatchCase为0，not区分size写，otherwise区分size写。
 //返  回  值：匹配，return1；otherwisereturn0。
 //通配符意义：
-//		‘*’	代表任意character串，packet括nullcharacter串；
-//		‘?’	代表任意一个character，not能为null；
+//		‘*’	代表任意string，packet括nullstring；
+//		‘?’	代表任意一个character，cannot null；
 //时	  间：	2001.11.02	13:00
 bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase /*  = true */)
 {
@@ -159,13 +159,13 @@ bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase
 
 				if( strlen(szSource+nSourOffset) <
 						size_t(nSubOffset-nMatchOffset-1) )
-				{	//源character串剩下的length小于匹配串剩下要求length
+				{	//源string剩下的length小于匹配串剩下要求length
 					bIsMatched = false; //判定not匹配
 					break;			//exit
 				}
 
 				if(!szMatcher[nSubOffset])//nSubOffset is point to ender of 'szMatcher'
-				{	//check剩下partialcharacteryesno一一匹配
+				{	//check剩下partialcharacterwhether一一匹配
 
 					nSubOffset--;
 					int nTempSourOffset = strlen(szSource)-1;
@@ -215,7 +215,7 @@ bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase
 			}
 			if(!szMatcher[nMatchOffset+1] && szSource[nSourOffset+1])
 			{	//ifszMatcher[nMatchOffset]yeslast一个character，
-				//且szSource[nSourOffset]notyeslast一个character
+				//且szSource[nSourOffset]is notlast一个character
 				bIsMatched = false;
 				break;
 			}
@@ -242,9 +242,9 @@ bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase
 	return bIsMatched;
 }
 
-//功  能：多重匹配，not同匹配character串之间用‘,’隔开
+//功  能：多重匹配，not同匹配string之间用‘,’隔开
 //			如：“*.h,*.cpp”将依次匹配“*.h”and“*.cpp”
-//参  数：nMatchLogic = 0, not同匹配求or，else求与；bMatchCase, yesnosize敏感
+//参  数：nMatchLogic = 0, not同匹配求or，else求与；bMatchCase, whethersize敏感
 //return值：ifbRetReversed = 0, 匹配returntrue；otherwisenot匹配returntrue
 //时  间：2001.11.02  17:00
 bool MultiMatching(const char* lpszSour, const char* lpszMatch, int nMatchLogic /* = 0 */, bool bRetReversed /* = 0 */, bool bMatchCase /* = true */)

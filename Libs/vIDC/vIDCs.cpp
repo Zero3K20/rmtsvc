@@ -118,7 +118,7 @@ void vidcsvr::onConnect(socketTCP *psock)
 	
 	RW_LOG_DEBUG("[vidcSvr] c--->s:\r\n\t%s\r\n",buf);
 	if(strncmp(buf,"HELO ",5)==0)
-	{//某个clientconnect登陆
+	{//a certainclientconnect登陆
 		//create新的vidccSession并add到m_sessionsqueue中
 		vidccSession *pvidcc=docmd_helo(psock,buf+5);
 		if(pvidcc==NULL) return; //登陆failureclose connection
@@ -142,11 +142,11 @@ void vidcsvr::onConnect(socketTCP *psock)
 			{
 				*(char *)ptrCmd=0;//startparsecommand
 				if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
-				if(strncmp(ptrBegin,"SSLC ",5)==0) //set某个mapservice的clientauthenticationcertificateinfo
+				if(strncmp(ptrBegin,"SSLC ",5)==0) //seta certainmapservice的clientauthenticationcertificateinfo
 				{//format: SSLC name=<XXX> certlen=<certificatebyte> keylen=<私钥byte> pwdlen=<passwordlength>\r\n后续byte\r\n
 					const char *ptrData=ptrCmd+1;
 					if(*ptrData=='\r' || *ptrData=='\n') ptrData++; //skip \r\n
-					long dataLen=buflen-(ptrData-buf); //得到receivebuffer中还未分析handle的data
+					long dataLen=buflen-(ptrData-buf); //getreceivebuffer中还未分析handle的data
 					//docmd_sslcreturn从receivebuffer中取出handle的data个数
 					dataLen=pvidcc->docmd_sslc(ptrBegin+5,ptrData,dataLen);
 					ptrBegin=ptrData+dataLen; continue; //continue下面的handle
@@ -158,7 +158,7 @@ NextCMD:		//移动ptrBegin到nextcommanddata起始
 			}//?while( (ptrCmd=
 			//if有未receive完的command则移动
 			if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-			{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
+			{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
 				buflen-=iret;
 				memmove((void *)buf,ptrBegin,buflen);
 			} else buflen=0;
@@ -171,8 +171,8 @@ NextCMD:		//移动ptrBegin到nextcommanddata起始
 		pvidcc->Destroy(); delete pvidcc; //Destroy会waitingall的管道end
 	}//?if(strncmp(buf,"HELO ",5)==0)
 	else if(strncmp(buf,"PIPE ",5)==0)
-	{//此connectyes某个vIDCc的管道connect
-		//create一个管道，这样atonConnectexit后releasepsocknot会影响到forwardthread
+	{//此connectyesa certainvIDCc的管道connect
+		//create一个管道，这样atonConnectexit后releasepsockwill not影响到forwardthread
 		socketTCP *pipe=new socketTCP(*psock);
 		//setnull的父object，以便下面waiting管道绑定
 		if(pipe==NULL) return; else pipe->setParent(NULL);

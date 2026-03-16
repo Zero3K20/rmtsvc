@@ -129,30 +129,30 @@ void httpResponse::NoCache() //disable cache
 	m_httprsp_HEADER["Expires"]="-1";
 } 
 //receive the remaining unfinished HTTP response data
-//receiveBytes - receivespecified的bytelength  <=0:receiveall未完data
+//receiveBytes - receive specified byte length; <=0 means receive all remaining data
 //successreturntrue,otherwisereturnfalse
 bool httpResponse::recv_remainderX(socketTCP *psock,long receiveBytes,time_t timeout)
 {
 	//	ASSERT(psock);
-	if(m_respcode<=0) return false; //必须已经getandHTTP response header
+	if(m_respcode<=0) return false; //must have already received the HTTP response header
 	long l,remainBytes=receiveBytes;
 	while(	!m_httprsp_bReceiveALL )
 	{
 		if(m_httprsp_lContentlen>(long)m_httprsp_data.len())
 		{
-			if(m_httprsp_data.Space()<1024) //预分配一定的null间
+			if(m_httprsp_data.Space()<1024) //pre-allocate some space
 				if( m_httprsp_data.Resize(m_httprsp_data.size()+4096)==NULL ) 
 					break;
 
 			char *pbuf=m_httprsp_data.str()+m_httprsp_data.len();
 			l=m_httprsp_data.Space()-1;
 			if(receiveBytes>0 && l>remainBytes) l=remainBytes;
-			//if超过HTTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+			//if data is not received within HTTP_MAX_RESPTIMEOUT, the client may be abnormal
 			l=psock->Receive(pbuf,l,timeout);
 			if(l<0) break; //RW_LOG_DEBUG("Failed to Receive - %d\r\n",l); 
 			if(l==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 			m_httprsp_data.len()+=l; 
-			if( receiveBytes>0) if( (remainBytes-=l)<=0 ) break; //receive完specified的data
+			if( receiveBytes>0) if( (remainBytes-=l)<=0 ) break; //specified data fully received
 		} else m_httprsp_bReceiveALL=true;
 	}//?while
 	m_httprsp_data[m_httprsp_data.len()]=0;
@@ -160,32 +160,32 @@ bool httpResponse::recv_remainderX(socketTCP *psock,long receiveBytes,time_t tim
 	return m_httprsp_bReceiveALL;
 }
 
-//saveHTTP response为specified的file(notcontainsHTTP response header)
-//returnsavefile的size，==0发生error
+//save HTTP response to specified file (not including HTTP response header)
+//returns saved file size; ==0 means error occurred
 unsigned long httpResponse::save_resp(socketTCP *psock,const char *filename)
 {
 	//	ASSERT(psock);
-	if(m_respcode<=0) return 0; //必须已经getandHTTP response header
+	if(m_respcode<=0) return 0; //must have already received the HTTP response header
 	if(filename==NULL || filename[0]==0) return 0;
 	long startPos=0; FILE *fp=NULL;
 	std::map<std::string,std::string>::iterator it=m_httprsp_HEADER.find("Range");
 	if(it!=m_httprsp_HEADER.end()) startPos=atol((*it).second.c_str()+6);
-	if(m_respcode==206) //response content为partial内容
-	{//get起始bit置 //format Content-Range: bytes %d-%d/%d
+	if(m_respcode==206) //response content is partial content
+	{//get starting position //format Content-Range: bytes %d-%d/%d
 		it=m_httprsp_HEADER.find("Content-Range");
 		if(it!=m_httprsp_HEADER.end()) startPos=atol((*it).second.c_str()+6);
 	}
 	fp=(startPos>0)?fopen(filename,"ab"):fopen(filename,"wb");
-	if(fp==NULL) return 0; else if(startPos>0) fseek(fp,startPos,SEEK_SET); //pointer移到specified的bit置
+	if(fp==NULL) return 0; else if(startPos>0) fseek(fp,startPos,SEEK_SET); //move pointer to specified position
 /*  //yyc remove 2007-12-20 begin
 	FILE *fp=::fopen(filename,"wb");
 	if(fp==NULL) return 0;
-	if(m_respcode==206) //response content为partial内容
-	{//get起始bit置 //format Content-Range: bytes %d-%d/%d
+	if(m_respcode==206) //response content is partial content
+	{//get starting position //format Content-Range: bytes %d-%d/%d
 		long startPos=0;
 		std::map<std::string,std::string>::iterator it=m_httprsp_HEADER.find("Content-Range");
 		if(it!=m_httprsp_HEADER.end()) startPos=atol((*it).second.c_str()+6);
-		::fseek(fp,startPos,SEEK_SET); //pointer移到specified的bit置
+		::fseek(fp,startPos,SEEK_SET); //move pointer to specified position
 	}
 */ //yyc remove 2007-12-20 end 
 	unsigned long recvBytes=0;
@@ -211,25 +211,25 @@ unsigned long httpResponse::save_resp(socketTCP *psock,const char *filename)
 	return recvBytes;
 }
 
-//receive HTTP response头
-//successreturnresponse代码<0发生error 0:unknown的response码 
+//receive HTTP response header
+//returns response code on success; <0 means error; 0 means unknown response code 
 SOCKSRESULT httpResponse::recv_rspH(socketTCP *psock,time_t timeout)
 {
 //	ASSERT(psock);
-	const char * pFoundTerminator=NULL; //HTTP response headeryesnoreceive完毕
+	const char * pFoundTerminator=NULL; //whether HTTP response header is fully received
 	cBuffer buffer(1024); char *pbuf;
 	while(	psock->status()==SOCKS_CONNECTED ) 
 	{
 		pbuf=buffer.str()+buffer.len();
-		//if超过timeout仍没收到data可认为client异常
+		//if data is not received after timeout, the client may be abnormal
 		int iret=psock->Receive(pbuf,buffer.Space()-1,timeout);
 		if(iret<0) break;
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }//==0 means received data exceeded the limit
 		buffer.len()+=iret; buffer[buffer.len()]=0;
 		if( (pFoundTerminator=strstr(buffer.str(),"\r\n\r\n")) )
 		{	
-			//ifweb servicereturnresponse码100 ，则说明其收到一partialdata，但未receive完毕，正waitingreceive后续的data
-			//therefore对100的response码，扔掉not予理睬,例如:
+			//if web service returns response code 100, it received partial data but not fully; waiting for more data
+			//therefore for response code 100, discard and ignore it, e.g.:
 			//HTTP/1.1 100 Continue\r\n
 			//Server: Microsoft-IIS/5.0\r\n
 			//Date: Thu, 15 Sep 2005 06:14:13 GMT\r\n\r\n
@@ -239,26 +239,26 @@ SOCKSRESULT httpResponse::recv_rspH(socketTCP *psock,time_t timeout)
 				buffer.len()=iret; continue;
 			} else break;
 		}//?if( (pFoundTerminator=strstr(buffer.str(),"\r\n\r\n")) )
-		if(buffer.Space()<256) //预分配一定的null间，以便完整receiverequest头
+		if(buffer.Space()<256) //pre-allocate some space to fully receive the request header
 			if( buffer.Resize(buffer.size()+1024)==NULL ) break;						
 	}//?while
-	if(pFoundTerminator==NULL) return SOCKSERR_HTTP_RESP; //未receive到完整的HTTP request header
+	if(pFoundTerminator==NULL) return SOCKSERR_HTTP_RESP; //did not receive complete HTTP request header
 
-	//打印receive的HTTP response header
+	//print the received HTTP response header
 	*(char *)pFoundTerminator=0;
 	RW_LOG_DEBUG("[httprsp] Received HTTP Response Header\r\n%s\r\n",buffer.str());
 	*(char *)pFoundTerminator='\r';
 
-	init_httprsp(); //initializationhttp requestobject的variable
+	init_httprsp(); //initialize http request object variables
 	if(ParseResponse(buffer.str())==0) return 0;
 
 	if(m_httprsp_lContentlen!=0)
-	{//判断responsedatayesnoreceive完毕
+	{//check whether response data is fully received
 		long receivedBytes=buffer.len()-(pFoundTerminator+4-buffer.str());
 		if(m_httprsp_lContentlen>0 && receivedBytes>=m_httprsp_lContentlen)
-			m_httprsp_bReceiveALL=true; //responsedata已经receive完毕
+			m_httprsp_bReceiveALL=true; //response data fully received
 		else m_httprsp_bReceiveALL=false;
-		//将已receive的data存放到m_httprsp_data中
+		//store received data in m_httprsp_data
 		if(receivedBytes>0)
 			::memmove(buffer.str(),pFoundTerminator+4,receivedBytes);
 		buffer.len()=receivedBytes;
@@ -281,7 +281,7 @@ SOCKSRESULT httpResponse::send_rspH(socketTCP *psock,int respcode,const char *re
 	}
 	if(m_httprsp_lContentlen!=0) //有response content
 	{
-		//206specifies传输的yespartialdata，atresponse头里必须contains Content-Range: bytes %d-%d/%d,但not必containsAccept-Ranges
+		//206specifiestransfer的yespartialdata，atresponse头里必须contains Content-Range: bytes %d-%d/%d,但not necessary tocontainsAccept-Ranges
 		if(respcode!=206) m_httprsp_HEADER["Accept-Ranges"]="bytes";
 		if(m_httprsp_HEADER.count("Content-Type")<1) 
 			m_httprsp_HEADER["Content-Type"]=MIMETYPE_STR[MIMETYPE_HTML];
@@ -294,7 +294,7 @@ SOCKSRESULT httpResponse::send_rspH(socketTCP *psock,int respcode,const char *re
 		{
 			outbuf.len()+=sprintf(outbuf.str()+outbuf.len(),
 			"%s: %s\r\n",(*it).first.c_str(),(*it).second.c_str());
-			if(outbuf.Space()<256) //预分配一定的null间
+			if(outbuf.Space()<256) //pre-allocate some space
 				if( outbuf.Resize(outbuf.size()+256)==NULL ) break;	
 		}
 	}//?
@@ -361,7 +361,7 @@ MIMETYPE_ENUM httpResponse::MimeType(const char *filename)
 	}
 	return MIMETYPE_OCTET;
 }
-//根据扩展名判断要传输file的type
+//根据扩展名判断要transferfile的type
 inline MIMETYPE_ENUM getMimeType(const char *filename,FILE *fp)
 {
 	const char *ptr=strrchr(filename,'.');
@@ -439,7 +439,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 	if(filename==NULL || filename[0]==0) return SOCKSERR_PARAM;
 	FILE *fp=::fopen(filename,"rb");
 	if(fp==NULL) return SOCKSERR_PARAM;
-	//根据扩展名判断要传输file的type
+	//根据扩展名判断要transferfile的type
 	if(mt==MIMETYPE_UNKNOWED) mt=getMimeType(filename,NULL);
 	if(mt!=MIMETYPE_NONE) set_mimetype(mt);
 	setLastModify(filename,m_httprsp_HEADER);
@@ -470,7 +470,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 	return SOCKSERR_OK;
 }
 
-//sendfile多个区间断的内容，returns SOCKSERR_OK on success
+//sendfilemultiple区间断的内容，returns SOCKSERR_OK on success
 const char HTTPBOUNDARY_STRING[]="--#yycnet.yeah.net#";
 SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYPE_ENUM mt,long* lpstartPos,long* lpendPos,int iRangeNums)
 {
@@ -484,7 +484,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 
 	long i,l,filesize,lContentlen=0;
 	fseek(fp,0,SEEK_END); filesize=::ftell(fp);
-	//根据扩展名判断要传输file的type
+	//根据扩展名判断要transferfile的type
 	if(mt==MIMETYPE_UNKNOWED) mt=getMimeType(filename,NULL);
 	std::vector<std::pair<const char *,long> > v;
 	char *pbuf=buf;
@@ -498,7 +498,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 		v.push_back(p); pbuf+=(l+1);
 	}//?for(
 
-	m_httprsp_lContentlen=lContentlen + 2 * iRangeNums; //还要contains每个data块last的\r\n
+	m_httprsp_lContentlen=lContentlen + 2 * iRangeNums; //还要containseachdata块last的\r\n
 	sr=send_rspH(psock,206,"Partial content");
 	if(sr<0) return sr;
 	char *readbuf=new char[SSENDBUFFERSIZE];
@@ -531,7 +531,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 //parse HTTP response头，returnresponse码
 int httpResponse::ParseResponse(const char *httprspH)
 {
-	//handle每一行data
+	//handle each line of data
 	bool bFirstLine = true;
 	const char *ptrLineStart=httprspH;
 	const char *ptrLineEnd=strchr(ptrLineStart,'\n');
@@ -543,7 +543,7 @@ int httpResponse::ParseResponse(const char *httprspH)
 		}
 
 		if(bFirstLine)
-		{//handlefirst行data
+		{//handle first line of data
 			if(strncasecmp(ptrLineStart,"HTTP/",5)!=0) return 0;
 			const char *ptrStart=ptrLineStart+5;
 			const char *pFoundTerminator=strchr(ptrStart,' ');
@@ -559,7 +559,7 @@ int httpResponse::ParseResponse(const char *httprspH)
 			bFirstLine=false;
 		}
 		else
-		{//handle其它行data
+		{//handle other lines of data
 			const char *pvalue,*pFoundTerminator=strchr(ptrLineStart,':');
 			if(pFoundTerminator)
 			{
@@ -572,7 +572,7 @@ int httpResponse::ParseResponse(const char *httprspH)
 					m_httprsp_lContentlen=atol(pvalue);
 				}
 //				else if(strcmp(ptrLineStart,"Cookie")==0)
-//				{//cookiedataformat：Cookie: name=value; name=value...
+//				{//cookie data format: Cookie: name=value; name=value...
 //					std::string strtmp(pvalue);
 //					parseParam((char *)strtmp.c_str(),';',m_httprsp_COOKIE);
 //				}
@@ -592,7 +592,7 @@ int httpResponse::ParseResponse(const char *httprspH)
 		{
 			*(char *)ptrLineEnd='\n';
 			if(*(ptrLineEnd-1)=='\0') *(char*)(ptrLineEnd-1)='\r';
-			//遇到null行则HTTP request headerend
+			//encountering empty line means HTTP request header end
 			if(ptrLineStart[0]=='\r' || ptrLineStart[0]=='\n') break; 
 		}
 		ptrLineStart=ptrLineEnd+1;
@@ -621,7 +621,7 @@ void httpResponse::parse_SetCookie(const char *strParam)
 			if(ptrEnd)
 				 cCoder::mime_decode(ptr,ptrEnd-ptr,ptr);
 			else cCoder::mime_decode(ptr,strlen(ptr),ptr);
-			sName.assign(::_strlwr(ptrStart)); //name应not区分size写，therefore全convert为小写
+			sName.assign(::_strlwr(ptrStart)); //name should be case-insensitive; convert all to lowercase
 			sVal.assign(ptr);
 			if(sName=="expires") newCookie.cookie_expires=sVal;
 			else if(sName=="path") newCookie.cookie_path=sVal;
@@ -647,14 +647,14 @@ void httpResponse::parseParam(char *strParam,char delm,
 			cCoder::mime_decode(ptrStart,ptr-ptrStart,ptrStart);
 			ptr++;
 			cCoder::mime_decode(ptr,ptrEnd-ptr,ptr);
-			//name应not区分size写，therefore全convert为小写
+			//name should be case-insensitive; convert all to lowercase
 			::_strlwr(ptrStart);
 			maps[ptrStart]=string(ptr);
 		}
 		ptrStart=ptrEnd+1;
 		while(*ptrStart==' ') ptrStart++;//delete leading spaces
 	}//?while
-	//可能还有一个parameter没有handle
+	//there may be one more parameter not handled
 	if( (ptr=strchr(ptrStart,'=')) )
 	{
 		*ptr=0;
@@ -662,13 +662,13 @@ void httpResponse::parseParam(char *strParam,char delm,
 		ptr++; ptrEnd=ptr; //last一个parameter可能含有回车换行(Mozilla浏览器)
 		while(*ptrEnd && *ptrEnd!='\r' && *ptrEnd!='\n') ptrEnd++;
 		cCoder::mime_decode(ptr,ptrEnd-ptr,ptr);
-		//name应not区分size写，therefore全convert为小写
+		//name should be case-insensitive; convert all to lowercase
 		::_strlwr(ptrStart);
 		maps[ptrStart]=string(ptr);
 	}
 	return;
 }
-//编码parameter
+//encodingparameter
 void httpResponse::encodeParam(cBuffer &buf,char delm,
 							 std::map<std::string,std::string> &maps)
 {
@@ -677,7 +677,7 @@ void httpResponse::encodeParam(cBuffer &buf,char delm,
 	{
 		int l=cCoder::MimeEncodeSize((*it).first.length())+
 			cCoder::MimeEncodeSize((*it).second.length())+1;
-		if(l<128) l=128; //totalyes保留一定的null间免得频繁分配并移动
+		if(l<128) l=128; //reserve some space to avoid frequent allocation and movement
 		if((int)buf.Space()<l)
 			if(buf.Resize(buf.size()+l)==NULL) break;
 

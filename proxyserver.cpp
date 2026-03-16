@@ -92,10 +92,10 @@ bool proxysvrEx::modiUser(TProxyUser &proxyuser)
 	ptr_account->m_maxratio=proxyuser.maxratio;
 	ptr_account->m_maxLoginusers=proxyuser.maxLoginusers;
 	ptr_account->m_limitedTime=proxyuser.limitedTime;
-	ptr_account->m_ipRules.addRules(NULL); //clearall过滤规则
+	ptr_account->m_ipRules.addRules(NULL); //clear all过滤规则
 	ptr_account->m_ipRules.addRules_new(RULETYPE_TCP,proxyuser.ipaccess,proxyuser.ipRules.c_str());
 
-	ptr_account->m_dstRules.addRules(NULL); //clearall目的过滤规则
+	ptr_account->m_dstRules.addRules(NULL); //clear all目的过滤规则
 	ptr_account->m_dstRules.addRules_new(RULETYPE_TCP,proxyuser.bAccessDest,proxyuser.strAccessDest.c_str());
 
 	return true;

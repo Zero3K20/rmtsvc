@@ -61,7 +61,7 @@ mportTCP :: ~mportTCP()
 	m_modURLRewriter.clear();
 }
 
-//set SSL certificateinfo并start mapping service
+//set SSL certificate info and start mapping service
 SOCKSRESULT mportTCP :: Start(const char *strMyCert,const char *strMyKey,const char *strKeypwd,
 					   const char *strCaCert,const char *strCaCRL) 
 {
@@ -104,7 +104,7 @@ void mportTCP :: setSSLType(SSLTYPE ssltype,bool bSSLVerify)
 	return;
 }
 
-//set要mapped application service
+//set the application service to be mapped
 void mportTCP :: setAppsvr(const char *appsvr,int apport,const char *appdesc,MPORTTYPE apptype)
 {
 	m_appSvr.clear();
@@ -147,7 +147,7 @@ void mportTCP :: setMapping(int mportStart,int mportEnd,const char *bindip)
 }
 
 
-//connectspecified的application service并returnconnectsocketTCPobject
+//connect to the specified application service and return the connected TCP socket object
 socketTCP * mportTCP :: connectAppsvr(char *strHost,socketTCP *psock)
 {
 	std::pair<std::string,int> *p=GetAppsvr();
@@ -167,14 +167,14 @@ socketTCP * mportTCP :: connectAppsvr(char *strHost,socketTCP *psock)
 //triggered when a new client connects to this service
 void mportTCP :: onAccept(socketTCP *psock)
 {
-	char strHost[64]; //strHost 实际connect主机的address，formatHost:port
-	socketTCP *ppeer=connectAppsvr(strHost,psock); //connect被map的service
+	char strHost[64]; //strHost: actual connect host address, format Host:port
+	socketTCP *ppeer=connectAppsvr(strHost,psock); //connect to the mapped service
 	if(ppeer==NULL) return; else ppeer->setParent(psock);
 	RW_LOG_DEBUG("Success to connect Mapped server(%s)\r\n",strHost);
 	if(m_ssltype==SSLSVR_TCPSVR)
-	{//ifapplication serviceyesSSLencryptionservice且map后为普通service,加载clientcertificate
+	{//if application service is SSL-encrypted but mapped as plain service, load client certificate
 #ifdef _SURPPORT_OPENSSL_
-		ppeer->setCacert(this,true); //从server复制clientcertificate
+		ppeer->setCacert(this,true); //copy client certificate from server
 		ppeer->initSSL(false,NULL); //initializationSSLclient
 		if(!ppeer->SSL_Associate()){ 
 			RW_LOG_DEBUG("Failed to SSL_Associate,Mapped server(%s)\r\n",strHost);
@@ -182,15 +182,15 @@ void mportTCP :: onAccept(socketTCP *psock)
 		}
 #endif
 	}//?else if(m_ssltype==SSLSVR_TCPSVR)
-	//set限制带宽
+	//set bandwidth limit
 	psock->setSpeedRatio(m_maxratio*1024,m_maxratio*1024);
 	ppeer->setSpeedRatio(psock->getMaxSendRatio(),psock->getMaxRecvRatio());
 	FILE *fp=NULL;
 	if(m_bLogdatafile){ //whether to log proxy data
-		char logfilename[256]; //记录logfilename
+		char logfilename[256]; //log filename
 		int logfilenameLen=sprintf(logfilename,"%s_%d-",psock->getRemoteIP(),psock->getRemotePort());
 		logfilenameLen+=sprintf(logfilename+logfilenameLen,"%s.log",strHost);
-		logfilename[logfilenameLen]=0; //strHost中contains:
+		logfilename[logfilenameLen]=0; //strHost contains:
 		const char *ptr=strchr(logfilename,':'); if(ptr) *(char *)ptr='_';
 		if( (fp=::fopen(logfilename,"ab")) )
 		{
@@ -204,34 +204,34 @@ void mportTCP :: onAccept(socketTCP *psock)
 	if(m_threadpool.addTask((THREAD_CALLBACK *)&transDataThread,(void *)&p,THREADLIVETIME)!=0)
 	{
 		char *pbuf,buffer[MAX_TRANSFER_BUFFER+1]; //forwardbuffersize
-		long buflen=0; //forwardbuffer中待senddatasize
+		long buflen=0; //size of data pending send in forward buffer
 		while( psock->status()==SOCKS_CONNECTED )
 		{
 			int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret<0) break; 
-			if(iret==0) continue; //no data到达
+			if(iret==0) continue; //no data arrived
 			iret=psock->Receive(buffer+buflen,MAX_TRANSFER_BUFFER-buflen,-1);
 			if(iret<0) break; //==0 means received data exceeded the limit
 			if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 			else{ buflen+=iret; pbuf=buffer; }
 			pbuf[buflen]='\0'; //ensure null-terminated string
-			//判断application service的type---------------------
+			//determine application service type---------------------
 			if(this->m_apptype==MPORTTYPE_UNKNOW)
 			{
 				if(strncmp(pbuf,"GET ",4)==0 || strncmp(pbuf,"POST ",5)==0)
 					this->m_apptype=MPORTTYPE_WWW;
-			}//判断application service的type---------------------
+			}//determine application service type---------------------
 			if(this->m_apptype==MPORTTYPE_WWW && 
 //				(strncmp(pbuf,"GET ",4)==0 || strncmp(pbuf,"POST ",5)==0) &&
-			   //此port mappingconfiguration了request头改写orURL重写
+			   //this port mapping has configured request header rewrite or URL rewrite
 			   (this->m_modReqHeader.size()>0 || this->m_modURLRewriter.size()>0) )
 			{
-				//判断HTTPresponse头yesnoreceive完毕
+				//check whether HTTP response header is fully received
 				const char *ptr=strstr(pbuf,"\r\n\r\n");
-				if(ptr==NULL) continue; //未receive完毕，continuereceive
+				if(ptr==NULL) continue; //not fully received; continue receiving
 				else *(char *)(ptr+2)=0;
-				HttpHeader reqHeader(pbuf); //otherwisereceive完毕，parseHTTPresponse头			
-				std::string requrl; long matchLen=0; //比较length
+				HttpHeader reqHeader(pbuf); //otherwise fully received; parse HTTP response header			
+				std::string requrl; long matchLen=0; //comparison length
 				std::map<std::string,std::vector<RegCond> >::iterator it,findit=
 					this->m_modReqHeader.end();
 				if(reqHeader.GetUrl(requrl)){
@@ -267,9 +267,9 @@ void mportTCP :: onAccept(socketTCP *psock)
 				::fwrite(pbuf,1,buflen,fp); }
 ///#endif
 			iret=ppeer->Send(buflen,pbuf,-1);
-			if(iret<0) break; else buflen=0; //clear待senddata
+			if(iret<0) break; else buflen=0; //clear pending send data
 		}//?while
-		ppeer->Close(); //waiting另外的forwardthread end
+		ppeer->Close(); //wait for the other forward thread to end
 		while(ppeer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
 	}else RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
 ///#ifdef PROXYDATA_LOG //whether to log proxy data
@@ -291,20 +291,20 @@ void mportTCP :: transDataThread(std::pair<socketTCP *,FILE *> *p)
 	if(ppeer==NULL) return;
 	mportTCP *psvr=(mportTCP *)ppeer->parent();
 	
-	mportTCP *pftpDatasvr=NULL; //ftpservice的dataport的map
+	mportTCP *pftpDatasvr=NULL; //mapping of FTP service data port
 	char *pbuf,buffer[MAX_TRANSFER_BUFFER+1]; //forwardbuffersize
-	long buflen=0; //forwardbuffer中待senddatasize
+	long buflen=0; //size of data pending send in forward buffer
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
-		if(iret==0) continue; //no data到达
+		if(iret==0) continue; //no data arrived
 		iret=psock->Receive(buffer+buflen,MAX_TRANSFER_BUFFER-buflen,-1);
 		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		else{ buflen+=iret; pbuf=buffer; }
 		pbuf[buflen]='\0'; //ensure null-terminated string
-		//判断application service的type---------------------
+		//determine application service type---------------------
 		if(psvr->m_apptype==MPORTTYPE_UNKNOW)
 		{
 			if(strncmp(pbuf,"220 ",4)==0 || strncmp(pbuf,"220-",4)==0)
@@ -312,12 +312,12 @@ void mportTCP :: transDataThread(std::pair<socketTCP *,FILE *> *p)
 			else if(strncmp(pbuf,"HTTP/1.",7)==0)
 				psvr->m_apptype=MPORTTYPE_WWW;
 			else psvr->m_apptype=MPORTTYPE_TCP;
-		}//判断application service的type---------------------
+		}//determine application service type---------------------
 		if(psvr->m_apptype==MPORTTYPE_FTP)
-		{//check whether为FTPservicePASVcommand的return
+		{//check whether this is the FTP service PASV command return
 			if(strncmp(pbuf,"227 ",4)==0){
 				if(psvr->AnalysePASV(pftpDatasvr,pbuf,iret,ppeer)) 
-					buflen=0; //clear待sendbufferdata
+					buflen=0; //clear pending send buffer data
 				else RW_LOG_DEBUG("Failed to Analyse PASV:\r\n\t%s.\r\n",pbuf);
 			}//?if(strncmp(buf,"227 ",4)==0)
 		}//?else if(psvr->m_apptype==MPORTTYPE_FTP)
@@ -328,11 +328,11 @@ void mportTCP :: transDataThread(std::pair<socketTCP *,FILE *> *p)
 			std::map<int,std::vector<RegCond> >::iterator findit=
 				psvr->m_modRspHeader.find(rspcode);
 			if(findit!=psvr->m_modRspHeader.end())
-			{//判断HTTPresponse头yesnoreceive完毕
+			{//check whether HTTP response header is fully received
 				const char *ptr=strstr(pbuf,"\r\n\r\n");
-				if(ptr==NULL) continue; //未receive完毕，continuereceive
+				if(ptr==NULL) continue; //not fully received; continue receiving
 				else *(char *)(ptr+2)=0;
-				//otherwisereceive完毕，parseHTTPresponse头
+				//otherwise fully received; parse HTTP response header
 				HttpHeader rspHeader(pbuf);
 				buflen-=(ptr+4-pbuf); pbuf=(char *)ptr+4;
 				std::vector<RegCond> &regcond=(*findit).second;
@@ -348,35 +348,35 @@ void mportTCP :: transDataThread(std::pair<socketTCP *,FILE *> *p)
 			::fwrite(pbuf,1,buflen,fp); }
 ///#endif
 		iret=ppeer->Send(buflen,pbuf,-1);
-		if(iret<0) break; else buflen=0; //clear待senddata
+		if(iret<0) break; else buflen=0; //clear pending send data
 	}//while (psock
 	ppeer->Close(); delete pftpDatasvr;
-	psock->setParent(NULL); //用于onAcceptthread判断forwardthreadyesnoend
+	psock->setParent(NULL); //used by onAccept thread to check whether forward thread has ended
 }
 
-//parsePASV的return
+//parse PASV return
 int parsePASV(char *buf,int len,char* retIP,int &retPort);
 bool mportTCP :: AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP *ppeer)
 {
 	char pasvbuf[64]; int iport=0;
 	int l=parsePASV(buf,len,pasvbuf,iport); //parsePASVreturncommand
 	if(l<=0) return false;
-	if(pftpDatasvr==NULL) //临时map一个FTPdata传输serviceport
+	if(pftpDatasvr==NULL) //temporarily map an FTP data transfer service port
 		if( (pftpDatasvr=new mportTCP)==NULL) return false;
 
-	pftpDatasvr->m_appSvr.clear();//重新set要mapped application service
+	pftpDatasvr->m_appSvr.clear();//重新set the application service to be mapped
 	std::pair<std::string,int> p(pasvbuf,iport);
 	pftpDatasvr->m_appSvr.push_back(p);
 	pftpDatasvr->m_apptype=MPORTTYPE_TCP;   //service type
 	pftpDatasvr->m_ssltype=TCPSVR_TCPSVR;
-	strcpy(pftpDatasvr->m_bindLocalIP,ppeer->getLocalIP());//绑定specified的IP
-	//specified只允许specified的IPaddressconnect限制
+	strcpy(pftpDatasvr->m_bindLocalIP,ppeer->getLocalIP());//bind the specified IP
+	//restrict to only allow the specified IP address to connect
 	iprules &ipr=pftpDatasvr->rules();
-	ipr.setDefaultEnabled(false); //default禁止
+	ipr.setDefaultEnabled(false); //disabled by default
 	sprintf(pasvbuf,"%s 255.255.255.255 0 RULETYPE_TCP true",ppeer->getRemoteIP());
-	ipr.addRules(pasvbuf); //add体格IP filter rules，仅仅允许currentconnect的clientconnect此mapservice
+	ipr.addRules(pasvbuf); //add IP filter rules; only allow the currently connected client to connect to this map service
 	if(this->m_mportBegin==this->m_mportEnd)
-			pftpDatasvr->m_mportBegin=pftpDatasvr->m_mportEnd=0; //随机map port
+			pftpDatasvr->m_mportBegin=pftpDatasvr->m_mportEnd=0; //random map port
 	else{
 			pftpDatasvr->m_mportBegin=this->m_mportBegin;
 			pftpDatasvr->m_mportEnd=this->m_mportEnd;
@@ -390,7 +390,7 @@ bool mportTCP :: AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP 
 	if((len-l)>0) ppeer->Send(len-l,buf+l,-1);
 	return true;
 }
-//notcontainsxml头and<mapinfo>标签
+//does not contain XML header and <mapinfo> tag
 //<svrport></svrport>
 //<starttime></starttime>
 //<connected></connected>
@@ -407,7 +407,7 @@ bool mportTCP :: AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP 
 //<blogd></blogd>
 void mportTCP :: xml_info_mtcp(cBuffer &buffer)
 {
-	//一次分配足够null间
+	//allocate sufficient space at once
 	if(buffer.Space()<512) buffer.Resize(buffer.size()+512);
 	if(buffer.str()==NULL) return;
 	if(this->status()==SOCKS_LISTEN)
@@ -468,7 +468,7 @@ void mportTCP :: xml_info_mtcp(cBuffer &buffer)
 	if(m_bSSLVerify) buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sslverify>1</sslverify>");
     //limit maximum connections
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<maxconn>%d</maxconn>",this->maxConnection());
-	//限制maximum带宽 kb/s
+	//limit maximum bandwidth kb/s
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<maxratio>%d</maxratio>",m_maxratio);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<blogd>%c</blogd>",(m_bLogdatafile)?'*':' ');
 	return;
@@ -505,7 +505,7 @@ int mportTCP :: str_info_mtcp(const char *mapname,char *buf)
 
 	//limit maximum connections
 	len+=sprintf(buf+len," maxconn=%d",this->maxConnection());
-	len+=sprintf(buf+len," maxratio=%d",m_maxratio);//限制maximum带宽 kb/s
+	len+=sprintf(buf+len," maxratio=%d",m_maxratio);//limit maximum bandwidth kb/s
 	len+=sprintf(buf+len," blogd=%d", (m_bLogdatafile)?1:0);
 
 	len+=sprintf(buf+len," appdesc=\"%s\"",m_strSvrname.c_str());
@@ -513,7 +513,7 @@ int mportTCP :: str_info_mtcp(const char *mapname,char *buf)
 	return len;
 }
 
-//parsePASV的return
+//parse PASV return
 int parsePASV(char *buf,int len,char* retIP,int &retPort)
 {
 	char *ptr1,*ptr2,*ptr=strchr(buf,'\r');
@@ -554,7 +554,7 @@ bool mportTCP :: addRegCond(int rspcode,const char *header,const char *pattern,c
 	}else{
 		std::vector<RegCond> &regcond=(*it_rsp).second;
 		int i=0;
-		for(;i<(int)regcond.size();i++) //查找此headeryesno已经存at
+		for(;i<(int)regcond.size();i++) //check whether this header already exists
 		{
 			if(strcasecmp(regcond[i].strHeader.c_str(),header)==0) break;
 		}//?for(int i=0;
@@ -575,7 +575,7 @@ bool mportTCP :: addRegCond(int rspcode,const char *header,const char *pattern,c
 bool mportTCP :: addRegCond(const char *url,const char *header,const char *pattern,const char *replto)
 {
 	//yyc add 2010-02-23 begin============================
-	if(url && strcmp(url,"URLRewrite")==0){ //URL重写
+	if(url && strcmp(url,"URLRewrite")==0){ //URL rewrite
 		if(pattern==NULL || pattern[0]==0) return false;
 		if(replto==NULL || replto[0]==0) return false;
 		m_modURLRewriter[pattern]=std::string(replto);
@@ -596,7 +596,7 @@ bool mportTCP :: addRegCond(const char *url,const char *header,const char *patte
 	}else{
 		std::vector<RegCond> &regcond=(*it_req).second;
 		int i=0;
-		for(;i<(int)regcond.size();i++) //查找此headeryesno已经存at
+		for(;i<(int)regcond.size();i++) //check whether this header already exists
 		{
 			if(strcasecmp(regcond[i].strHeader.c_str(),header)==0) break;
 		}//?for(int i=0;
@@ -660,7 +660,7 @@ HttpHeader :: HttpHeader(const char *httpHead)
 	if(httpHead==NULL) return;
 	const char *ptrBegin=httpHead;
 	const char *ptrEnd=strchr(ptrBegin,'\r');
-	if(ptrEnd){ //先save首行info
+	if(ptrEnd){ //first save the first line info
 		m_strFirstLine.assign(ptrBegin,ptrEnd-ptrBegin);
 		ptrBegin=ptrEnd+2;
 		while( (ptrEnd=strchr(ptrBegin,'\r')) )
@@ -762,21 +762,21 @@ bool HttpHeader :: URLRewrite(std::map<std::string,std::string> &URLRewriter)
 
 	std::map<std::string,std::string >::iterator it;
 	for(it=URLRewriter.begin();it!=URLRewriter.end();it++)
-	{//check whether匹配URL重写规则
-		regexp reg((*it).first.c_str()); //URL匹配regular expression
+	{//check whether匹配URL rewrite规则
+		regexp reg((*it).first.c_str()); //URL matching regular expression
 		MatchResult rs=reg.Match(ptrbegin);
-		if(rs.IsMatched()!=0) break; //匹配success
+		if(rs.IsMatched()!=0) break; //match success
 	}//?for(itURLRewriter.begin()...
 	if(it==URLRewriter.end()){ *(char *)ptrend=c;  return false; } 
 
-	//configuration了针对此url的重写，按照规则进行替换
+	//URL rewrite configured; perform substitution according to rules
 	RW_LOG_DEBUG("URLRewriter: %s Match %s\r\n",ptrbegin,(*it).first.c_str());
 	regexp reg((*it).first.c_str());
 	char *ptrNew=reg.Replace(ptrbegin,(*it).second.c_str());
 	RW_LOG_DEBUG("URLRewriter: %s ----> %s\r\n",ptrbegin,ptrNew);
-	*(char *)ptrend=c; //resume替换character
+	*(char *)ptrend=c; //restore the replaced character
 	int p0=ptrbegin-m_strFirstLine.c_str();
 	m_strFirstLine.replace(p0,(ptrend-ptrbegin),ptrNew);
 	if(ptrNew) regexp::ReleaseString(ptrNew); 
-	return true; //对此URL进行了重写操作
+	return true; //performed URL rewrite operation
 }

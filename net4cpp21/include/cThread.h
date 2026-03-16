@@ -38,15 +38,15 @@
 	}
 #elif defined MAC //temporarily not supported
 	//....
-#else  //unix/linux平台
-	//为了保证可移植，此处的多thread function用的yesPOSIX的multithreading库，therefore编译时应specifiedconnect -lpthread库。if用sun系统本身的多thread function则应制定connect-lthread库。
+#else  //unix/linux platform
+	//为了保证可移植，此处的多thread function用的yesPOSIX的multithreading库，therefore编译时应specifiedconnect -lpthread库。if用sunsystem本身的多thread function则应制定connect-lthread库。
 	//关于STL的multithreading安全
-	//atsun的系统下编写multithreading程序时，if用了c++的STL库，则要小心，因为你会发现atsun下有可能会发生core dump，而同样的程序atlinux下缺始终没有问题。
-	//用gdb定bitcore dumpbit置，发现可能会at你程序的任何地方，但totalatSTL库的stl_alloc.h的memory allocation处发生问题，某个address值被modify为一个非法的address导致出
-	//问题，when然这也有可能yes由于你的memory非法操作的问题，如release了某个memorynull间却还atreference此address。查查stl_alloc.hfile你会发现原来STL的memory allocationdefault为
-	//single_pthread模式，你必须define某个宏才会支持multithreading模式，packet括POSIXmultithreading、win32multithreading，Solarismultithreading等。
-	//thereforesun系统下编写POSIX标准的multithreading程序，if用到了STL库，则at编译时一定要specified-D__STL_PTHREADS宏parameter，
-	//linux下可能defaultyes以multithreading安全方式编译的，thereforenot会出问题。其他的multithreading宏define你可看看stl_alloc.h头file。
+	//atsun的system下编写multithreading程序时，if用了c++的STL库，则要小心，因为你会发现atsun下有可能会发生core dump，而同样的程序atlinux下缺始终没有问题。
+	//用gdb定bitcore dumpposition，发现可能会at你程序的任何地方，但totalatSTL库的stl_alloc.h的memory allocation处发生问题，a certainaddress值被modify为一个非法的address导致出
+	//问题，when然这也有可能yes由于你的memory非法操作的问题，如release了a certainmemoryspace却还atreference此address。查查stl_alloc.hfile你会发现原来STL的memory allocationdefault为
+	//single_pthread模式，你必须definea certain宏才会支持multithreading模式，packet括POSIXmultithreading、win32multithreading，Solarismultithreading等。
+	//thereforesunsystem下编写POSIX标准的multithreading程序，if用到了STL库，则at编译时一定要specified-D__STL_PTHREADS宏parameter，
+	//linux下可能defaultis viamultithreading安全方式编译的，thereforewill not出问题。其他的multithreading宏define你可看看stl_alloc.h头file。
 	//multithreading
 	extern "C"
 	{ //multi-thread function, mutex
@@ -67,76 +67,76 @@ namespace net4cpp21
 		pthread_t m_thrid;//thread IDorthread handle(windows)
 		THREAD_CALLBACK *m_threadfunc;
 		void *m_pArgs;//传递给thread function的parameter
-		bool m_bStarted;//threadyesnoin progress运行
+		bool m_bStarted;//threadwhetherin progress运行
 	private:
 #ifdef WIN32 //Windows system platform
     	static unsigned int __stdcall threadfunc(void* param);
-#else //unix/linux平台
+#else //unix/linux platform
         static void* threadfunc(void* param);
 #endif
 	public:
 		cThread();
 		~cThread();
 		bool start(THREAD_CALLBACK *pfunc,void *pargs);
-		void join(time_t timeout=-1);//stopthread并wait for thread to end才return,timeout :swaitingend的秒
-		bool status(){return m_bStarted;} //returncurrent threadyesno运行
+		void join(time_t timeout=-1);//stop the thread and wait for it to end before returning,timeout :swaitingend的秒
+		bool status(){return m_bStarted;} //returncurrent threadwhether运行
 	};
 	
 	//*******************************************************************************
 	//thread poolclass************************************************************************
-	//可动态create多个thread进入thread pool，thread pool的thread end一个任务后自动取任务list中的任务进行执行
+	//可dynamiccreatemultiplethread进入thread pool，thread pool的thread end一个task后auto取tasklist中的task进行执行
 	#define TASKID unsigned long
-	typedef struct _TASKPARAM //任务parameterstructure
+	typedef struct _TASKPARAM //taskparameterstructure
 	{
-		TASKID m_taskid;//唯一标识本任务的任务ID
-		THREAD_CALLBACK *m_pFunc;//任务function入口pointer
-		void *m_pArgs;//传递给任务的parameter
+		TASKID m_taskid;//唯一identifier本task的taskID
+		THREAD_CALLBACK *m_pFunc;//taskfunction入口pointer
+		void *m_pArgs;//传递给task的parameter
 	}TASKPARAM;
 	typedef struct _THREADPARAM //threadparameterstructure
 	{
 		pthread_t m_thrid;//thread IDorthread handle(windows)
-		time_t m_waittime;//thread休眠waitingtime
+		time_t m_waittime;//threadsleepingwaitingtime
 		cCond *m_pcond;
 	}THREADPARAM;
 	class cThreadPool
 	{
-		TASKID m_taskid;//任务的唯一标识
+		TASKID m_taskid;//task的唯一identifier
 		cMutex m_mutex;//mutex
-		std::deque<TASKPARAM> m_tasklist;//任务list
+		std::deque<TASKPARAM> m_tasklist;//tasklist
 		std::map<pthread_t,THREADPARAM> m_thrmaps;//threadqueue
 	public:
 		cThreadPool();
 		~cThreadPool();
 		void join(time_t timeout=-1);
-		//initializationworker thread个数
-		//threadnum --- 要新create的thread个数
-		//waittime --- 新create的threadif休眠specified的time后仍然没有任务handle自动end
-		//		if==-1则一直休眠知道有specified的任务要handle
-		//returncurrenttotal的worker thread个数
+		//initialize number of worker threads
+		//threadnum --- number of new threads to create
+		//waittime --- new thread will auto-end if no task arrives within the specified sleep time
+		//		if==-1则一直sleeping知道有specified的task要handle
+		//return current total number of worker threads
 		long initWorkThreads(long threadnum,time_t waittime=-1);
-		//add一个任务进入任务queue
-		//pfunc --- 任务functionpointer
-		//pargs --- 传递给任务function的parameter
-		//waittime --- ifcurrent thread池中的thread都被占用yesno临时create一个新的thread进入thread pool
-		//		if<0则notcreate，waiting其他threadnull闲后handle；otherwisecreate，此时waittime为when此threadcomplete此任务atthread pool中的maximum休眠waitingtime
-		//ifsuccess则return任务TASKID，otherwisereturn0
+		//add a task to the task queue
+		//pfunc --- task function pointer
+		//pargs --- parameter passed to the task function
+		//waittime --- whether to temporarily create a new thread if all threads in the pool are busy
+		//		if <0, do not create; wait for another thread to become idle. Otherwise create; waittime is the max idle wait time in the pool after completing the task
+		//returns task TASKID on success, otherwise returns 0
 		TASKID addTask(THREAD_CALLBACK *pfunc,void *pargs,time_t waittime);
-		//检测某个任务yesnoat任务list中待执行
-		//ifbRemove==true则从任务list中delete
-		//ifat任务list中则returntrueotherwisereturnfalse
+		//check whether a task is pending in the task list
+		//if bRemove==true, delete from the task list
+		//returns true if in the task list, otherwise false
 		bool delTask(TASKID taskid,bool bRemove=true);
-		//清除all待执行的任务
+		//clear all pending tasks
 		void clearTasks();
-		//returncurrent待执行的任务数
+		//returncurrentpending execution的task数
 		long numTasks(){ long lret=0; m_mutex.lock(); lret=m_tasklist.size();m_mutex.unlock();return lret;}
 		//returncurrent的worker thread个数
 		long numThreads(){ long lret=0; m_mutex.lock(); lret=m_thrmaps.size();m_mutex.unlock();return lret;}
 	private:
-		//create一个worker thread，successreturnthread ID，otherwisereturn0
+		//create a worker thread; returns thread ID on success, otherwise 0
 		pthread_t createWorkThread(time_t waittime);
 #ifdef WIN32 //Windows system platform
     	static unsigned int __stdcall workThread(void* param);
-#else //unix/linux平台
+#else //unix/linux platform
         static void* workThread(void* param);
 #endif
 	};

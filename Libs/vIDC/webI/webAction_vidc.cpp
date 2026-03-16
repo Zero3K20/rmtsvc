@@ -330,7 +330,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 				
 				//limit maximum connections
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<maxconn>%d</maxconn>",pinfo->m_maxconn);
-				//限制maximum带宽 kb/s
+				//limit maximum bandwidth kb/s
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<maxratio>%d</maxratio>",pinfo->m_maxratio);
 
 				if(pinfo->m_mportBegin==pinfo->m_mportEnd)

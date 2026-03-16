@@ -49,18 +49,18 @@ class mailMessage
 	int m_contentType; //"text/plain" "text/html"
 	std::string m_strSubject;
 	std::string m_strBody;
-	std::string m_strBodyCharset;//email body的编码character集，default为utf-8
-	std::vector<std::string> m_attachs;//要send的附件
+	std::string m_strBodyCharset;//email body的encodingcharacter集，default为utf-8
+	std::vector<std::string> m_attachs;//要send的attachment
 
 	std::string m_strName;//send者的name
-	std::string m_strFrom;//send者的邮箱
-	std::vector<std::pair<std::string,std::string> > m_vecTo; //send,first --收件人email，second 收件人昵称
-	std::vector<std::pair<std::string,std::string> > m_vecCc; //抄送,first --收件人email，second 收件人昵称
-	std::vector<std::pair<std::string,std::string> > m_vecBc; //暗送,first --收件人email，second 收件人昵称
+	std::string m_strFrom;//send者的mailbox
+	std::vector<std::pair<std::string,std::string> > m_vecTo; //send,first --recipientemail，second recipient昵称
+	std::vector<std::pair<std::string,std::string> > m_vecCc; //抄送,first --recipientemail，second recipient昵称
+	std::vector<std::pair<std::string,std::string> > m_vecBc; //暗送,first --recipientemail，second recipient昵称
 	
 	std::string m_strMailFile;//生成的邮件体file pathname
-	long m_lMailFileStartPos;//邮件体file中邮件体正文的起始bit置
-	bool m_bDeleteFile;//objectrelease时yesnodeletem_strMailFilefile
+	long m_lMailFileStartPos;//邮件体file中邮件体正文的起始position
+	bool m_bDeleteFile;//objectrelease时whetherdeletem_strMailFilefile
 public:
 	enum RECIPIENT_TYPE { TO, CC, BCC };
 	enum EMAILBODY_TYPE { TEXT_BODY,HTML_BODY };
@@ -92,10 +92,10 @@ public:
 	}
 	//add attachment
 	bool AddAtach(const char *filename,const char *filepath,const char *contentID);
-	//add收件人
+	//addrecipient
 	bool AddRecipient(const char *email,const char *nick,RECIPIENT_TYPE rt=TO);
 	//生成Base64 encoding的邮件体file
-	//bDelete -- 指示whenmailMessageobjectrelease时yesnodelete生成的file
+	//bDelete -- 指示whenmailMessageobjectrelease时whetherdelete生成的file
 	const char * createMailFile(const char *file,bool bDelete);
 	long MailFileStartPos() const { return m_lMailFileStartPos; }
 	void setBody(const char *mailfile,long startPos)
@@ -180,26 +180,26 @@ yycmail=A3=AC=C4=FA=BA=C3=A3=A1
 .
 */
 /*
-211 系统statusor系统帮助response 
+211 systemstatusorsystem帮助response 
 　　　214 帮助info 
 　　　220 service就绪 
-　　　221 serviceclose传输信道 
+　　　221 serviceclosetransfer信道 
 　　　250 要求的邮件操作complete 
 　　　251 user非local，将forward向 
-　　　354 start邮件输入，以.end 
-　　　421 service未就绪，close传输信道（when必须close时，此应答可以作为对任何command的response） 
-　　　450 要求的邮件操作未complete，邮箱not可用（例如，邮箱忙） 
+　　　354 start邮件input，以.end 
+　　　421 service未就绪，closetransfer信道（when必须close时，此应答可以作为对任何command的response） 
+　　　450 要求的邮件操作未complete，mailboxnot可用（例如，mailbox忙） 
 　　　451 放弃要求的操作；handle过程中出错 
-　　　452 系统存储not足，要求的操作未执行 
+　　　452 system存储not足，要求的操作未执行 
 　　　500 format error，commandnot可识别（此error也packet括command行过长） 
 　　　501 parameterformat error 
 　　　502 commandnot可implementation 
 　　　503 error的command序列 
 　　　504 commandparameternot可implementation 
-　　　550 要求的邮件操作未complete，邮箱not可用（例如，邮箱未found，ornot可访问） 
+　　　550 要求的邮件操作未complete，mailboxnot可用（例如，mailbox未found，ornot可访问） 
 　　　551 user非local，请尝试 
 　　　552 过量的存储分配，要求的操作未执行 
-　　　553 邮箱名not可用，要求的操作未执行（例如邮箱format error） 
+　　　553 mailbox名not可用，要求的操作未执行（例如mailboxformat error） 
 　　　554 operation failed 
 */
 

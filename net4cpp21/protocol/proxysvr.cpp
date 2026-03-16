@@ -202,7 +202,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 	char buf[SSENDBUFFERSIZE];
 	FILE *fp=NULL;
 	if(m_bLogdatafile){ //whether to log proxy data
-		char logfilename[256]; //记录logfilename
+		char logfilename[256]; //log filename
 		int logfilenameLen=sprintf(logfilename,"%s(%d)-",psock->getRemoteIP(),psock->getRemotePort());
 		logfilenameLen+=sprintf(logfilename+logfilenameLen,"%s(%d).log",peer->getRemoteIP(),peer->getRemotePort());
 		logfilename[logfilenameLen]=0;
@@ -216,7 +216,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 	}//?if(m_bLogdatafile)
 
 	onData((char *)1,0,psock,peer); //用于分析handledata，start一个connect
-	if(sending_buf && sending_size>0)//待send的data
+	if(sending_buf && sending_size>0)//pending send的data
 	{
 		onData((char*)sending_buf,sending_size,psock,peer);
 		peer->Send(sending_size,sending_buf,-1);
@@ -255,7 +255,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 		}//?while
 		peer->Close(); //waitingforwardthread end
 		while(peer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-		onData(NULL,0,peer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关资源
+		onData(NULL,0,peer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关resource
 	}else{//?if(onTransferTask
 		peer->Close(); peer->setParent(NULL);
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
@@ -307,7 +307,7 @@ void cProxysvr :: transThread(void *pthreadParam)
 	}//?while
 	
 	ppeer->Close(); 
-	psock->setParent(NULL); //用于onAcceptthread判断forwardthreadyesnoend
+	psock->setParent(NULL); //used by onAccept thread to check whether forward thread has ended
 	return;
 }
 

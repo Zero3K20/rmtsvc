@@ -37,7 +37,7 @@ public:
 /// Implementation
 public:
 
-	///得到node值(长整型)
+	///getnode值(长整型)
 	///saveXMLfile
 	/** 
 		\param cstrBaseKeyName 基键名.
@@ -53,23 +53,23 @@ public:
 	*/
 	long SetLong(const char* cstrBaseKeyName, const char* cstrValueName, long lValue);
 
-	///得到node值(character串)
+	///getnode值(string)
 	/** 
 		\param cstrBaseKeyName 基键名.
 		\param cstrValueName 键名(取值名).
-		\param cstrDefaultValue defaultcharacter串值.
+		\param cstrDefaultValue defaultstring值.
 	*/
 	std::string GetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
 	std::string GetStringC(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrDefaultValue);
-	///setnode值(character串)
+	///setnode值(string)
 	/** 
 		\param cstrBaseKeyName 基键名.
 		\param cstrValueName 键名(save值名).
-		\param cstrDefaultValue defaultcharacter串值.
+		\param cstrDefaultValue defaultstring值.
 	*/
 	long SetString(const char* cstrBaseKeyName, const char* cstrValueName, const char* cstrValue);
 	
-	///得到nodeattribute
+	///getnodeattribute
 	/** 
 		\param cstrBaseKeyName 基键名.
 		\param cstrValueName 键名(saveattribute键名).
@@ -82,7 +82,7 @@ public:
 	long SetAttribute(const char* cstrBaseKeyName, const char* cstrValueName,
 					const char* cstrAttributeName, const char* cstrAttributeValue);
 
-	///得到node值
+	///getnode值
 	long GetNodeValue(const char* cstrBaseKeyName, const char* cstrValueName, 
 		const char* cstrDefaultValue, std::string& strValue, const char* cstrAttributeName, 
 		const char* cstrDefaultAttributeValue,std::string& strAttributeValue);
@@ -98,14 +98,14 @@ public:
     */
 	long DeleteSetting(const char* cstrBaseKeyName, const char* cstrValueName);
 
-	///得到某node的子node的键名
+	///get某node的子node的键名
 	/*!
       all child node key names are saved in the keys_val parameter.
     */
 	long GetKeysValue(const char* cstrBaseKeyName, 
 		std::map<std::string, std::string>& keys_val);
 
-	///得到某node的子node的键名
+	///get某node的子node的键名
 	long GetKeys(const char* cstrBaseKeyName, 
 		std::vector<std::string>& keys);
 

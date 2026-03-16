@@ -147,11 +147,11 @@ unsigned long msnMessager :: nscmd_lsg(socketTCP *psock,const char *pcmd)
 	delete[] gnameW; return 0;
 }
 //command sent by NS server: received contact info
-//format LST N=email [F=nick] [C=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx] 标识 [组ID]\r\n
+//format LST N=email [F=nick] [C=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx] identifier [组ID]\r\n
 //nick --- UTF-8 encoded, MIME encoded
 //the C= hex string is a GUID (globally unique identifier) that is used to identify the contact in the ADC and REM commands.
 //group ID --- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. May belong to multiple groups, IDs separated by commas
-//标识 the principle is a part of, in the same format as MSNP8 - bitwise number where 1=Forward, 2=Allow, 4=Block ,8=Reverse. composed of:FL: 1 AL: 2 BL: 4 RL: 8
+//identifier the principle is a part of, in the same format as MSNP8 - bitwise number where 1=Forward, 2=Allow, 4=Block ,8=Reverse. composed of:FL: 1 AL: 2 BL: 4 RL: 8
 //		FL --- indicates this contact is in this account's contact list
 //		AL --- this account allows this contact to see it
 //		BL --- this account has blocked this contact
@@ -369,7 +369,7 @@ unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 	return 0;
 }
 //friend went offline //FLN yycnet@hotmail.com
-//if某个联系人阻止了你，你也会收到对方下线的message
+//ifa certaincontact阻止了你，你也会收到对方下线的message
 //when对方cancel阻止时你将会收到一个NLNmessage
 unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 {
@@ -381,7 +381,7 @@ unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 	if(it==m_contacts.end()) return 0;
 	cContactor *pcon=(*it).second; if(pcon==NULL) return 0;
 	pcon->m_status="FLN"; pcon->m_chatSock.Close();
-	offLine((HCHATSESSION)pcon,v[1].c_str()); //某个user下线
+	offLine((HCHATSESSION)pcon,v[1].c_str()); //a user went offline
 	return 0;
 }
 //command sent by NS serverorREMcommand的response
@@ -395,7 +395,7 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<4) return trID;
 	cContactor *pcon=NULL;
-	if(trID && v[2]=="FL") //从localdelete联系人的response
+	if(trID && v[2]=="FL") //从localdeletecontact的response
 	{
 		const char *ptr=strchr(v[3].c_str(),'@'); //check whether it is email or UID
 		std::map<std::string, cContactor *>::iterator it1;
@@ -427,7 +427,7 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	else if(v[2]=="RL")
 	{
 		pcon->m_flags &=0xfffffff7;
-		if(trID==0) //NSserversend过来的某个userdelete了本account的message
+		if(trID==0) //NSserversend过来的a certainuserdelete了本account的message
 		{
 			iret=onREM((HCHATSESSION)pcon,v[3].c_str());
 			if( (iret & 1) )//delete此account
@@ -443,7 +443,7 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	return trID;
 }
 //command sent by NS serverorADCcommand的response
-//某个useradd了你orADCcommand的NSresponsereturn
+//a certainuseradd了你orADCcommand的NSresponsereturn
 //ADC 0 RL N=yycnet@hotmail.com F=yyc:)
 //ADC 196 FL N=yycnet@163.com F=yycnet@163.com C=7bae0ef9-575b-42d5-b13d-61ebd3e69ab8
 unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
@@ -483,7 +483,7 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 			pcon->m_flags |=0x8;
 		onADD((HCHATSESSION)pcon,strEmail);
 	}//?if(trID)
-	else{ //serversend的某个联系人add了本account的message
+	else{ //serversend的a certaincontactadd了本account的message
 		if(v[2]!="RL") return trID; 
 		cContactor *pcon=_newContact(strEmail,NULL);
 		if(pcon==NULL) return trID; pcon->m_flags |=0x08;
@@ -510,7 +510,7 @@ unsigned long msnMessager :: nscmd_ubx(socketTCP *psock,const char *email,const 
 	return 0;
 }
 
-//从NS收到聊天requestcommand
+//从NS收到chatrequestcommand
 //format：RNG 178257 207.46.108.53:1863 CKI 1090569642.21212 yycnet@hotmail.com yyc:)
 //RNG 17485110 207.46.108.87:1863 CKI 1090571470.9784 yycnet@hotmail.com yyc:)
 unsigned long msnMessager :: nscmd_rng(socketTCP *psock,const char *pcmd)

@@ -26,141 +26,141 @@ namespace net4cpp21
 		
 	public:
 		static unsigned int m_LineWidth;			//specifies the line length after encoding; default is 76
-		//根据file实际lengthget编码Base64后的length,-1编码后每行lengthnot限，0编码后每行length为m_LineWidth
+		//get Base64 encoded length from actual file length; -1 means no line length limit; 0 means line length is m_LineWidth
 		static int Base64EncodeSize(int iSize,unsigned int nLineWidth=0);  
-		static int Base64DecodeSize(int iSize);		//根据已编码filelengthgetBase64的解码length
-		static int UUEncodeSize(int iSize);			//根据file实际lengthgetUUCode编码后的length
-		static int UUDecodeSize(int iSize);			//根据已编码filelengthgetUUCode解码后的length
-		static int QuotedEncodeSize(int iSize);		//根据实际file的lengthgetQuoted编码
+		static int Base64DecodeSize(int iSize);		//get Base64 decode length from the already-encoded file length
+		static int UUEncodeSize(int iSize);			//get UUCode encoded length from actual file length
+		static int UUDecodeSize(int iSize);			//get UUCode decode length from already-encoded file length
+		static int QuotedEncodeSize(int iSize);		//get Quoted-Printable encoded length from actual file length
 		
 		
 		/*
-		*  对一段Buffer进行Base64 encoding
+		*  perform Base64 encoding on a buffer
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
+		*		pDest	output buffer
 		*
-		*	 注: 输出Buffer的length可以使用 Base64EncodeSize(int) method取得
+		*	 note: output buffer length can be obtained using the Base64EncodeSize(int) method
 		*/
 		static int base64_encode(char *pSrc, unsigned int nSize, char *pDest,
-			unsigned int nLineWidth=0); //隔specified的LineWidthaddCRLF
-		//==-1编码后每行lengthnot限，==0编码后每行length为m_LineWidth
+			unsigned int nLineWidth=0); //add CRLF every specified LineWidth characters
+		//==-1 means no line length limit after encoding; ==0 means line length is m_LineWidth
 		/*
-		*  对一段Buffer进行Base64 decoding
+		*  perform Base64 decoding on a buffer
 		*	
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
-		*		return	解码后的实际length
+		*		pDest	output buffer
+		*		return	actual length after decoding
 		*
-		*	 注: 输出Buffer的length可以使用 Base64DecodeSize(int) method取得
+		*	 note: output buffer length can be obtained using the Base64DecodeSize(int) method
 		*/
 		static int  base64_decode(char *pSrc, unsigned int nSize, char *pDest);
 		/*
-		*  对一段Buffer进行UUCODE编码
+		*  perform UUCODE encoding on a buffer
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
+		*		pDest	output buffer
 		*
-		*	 注: 输出Buffer的length可以使用 UUEncodeSize(int) method取得
+		*	 note: output buffer length can be obtained using the UUEncodeSize(int) method
 		*/
 		static int UU_encode(char *pSrc, unsigned int nSize, char *pDest);
 		
 		/*
-		*  对一段Buffer进行UUCODE解码
+		*  perform UUCODE decoding on a buffer
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
+		*		pDest	output buffer
 		*
-		*	 注: 输出Buffer的length可以使用 UUDecodeSize(int) method取得
+		*	 note: output buffer length can be obtained using the UUDecodeSize(int) method
 		*/
 		static int UU_decode(char *pSrc, unsigned int nSize, char *pDest);
 		/*
-		*  对一段Buffer进行Quoted-Printble编码
+		*  perform Quoted-Printable encoding on a buffer
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
-		*		return	编码后的实际length
+		*		pDest	output buffer
+		*		return	actual length after encoding
 		*
-		*	 注: 输出Buffer的length可以使用 QuotedDecodeSize(int) method取得
+		*	 note: output buffer length can be obtained using the QuotedDecodeSize(int) method
 		*/
 		static int quoted_encode(char *pSrc, unsigned int nSize, char *pDest);
 		
 		/*
-		*  对一段Buffer进行Quoted-Printble解码
+		*  perform Quoted-Printable decoding on a buffer
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
-		*		return	解码后的实际length
+		*		pDest	output buffer
+		*		return	actual length after decoding
 		*
-		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
 		*/
 		static int quoted_decode(char *pSrc, unsigned int nSize, char *pDest);
 		
-		//url编解码 将&amp; &lt; &gt; 编解码为 & < >
+		//URL encode/decode: convert &amp; &lt; &gt; to & < >
 		static int url_decode(const char *pSrc,int nSize,char *pDest);
 		static int url_encode(const char *pSrc,int nSize,char *pDest);
 		static int MimeEncodeSize(int iSize){ return iSize *3;}
 		/*
-		*  对specified的character串进行Mime编码
+		*  perform MIME encoding on the specified string
 		*
-		*	 	pSrc	输入character串
-		*		nSize	character串length
-		*		pDest	输出buffer
-		*		return	编码后的实际length
+		*	 	pSrc	inputstring
+		*		nSize	string length
+		*		pDest	output buffer
+		*		return	actual length after encoding
 		*
-		*	 注：此functionnot对汉字进行编码
+		*	 注：此functionnot对汉字进行encoding
 		*/
 		static int mime_encode(const char *pSrc,unsigned int nSize,char *pDest);
-		//汉字也进行编码
+		//汉字也进行encoding
 		static int mime_encodeEx(const char *pSrc,unsigned int nSize,char *pDest);
 		static int mime_encodeURL(const char *pSrc,unsigned int nSize,char *pDest);
 		/*
-		*  对specified的character串进行Mime解码
+		*  对specified的string进行Mimedecoding
 		*
-		*	 	pSrc	输入character串
-		*		nSize	character串length
-		*		pDest	输出buffer
-		*		return	解码码后的实际length
+		*	 	pSrc	inputstring
+		*		nSize	string length
+		*		pDest	output buffer
+		*		return	decoding码后的实际length
 		*
-		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
 		*/
 		static int mime_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		
-		//UTF-8 - ASCII 兼容的多byte(1~3)byte Unicode 编码
-		//实际的utf8编码的byte为1~6byte，但我们一般也就用双byte的character集，这样最多用到3byte
+		//UTF-8 - ASCII 兼容的多byte(1~3)byte Unicode encoding
+		//实际的utf8encoding的byte为1~6byte，但我们一般也就用双byte的character集，这样最多用到3byte
 		//因为0x00000800 - 0x0000FFFFcharacter转化为utf8才为3byte
 		static int Utf8EncodeSize(int iSize){ return iSize *3;}
 		/*
-		*  对specified的Buffer进行utf8编码
+		*  对specified的Buffer进行utf8encoding
 		*
-		*	 	pSrc	输入Buffer
+		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
-		*		pDest	输出buffer
-		*		return	编码后的实际length
+		*		pDest	output buffer
+		*		return	actual length after encoding
 		*
 		*/
 		static int utf8_encode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int utf8_encodeW(const unsigned short *pSrc,unsigned int nSize,char *pDest);
 		/*
-		*  对specified的Buffer进行Utf8解码
+		*  对specified的Buffer进行Utf8decoding
 		*
-		*	 	pSrc	输入character串
-		*		nSize	character串length
-		*		pDest	输出buffer
-		*		return	解码码后的实际length
+		*	 	pSrc	inputstring
+		*		nSize	string length
+		*		pDest	output buffer
+		*		return	decoding码后的实际length
 		*
-		*	 注：这里没有提供count算解码length的method 直接使用输入Buffer作输出Buffer就可以了
+		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
 		*/
 		static int utf8_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int utf8_decodeW(const char *pSrc,unsigned int nSize,unsigned short *pDest);
 
-		//将16进制character串转为数值
+		//将16进制string转为数值
 		static unsigned long hex_atol(const char *str);
 
 		//=?charset?encoding-type?data?= data format decoding

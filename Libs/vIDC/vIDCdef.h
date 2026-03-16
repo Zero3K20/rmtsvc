@@ -55,7 +55,7 @@ vidcc                              vidcs
 1、start侦听
 2、when有一个connect进来，建立connect
 3、waitingreceivecommanddata，ifVIDC_MAX_RESPTIMEOUT内没有收到任何command则close此connect
-4、判断commandyesno为HELOorPIPE，ifnotyes则close connection
+4、判断commandwhether为HELOorPIPE，ifis not则close connection
 5、ifyesHELOcommand，则进行clientconnectauthentication，ifnot通过则returnerror，close connection
 6、otherwise建立一个session回话，循环waitinghandlevIDCcommand，并return successmessage
 7、ifyesPIPEcommand，

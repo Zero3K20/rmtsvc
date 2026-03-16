@@ -139,7 +139,7 @@ SOCKSRESULT telServerEx :: revConnect(const char *host,int port,time_t lWaitout)
 //settelnet service的相关info
 //command format: 
 //	telnet [port=<serviceport>] [bindip=<本service绑定的local machineIP>]  [account=<访问account:password>] 
-//port=<serviceport>    : setserviceport，if not set则default为0.set为0则notstart web service <0则随即分配port
+//port=<serviceport>    : setserviceport，if not set则default为0.set为0则do not start web service <0则随即分配port
 //bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
 //account=<访问account:password>
 void telServerEx :: docmd_sets(const char *strParam)
@@ -169,7 +169,7 @@ void telServerEx :: docmd_sets(const char *strParam)
 	
 	return;
 }
-//setservice的ip过滤规则or针对某个account的IP filter rules
+//setservice的ip过滤规则or针对a certainaccount的IP filter rules
 //command format:
 //	iprules [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions

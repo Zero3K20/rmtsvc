@@ -130,7 +130,7 @@ void vidcManager :: xml_info_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
 	}
 	return;
 }
@@ -187,7 +187,7 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
 	}
 	return;
 }
@@ -227,7 +227,7 @@ void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
 	}
 	return;
 }
@@ -246,7 +246,7 @@ void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s not存at</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
 	}
 	return;
 }

@@ -46,8 +46,8 @@ namespace net4cpp21
 
 		httpResponse & Response() { return m_httprsp; }
 		long rspContentLen() { return m_httprsp.lContentLength(); }
-		//saveHTTP response为specified的file(notcontainsHTTP response header)
-		//returnsavefile的size，==0发生error
+		//save HTTP response to specified file (not including HTTP response header)
+		//returns saved file size; ==0 means error occurred
 		unsigned long save_httpresp(const char *filename)
 		{
 			return m_httprsp.save_resp(this,filename);

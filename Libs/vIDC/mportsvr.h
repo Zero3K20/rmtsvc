@@ -47,7 +47,7 @@ namespace net4cpp21
 		SOCKSRESULT StartX();
 		void Stop(); //stopmapservice
 		
-		//set要mapped application service
+		//set the application service to be mapped
 		void setAppsvr(const char *appsvr,int apport,const char *appdesc,MPORTTYPE apptype=MPORTTYPE_UNKNOW);
 		void setMapping(int mportStart,int mportEnd,const char *bindip=NULL);
 		void setSSLType(SSLTYPE ssltype,bool bSSLVerify);
@@ -84,10 +84,10 @@ namespace net4cpp21
 		int m_mportEnd;
 		char m_bindLocalIP[16]; //要求绑定的localIP
 		SSLTYPE m_ssltype; //SSLconverttype
-		bool m_bSSLVerify; //SSLserviceyesno需要authenticationclientcertificate
+		bool m_bSSLVerify; //SSLservicewhether需要authenticationclientcertificate
 		long m_lUserTag; //用于自define的扩充flag,对于本class无意义
-		unsigned long m_maxratio; //限制maximum带宽 kb/s
-		bool m_bLogdatafile; //yesno记录proxy serviceforward的data到logfile
+		unsigned long m_maxratio; //limit maximum bandwidth kb/s
+		bool m_bLogdatafile; //whether记录proxy serviceforward的data到logfile
 		//modifyHTTPresponse头info int - HTTP response代码
 		std::map<int,std::vector<RegCond> > m_modRspHeader;
 		//modifyHTTPrequest头info string - 匹配HTTP requestURL

@@ -45,7 +45,7 @@ bool webServer::httprsp_slist(socketTCP *psock,httpResponse &httprsp)
 bool webServer::sevent(const char *sname,const char *cmd)
 {
 	if(sname==NULL || sname[0]==0) return false;
-	//openSCM获得SCM句柄
+	//openSCMgetSCMhandle
 	SC_HANDLE schSCManager =	OpenSCManager(
 			0,						// machine (NULL == local)
 			0,						// database (NULL == default)
@@ -106,7 +106,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 
 DWORD serviceList(cBuffer &buffer)
 {
-	//openSCM获得SCM句柄
+	//openSCMgetSCMhandle
 	SC_HANDLE schSCManager =	OpenSCManager(
 			0,						// machine (NULL == local)
 			0,						// database (NULL == default)
@@ -169,7 +169,7 @@ DWORD serviceList(cBuffer &buffer)
 		{
 			if(buffer.Space()<(bytesNeeded+100)) buffer.Resize(buffer.size()+(bytesNeeded+100));
 			if( lpqscBuf->dwStartType==SERVICE_AUTO_START)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>自动</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>auto</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DEMAND_START)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>手动</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DISABLED)
@@ -183,9 +183,9 @@ DWORD serviceList(cBuffer &buffer)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>共享processservice%s</stype>",
 				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",可交互":"");
 			else if( lpqscBuf->dwServiceType & SERVICE_FILE_SYSTEM_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>file系统驱动</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>filesystem驱动</stype>");
 			else if( lpqscBuf->dwServiceType & SERVICE_KERNEL_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>系统内核驱动</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>system内核驱动</stype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>---</stype>");
 			
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp>%s</sdisp>",lpqscBuf->lpDisplayName);

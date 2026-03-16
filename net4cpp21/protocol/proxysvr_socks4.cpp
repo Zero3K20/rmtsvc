@@ -62,7 +62,7 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 				peer.setProxy(ptype,p->first.c_str(),p->second,"","");
 		}//?if(m_bCascade)
 		if(psock4req->CD==1) //CONNECTrequest
-		{//connectspecified的remote主机,ifsuccess则建立dataforward对
+		{//connectspecified的remote主机,if success则建立dataforward对
 			hostport=ntohs(psock4req->Port);
 			
 //			RW_LOG_DEBUG("[ProxySvr] SOCKS4 - Connecting %s:%d ... \r\n",((hostip)?hostip:socketBase::IP2A(psock4req->IPAddr)),hostport);
@@ -74,7 +74,7 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 					hostip=buf; }
 				peer.Connect(hostip,hostport,PROXY_MAX_RESPTIMEOUT);
 			}else{
-				if(hostip) psock4req->IPAddr=socketBase::Host2IP(hostip); //域名/IPaddressparse
+				if(hostip) psock4req->IPAddr=socketBase::Host2IP(hostip); //domain name/IPaddressparse
 				peer.SetRemoteInfo(psock4req->IPAddr,hostport);
 				if( psock4req->IPAddr!=INADDR_NONE) 
 					peer.socketTCP::Connect( NULL,0,PROXY_MAX_RESPTIMEOUT);
@@ -82,7 +82,7 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 			ans.CD=(peer.status()==SOCKS_CONNECTED)?90:92;
 		}//?if(psock4req->CD==1)
 		else if(psock4req->CD==2) //BINDrequest
-		{//clientrequestatsocks server-side建立一个临时侦听service，waitingspecifiedhostip的connect到来
+		{//clientrequestatsocks server-side建立一个temporary侦听service，waitingspecifiedhostip的connect到来
 			if(m_bCascade) //set了secondary proxy
 			{
 				std::string svrip; int svrport=hostport;

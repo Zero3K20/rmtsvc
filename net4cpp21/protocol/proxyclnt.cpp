@@ -94,7 +94,7 @@ SOCKSRESULT socketProxy :: Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 	}
 	return svrPort;
 }
-//sendUDP代理协商request (UDP proxy is only supported by the SOCKS5 proxy protocol)
+//sendUDP代理negotiaterequest (UDP proxy is only supported by the SOCKS5 proxy protocol)
 //successreturn开立的UDPport>0 otherwisefailure
 //[in] svrIP/svrPort localUDPportandIP
 //[out] svrIP/svrPort returns the port and IP address opened by the SOCKS service
@@ -182,7 +182,7 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 	return sr;
 }
 //sendsocks Bindrequest后waitingconnect到达(即第二个Bindresponse)
-//bool BindedEventyesno采用onBindedeventnotification方式
+//bool BindedEventwhether采用onBindedeventnotification方式
 bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 {
 //	if(BindedEvent) //startwaitingconnectthread
@@ -205,7 +205,7 @@ bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 				len=10; //4+4+2
 			else if(buf[3]==0x04) //ipv6
 				len=22; //4+16+2
-			else if(buf[3]==0x03) //全称域名
+			else if(buf[3]==0x03) //全称domain name
 				len=7+(unsigned char)buf[4];//4+1+buf[4]+2;
 			//实际还未receive完的byte
 			if( (len-=5)>0 && this->Receive(buf+5,len,-1)>0)
@@ -217,8 +217,8 @@ bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 
 //sendsocks Bindrequest后start的waitingconnect到达的thread(即第二个Bindresponse)
 //sendBindrequest后if有一个合法userconnect到socksservice上则产生onBindedevent
-//此时可进行data交互，就好像user直接连到localservice的port上而notyessocksservice开的port上一样
-//bAccept --- bindrequest的第二个responseyes拒绝还yes同意
+//at this point可进行data交互，就好像user直接连到localservice的port上而is notsocksservice开的port上一样
+//bAccept --- bindrequest的第二个responseyesreject还yes同意
 //void socketProxy :: bindThread(socketProxy *psock)
 //{
 //	if(psock==NULL) return;
@@ -277,7 +277,7 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 	else //PROXY_SOCKS4
 	{
 		//sendsocks4 CONNECTrequest，requestconnectspecified的主机
-		//socks4Aprotocol可以specifiedremoteconnect主机的域名而not必yesip
+		//socks4Aprotocol可以specifiedremoteconnect主机的domain name而not necessary toyesip
 		//format如下：(原sock4protocolIPaddresspartial填入0.0.0.x),即buf[4]=buf[5]=buf[6]=0,buf[7]=x
 		//[version] [command] [port] [0.0.0.1] [0] [hostdomain] [0]
 		
@@ -317,7 +317,7 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 	return sr;
 }
 
-//socks5协商authentication,successreturntrueotherwisereturnfalse
+//socks5negotiateauthentication,successreturntrueotherwisereturnfalse
 bool socketProxy :: socks5_Negotiation(time_t lWaitout)
 {
 	char buf[128];
@@ -347,7 +347,7 @@ bool socketProxy :: socks5_Negotiation(time_t lWaitout)
 	{
 		RW_LOG_PRINT(LOGLEVEL_WARN,"not surpport Authentication (%d).\r\n",buf[1]);
 		return false;
-	} //buf[1]==0则not要求authentication
+	} //buf[1]==0则do not求authentication
 	return true;
 }
 

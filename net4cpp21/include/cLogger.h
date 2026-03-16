@@ -33,29 +33,29 @@ namespace net4cpp21
 	typedef enum //log outputtype
 	{
 		LOGTYPE_NONE,
-		LOGTYPE_STDOUT,//输出到标准输出设备上
+		LOGTYPE_STDOUT,//output到标准output设备上
 		LOGTYPE_FILE,//output to file
-		LOGTYPE_HWND,//输出到一个windows的窗体上
-		LOGTYPE_SOCKET,//输出到一个socket管道
+		LOGTYPE_HWND,//output到一个windows的窗体上
+		LOGTYPE_SOCKET,//output到一个socket管道
 	}LOGTYPE;
 	class cLogger
 	{
 		LOGTYPE m_logtype;//log outputtype
 		LOGLEVEL m_loglevel;//log level
-		long m_hout;//输出句柄，对于LOGTYPE_FILEtype对应FILE *,LOGTYPE_HWNDtype对应HWND，LOGTYPE_SOCKETtype对应socket句柄
+		long m_hout;//outputhandle，对于LOGTYPE_FILEtype对应FILE *,LOGTYPE_HWNDtype对应HWND，LOGTYPE_SOCKETtype对应sockethandle
 		TCHAR m_fileopenType[4]; //default未覆盖open方式"w"
 		bool m_bOutStdout;//yesnosynchronizeoutput to console
-		bool m_bOutputTime;//yesno打印输出time
+		bool m_bOutputTime;//whether打印outputtime
 		CB_LOG_OUTPUT *m_pcallback;
 		long	m_lcbparam; //callbackfunctionuserparameter
-		static cLogger *plogger;//静态logclass实例pointer
+		static cLogger *plogger;//staticlogclass实例pointer
 		cLogger(); //not允许create此class实例
 		
 		void _dump(LPCTSTR buf,size_t len);
 	public:
 		~cLogger();
 		static cLogger & getInstance(){ return *plogger; }
-		//setyesno打印time
+		//setwhether打印time
 		void setPrintTime(bool bPrint){ m_bOutputTime=bPrint; return; }
 		void setOutStdout(bool b) { m_bOutStdout=b; return; }
 		LOGLEVEL setLogLevel(LOGLEVEL ll){ 
@@ -66,7 +66,7 @@ namespace net4cpp21
 		{
 			m_pcallback=pfunc; m_lcbparam=param;
 		}
-		//yesno允许输出specified级别的log
+		//whether允许outputspecified级别的log
 		bool ifOutPutLog(LOGLEVEL ll) { return ( (unsigned int)m_loglevel<=(unsigned int)ll ); }
 		LOGTYPE LogType() { return m_logtype; }
 		LOGTYPE setLogType(LOGTYPE lt,long lParam);
@@ -75,7 +75,7 @@ namespace net4cpp21
 				::fflush((FILE *)m_hout); return;}
 		void dump(LOGLEVEL ll,LPCTSTR fmt,...);
 		void dump(LOGLEVEL ll,size_t len,LPCTSTR buf);
-		//输出DEBUG级别的log
+		//outputDEBUG级别的log
 		void debug(LPCTSTR fmt,...);
 		void debug(size_t len,LPCTSTR buf);
 		void dumpBinary(const char *buf,size_t len);
@@ -89,7 +89,7 @@ namespace net4cpp21
 { \
 	cLogger::getInstance().setPrintTime(b); \
 }
-//setlog output级别
+//set log output level
 #define RW_LOG_SETLOGLEVEL(ll) cLogger::getInstance().setLogLevel(ll);
 //#define RW_LOG_SETLOGLEVEL(ll) \
 //{ \
@@ -105,12 +105,12 @@ namespace net4cpp21
 { \
 	cLogger::getInstance().setLogType(LOGTYPE_FILE,filename); \
 }
-//setfilelog为追加方式，而notyes覆盖方式
+//setfilelog为追加方式，而is not覆盖方式
 #define RW_LOG_OPENFILE_APPEND() \
 { \
 	cLogger::getInstance().setOpenfileType('a'); \
 }
-//setlog output到specified的窗口
+//setlog output到specified的window
 #define RW_LOG_SETHWND(hWnd) \
 { \
 	cLogger::getInstance().setLogType(LOGTYPE_HWND,hWnd); \
@@ -120,7 +120,7 @@ namespace net4cpp21
 { \
 	cLogger::getInstance().setLogType(LOGTYPE_SOCKET,sockfd); \
 }
-//setlog output到标准输出设备stdout
+//setlog output到标准output设备stdout
 #define RW_LOG_SETSTDOUT() \
 { \
 	cLogger::getInstance().setLogType(LOGTYPE_STDOUT,0); \
@@ -137,7 +137,7 @@ namespace net4cpp21
 }
 
 #define RW_LOG_LOGTYPE cLogger::getInstance().LogType
-//checkyesno允许输出specified级别的log
+//checkwhether允许outputspecified级别的log
 #define RW_LOG_CHECK cLogger::getInstance().ifOutPutLog
 //log output
 #define RW_LOG_PRINT cLogger::getInstance().dump

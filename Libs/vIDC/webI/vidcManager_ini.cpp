@@ -160,10 +160,10 @@ bool vidcManager :: saveIni()
 //更改HTTP response header
 //command format:
 //	mdhrsp vname=<XXX> name=<XXX> cond=<HTTP response代码> header=<response头name>
-//							  pattern=<匹配模式> replto=<替换character串>
+//							  pattern=<匹配模式> replto=<替换string>
 //cond=<HTTP response代码> - 确定更改HTTPresponse代码为specified代码的头
-//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
-//replto=<替换character串> - ifreplto为null则直接delete此头
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的string替换
+//replto=<替换string> - ifreplto为null则直接delete此头
 void vidcManager :: docmd_mdhrsp(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -172,7 +172,7 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("name"))!=maps.end() )
 		mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //convert为小写
+	::strlwr((char *)mapname.c_str()); //convert to lowercase
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -210,10 +210,10 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 //更改HTTP request header
 //command format:
 //	mdhreq vname=<XXX> name=<XXX> cond=<HTTP requesturl> header=<response头name>
-//							  pattern=<匹配模式> replto=<替换character串>
+//							  pattern=<匹配模式> replto=<替换string>
 //cond=<HTTP requesturl>  - 更改符合condition的HTTPrequest头，request的Urlandspecified的condcontains匹配
-//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的character串替换
-//replto=<替换character串> - ifreplto为null则直接delete此头
+//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的string替换
+//replto=<替换string> - ifreplto为null则直接delete此头
 void vidcManager :: docmd_mdhreq(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -222,7 +222,7 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("name"))!=maps.end() )
 		mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //convert为小写
+	::strlwr((char *)mapname.c_str()); //convert to lowercase
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -239,7 +239,7 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 	if( (it=maps.find("replto"))!=maps.end())
 		strReplto=(*it).second;
 	else strReplto="";
-	//yyc modify 2010-02-23 增加了URL重写功能，此时header无意义
+	//yyc modify 2010-02-23 增加了URL rewrite功能，at this pointheader无意义
 	if(mapname=="") return; // || strHeader=="") return; 
 	if(vname=="") //local port mapping
 	{//setlocal port mapping的HTTPresponse头modify规则
@@ -272,7 +272,7 @@ bool vidcManager :: docmd_sslc(const char *strParam)
 	if( (it=maps.find("name"))==maps.end() || (*it).second=="")
 		return false;
 	else mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //convert为小写
+	::strlwr((char *)mapname.c_str()); //convert to lowercase
 	if( (it=maps.find("vname"))!=maps.end() )
 		vname=(*it).second;
 
@@ -328,12 +328,12 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	if( (it=maps.find("appsvr"))==maps.end() || (*it).second=="")
 		return false;
 
-	//生成一个临时的mapservice name称
+	//生成一个temporary的mapservice name称
 	char strMapname[32]; sprintf(strMapname,"mtcpl_%d",m_tcpsets.size());
 	const char *mapname=strMapname;
 	if( (it=maps.find("name"))!=maps.end() && (*it).second!="" )
 		mapname=(*it).second.c_str();
-	::strlwr((char *)mapname); //convert为小写
+	::strlwr((char *)mapname); //convert to lowercase
 
 	mportTCP *ptr_mtcp=NULL;
 	std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
@@ -412,7 +412,7 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	return true;
 }
 
-//setip过滤规则and自动startflag
+//setip过滤规则andautostartflag
 //command format:
 //	iprules type=[mtcpl|mupl|mtcpr] name=<mapservice name称>] [autorun=[1|0] [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
@@ -434,7 +434,7 @@ void vidcManager :: docmd_iprules(const char *strParam)
 	{//setlocal port mapping的IP filter rules
 		if( (it=maps.find("name"))==maps.end()) return;
 		std::string mapname=(*it).second;
-		::strlwr((char *)mapname.c_str()); //convert为小写
+		::strlwr((char *)mapname.c_str()); //convert to lowercase
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		if(it1==m_tcpsets.end()) return;
 		mportTCP *ptr_mtcp=(*it1).second;
@@ -457,9 +457,9 @@ void vidcManager :: docmd_iprules(const char *strParam)
 		std::string vname,mapname;
 		std::map<std::string,std::string>::iterator it;
 		if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-		::strlwr((char *)vname.c_str()); //convert为小写
+		::strlwr((char *)vname.c_str()); //convert to lowercase
 		if( (it=maps.find("name"))!=maps.end()) mapname=(*it).second;
-		::strlwr((char *)mapname.c_str()); //convert为小写
+		::strlwr((char *)mapname.c_str()); //convert to lowercase
 		if(vname=="" || mapname=="") return;
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		if(pvidcc==NULL) return;
@@ -510,7 +510,7 @@ void vidcManager :: docmd_vidcc(const char *strParam)
 	std::string vname,vhost; int vport=0;
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-	::strlwr((char *)vname.c_str()); //convert为小写
+	::strlwr((char *)vname.c_str()); //convert to lowercase
 	if( (it=maps.find("vhost"))!=maps.end()){
 		const char *ptr=strchr((*it).second.c_str(),':');
 		if(ptr){
@@ -541,9 +541,9 @@ void vidcManager :: docmd_mtcpr(const char *strParam)
 	std::string vname,mapname;
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
-	::strlwr((char *)vname.c_str()); //convert为小写
+	::strlwr((char *)vname.c_str()); //convert to lowercase
 	if( (it=maps.find("name"))!=maps.end()) mapname=(*it).second;
-	::strlwr((char *)mapname.c_str()); //convert为小写
+	::strlwr((char *)mapname.c_str()); //convert to lowercase
 	if(vname=="" || mapname=="") return;
 	vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 	if(pvidcc==NULL) return;

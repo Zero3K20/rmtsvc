@@ -35,9 +35,9 @@ namespace net4cpp21
 		dnsClient();
 		virtual ~dnsClient(){}
 		void setTimeout(time_t s);
-		//域名query 域名--->IP,returnDNS_RCODE_ERR_OK(0)success
+		//domain namequery domain name--->IP,returnDNS_RCODE_ERR_OK(0)success
 		SOCKSRESULT Query(const char *names,const char *dnssvr,int dnsport=DNS_SERVER_PORT);
-		//反向域名parse,returnDNS_RCODE_ERR_OK(0)success
+		//反向domain nameparse,returnDNS_RCODE_ERR_OK(0)success
 		SOCKSRESULT IQuery(const char *ip,const char *dnssvr,int dnsport=DNS_SERVER_PORT);
 		//邮件交换器query,returnDNS_RCODE_ERR_OK(0)success
 		//一个MX记录yes由一个2byte的指示该邮件交换器的优先级值及not定长的邮件交换器名组成的
@@ -58,7 +58,7 @@ namespace net4cpp21
 		unsigned short m_msgID; //message ID
 		time_t m_lTimeout;//maximum wait timeout return in seconds
 		
-		std::string m_strnames; //用来临时saveparse的names
+		std::string m_strnames; //用来temporarysaveparse的names
 		char m_buffer[DNS_MAX_PACKAGE_SIZE];
 		DNS_HEADER m_dnsh;
 		DNS_QUERY m_dnsq;

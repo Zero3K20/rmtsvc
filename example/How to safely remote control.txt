@@ -1,74 +1,90 @@
-��ν��а�ȫ��Զ�̷���/�����Լ�SSL VPN 
-rmtsvc 2.5.2 build20070110�����ϰ汾��֧�ֱ�����������
+How to Safely Remote Access/Control and Use SSL VPN
+rmtsvc 2.5.2 build20070110 and later versions support the features described in this document.
 
-�Ķ����ĵ�Ҫ�����SSLҪ�л������˽⣬�������ҾͲ��ռ�SSL�Ļ���֪ʶ��:)
-rmtsvc��һ�����web��Զ�̷���/���ƹ������ߣ������ͨ��IEֱ�Ӷ�Զ�������������ϵķ�����й������ơ�
-��Ȼͨ��web����ô�κ��˶��п���ͨ��IE���з��ʣ��������ڵİ�ȫ������
-�����˵һ�¿��������İ�ȫ���⼰rmtsvc�Ľ���취
-Q: δ��Ȩ����
-A: rmtsvc֧�ֶ��ʺ�Ȩ�����ã�����������Ȩ���˲��ܷ���rmtsvc�������ʺ�����ʱ������Ҫ̫��
-Q: �����ֹ�ʺ����뱩���ƽ�
-A: rmtsvc�ĵ�½ҳ�����������֤�룬ÿ��ˢ��ҳ��������֤��������ɣ���ֹ�����ƽ�
-Q: ��η�ֹ�����������ʺ�������Ϣ�Լ�����������Ϣ
-A: rmtsvc֧��SSL�������Լ��ܷ�ʽ���䣬��ֹ���������潫���ؽ���rmtsvc��SSL�����Լ�ʹ��
+Reading this document requires a basic understanding of SSL. I'll skip the SSL basics here :)
+rmtsvc is a web-based remote access/control management tool. You can directly manage and control services on remote hosts via IE.
+Since access is via the web, anyone could potentially access it via IE - this raises security concerns.
+Below is a brief description of potential security issues and rmtsvc's solutions.
 
-rmtsvc��ini�����е�֧��һ��ssls�����������������SSL��֤���CRL��Ϣ�����������÷��������ϸ˵����
-Q: �������SSL���ܷ�ʽ����rmtsvc
-ini����webs�����е� ssl_enabled��������"true", ���� webs port=7779 ssl_enabled=true
-������������rmtsvc��SSL���ܷ�ʽ���û�������ͨ��IE��������URL���� https://host:port
-��������ͨ��ͬ�˰ɣ��������https
+Q: Unauthorized access
+A: rmtsvc supports multi-account permission configuration. Only authorized users can access rmtsvc.
+   When configuring account passwords, avoid using simple passwords.
 
-����SSL���ܷ�ʽ���������rmtsvc�ĺ�IE�Ľ�����������SSL���ܷ�ʽ����ģ��κ����޷���������������
-��IE���ʣ�IE�ᵯ��һ��ҳ����ʾ��վ���֤�鲻�������Ƿ������ѡ���������
-ͨ����ҳ�滹���Բ鿴վ���֤�飬���֤����rmtsvc������.
+Q: How to prevent brute-force password attacks
+A: rmtsvc's login page includes a numeric CAPTCHA that is randomly generated each time the page is refreshed, preventing brute-force attacks.
 
-Q: ���ʹ���Լ���֤�飬����rmtsvc���õ�֤��
-rmtsvc������һ����ǩ��֤�飬��Ȼ��Ҳ���������Լ���֤�飬����֤��Ĺ��̼�֤�����������ĵ���
-֤�������ú��������ļ��м���ssls����������÷�������:
+Q: How to prevent network eavesdropping of account passwords and other sensitive information
+A: rmtsvc supports SSL, transmitting data in encrypted form to prevent eavesdropping.
+   Below we explain rmtsvc's SSL functionality and how to use it.
+
+rmtsvc's ini configuration supports an "ssls" command to configure SSL certificates and CRL information.
+Detailed usage is described later.
+
+Q: How to enable SSL-encrypted access to rmtsvc
+Set the ssl_enabled parameter in the webs ini command to "true", e.g.: webs port=7779 ssl_enabled=true
+This enables SSL encryption for rmtsvc. Users must then access via IE using: https://host:port
+Note the difference from the ordinary URL - it uses https.
+
+After enabling SSL, all data between rmtsvc and IE is transmitted in SSL-encrypted form. No one can eavesdrop.
+When you open IE to access, IE will show a page saying the site's certificate is not trusted - select Continue.
+You can also view the site certificate from that page. This certificate is rmtsvc's built-in certificate.
+
+Q: How to use your own certificate instead of rmtsvc's built-in certificate
+rmtsvc comes with a self-signed certificate. You can also create your own certificate.
+See the certificate creation steps document for how to create one.
+After creating the certificate, add the ssls command to the config file, e.g.:
 ssls mycert=server.pem mykey=server.key keypwd=12345
 
-ͨ��������������Է�ֹ��������������Ľ������ݣ�����ı�֤��rmtsvc�ķ��ʰ�ȫ����
-���⻹��һ�����⣬���ǽ������ݽ����Ǽ��ܵģ����κ��˻��ǿ��Է������rmtsvc����Ϊ������֤֤�����α
-Q: �����֤�ͻ���֤��,������Щ���������Ұ䷢��֤����û����ܷ���
-A: ͨ������webs�����е�ssl_verify=true����������SSL�ͻ���֤����֤����
-������������ÿͻ�����֤���ܣ���ssls�����б�������caroot=<CA��֤��>����
-���������CA��֤�飬��ʹ������ssl_verify=trueҲ��������֤
-caroot --- �������CA�ĸ�֤�飬��������֤��ĸ�֤�顣�μ�֤�����������ĵ���һ��˵��
-���÷�������: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem
-����֤�����������ĵ�������һ���ͻ���֤�飬ת��Ϊpkcs12��ʽ�����Ÿ��������ʵ��û�
-�û����Լ��Ļ����ϴ�IE����װ֤�顣��װ��������:
-��IE���������ߡ�����inernetѡ��������ݡ�����֤�顪��������
-Ȼ��������ʾ��ѡ��.p12֤���ļ�����������Ĭ�ϼ�����ɿͻ���֤��İ�װ��
-Ȼ������������rmtsvc������û���װ�˶��֤��IE���������û�ѡ��֤���ҳ�棬ѡ��һ��֤�鼴��
+With the above configuration, you can prevent network eavesdropping of your data, greatly improving rmtsvc access security.
+However, there is still a problem: only the data is encrypted, but anyone can still access your rmtsvc since the client certificate is not verified.
 
-����ʱ�ֳ���һ�����⣬�����ĳ���˾����ҷ��ŵ�֤�飬���Ǻ�������֤�鱻����͵�˻����Ҳ���������������ô��?
-Q: ����ջس���֤��
-A: ����֤�����������ĵ�,����һ��֤������list.crl�ļ�
-ͨ������ssl�����е�cacrl=<CA����֤���б�>����������CRL���˲���ָ�����������ϵ�֤���б��ļ�
-Ҫ����CRL������������֤����֤������CA��֤�����
-���÷�������: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem cacrl=list.crl
-��ʱ����ĳ���û������������֤����ʣ�IE����ʾ����վ��İ�ȫ֤�������ϡ��������ɷ���
+Q: How to verify client certificates and restrict access to only users who have certificates issued by me
+A: Enable SSL client certificate verification by adding ssl_verify=true to the webs command.
+If client certificate verification is enabled, the ssls command must also include caroot=<CA root certificate>.
+If the CA root certificate is not configured, ssl_verify=true will have no effect.
+caroot --- Enter your CA's root certificate (the root certificate used to create certificates). See step 1 of the certificate creation document.
+Configuration example: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem
+
+Follow the certificate creation document to create a batch of client certificates, convert them to PKCS12 format, and distribute them to authorized users.
+Users open IE on their machine, install the certificate as follows:
+Open IE -> Tools -> Internet Options -> Content -> Certificates -> Import
+Follow the wizard, select the .p12 certificate file, and accept the defaults to complete the client certificate installation.
+Then open the browser to access rmtsvc. If multiple certificates are installed, IE will prompt the user to select one.
+
+But a new problem arises: what if someone has a certificate I issued but I later find it was stolen or want to revoke access?
+
+Q: How to revoke a certificate
+A: Follow the certificate creation document to revoke a certificate and generate a list.crl file.
+Configure the cacrl=<CA revoked certificate list> parameter in the ssl command to enable CRL.
+This parameter specifies the file listing all revoked certificates.
+To enable CRL, you must also configure certificate verification and CA root certificate parameters.
+Configuration example: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem cacrl=list.crl
+If a user attempts to access with a revoked certificate, IE will show "The site's security certificate has been revoked" and deny access.
 
 ================================================================================================
 
-rmtsvc�������Խ��а�ȫ���ʿ��ƣ���ʵrmtsvc���õ�vidcҲ���д˹��ܣ����ܶ��κ�ӳ��ķ���ת��ΪSSL���ܷ�����а�ȫ���ʿ���
-����ͨ��vidc��������һ��webӦ��(Ʃ�� OA�칫����)ӳ�䵽�����ϣ�����ص�Ա��Ҳ�ɷ��ʣ���ʱ�ͱ�¶����ȫ�����⣬��Ϊ�����ķ���
-����������ǱȽϼ򵥵ģ���ʱ�Ϳ���ͨ����ӳ��ת��ΪSSL���ܷ���ͬʱ����SSL��֤���ܽ�����Ȩ���ʣ���֤����Ӧ�÷���İ�ȫ
-˵������������ˣ���ʵ�����SSL VPN��ԭ��
+rmtsvc can not only provide secure access control; its built-in vidc also has this capability.
+It can convert any mapped service into an SSL-encrypted service for secure access control.
+For example, via vidc you can map an intranet web application (e.g., an OA office service) to the public network,
+allowing remote employees to access it. However, this exposes a security risk because intranet service passwords are often simple.
+You can address this by converting the mapping to an SSL-encrypted service and enabling SSL client certificate verification for authorized access.
+This is essentially the principle behind SSL VPN.
 
-�������vidc�SSL VPN����ȫ������������
-����vidc�ı��ض˿�ӳ���Զ�̶˿�ӳ�佫����Ӧ��ӳ�䵽���й���IP�Ļ�����
-��ָ��ӳ��ת��ΪSSL���ܷ���Ȼ��ѡ��SSL��Ҫ���пͻ���֤����֤����
-�����κη��ʴ�Ӧ�÷�����û���������㷢�ŵ�֤�飬�����������֤���Լ�����֤�����������
+How to use vidc to build SSL VPN for secure intranet access:
+Use vidc's local or remote port mapping to map the intranet application to a machine with a public IP.
+Specify that the mapping should be converted to an SSL-encrypted service, and enable SSL client certificate verification.
+This way, any user accessing the application must have a certificate you issued.
+For information on creating and managing certificates, see the description above.
 
 ===================================================================================================
 
-����ssl֤���CRL��Ϣ
-�����ʽ: 
-	ssls [mycert=<�û�SSL֤���ļ�>] [mykey=<�û�֤��˽Կ�ļ�>] [keypwd=<�û�˽Կ����>] [caroot=<CA��֤��>] [cacrl=<CA����֤���б�>]
-�˲���֧�ֵ�֤���ļ���ʽΪPEM��ʽ
+Set SSL certificate and CRL information
+Command format: 
+ssls [mycert=<SSL certificate file>] [mykey=<certificate private key file>] [keypwd=<private key password>] [caroot=<CA root certificate>] [cacrl=<CA revoked certificate list>]
+This command supports certificates in PEM format.
 
-��ssls�������õ�֤����Ϣ��Ӧ��������rmtsvc&vidc������֧��SSL���ܷ��񣬲�����rmtsvc�Ĺ���������vidcӳ��ķ���
-�����ֻ����һ�������֤�鼴��
+The certificate info configured by this ssls command applies to all SSL-enabled services started by rmtsvc & vidc,
+whether it is rmtsvc's management service or a service mapped by vidc.
+Therefore, you only need one server certificate.
 
-֤������������ɴ��ҵ���վ���� http://yycnet.yeah.net
+Certificate creation tools can be downloaded from: http://yycnet.yeah.net

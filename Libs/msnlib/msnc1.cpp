@@ -101,11 +101,11 @@ cMsnc1 :: ~cMsnc1()
 	m_cond.active();
 }
 
-//get某个联系人的头像。 
+//get a contact's avatar。 
 bool cMsnc1 :: getPicture(const char *saveas)
 {
 	if(saveas==NULL || saveas[0]==0) return false;
-	//从msnobject中get头像的filenameandsize
+	//从msnobject中getavatar的filenameandsize
 	char msnobj_buf[512]; 
 	int msnobj_len=sprintf(msnobj_buf,"%d",rand()+0x11111111);
 	msnobj_buf[msnobj_len]=0; m_sessionID.assign(msnobj_buf);//生成sessionID
@@ -118,7 +118,7 @@ bool cMsnc1 :: getPicture(const char *saveas)
 	m_inviteType=MSNINVITE_TYPE_PICTURE;
 	return sendmsg_INVITE(msnobj_buf,msnobj_len);	
 }
-//send本联系人的头像，filename --- 本联系人的头像file
+//send本contact的avatar，filename --- 本contact的avatarfile
 bool cMsnc1 :: sendPicture(const char *filename)
 {
 	if(filename==NULL || filename[0]==0 ) return false;
@@ -181,7 +181,7 @@ bool cMsnc1 :: sendRobotInvite(const char *robotname)
 		 context_len=sprintf(context_buf,"%d;1;robot",MSNINVITE_TYPE_ROBOT);
 	else context_len=sprintf(context_buf,"%d;1;%s",MSNINVITE_TYPE_ROBOT,robotname);
 	context_buf[context_len]=0;
-	unsigned short contextW_buf[256];//将单byte编码convert为unicode双byte编码
+	unsigned short contextW_buf[256];//将单byteencodingconvert为unicode双byteencoding
 	int contextW_len=MultiByteToWideChar(CP_ACP,0,context_buf,context_len,contextW_buf,255);
 	return sendmsg_INVITE((const char *)contextW_buf,contextW_len*sizeof(unsigned short));
 }
@@ -431,7 +431,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	return sendMSNC1(binary_stuff,52+len);
 }
 
-//addMSNC1 protocol头，然后sendMSNC1message
+//addMSNC1 protocol头，thensendMSNC1message
 //Splitting Messages
 //When the content of the message between de binary header and footer is larger then 1202 characters 
 //(or 1352 in case of a Direct Connection), you should split the data in seperate parts and add a message header, 
@@ -490,7 +490,7 @@ char *INVITE_GUID[]={
 					"{A4268EEC-FEC5-49E5-95C3-F126696BDBF6}", //Display picture
 					"{5D3E02AB-6190-11D3-BBBB-00C04F795683}", //FILE trans
 					"",
-					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //network摄像头
+					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //networkcamera
 					};
 //char *INVITE_ROBOT_GUID="{6A13AF9C-5308-4F35-923A-67E8DDA40C2F}"; //MSNINVITE_TYPE_ROBOT
 bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
@@ -579,7 +579,7 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		memcpy((void *)(binary_stuff),(const void *)&sessionID,4);
 		long Identifier=pmsnc1->m_BaseIdentifier+pmsnc1->m_offsetIdentifier++;
 		if(pmsnc1->m_offsetIdentifier==0) pmsnc1->m_offsetIdentifier++;//skip0
-		//MessageID ,data传输期间messageID保持not变
+		//MessageID ,datatransfer期间messageID保持not变
 		memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 		memcpy((void *)(binary_stuff+16),(const void *)&pmsnc1->m_filesize,4);
 
@@ -593,9 +593,9 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		else if(pmsnc1->m_inviteType==MSNINVITE_TYPE_PICTURE)
 		{
 			binary_stuff[28]=0x20;
-			//send the data preparation message,send准备startsend头像datamessage
+			//send the data preparation message,send准备startsendavatardatamessage
 			unsigned long trID=pmsnc1->sendmsg_READY2TRANS();
-			//send准备send头像message后要waiting对方的应答才能send头像data，这里waitingservice应答就可以.
+			//send准备sendavatarmessage后要waiting对方的应答才能sendavatardata，这里waitingservice应答就可以.
 			conds[trID]=&pmsnc1->m_cond; pmsnc1->m_cond.wait(5);//MSN_MAX_TIMEOUT);
 			pmsnc1->m_pmsnmessager->eraseCond(trID); 
 		}
@@ -667,7 +667,7 @@ bool cMsncx:: beginWrite(const char *filename,long filesize)
 First, the Sending Client (SC) need to send the Receiving Client (RC) an Invitation to start a session. 
 The Identifier field of that Invitation should contain a generated BaseIdentifier, 
 the Identifier field of the following messages should be calculated from that BaseIdentifier. 
-首先SC需要向RCsend一个start邀请的Sessionrequest(INVITE message),message头的msgid域yes一个自动产生的BaseIdentifier
+firstSC需要向RCsend一个startinvitation的Sessionrequest(INVITE message),message头的msgid域is aauto产生的BaseIdentifier
 接下来send的message头的msgid域的值由BaseIdentifiercount算出来。
 The Identifier fields of the next messages sent by the RC should be BaseIdentifier + 1, BaseIdentifier + 2 and so on.
 RCsend的nextmessage头的msgid域的值应yesBaseIdentifier + 1, BaseIdentifier + 2等等
@@ -682,7 +682,7 @@ context==msnobjobject
 //file
 EUF-GUID: {5D3E02AB-6190-11D3-BBBB-00C04F795683}
 AppID: 2
-context: base64 encoding 8~12byte为file size 20bytestart为filename(unicode编码)
+context: base64 encoding 8~12byte为file size 20bytestart为filename(unicodeencoding)
 //video cam
 EUF-GUID: {4BD96FC0-AB17-4425-A14A-439185962DC8}
 AppID: 4

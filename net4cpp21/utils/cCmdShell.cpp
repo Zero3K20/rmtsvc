@@ -69,7 +69,7 @@ bool cCmdShell::create()
 		saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
 		saAttr.bInheritHandle = true;
 		saAttr.lpSecurityDescriptor = NULL;
-		//save标准输出句柄
+		//save标准outputhandle
 		hSaveStdout = ::GetStdHandle(STD_OUTPUT_HANDLE);
 		// Create a pipe for the child's STDOUT.
 		if (! ::CreatePipe(&m_hChildStdoutRd, &m_hChildStdoutWr, &saAttr, 0)) break;
@@ -126,7 +126,7 @@ bool cCmdShell::create()
 }
 
 /*
-//往shell的输出buffer中write，可通过read读出
+//往shell的output buffer中write，可通过read读出
 long cCmdShell::Fill(void *buf,long buflen)
 {
 	if(buf==NULL || buflen<=0) return 0;
@@ -176,7 +176,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 {
 	if(pshell==NULL) return;
 	if(pshell->m_hChildStdoutRd==NULL) return;
-	//为m_buffer分配buffernull间
+	//为m_buffer分配bufferspace
 	pshell->m_buffer=new char[recvBufferLen];
 	if(pshell->m_buffer==NULL) return;
 	pshell->m_buflen=0; //initializationdatalength
@@ -198,7 +198,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 			pshell->m_buflen+=len; len=0;
 		}
 		pshell->m_mutex.unlock();
-		if(len>0) cUtils::usleep(200000) ;//休眠200ms，waitingbuffer被read
+		if(len>0) cUtils::usleep(200000) ;//sleeping200ms，waitingbuffer被read
 	}//?while(pshell->m_hChildStdoutRd)
 
 	pshell->cCmdShell::destroy(); 

@@ -137,12 +137,12 @@ private:
 	
 	bool httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 	bool httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
-	//从资源中getspecified的file
+	//从resource中getspecified的file
 	const char *GetFileFromRes(const char *filepath,DWORD &flength);
 
 	std::string m_defaultPage; //default文档
-	int m_quality;//捕获桌面图像的质量
-	DWORD m_dwImgSize;//捕获桌面图像的size 0-桌面size，otherwisespecifiedsizeHWORD=h,WWORD=w
+	int m_quality;//捕获desktopimage的质量
+	DWORD m_dwImgSize;//捕获desktopimage的size 0-desktopsize，otherwisespecifiedsizeHWORD=h,WWORD=w
 	bool m_bGetFileFromRes;
 
 	//first,访问者account - not区分size写。save时一律为小写
@@ -150,19 +150,19 @@ private:
 	std::map<std::string,std::pair<std::string,long> > m_mapUsers;
 
 	bool m_bSSLenabled; //startSSLservice
-	bool m_bSSLverify; //yesno进行clientcertificateauthentication
+	bool m_bSSLverify; //whether进行clientcertificateauthentication
 	//yyc add 2010-02-23 if从ini中显示的configuration了account则not supported匿名方式
-	bool m_bAnonymous; //yesno允许匿名访问，default为true
+	bool m_bAnonymous; //whether允许匿名访问，default为true
 };
 
 //---------------------------------------------------------------
 //---------------------------------------------------------------
-typedef struct _TaskTimer //定时任务structure
+typedef struct _TaskTimer //定时taskstructure
 {
-	long h,m;//定时的时分,ifyes定time隔任务则h指示定time隔(秒)
+	long h,m;//定时的时分,ifyes定time隔task则h指示定time隔(秒)
 	long type; //定时type 't'-轮询间隔(s)执行 'd'execute daily at scheduled time
 	long flag; //default0
-	std::string strTask; //定时任务
+	std::string strTask; //定时task
 }TaskTimer;
 class sockEvent : public socketBase
 {
@@ -170,21 +170,21 @@ public:
 	sockEvent(){ m_sockstatus=SOCKS_OPENED; }
 	virtual ~sockEvent(){}
 	virtual void Close(){ m_sockstatus=SOCKS_CLOSED;}
-}; //用于program exit时及时closeall的阻塞socket
+}; //用于program exit时及时closeall的blockedsocket
 #include "NTService.h"
 class MyService : public CNTService 
 {
-	sockEvent m_hSockEvent; //用于program exit时及时closeall的阻塞socket
-	HANDLE m_hStop; //service stoppedEventobject句柄
-	HANDLE m_hStopEvent; //yesno允许通过SCMor控制台stop serviceevent
-						//ifset了stoppassword，则根据stoppasswordcreate命名event
-	bool m_bSpyself;//yesno监视自身异常exit
-	bool m_bFaceless; //default双击运行程序yesnonot带控制台界面
-	std::vector<TaskTimer> m_tasklist; //定时执行任务list
+	sockEvent m_hSockEvent; //用于program exit时及时closeall的blockedsocket
+	HANDLE m_hStop; //service stoppedEventobjecthandle
+	HANDLE m_hStopEvent; //whether允许通过SCMorconsolestop serviceevent
+						//if set,stoppassword，则根据stoppasswordcreate命名event
+	bool m_bSpyself;//whether监视自身异常exit
+	bool m_bFaceless; //default双击运行程序whethernot带console界面
+	std::vector<TaskTimer> m_tasklist; //定时执行tasklist
 	bool CreateTaskTime(const char *ptrAt,const char *strTask);
 	void parseCommand(const char *strCommand);
 	void docmd_sets(const char *strParam);
-//*********************user其他代码 statrt ****************************************
+//*********************user additional code start ****************************************
 public:
 	webServer m_websvr;
 //	msnShell m_msnbot;	//yyc remove MSN function
@@ -194,7 +194,7 @@ public:
 	//---------------------------vIDC------------------------------
 	vidcManager m_vidcManager; //vidcset管理class
 	std::string m_preCmdpage; //cmdpagecommand行页commandhandle前缀
-//*********************user其他代码  end  ****************************************
+//*********************user additional code end  ****************************************
 public:
 	static const char *ServiceVers;
 	static MyService *GetService() { return (MyService *)AfxGetService(); }

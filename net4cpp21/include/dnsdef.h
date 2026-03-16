@@ -27,13 +27,13 @@
 #define DNS_FLAGS_OPCODE 0x78 //bits 6,5,4,3 of the first network byte
 		//指示query种class：0:standard query；1:reverse query；2:serverstatusquery；3-15:未使用。
 #define DNS_FLAGS_AA 0x04 //bit 2 of the first network byte
-		//yesno权威回复
+		//whether权威回复
 #define DNS_FLAGS_TC 0x02 //bit 1 of the first network byte
-		//因为一个UDP报文为512byte，所以该bit指示yesno截掉超过的partial
+		//因为一个UDP报文为512byte，所以该bit指示whether截掉超过的partial
 #define DNS_FLAGS_RD 0x01 //bit 0 of the first network byte
 		//此bitatquery中specified，回复时相同。set为1指示server进行递归query
 #define DNS_FLAGS_RA 0x8000 //bit 7 of the second network byte
-		//由DNS回复returnspecified，说明DNSserveryesno支持递归query
+		//由DNS回复returnspecified，说明DNSserverwhether支持递归query
 #define DNS_FLAGS_Z 0x7000 //bits 6,5,4 of the second network byte
 		//保留字段，必须set为0
 #define DNS_FLAGS_RCODE 0x0f00 //bits 3,2,1,0 of the second network byte
@@ -135,22 +135,22 @@
 typedef struct dns_protocol_header //DNSdata报头
 {
 	unsigned short id;
-	//标识，通过它client可以将DNS的request与应答相匹配
+	//identifier，通过它client可以将DNS的request与应答相匹配
 	unsigned short flags;
 	//flag：[QR | opcode | AA| TC| RD| RA | zero | rcode ]
 	unsigned short quests;
 	//问题数目
 	unsigned short answers;
-	//资源记录数目
+	//resource记录数目
 	unsigned short author;
-	//authorization资源记录数目
+	//authorizationresource记录数目
 	unsigned short addition;
-	//额外资源记录数目
+	//额外resource记录数目
 }DNS_HEADER,*PDNS_HEADER;
 typedef struct dns_protocol_query //DNS querydata报
 {
 	const char *name;
-	//query的域名,这yes一个sizeat0到63之间的character串
+	//query的domain name,这is asizeat0到63之间的string
 	unsigned short type;
 	//querytype，见Q_type_arraydefine
 	unsigned short classes;
@@ -159,30 +159,30 @@ typedef struct dns_protocol_query //DNS querydata报
 }DNS_QUERY,*PDNS_QUERY;
 typedef struct dns_protocol_response //DNSresponsedata报
 {
-	const char *name; //回复query的域名，not定长
-	//query的域名
-	unsigned short type; //回复的type。2byte，与query同义。指示RDATA中的资源记录type
+	const char *name; //回复query的domain name，not定长
+	//query的domain name
+	unsigned short type; //回复的type。2byte，与query同义。指示RDATA中的resource记录type
 	//querytype
-	unsigned short classes; //回复的class。2byte，与query同义。指示RDATA中的资源记录class
+	unsigned short classes; //回复的class。2byte，与query同义。指示RDATA中的resource记录class
 	//type码
-	unsigned long	ttl; //生存time。4byte，指示RDATA中的资源记录at缓存的生存time
+	unsigned long	ttl; //生存time。4byte，指示RDATA中的resource记录atcache的生存time
 	//生存time
 	unsigned short length; //length。2byte，指示RDATA块的length(notpacket括本字段的两byte)
-	//资源datalength
-	unsigned char *	rdata; //资源记录。notdefine，依TYPE的not同，此记录的格示not同，
+	//resourcedatalength
+	unsigned char *	rdata; //resource记录。notdefine，依TYPE的not同，此记录的格示not同，
 						  //通常一个MX记录yes由一个2byte的指示该邮件交换器的优先级值及not定长的邮件交换器名组成的
-	//资源data
+	//resourcedata
 }DNS_RESPONSE,*PDNS_RESPONSE;
 
 #endif
 
 /*************************
-name的组合形式。name由多个标识序列组成，每一个标识序列的首byte说明该标识符的length，
-接着用yesASCII码表示character，多个序列之后由byte0表示名字end。
-其中某一个标识序列的首character的length若yes0xC0的话，表示下一byte指示notyes标识符序列，
-而yes指示接下partialat本receivepacket内的偏移bit置此时not已byte0表示名字end。 
-　　比如　bbs.zzsy.com　以.分开bbs、zzsy、com三个partial。每个partial的length为3、4、3 
+name的组合形式。name由multipleidentifier序列组成，每一个identifier序列的首byte说明该identifier符的length，
+接着用yesASCII码表示character，multiple序列after由byte0表示名字end。
+其中某一个identifier序列的首character的length若yes0xC0的话，表示下一byte指示is notidentifier符序列，
+而yes指示接下partialat本receivepacket内的偏移positionat this pointnot已byte0表示名字end。 
+　　比如　bbs.zzsy.com　以.分开bbs、zzsy、com三个partial。eachpartial的length为3、4、3 
 　　atDNS报文中的形式就如 3 b b s 4 z z s y 3 c o m 0 
-　　false如atpacket内的第12个bytebit置存at有 4 z z s y 3 c o m 0 这样的name了。 
-　　那此时有可能为：3 b b s 4 z z s y 0xC0 0x0C 这样的形式。
+　　false如atpacket内的第12个bytepositionexists有 4 z z s y 3 c o m 0 这样的name了。 
+　　那at this point有可能为：3 b b s 4 z z s y 0xC0 0x0C 这样的形式。
 **************************/

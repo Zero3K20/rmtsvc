@@ -1,6 +1,6 @@
 /*******************************************************************
    *	Wutils.cpp
-   *    DESCRIPTION:windows系统utility functions collection
+   *    DESCRIPTION:windowssystemutility functions collection
    *
    *    AUTHOR:yyc
    *
@@ -34,7 +34,7 @@ inline VOID Keybd_Event(BYTE bVk,               // virtual-key code
 	::keybd_event(bVk, bScan, dwFlags, Wutils::mskbEvent_dwExtraInfo);
 }
 
-//returnlocal machine名
+//return local machine name
 const char *Wutils::computeName()
 {
 	DWORD retLen=MAX_PATH-1;
@@ -48,7 +48,7 @@ int Wutils::cpuInfo(MSOSTYPE ostype)
 {
 	SYSTEM_INFO sysi; ::GetSystemInfo(&sysi);
 	int ret=0;
-	if(ostype>=MSOS_TYPE_NT) //NT平台
+	if(ostype>=MSOS_TYPE_NT) //NT platform
 	{
 		if(sysi.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_INTEL)
 			ret=sprintf(m_buffer,"%d cpus (x86 Family %d)",sysi.dwNumberOfProcessors,
@@ -98,21 +98,21 @@ MSOSTYPE Wutils::winOsType()
 
 
 
-//检测系统status
+//detect system status
 MSOSSTATUS Wutils::winOsStatus()
 {
 	MSOSTYPE ost=Wutils::winOsType();
 	sprintf(m_buffer,"status: Normal");
 	MSOSSTATUS oss=MSOS_STA_NORMAL;
-	//win9xnot supportedOpenDeskTop以及openInputDe...相关function
-	//thereforeif判断系统yeswin9x则直接returnNormalstatus
+	//win9x does not support OpenDeskTop and openInputDesktop-related functions
+	//therefore if the system is win9x, directly return Normal status
 	if(ost<=MSOS_TYPE_9X) return oss;
 
 	HDESK hDesktop=::OpenInputDesktop(0, FALSE,MAXIMUM_ALLOWED);
 	if(hDesktop!=NULL)
 	{
 		DWORD dummy; char deskName[256]; deskName[0]=0;
-		//检索desktopobject的name
+		//retrieve the name of the desktop object
 		::GetUserObjectInformation(hDesktop, UOI_NAME, &deskName, 256, &dummy);
 		if(_stricmp(deskName,"winlogon")==0){
 			oss=MSOS_STA_LOCKED;
@@ -121,15 +121,15 @@ MSOSSTATUS Wutils::winOsStatus()
 		::CloseDesktop(hDesktop);
 	}
 	else if(GetLastError()!=120) 
-	{//ifopenerror则系统可能atwinlogonstatus
-		//iferrorreturn为120，说明本系统not supported此function则default为系统左面status为正常(0)
-		//yyc comment 2005-09-23 经test即使处于未loginstatushDesktop也!=NULL,test环境2k sp4
+	{//if open error, the system may be at the winlogon screen
+		//if error return is 120, this system does not support this function; default system left-side status to normal (0)
+		//yyc comment 2005-09-23: tested that even when not logged in, hDesktop != NULL; test environment: Win2k SP4
 		oss=MSOS_STA_UNLOGIN;
 		sprintf(m_buffer,"status: unlogin");
 	}
 	return oss;
 }
-//lock工作站,lock workstation (only for NT)
+//lockworker站,lock workstation (only for NT)
 BOOL Wutils:: LockWorkstation()
 {
 	// Load the user32 library
@@ -154,8 +154,8 @@ BOOL Wutils:: SimulateCtrlAltDel()
 	HWINSTA hwinsta=NULL,hwinstaSave = NULL; 
 	HDESK       hdesk = NULL, hdeskSave=NULL;
 	BOOL bRet=FALSE;
-//	if(Wutils::inputDesktopSelected()) //判断current桌面yesnoyesDefault
-//	{//ifyes则openwinlogon桌面，因为Ctrl+alt+del必须send到winlogon桌面   
+//	if(Wutils::inputDesktopSelected()) //判断currentdesktopwhetheryesDefault
+//	{//ifyes则openwinlogondesktop，因为Ctrl+alt+del必须send到winlogondesktop   
 		// Save a handle to the caller's current window station.
 		if ( (hwinstaSave = GetProcessWindowStation() ) == NULL)
 			goto Cleanup;
@@ -205,7 +205,7 @@ BOOL Wutils:: SimulateCtrlAltDel()
 			goto Cleanup; 
 		}
 //	}//?if(!Wutils::inputDesktopSelected())
-//	else //ifnotyesDefault桌面，则currentinput desktop可能为winlogon
+//	else //ifis notDefaultdesktop，则currentinput desktop可能为winlogon
 //	{//切换到currentinput desktop，用此methodfalse定currentinput为winlogon
 //		if(!Wutils::selectInputDesktop()){
 //			sprintf(m_buffer,"failed to selectInputDesktop\r\n - %s\r\n",
@@ -221,8 +221,8 @@ Cleanup:
 	if (hdesk) CloseDesktop(hdesk);
 	return bRet;
 }
-//falgs--鼠标按键status
-//flag含义：最低4bit代表鼠标按键
+//falgs--mouse按键status
+//flag含义：最低4bit代表mouse按键
 //						0 Default. No button is pressed. 
 //						1 Left button is pressed. 
 //						2 Right button is pressed. 
@@ -231,14 +231,14 @@ Cleanup:
 //						5 Left and middle buttons both are pressed. 
 //						6 Right and middle buttons are both pressed. 
 //						7 All three buttons are pressed. 
-//			高四bit代表鼠标event
+//			高四bit代表mouseevent
 //						0 only Move
 //						1 click
 //						2 double click
 //						3 drag
 //						4 drop
 //						5 wheel
-//		低2byte的低3bit分别代表 Ctrl Shift Altyesno按下
+//		低2byte的低3bit分别代表 Ctrl Shift Altwhether按下
 //          bit 0 represents whether Ctrl key is pressed: 0=no, 1=yes
 //          bit 1 represents whether Shift key is pressed: 0=no, 1=yes
 //          bit 2 represents whether Alt key is pressed: 0=no, 1=yes
@@ -261,9 +261,9 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
 	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
 	//The calling process must have WINSTA_WRITEATTRIBUTES access to the window station. 
-	//whenrun as a service时，defaultSetCursorPosyesnot起作用的
-	::SetCursorPos(x, y);//移动鼠标光标到specifiedbit置
-	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//仅仅移动光标
+	//whenrun as a service时，defaultSetCursorPoswhethert起作用的
+	::SetCursorPos(x, y);//移动mousecursor到specifiedposition
+	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//仅仅移动cursor
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL,0);
@@ -272,9 +272,9 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	if((flags&MSEVENT_ALT)!=0) //Alt pressed
 		Keybd_Event((BYTE)VK_MENU, (BYTE)VK_MENU,0);
 	
-	//判断鼠标按键
+	//判断mouse按键
 	int fDown=0,fUp=0;
-	if((flags&MSEVENT_BUTTON_LEFT)==MSEVENT_BUTTON_LEFT) //判断鼠标按键status
+	if((flags&MSEVENT_BUTTON_LEFT)==MSEVENT_BUTTON_LEFT) //判断mouse按键status
 	{
 		fDown|=MOUSEEVENTF_LEFTDOWN;
 		fUp|=MOUSEEVENTF_LEFTUP;
@@ -291,29 +291,29 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	}
 	
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DRAG)
-	{//鼠标drag
-		Mouse_Event(fDown,0, 0,dwData);//鼠标按下
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//鼠标按下
+	{//mousedrag
+		Mouse_Event(fDown,0, 0,dwData);//mouse按下
+		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse按下
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DROP)
-	{//鼠标drop
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//鼠标按下
+	{//mousedrop
+		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse按下
 		Mouse_Event(fUp, 0, 0,0);
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_WHEEL)
-	{//模拟鼠标滚轮event
+	{//模拟mouse滚轮event
 		Mouse_Event(MOUSEEVENTF_WHEEL,0,0,dwData);
 	}
-	else //非鼠标drag-drop
+	else //非mousedrag-drop
 	{
-		Mouse_Event(fDown,0, 0,dwData);//鼠标按下
-		Mouse_Event(fUp, 0, 0,dwData); //鼠标抬起
-		if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DBLCLICK) //鼠标双击
+		Mouse_Event(fDown,0, 0,dwData);//mouse按下
+		Mouse_Event(fUp, 0, 0,dwData); //mouse抬起
+		if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DBLCLICK) //mouse双击
 		{
 			Mouse_Event(fDown, 0, 0,dwData);
 			Mouse_Event(fUp, 0, 0,dwData);
 		}//双击
-	} //非鼠标drag-drop
+	} //非mousedrag-drop
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL, KEYEVENTF_KEYUP);
@@ -323,12 +323,12 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		Keybd_Event((BYTE)VK_MENU, (BYTE)VK_MENU, KEYEVENTF_KEYUP);
 	return TRUE;
 }
-//send虚拟按键
+//sendvirtual按键
 //低 1byte，代表按键地asc码
 //高byte代表 Ctrl,Shift,alt按键地status
-//			  最低一bit代表Ctrl键yesno按下
-//			  第二bit代表Shift按键yesno按下
-//			  第三bit代表Alt按键yesno按下
+//			  最低一bit代表Ctrl键whether按下
+//			  第二bit代表Shift按键whether按下
+//			  第三bit代表Alt按键whether按下
 BOOL Wutils :: sendKeyEvent(short vkey)
 {
 	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
@@ -354,7 +354,7 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 	return true;
 }
 
-//模拟按键输入character串，仅仅可输入asciicharacter串
+//模拟按键inputstring，仅仅可inputasciistring
 BOOL Wutils :: sendText(const char *strTxt)
 {
 	if(strTxt==NULL || strTxt[0]==0) return TRUE;
@@ -373,24 +373,24 @@ BOOL Wutils :: sendText(const char *strTxt)
 	}//?while(*ptr)
 	return TRUE;
 }
-//通过剪切板输入character串，可输入任何的文字
+//通过剪切板inputstring，可input任何的文字
 BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 {
 	if(strTxt==NULL || strTxt[0]==0) return TRUE;
 	if(!Wutils::inputDesktopSelected())
 		Wutils::selectInputDesktop();
-	int len=strlen(strTxt); //通过剪切板往current窗口写一段text
+	int len=strlen(strTxt); //通过剪切板往currentwindow写一段text
 	if(!OpenClipboard(NULL))
 	{
 		sprintf(m_buffer,"failed to OpenClipboard");
 		return FALSE;
 	}
-	// clear剪贴板
+	// clear clipboard
 	//The EmptyClipboard function empties the clipboard and frees handles to data in the clipboard. 
 	//The function then assigns ownership of the clipboard to the window that currently has the clipboard open. 
 	if (::EmptyClipboard())
 	{
-		// 分配memory块
+		// allocate memory block
 		HANDLE hMem= ::GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, len+1);
 		if (hMem)
 		{
@@ -404,18 +404,18 @@ BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 		}//?hMem
 	}
 	CloseClipboard();
-	//支持控制台的文本输入
+	//支持console的文本input
 	HWND hWnd=GetForegroundWindow();
 	if(hWnd)
-	{//判断current的输入焦点yesnoat控制台
+	{//判断current的input焦点whetheratconsole
 		char rgBuf[32]; RECT rt;
 		if(GetClassName(hWnd, rgBuf, 32) != 0 && \
 			strcmp(rgBuf, "ConsoleWindowClass") == 0 && \
-			GetWindowRect(hWnd,&rt)!=0)//获得控制台窗口屏幕坐标
-		{//if输入窗口为控制台窗口,at控制台窗口模拟鼠标右键单击
+			GetWindowRect(hWnd,&rt)!=0)//getconsolewindowscreen坐标
+		{//ifinputwindow为consolewindow,atconsolewindow模拟mouse右键单击
 			int x=rt.left+(rt.right-rt.left)/2;
 			int y=rt.top+(rt.bottom -rt.top)/2;
-			::SetCursorPos(x, y);//移动鼠标光标到specifiedbit置
+			::SetCursorPos(x, y);//移动mousecursor到specifiedposition
 			Mouse_Event(MOUSEEVENTF_RIGHTDOWN,0,0,0);
 			Mouse_Event(MOUSEEVENTF_RIGHTUP,0,0,0);
 			return TRUE;
@@ -499,7 +499,7 @@ const char *Wutils::GetNameFromPID(DWORD pid)
 	return ((bRet)?m_buffer:NULL);
 }
 
-//捕获current桌面图像并send
+//捕获currentdesktopimage并send
 #include "ipf.h"
 BOOL Wutils :: snapWindows(int quality,const char *filename,bool ifCapCursor)
 {
@@ -616,8 +616,8 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	}//?while
 	return bMatch;
 }
-//enumNT系统的process
-//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
+//enumNTsystem的process
+//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
 DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 					   const char *filter)
 {
@@ -645,7 +645,7 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 	pfnEnumProcessModules_D pfnEnumProcessModules=(pfnEnumProcessModules_D)::GetProcAddress(hDll,"EnumProcessModules");
 	pfnGetModuleBaseName_D pfnGetModuleBaseName=(pfnGetModuleBaseName_D)::GetProcAddress(hDll,"GetModuleBaseNameA");
 	DWORD aProcesses[1024], cbNeeded, cProcesses;
-	//enum系统process IDlist
+	//enumsystemprocess IDlist
 	if (pfnEnumProcesses!=NULL && (*pfnEnumProcesses)(aProcesses, sizeof(aProcesses), &cbNeeded ) )
 	{
 		cProcesses = cbNeeded / sizeof(DWORD);
@@ -680,7 +680,7 @@ DWORD procList_NT(std::vector<std::pair<DWORD,std::string> > &vecList,
 	return vecList.size();
 }
 
-//enumwin9x/2k系统的process
+//enumwin9x/2ksystem的process
 //对于win9x/2k可以通过toolhelp32function列举process及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等function
 DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
@@ -711,7 +711,7 @@ DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 		do
 		{
 			//win9x下显示的yesfile path全名，去掉path
-			//2k下仅仅显示的yesfilename（therefore可以not要此判断）
+			//2k下仅仅显示的yesfilename（therefore可以do not此判断）
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
@@ -736,8 +736,8 @@ DWORD procList_2K(std::vector<std::pair<DWORD,std::string> > &vecList,
 	return vecList.size();
 }
 
-//enumNT系统的process
-//对于NT操作系统可以用PSAPI.DLLenumprocess以及模块info
+//enumNTsystem的process
+//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
 BOOL GetProcName_NT(DWORD processID,char *szProcessName,DWORD buflen)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -782,7 +782,7 @@ BOOL GetProcName_NT(DWORD processID,char *szProcessName,DWORD buflen)
 	return bRet;
 }
 
-//enumwin9x/2k系统process的模块
+//enumwin9x/2ksystemprocess的模块
 //对于win9x/2k可以通过toolhelp32function列举process及模块info
 //只有2k&&win9x支持CreateToolhelp32Snapshot等function
 BOOL GetProcName_2K(DWORD processID,char *szProcessName,DWORD buflen)

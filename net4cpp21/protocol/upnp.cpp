@@ -82,7 +82,7 @@ void upnp :: onData()
 	if(buflen<=0) return; else buf[buflen]=0;
 	RW_LOG_DEBUG("[UPnP] Received response ,len=%d\r\n%s",buflen,buf);
 	
-	// D-Link 504 竟然notyes HTTP/*.* 而yes HTTP*.*
+	// D-Link 504 竟然is not HTTP/*.* 而yes HTTP*.*
 	UINT32 maj_ver, min_ver, status_code;
 	if (::sscanf(buf, "HTTP/%u.%u %u", &maj_ver, &min_ver, &status_code) != 3 &&
 		::sscanf(buf, "HTTP%u.%u %u", &maj_ver, &min_ver, &status_code) != 3)
@@ -172,7 +172,7 @@ TRANS302:
 	else if(iret==200) //responsesuccess
 	{
 		httpResponse & resp=httpsock.Response();
-		resp.recv_remainder(&httpsock,-1);//receive完整的HTTP response体
+		resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
 //		RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 //				resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
 		if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完
@@ -326,7 +326,7 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//receive完整的HTTP response体
+	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
 //	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完
@@ -356,7 +356,7 @@ bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 	if(sr!=200) return false;
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//receive完整的HTTP response体
+	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
 	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完

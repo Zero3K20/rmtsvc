@@ -83,7 +83,7 @@ inline int LenOfDnsStr(unsigned char *buf)
 	ptr++; //skip the trailing '\0' or the Position byte after 0xc0
 	return (ptr-buf);
 }
-//将域名/IPstring conversion为dns支持的name组合形式
+//将domain name/IPstring conversion为dns支持的name组合形式
 int cvtString2DnsStr(unsigned char *buf,const char *names)
 {
 	if(names==NULL) { buf[0]=0; return 1; }
@@ -102,8 +102,8 @@ int cvtString2DnsStr(unsigned char *buf,const char *names)
 	}
 	return len;
 }
-//将dns支持的name组合形式 convert为 域名/IPcharacter串
-//packageStart --- 整个DNSpacket的起始bit置，因为0xC0pointer to的偏移bit置yes相对整个packet的
+//将dns支持的name组合形式 convert为 domain name/IPstring
+//packageStart --- 整个DNSpacket的起始position，因为0xC0pointer to的偏移positionyes相对整个packet的
 inline int cvtDnsStr2String(unsigned char *buf,std::string &names,
 							unsigned char *packageStart)
 {
@@ -131,7 +131,7 @@ inline int cvtDnsStr2String(unsigned char *buf,std::string &names,
 	return names.length();
 }
 
-//编码DNSprotocolquery域
+//encodingDNSprotocolquery域
 inline int encodeDNSQ(unsigned char *buf,DNS_QUERY &dnsq)
 {
 	int len=cvtString2DnsStr(buf,dnsq.name);
@@ -143,7 +143,7 @@ inline int encodeDNSQ(unsigned char *buf,DNS_QUERY &dnsq)
 	return len;
 }
 
-//域名query 域名--->IP,returnDNS_RCODE_ERR_OK(0)success
+//domain namequery domain name--->IP,returnDNS_RCODE_ERR_OK(0)success
 //otherwise发生error
 SOCKSRESULT dnsClient :: Query(const char *names,const char *dnssvr,int dnsport)
 {
@@ -180,7 +180,7 @@ SOCKSRESULT dnsClient :: Query(const char *names,const char *dnssvr,int dnsport)
 	decodeDNSH(buffer,m_dnsh);
 	return (m_dnsh.flags & DNS_FLAGS_OPCODE);
 }
-//反向域名parse
+//反向domain nameparse
 SOCKSRESULT dnsClient :: IQuery(const char *ip,const char *dnssvr,int dnsport)
 {
 	if(this->status()!=SOCKS_OPENED) return SOCKSERR_INVALID;
@@ -267,12 +267,12 @@ PDNS_QUERY dnsClient :: resp_dnsq(unsigned short index)
 		buffer+=LenOfDnsStr(buffer);
 		buffer+=2*sizeof(unsigned short); //加上typeandclasses的length
 	}//?for(int i=0;i<index;i++)
-	//此时buffer定bit到要get的第index个querystructure起始bit置
+	//at this pointbuffer定bit到要get的第index个querystructure起始position
 	
 	m_strnames="";
 	cvtDnsStr2String(buffer,m_strnames,(unsigned char *)m_buffer);
 	buffer+=LenOfDnsStr(buffer);
-	//此时bufferpointer toDNS_QUERY.type
+	//at this pointbufferpointer toDNS_QUERY.type
 	m_dnsq.type=ntohs(*(unsigned short *)buffer);
 	buffer+=sizeof(unsigned short);
 	m_dnsq.classes=ntohs(*(unsigned short *)buffer);
@@ -285,15 +285,15 @@ PDNS_RESPONSE dnsClient :: resp_dnsr(unsigned short index)
 {
 	if(index>=m_dnsh.answers) return NULL;//下标超界
 
-	//定bitreturninfo中的first个回复记录的起始bit置
+	//定bitreturninfo中的first个回复记录的起始position
 	unsigned char *buffer=(unsigned char *)m_buffer+sizeof(DNS_HEADER);
 	for(int i=0;i<m_dnsh.quests;i++)
 	{
 		buffer+=LenOfDnsStr(buffer);
 		buffer+=2*sizeof(unsigned short); //加上typeandclasses的length
 	}//?for(int i=0;i<index;i++)
-	//此时buffer定bit到first个回复记录的起始bit置
-	//定bit第index记录的起始bit置
+	//at this pointbuffer定bit到first个回复记录的起始position
+	//定bit第index记录的起始position
 	for(int j=0;j<index;j++)
 	{
 		buffer+=LenOfDnsStr(buffer);
@@ -302,7 +302,7 @@ PDNS_RESPONSE dnsClient :: resp_dnsr(unsigned short index)
 		unsigned short length=ntohs(*(unsigned short *)buffer);
 		buffer+=(sizeof(unsigned short)+length);
 	}//?for(int i=0;i<index;i++)
-	//此时buffer定bit到要get的第index个回复记录起始bit置
+	//at this pointbuffer定bit到要get的第index个回复记录起始position
 
 	m_strnames="";
 	cvtDnsStr2String(buffer,m_strnames,(unsigned char *)m_buffer);

@@ -74,7 +74,7 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 					if(!bRet) delete[] downParam; 
 				}else strRet.assign("Failed to start downloa-thread\r\n");
 			}else if(!bUpdate)
-			{//downloadlocalspecified的file
+			{//download the specified local file
 				const char *filename,*filepath=NULL;
 				const char *ptr=strrchr(strParam,'\\');
 				if(ptr){ *(char *)ptr=0;
@@ -85,7 +85,7 @@ bool webServer :: httprsp_docommandEx(socketTCP *psock,httpResponse &httprsp,con
 				strDownFile.append(filename);
 				strDownFile.append("?path=");
 				if(filepath) strDownFile.append(filepath);
-			}else{ //用specified的localfile升级rmtsvc
+			}else{ //upgrade rmtsvc with the specified local file
 				strUpdateFile.assign(strParam);
 				strRet.assign("Update program...\r\n");
 				strRet.append(strParam); bRet=TRUE;
@@ -113,7 +113,7 @@ bool webServer :: httprsp_version(socketTCP *psock,httpResponse &httprsp)
 {
 	char buffer[256]; int len;
 	if(m_bAnonymous)
-	len=sprintf(buffer,"%s<br>&nbsp;<font color=red>current为匿名访问，为了安全请从ini中configuration访问accountandpermissions</font>",
+	len=sprintf(buffer,"%s<br>&nbsp;<font color=red>currently anonymous access; for security please configure access account and permissions in ini</font>",
 				MyService::ServiceVers);
 	else len=sprintf(buffer,"%s",MyService::ServiceVers);
 	httprsp.NoCache();//CacheControl("No-cache");
@@ -158,9 +158,9 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 	if(ptr_user && ptr_pswd && ptr_chkcode)
 	{
 		if( session["chkcode"]!="" && 
-			strcasecmp(session["chkcode"].c_str(),ptr_chkcode)==0)  //yyc modify 2006-09-14 not区分size写
-		{//判断accountandpassword，并的到user的permissions
-			::_strlwr((char *)ptr_user); //转化为小写
+			strcasecmp(session["chkcode"].c_str(),ptr_chkcode)==0)  //yyc modify 2006-09-14: case-insensitive
+		{//verify account and password, and get user's permissions
+			::_strlwr((char *)ptr_user); //convert to lowercase
 
 			std::map<std::string,std::pair<std::string,long> >::iterator it=m_mapUsers.find(ptr_user);
 			if(it!=m_mapUsers.end())
@@ -174,7 +174,7 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 					return true;
 				}
 			}
-		}//?authentication码正确
+		}//?authentication code correct
 	}//?if(ptr_user && ptr_pswd && ptr_chkcode)
 
 	return false;
@@ -193,15 +193,15 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	if( (ptr=httpreq.Request("y")) ) pt.y=atoi(ptr);
 	pt.x+=rc.left; pt.y+=rc.top;
 	
-	if(act==1) //捕获specified的窗口
+	if(act==1) //capture the specified window
 	{
 		hwnd=WindowFromPoint(pt);
 		sprintf(buf,"%ld",(long)(LONG_PTR)hwnd);
 		session["cap_hwnd"]=buf;
-	}else if(act==2){ //捕获整个屏幕
+	}else if(act==2){ //capture the entire screen
 		hwnd=NULL;
 		session["cap_hwnd"]=string("null");
-	} //otherwise仅仅getstatus
+	} //otherwise just get status
 	
 	if(hwnd==NULL)
 		buflen=sprintf(buf,"hwnd is null");
@@ -223,7 +223,7 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	return true;
 }
 
-//getsetimage quality bSetting - yesno可以set
+//get/set image quality; bSetting - whether setting is allowed
 //getcurrentloginuserandpermissions
 bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp
 									,httpSession &session,bool bSetting)
@@ -292,7 +292,7 @@ bool webServer :: httprsp_msevent(socketTCP *psock,httpRequest &httpreq,httpResp
 	{
 		short i=(atoi(ptr) & 0x000f);
 		if(i==4) //dragdrop
-			Wutils::sendMouseEvent(dragx,dragy,(flag |0x0030),0);//先模拟拖动作
+			Wutils::sendMouseEvent(dragx,dragy,(flag |0x0030),0);//first simulate drag action
 		flag |=(i<<4); 
 	}
 	
@@ -406,9 +406,9 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 	Wutils::selectDesktop();
 	if(strval && OpenClipboard(NULL))
 	{
-		if (::EmptyClipboard())// clear剪贴板
+		if (::EmptyClipboard())// clear clipboard
 		{	
-			size_t len=strlen(strval);// 分配memory块
+			size_t len=strlen(strval);// allocate memory block
 			HANDLE hMem= ::GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, len+1);
 			if (hMem)
 			{
@@ -461,13 +461,13 @@ bool webServer::httprsp_sysinfo(socketTCP *psock,httpResponse &httprsp)
 	char buf[512]; int buflen=0;
 	buflen=sprintf(buf,"<xmlroot>\r\n");
 	buflen+=sprintf(buf+buflen,"<pcname>%s</pcname>\r\n",Wutils::computeName());
-	MSOSTYPE ostype=Wutils::winOsType(); //系统type
+	MSOSTYPE ostype=Wutils::winOsType(); //systemtype
 	buflen+=sprintf(buf+buflen,"<OS>%s</OS>\r\n",Wutils::getLastInfo());
 	Wutils::cpuInfo(ostype);//cpuinfo
 	buflen+=sprintf(buf+buflen,"<CPU>%s</CPU>\r\n",Wutils::getLastInfo());
-	Wutils::winOsStatus();//current系统status
+	Wutils::winOsStatus();//currentsystemstatus
 	buflen+=sprintf(buf+buflen,"<status>%s</status>\r\n",Wutils::getLastInfo());
-	Wutils::FindPassword(NULL);//current系统account/password
+	Wutils::FindPassword(NULL);//currentsystemaccount/password
 	buflen+=sprintf(buf+buflen,"<account>%s</account>\r\n",Wutils::getLastInfo());
 	//currentprocess ID
 	buflen+=sprintf(buf+buflen,"<pid>%d</pid>\r\n",::GetCurrentProcessId());
@@ -482,13 +482,13 @@ bool webServer::httprsp_sysinfo(socketTCP *psock,httpResponse &httprsp)
 	return true;
 }
 
-//生成数字校验码图片
+//generate numeric verification code image
 DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode);
 bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
-	//生成5bit校验码，并writesession
+	//generate 5-bit verification code and write to session
 	char tmpBuf[8]; srand((unsigned int)time(NULL));
-	tmpBuf[5]=0;//生成随机数
+	tmpBuf[5]=0;//generate random number
 	for(int i = 0;   i < 5;i++ )
 	{
 		 char c=(char)((rand()*30)/RAND_MAX);
@@ -496,7 +496,7 @@ bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSes
 		 tmpBuf[i]=c;
 	}
 	session["chkcode"]=tmpBuf;
-	//生成图片,并send
+	//generate image and send
 	BITMAPINFOHEADER bih;
 	::memset(&bih,0,sizeof(BITMAPINFOHEADER));
 	bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -544,7 +544,7 @@ bool webServer::httprsp_usageimage(socketTCP *psock,httpResponse &httprsp)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-//生成校验码图片
+//generate verification code image
 DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 {
 	if(lpbits==NULL || lpbih==NULL || chkcode==NULL) return 0;
@@ -554,8 +554,8 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 
 	RECT rt={0,0,0,0}; rt.right=lpbih->biWidth; rt.bottom=lpbih->biHeight;
-	HBRUSH hbr=::CreateSolidBrush(0x0);//create黑色刷子
-	::FillRect(hMemDC,&rt,hbr);//背景为黑色
+	HBRUSH hbr=::CreateSolidBrush(0x0);//create black brush
+	::FillRect(hMemDC,&rt,hbr);//background is black
 	::DeleteObject(hbr);
 	
 	int oldMode=::SetBkMode(hMemDC,TRANSPARENT);
@@ -566,10 +566,10 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	::SetBkMode(hMemDC,oldMode);
 	::SetTextColor(hMemDC,oldColor);
 	
-	//get图像data并进行jpg压缩
+	//get image data and perform JPEG compression
 	DWORD dwret=0;
 	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
-		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //进行jpeg压缩
+		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //perform JPEG compression
 
 	::DeleteObject(hMemBmp);
 	::SelectObject(hMemDC, hOldBmp);	
@@ -578,14 +578,14 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	return dwret;
 }
 
-//生成cpu占用率andmemory usage图像，并return图像data可size
+//generate CPU usage and memory usage image, return image data size
 DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 {
-	#define POINTNUM 20 //每条曲线的点个数
-	static int cpuLinePoint[POINTNUM]={0}; //绘制cpu曲线的点
-	static int memLinePoint[POINTNUM]={0}; //绘制mem曲线的点
-	static int pointStart=0;//first个点存储的bit置
-	static int pointEnd=0;//next点的存储bit置
+	#define POINTNUM 20 //number of points per curve
+	static int cpuLinePoint[POINTNUM]={0}; //points for drawing CPU curve
+	static int memLinePoint[POINTNUM]={0}; //points for drawing memory curve
+	static int pointStart=0;//storage position of first point
+	static int pointEnd=0;//storage position of next point
 	
 	if(lpbits==NULL || lpbih==NULL) return 0;
 	int i,STEPWIDTH=lpbih->biWidth/POINTNUM;
@@ -596,10 +596,10 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hWndDC, rt.right -rt.left , rt.bottom -rt.top );
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 	
-	HBRUSH hbr=::CreateSolidBrush(0x0);//create黑色刷子
-	::FillRect(hMemDC,&rt,hbr);//背景为黑色
+	HBRUSH hbr=::CreateSolidBrush(0x0);//create black brush
+	::FillRect(hMemDC,&rt,hbr);//background is black
 	::DeleteObject(hbr);
-	//绘出网格线
+	//draw grid lines
 	HPEN hpen=::CreatePen(PS_SOLID,1,0x004040);
 	HPEN hOldpen=(HPEN)::SelectObject(hMemDC,hpen);
 	for(i=rt.left+STEPWIDTH;i<rt.right;i+=STEPWIDTH)
@@ -614,14 +614,14 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	}
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
-	//getcurrentcpu占用率andmemory usagedata
+	//get current CPU usage and memory usage data
 	//***********start*****************
 	if(pointEnd>0 && (pointEnd%POINTNUM)==(pointStart%POINTNUM)) pointStart+=1;
 	cpuLinePoint[pointEnd%POINTNUM]=Wutils::getCPUusage();
 	memLinePoint[pointEnd%POINTNUM]=Wutils::getMEMusage();
 	pointEnd+=1;
 	//***********end*******************
-	//绘制cpu占用率曲线－－green line
+	//draw CPU usage curve -- green line
 	hpen=::CreatePen(PS_SOLID,1,0x00ff00);
 	hOldpen=(HPEN)::SelectObject(hMemDC,hpen);
 	int j=0,hg=rt.bottom -rt.top ;
@@ -630,7 +630,7 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 		::LineTo(hMemDC,(j+1)*STEPWIDTH,rt.bottom-(cpuLinePoint[i%POINTNUM]*hg)/100);
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
-	j=0;//绘制mem使用率曲线－－yellow line
+	j=0;//draw memory usage curve -- yellow line
 	hpen=::CreatePen(PS_SOLID,1,0x00ffff);
 	hOldpen=(HPEN)::SelectObject(hMemDC,hpen);
 	::MoveToEx(hMemDC,j*STEPWIDTH,rt.bottom-(memLinePoint[pointStart%POINTNUM]*hg)/100,NULL);
@@ -639,10 +639,10 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
 	
-	//get图像data并进行jpg压缩
+	//get image data and perform JPEG compression
 	DWORD dwret=0;
 	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
-		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //进行jpeg压缩
+		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //perform JPEG compression
 
 	::DeleteObject(hMemBmp);
 	::SelectObject(hMemDC, hOldBmp);	
@@ -658,8 +658,8 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	LPBYTE lpbuffer=NULL;
 	DWORD dwbuffer_size=0;
 	BITMAPINFOHEADER bih;
-	RECT rect;//得到屏幕的size
-	if(hWnd==NULL) hWnd = ::GetDesktopWindow(); //get桌面句柄
+	RECT rect;//get screen size
+	if(hWnd==NULL) hWnd = ::GetDesktopWindow(); //getdesktophandle
 	::GetWindowRect(hWnd, &rect); //::GetClientRect(hWnd, &rect);
 	::memset((void *)&bih,0,sizeof(bih));
 	bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -687,29 +687,29 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, 0, 0, SRCCOPY);
 	
-	if(ifCapCursor) //捕获鼠标光标
+	if(ifCapCursor) //capture mouse cursor
 	{
 		POINT ptCursor;
 		::GetCursorPos(&ptCursor);
-		//先获得鼠标光标下的窗口句柄，得到该窗口的thread ID
-		//Attatchcurrent thread到specified的窗口thread
-		//获得该窗口current鼠标光标句柄
+		//first get the window handle under the mouse cursor, then get that window's thread ID
+		//Attatchcurrent thread到specified的windowthread
+		//get该windowcurrentmousecursorhandle
 		//Deattach
-		//!!!ifnot这样做，直接调用GetCursor()则totalyes获得current thread的光标句柄
-		//if没有set则获得的totalyes漏斗光标句柄
+		//!!!ifnot这样做，直接调用GetCursor()则totalyesgetcurrent thread的cursorhandle
+		//if没有set则get的totalyes漏斗cursorhandle
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=hWnd;
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
 		HCURSOR hCursor=::GetCursor();
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
-		ICONINFO IconInfo;//get光标的图标data 
+		ICONINFO IconInfo;//getcursor的图标data 
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
 			ptCursor.x -= ((int) IconInfo.xHotspot);
 			ptCursor.y -= ((int) IconInfo.yHotspot);
 		}
-		//at兼容设备description表上画出该光标
+		//at兼容设备description表上画出该cursor
 		::DrawIconEx(
 		hMemDC, // handle to device context 
 		ptCursor.x, ptCursor.y,
@@ -719,17 +719,17 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		NULL, // handle to background brush 
 		DI_NORMAL | DI_COMPAT // icon-drawing flags 
 		); 
-	}//?if(ifCapCursor) //捕获鼠标光标
+	}//?if(ifCapCursor) //capture mouse cursor
 	
 	if(::GetDIBits(hWndDC,hMemBmp,0,bih.biHeight,lpbuffer,(LPBITMAPINFO)&bih,DIB_RGB_COLORS))
 	{
-		//进行图像缩小
+		//进行image缩小
 		if(w!=0 && h!=0)
 		{
 			float f=(float)bih.biWidth/bih.biHeight;
 			float f1=(float)w/h;
 			if(f1>f) w=(WORD)(h*f); else h=(WORD)(w/f);
-			if(w<bih.biWidth && h<bih.biHeight) //进行图像缩小
+			if(w<bih.biWidth && h<bih.biHeight) //进行image缩小
 			{
 				long lEffwidth_src=bih.biSizeImage/bih.biHeight;
 				long x,y,lEffwidth_dst=w*3;
@@ -741,7 +741,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 					ptr=ptrD;
 					for(int j=0;j<w;j++)
 					{
-						//count算该象素at原图像中的坐标
+						//count算该象素at原image中的坐标
 						x=(long)(fX*j); y=(long)(fY*i);
 						ptrS = lpbuffer + y * lEffwidth_src + x * 3;
 						*ptr++=*ptrS;
@@ -754,7 +754,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 				bih.biSizeImage=lEffwidth_dst*h;
 			}//?if(w<bih.biWidth && h<bih.biHeight)
 		}//?if(w!=0 && h!=0)
-		//进行jpeg压缩
+		//perform JPEG compression
 		dwret=cImageF::IPF_EncodeJPEG(&bih,lpbuffer,lpbuffer,quality);
 		lpbits=lpbuffer;	
 	}//?if(::GetDIBits(hWndDC,
@@ -766,7 +766,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	return dwret;
 }
 
-//------------------getspecifiedpassword窗口的password--------------------------------
+//------------------getspecifiedpasswordwindow的password--------------------------------
 #include "cInjectDll.h"
 typedef HWND (WINAPI *PWindowFromPoint)(POINT);
 typedef long (WINAPI *PGetWindowLong)(HWND,int);
@@ -774,7 +774,7 @@ typedef BOOL (WINAPI *PPostMessage)(HWND,UINT,WPARAM,LPARAM);
 typedef int  (WINAPI *PGetWindowText)(HWND,LPTSTR,int);
 typedef struct _TGETPSWDINFO
 {
-	POINT pt; //鼠标current坐标点
+	POINT pt; //mousecurrent坐标点
 	PWindowFromPoint pfnWindowFromPoint;
 	PGetWindowLong pfnGetWindowLong;
 	PGetWindowText pfnGetWindowText;
@@ -791,14 +791,14 @@ DWORD WINAPI GetPswdFromWind(INJECTLIBINFO *pInfo)
 		if(hWnd==NULL) pInfo->dwReturnValue=2;
 		else{
 			long l=(*p->pfnGetWindowLong)(hWnd,GWL_STYLE);
-			if((l&ES_PASSWORD)==0) pInfo->dwReturnValue=1; //非PASSWOD 窗口
+			if((l&ES_PASSWORD)==0) pInfo->dwReturnValue=1; //非PASSWOD window
 			l=(*p->pfnGetWindowText)(hWnd,p->retPswdBuf,sizeof(p->retPswdBuf)-1);
 			p->retPswdBuf[l]=0;
 		}
 	}
 	return 0;
 }
-//getpassword窗口的password
+//getpasswordwindow的password
 bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session)
 {
 	const char *ptr; char buf[256];
@@ -840,9 +840,9 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 	return true;
 }
 
-//-------------------------------鼠标键盘lock------------------------------
+//-------------------------------mouse键盘lock------------------------------
 /*--------------does not work; must use DLL method for global hook--------------------------
-static HHOOK g_hKBLockHook=NULL;//lock键盘鼠标钩子句柄
+static HHOOK g_hKBLockHook=NULL;//lock键盘mouse钩子handle
 static HHOOK g_hMSLockHook=NULL;
 
 //一下defineatwinuser.h中但必须define了 #if (_WIN32_WINNT >= 0x0400)
@@ -870,7 +870,7 @@ typedef struct tagMSLLHOOKSTRUCT {
 
 #endif
 
-//lock键盘鼠标handle钩子
+//lock键盘mousehandle钩子
 LRESULT CALLBACK kbLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier
@@ -884,7 +884,7 @@ LRESULT CALLBACK kbLockProc(
 	}
 	return 1;
 }
-//lock键盘鼠标handle钩子
+//lock键盘mousehandle钩子
 LRESULT CALLBACK msLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier
@@ -899,10 +899,10 @@ LRESULT CALLBACK msLockProc(
 	return 1;
 }
 
-//安装or卸载键盘鼠标钩子
+//安装or卸载键盘mouse钩子
 bool SetMouseKeybHook(bool bInstall)
 {
-	if(bInstall) //安装键盘鼠标钩子
+	if(bInstall) //安装键盘mouse钩子
 	{
 		if(g_hKBLockHook || g_hMSLockHook) return true; //已经安装过
 		HMODULE hmdl=GetModuleHandle(NULL);
@@ -913,7 +913,7 @@ bool SetMouseKeybHook(bool bInstall)
 		printf("g_hMSLockHook =%d, GetLastError=%d \r\n",g_hMSLockHook,GetLastError());
 		if(g_hKBLockHook && g_hMSLockHook) return true;
 	}
-	//卸载鼠标钩子
+	//卸载mouse钩子
 	if(g_hKBLockHook) UnhookWindowsHookEx(g_hKBLockHook);
 	if(g_hMSLockHook) UnhookWindowsHookEx(g_hMSLockHook);
 	g_hKBLockHook=NULL; g_hMSLockHook=NULL;

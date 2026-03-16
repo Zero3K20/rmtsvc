@@ -66,7 +66,7 @@ typedef struct _ftpaccount //ftpaccountinfo
 {
 	std::string m_username;//account name, case-insensitive (converted to lowercase)
 	std::string m_userpwd;//password; if password=="", no password verification is required
-	std::string m_username_root;//此account隶属的ROOTpermissionsuser，if此值not为null说明此accountyesROOTuser动态create的
+	std::string m_username_root;//此account隶属的ROOTpermissionsuser，if此值not null说明此accountyesROOTuserdynamiccreate的
 	unsigned long m_maxupratio;//max upload rate K/s, 0 means unlimited
 	unsigned long m_maxdwratio;//max download rate K/s, 0 means unlimited
 	unsigned long m_maxupfilesize;//max upload file size in KBytes, 0 means unlimited
@@ -74,14 +74,14 @@ typedef struct _ftpaccount //ftpaccountinfo
 	unsigned long m_curdisksize;//current used disk space in KBytes.
 	std::map<std::string,std::pair<std::string,long> > m_dirAccess;//directory access permissions; directory names are case-sensitive
 			//first --- string : ftp的虚directorypath，last以/end。例如/ or /aa/，
-			//second --- pair : 此ftp虚directory对应的实际directoryanddirectory的访问permissions，实际directory必须为\结尾(win平台)
+			//second --- pair : 此ftp虚directorycorresponding实际directoryanddirectory的访问permissions，实际directory必须为\结尾(winplatform)
 	net4cpp21::iprules m_ipRules;//IP access rules
 	long m_loginusers;//current以此accountloginftpservice的user个数,只有没用userconnect时才能delete此account
 	long m_maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
 	time_t m_limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	long m_bitQX; //0~1bit password verification方式
 				  //2~3bit defineaccounttype
-				  //4bit yesno显示隐藏file
+				  //4bit whether显示隐藏file
 
 	bool bDsphidefiles() { return ((m_bitQX & 0x10)!=0); }
 	void bDsphidefiles(bool b)
@@ -202,9 +202,9 @@ MIC (Integrity Protected Command),
 CONF (Confidentiality Protected Command), and
 ENC (Privacy Protected Command).
 
-其中andSSL扩展相关的主要指令有以下几条:
-AUTH (协商扩展authentication): specified扩展authenticationmethod,SSLorTLS；
-PBSZ (协商保护buffer): 制定保护buffer,SSL/TLS模式中必须为0；
+其中andSSL扩展related主要指令有以下几条:
+AUTH (negotiate扩展authentication): specified扩展authenticationmethod,SSLorTLS；
+PBSZ (negotiate保护buffer): 制定保护buffer,SSL/TLS模式中必须为0；
 PROT (切换保护级别): 切换保护级别，可以为"C"无保护，or"P"保护级别；
 */
 

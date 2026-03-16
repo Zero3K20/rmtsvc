@@ -132,8 +132,8 @@ bool msnMessager :: MSNP11Challenge(std::string &strChallenge,const char *szClie
 	return true;
 }
 
-//对file进行sha-1算法的运算，获得一个20byte流
-//再用base64进行加码获得的character串
+//对file进行sha-1算法的运算，get一个20byte流
+//再用base64进行加码get的string
 bool msnMessager :: SHA1File(FILE *fp,string &strRet)
 {
 	if(fp==NULL) return false;
@@ -182,7 +182,7 @@ bool msnMessager :: MD5Buf(const char *buf,long len,string &strRet)
 
 //------------------------------------------------------------------------------------------
 //----------------------------private function----------------------------------------------
-//add一个新联系人
+//add一个新contact
 cContactor * msnMessager :: _newContact(const char *email,const wchar_t *nickW)
 {
 	if(email==NULL || email[0]==0) return NULL;

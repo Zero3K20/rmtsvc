@@ -39,7 +39,7 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 			if(recvlen<(psock5req->nMethods+2)) continue; //data not fully received yet
 			//fully received, start handling message
 			sock5ans ans; ans.Ver =5;
-			ans.Method=(m_bProxyAuthentication)?2:0;//2要求authentication,waitingpasswordauthenticationinfootherwisenot要求authentication
+			ans.Method=(m_bProxyAuthentication)?2:0;//2要求authentication,waitingpasswordauthenticationinfootherwisedo not求authentication
 			psock->Send(2 /*sizeof(sock5ans)*/,(const char *)&ans,-1);
 			istep=(m_bProxyAuthentication)?1:2; //步骤1waitingpassword verification
 			recvlen=0; continue; //clearreceive的data,continue
@@ -110,8 +110,8 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 					peer.setProxy(ptype,p->first.c_str(),p->second,"","");
 			}//?if(m_bCascade)
 			if(psock5req1->Cmd ==1) //tcp connect
-			{//connectspecified的remote主机,ifsuccess则建立dataforward对
-				bool bAccessDest=true; //yesnoallow access目的service
+			{//connectspecified的remote主机,if success则建立dataforward对
+				bool bAccessDest=true; //whetherallow access目的service
 				if(ptr_proa && ptr_proa->m_dstRules.rules()>0)
 				{
 					if(hostip) IPAddr=socketBase::Host2IP(hostip);
@@ -127,7 +127,7 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 							strcpy(buf,socketBase::IP2A(IPAddr));
 							hostip=buf; }
 						peer.Connect(hostip,hostport,PROXY_MAX_RESPTIMEOUT); 
-					}else{//域名/IPaddressparse
+					}else{//domain name/IPaddressparse
 						if(hostip) IPAddr=socketBase::Host2IP(hostip);
 						peer.SetRemoteInfo(IPAddr,hostport);
 						if( IPAddr!=INADDR_NONE) 
@@ -141,7 +141,7 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 				}else ans1.Rep=5;
 			}//?if(psock5req1->Cmd ==1)
 			else if(psock5req1->Cmd ==2) //tcp bind
-			{//clientrequestatsocks server-side建立一个临时侦听service，waitingspecifiedhostip的connect到来
+			{//clientrequestatsocks server-side建立一个temporary侦听service，waitingspecifiedhostip的connect到来
 				if(m_bCascade) //set了secondary proxy
 				{
 					std::string svrip; int svrport=hostport;
@@ -222,7 +222,7 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 	if(psock==NULL) return;
 	socketTCP *psvr=(socketTCP *)psock->parent();
 	if(psvr==NULL) return;
-	//yesnospecified了secondary proxy,peer为connectsecondary proxy的socket
+	//whetherspecified了secondary proxy,peer为connectsecondary proxy的socket
 	socketProxy *peer=(socketProxy *)sockUdp.parent();
 	
 	char *buffer=new char[SOCKS5UDP_SIZE+UDPPACKAGESIZE];
@@ -237,7 +237,7 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 		RW_LOG_DEBUG("[ProxySvr] socks5-UDP : Cascade UDP %s:%d\r\n",socketBase::IP2A(casUdpIP),casUdpPort);
 		while(psvr->status()==SOCKS_LISTEN)
 		{
-			//checkSocket会判断connectsecondary proxy的connectyesno异常
+			//checkSocket会判断connectsecondary proxy的connectwhether异常
 			int iret=sockUdp.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret==0){
 				if(psock->checkSocket(0,SOCKS_OP_READ)<0) break;
@@ -286,11 +286,11 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 			}
 			//ifyes从代理client过来的UDPdata则forward给secondary proxy，
 			if(sockUdp.getRemoteip()==clntIP && sockUdp.getRemotePort()==clntPort)
-			{//从UDPdatapacket中parse出实际的IPaddressandport
+			{//从UDPdatapacket中parsed实际的IPaddressandport
 				unsigned long IPAddr=INADDR_NONE; int hostport=0;
 				socks5udp *pudp=(socks5udp *)buf; long udppackLen;
-				if(pudp->Frag!=0) //非独立UDPpacket需进行碎片重组
-				{//暂时notimplementation碎片重组功能，抛弃此packet
+				if(pudp->Frag!=0) //非独立UDPpacket需进行碎片reassemble
+				{//暂时notimplementation碎片reassemble功能，抛弃此packet
 					RW_LOG_DEBUG(0,"[ProxySvr] socks5-UDP : Received UDP frag,discard it\r\n");
 					continue;
 				}
@@ -315,7 +315,7 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 				iret=sockUdp.Send(iret-udppackLen,buf+udppackLen,-1);
 //				RW_LOG_DEBUG("Client->UDP(%s:%d) - len=%d data:\r\n%s.\r\n",
 //					socketBase::IP2A(IPAddr),hostport,iret-udppackLen,buf+udppackLen);
-			}else{ //otherwise进行UDP封packet然后forward给代理client
+			}else{ //otherwise进行UDP封packetthenforward给代理client
 				pudp_pack->IPAddr=sockUdp.getRemoteip();
 				pudp_pack->Port=htons(sockUdp.getRemotePort());
 				sockUdp.SetRemoteInfo(clntIP,clntPort);

@@ -32,9 +32,9 @@ namespace net4cpp21
 			socketTCP * m_pcmdsock;//command transfer socket
 			socketTCP m_datasock;//data transfer socket
 			time_t m_tmLogin;//login time
-			char m_dataMode;//data传输模式 S-stream C-compressed B-Block
-			char m_dataconnMode; //data传输模式 FTP_DATACONN_PORT/FTP_DATACONN_PASV
-			char m_dataType;//后续data传输使用的datatype
+			char m_dataMode;//datatransfer模式 S-stream C-compressed B-Block
+			char m_dataconnMode; //datatransfer模式 FTP_DATACONN_PORT/FTP_DATACONN_PASV
+			char m_dataType;//continuation datatransfer使用的datatype
 					// A--ascII，E-EBCDIC文本 I-IMAGE 一系列8bitbyte表示的原始二进制data
 					// L-LOCAL 使用可变bytesize的原始二进制data
 			char m_sslMode;//SSL data transfer encryption mode: 'C' -- no encryption, 'P' -- encrypted data transfer
@@ -42,7 +42,7 @@ namespace net4cpp21
 						//L--LIST m_filenamepointer to要list的directory/file
 						//S--STORfile上载 m_filenamepointer to上载的filename
 						//R--RETRfile download m_filenamepointer tofile download的filename
-			std::string m_filename;//临时存储current操作file/directory name
+			std::string m_filename;//temporary存储current操作file/directory name
 			long m_startPoint;//startdownloador上载file的起始点
 							//对于LIST操作此parameterspecifies要listdirectory的permissions,if为0说明m_filename为虚directory
 			
@@ -53,12 +53,12 @@ namespace net4cpp21
 
 			SOCKSRESULT setvpath(const char *vpath);//setcurrent虚directory
 			SOCKSRESULT getRealPath(std::string &vpath);
-			SOCKSRESULT ifvpath(std::string &vpath);//yesno为set的虚directory
+			SOCKSRESULT ifvpath(std::string &vpath);//whether为set的虚directory
 			void list();//list sub-virtual directories
 		private:
 			std::string m_relativePath;//current虚directorypath,!!!last一个character为/
-			std::string m_realPath;//current虚directorypath对应的true实path
-			long m_iAccess;//currentpath对应的操作permissions
+			std::string m_realPath;//current虚directorypathcorrespondingtrue实path
+			long m_iAccess;//currentpathcorresponding操作permissions
 
 			const char *cvtRelative2Absolute(std::string &vpath);
 			long cvtVPath2RPath(std::string &vpath);
@@ -71,8 +71,8 @@ namespace net4cpp21
 			if(strTip) m_helloTip.assign(strTip);
 			return;
 		}
-		//specifiedFTPservice的data传输port的范围[startport,endport]
-		//if设为[0,0]则由系统自动随机分配port
+		//specifiedFTPservice的datatransferport的范围[startport,endport]
+		//if设为[0,0]则由systemauto随机分配port
 		//if设为[startport,0],则分配的port>=startport
 		//if设为[0,endport],则分配的port<=endport
 		void setDataPort(int startport,int endport)
@@ -147,7 +147,7 @@ namespace net4cpp21
 
 	private:
 		std::string m_helloTip;
-		int m_dataport_start; //specifiedFTPservice的data传输port的范围
+		int m_dataport_start; //specifiedFTPservice的datatransferport的范围
 		int m_dataport_end;	//if[0,0]则随机分配，otherwise按照specified的区间分配port
 		//此FTPservice的accountinfo
 		std::map<std::string,FTPACCOUNT> m_accounts;

@@ -85,7 +85,7 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 	if(pswdmode==OTP_MD4 || pswdmode==OTP_MD5)
 	{
 		seed[8]=0;//随机产生8bit只contains数字and字母的种子
-		//countcountingtotal为0，因为not知道此parameter算法说明见OTP一次性口令说明
+		//countcountingtotal为0，因为unknown道此parameter算法说明见OTP一次性口令说明
 		for(int i = 0; i < 8; i++ )
 		{
 				 seed[i]=(rand()*35)/RAND_MAX+48;
@@ -157,7 +157,7 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 		else
 			len=sprintf(resp,"530 account has been expired.\r\n");
 	}//?if(bAccess)
-	else //输入passworderror
+	else //inputpassworderror
 		len=sprintf(resp,"530 User %s cannot log in.\r\n",strUser);
 	response(psock,resp,len);
 	return (clientSession.m_paccount!=NULL);
@@ -193,7 +193,7 @@ void cFtpsvr :: docmd_rest(socketTCP *psock,const char *strRest,
 }
 //PWD
 //	257 (251) "pathname"（“path名”）
-//	425 (451) random file system error（随机file系统error）
+//	425 (451) random file system error（随机filesystemerror）
 //	506 (502) action not implemented（操作未执行）
 void cFtpsvr :: docmd_pwd(socketTCP *psock,cFtpSession &clientSession)
 {
@@ -203,7 +203,7 @@ void cFtpsvr :: docmd_pwd(socketTCP *psock,cFtpSession &clientSession)
 	response(psock,resp,len);
 	return;
 }
-//requestserver忽略previouscommand及相关的data传输操作
+//requestserver忽略previouscommand及relateddatatransfer操作
 void cFtpsvr :: docmd_abor(socketTCP *psock,cFtpSession &clientSession)
 {
 	clientSession.m_datasock.Close();
@@ -212,11 +212,11 @@ void cFtpsvr :: docmd_abor(socketTCP *psock,cFtpSession &clientSession)
 	return;
 }
 //XCUP                    改变directory到上一级directory
-//	      200 (200) working directory changed（工作directory已改变）
+//	      200 (200) working directory changed（workerdirectory已改变）
 //	      506 (502) action not implemented（操作未执行）
 //	      507 (551) no superior directory（无上一级directory）
 //	      521 (450) access denied（deny access）
-//	      425 (451) random file system error（随机file系统error）
+//	      425 (451) random file system error（随机filesystemerror）
 void cFtpsvr :: docmd_cdup(socketTCP *psock,cFtpSession &clientSession)
 {
 	if(strcmp(clientSession.getvpath(),"/")==0) //已经到头了
@@ -263,11 +263,11 @@ void cFtpsvr :: docmd_cwd(socketTCP *psock,const char *strDir,
 }
 //XMKD               create directory
 //	      257 (251) "pathname" created（"pathname" 已create）
-//	      521 (450) "pathname" already exists（"pathname" 已存at）
+//	      521 (450) "pathname" already exists（"pathname" 已exists）
 //	      506 (502) action not implemented（操作未执行）
 //	      521 (450) access denied（deny access）
 //	      550 (501) bad pathname syntax or ambiguous（errorornot明确的path名）
-//	      425 (451) random file system error（随机file系统error）
+//	      425 (451) random file system error（随机filesystemerror）
 void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 							 cFtpSession &clientSession)
 {
@@ -278,7 +278,7 @@ void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 	}
 	std::string vpath(strDir);
 	if(clientSession.ifvpath(vpath))
-	{//if要create的directoryyes一个已存at的虚directory
+	{//if要create的directoryis a已exists的虚directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return;
 	}
@@ -315,7 +315,7 @@ void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 //	      506 (502) action not implemented（操作未执行）
 //	      521 (450) access denied（deny access）
 //	      550 (501) bad pathname syntax or ambiguous（errorornot明确的path名）
-//	      425 (451) random file system error（随机file系统error）
+//	      425 (451) random file system error（随机filesystemerror）
 unsigned long cFtpsvr :: docmd_rmd(socketTCP *psock,const char *strDir,
 							 cFtpSession &clientSession)
 {
@@ -326,7 +326,7 @@ unsigned long cFtpsvr :: docmd_rmd(socketTCP *psock,const char *strDir,
 	}
 	std::string vpath(strDir);
 	if(clientSession.ifvpath(vpath))
-	{//if要delete的directoryyes一个已存at的虚directory
+	{//if要delete的directoryis a已exists的虚directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return 0;
 	}
@@ -366,7 +366,7 @@ void cFtpsvr :: docmd_rnfr(socketTCP *psock,const char *strfile,
 	}
 	std::string vpath(strfile);
 	if(clientSession.ifvpath(vpath))
-	{//if要改名的directoryyes一个已存at的虚directory
+	{//if要改名的directoryis a已exists的虚directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return;
 	}

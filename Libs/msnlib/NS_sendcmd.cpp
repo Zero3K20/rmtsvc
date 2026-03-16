@@ -118,11 +118,11 @@ bool msnMessager :: sendcmd_USR(std::string &hashkey)
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,iret,buf); return false;
 	} else buf[iret]=0;
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
-	//正确的returnformat USR 7 OK yycnet@hotmail.com 1 0
+	//correctreturnformat USR 7 OK yycnet@hotmail.com 1 0
 	if(strncmp(buf,"USR ",4)==0 && strstr(buf+4," OK ") ) return true;
 	return false;
 }
-//sendstatus改表message "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
+//send status change message "NLN","FLN","IDL","BSY","AWY","BRB","PHN","LUN","HDN"
 //! after account login and contact list received, send "NLN" online status
 bool msnMessager :: sendcmd_CHG(const char *sta)
 {
@@ -171,7 +171,7 @@ bool msnMessager :: sendcmd_ADC(const char *email,const char *strFlag)
 	return (m_curAccount.m_chatSock.Send(iret,buf,-1)>0)?true:false;
 }
 
-//nick --- 经过utf8andmime编码的昵称character串
+//nick --- 经过utf8andmimeencoding的昵称string
 bool msnMessager :: sendcmd_ADC(const char *email,const char *nick,long waittimeout)
 {
 	unsigned long trID=msgID();
@@ -235,12 +235,12 @@ bool msnMessager :: sendcmd_XFR(socketProxy &chatSock,const char *email)
 //	return (strncmp(buf,"CAL ",4)==0)?true:false;
 }
 
-//send本某个联系人in progress输入控制message
+//send本a certaincontactin progressinput控制message
 bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-	if(pcon->m_chat_contacts<=0) return true; //暂时notsend，因为还没有人加入聊天，if此时send会引起MSNserviceclosesessionconnect
+	if(pcon->m_chat_contacts<=0) return true; //暂时notsend，因为还没有人加入chat，ifat this pointsend会引起MSNserviceclosesessionconnect
 	if(type_email==NULL) type_email=m_curAccount.m_email.c_str();
 	char buf[256];
 	int len=sprintf(buf+56,"MIME-Version: 1.0\r\nContent-Type: text/x-msmsgscontrol\r\nTypingUser: %s\r\n\r\n",
@@ -250,29 +250,29 @@ bool msnMessager :: sendcmd_SS_Typing(cContactor *pcon,const char *type_email)
 	return (chatSock.Send(len+iret,buf+(56-iret),-1)>0)?true:false;
 }
 
-//send聊天内容
-//聊天内容length被限制at1540(编码后的bytesize)maximumlength
-//thereforeifsend聊天内容的bytelength大于specified额length要分割send，按照1500分割即可
-//msgHeader --- 转向编码好的msgHeaderbuffer，且前56byte为保留waitingwriteMSGsend标记andlength
+//sendchat内容
+//chat内容length被限制at1540(encoding后的bytesize)maximumlength
+//thereforeifsendchat内容的bytelength大于specified额length要分割send，按照1500分割即可
+//msgHeader --- 转向encoding好的msgHeaderbuffer，且前56byte为保留waitingwriteMSGsend标记andlength
 bool msnMessager::sendcmd_SS_chatMsg(cContactor *pcon,char *msgHeader,
 						int headerlen,const char *chatMsg,int msglen)
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	对要send的message进行utf8编码
+//	对要send的message进行utf8encoding
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//将聊天内容按1500bytelength进行分割send
+	//将chat内容按1500bytelength进行分割send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
+			iSend=1500; //ifyesutf8encoding的character，除了first个byte，其他byte都is via0x10开头,见utf8encoding说明
+			while( chatMsg[iSend]<0 ) //防止将utf8encoding的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
@@ -317,20 +317,20 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 {
 	socketProxy &chatSock=pcon->m_chatSock;
 	if(chatSock.status()!=SOCKS_CONNECTED) return false;
-//	对要send的message进行utf8编码
+//	对要send的message进行utf8encoding
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret; unsigned long trID;
-	//将聊天内容按1500bytelength进行分割send
+	//将chat内容按1500bytelength进行分割send
 	while(true)
 	{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
+			iSend=1500; //ifyesutf8encoding的character，除了first个byte，其他byte都is via0x10开头,见utf8encoding说明
+			while( chatMsg[iSend]<0 ) //防止将utf8encoding的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
@@ -374,19 +374,19 @@ bool msnMessager::sendcmd_SS_chatMsgW(cContactor *pcon,char *msgHeader,
 bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const char *chatMsg,int msglen)
 {
-	//	对要send的message进行utf8编码
+	//	对要send的message进行utf8encoding
 	if(msglen<=0) msglen=strlen(chatMsg);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encode(chatMsg,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//将聊天内容按1500bytelength进行分割send
+	//将chat内容按1500bytelength进行分割send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
+			iSend=1500; //ifyesutf8encoding的character，除了first个byte，其他byte都is via0x10开头,见utf8encoding说明
+			while( chatMsg[iSend]<0 ) //防止将utf8encoding的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
@@ -425,19 +425,19 @@ bool msnMessager::sendcmd_SS_chatMsg(std::vector<cContactor *> &vec,char *msgHea
 bool msnMessager::sendcmd_SS_chatMsgW(std::vector<cContactor *> &vec,char *msgHeader,
 									 int headerlen,const wchar_t *chatMsgW,int msglen)
 {
-	//	对要send的message进行utf8编码
+	//	对要send的message进行utf8encoding
 	if(msglen<=0) msglen=stringlenW(chatMsgW);
 	char *pmsgbuf=new char[cCoder::Utf8EncodeSize(msglen)];
 	if( pmsgbuf==NULL ) return false;
 	msglen=cCoder::utf8_encodeW(chatMsgW,msglen,pmsgbuf);
 	pmsgbuf[msglen]=0; const char *chatMsg=pmsgbuf; 
 	int iSend,iret;
-	//将聊天内容按1500bytelength进行分割send
+	//将chat内容按1500bytelength进行分割send
 	do{
 		if( (iSend=msglen) >1500)
 		{
-			iSend=1500; //ifyesutf8编码的character，除了first个byte，其他byte都yes以0x10开头,见utf8编码说明
-			while( chatMsg[iSend]<0 ) //防止将utf8编码的character截断send，
+			iSend=1500; //ifyesutf8encoding的character，除了first个byte，其他byte都is via0x10开头,见utf8encoding说明
+			while( chatMsg[iSend]<0 ) //防止将utf8encoding的character截断send，
 			{
 				if( ((chatMsg[iSend]>>6) & 0x3)!=0x2 ) break;
 				iSend--;
@@ -482,7 +482,7 @@ int msnMessager :: encodeChatMsgHead(char *buffer,int buflen,const char *IMFont,
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//对字体name进行utf-8andmime编码
+		if(m_encodeFontname==""){//对font name进行utf-8andmimeencoding
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);
@@ -502,7 +502,7 @@ int msnMessager :: encodeChatMsgHead(char *buffer,int buflen,const char *IMFont,
 	}
 	
 	if(dspname && cCoder::Utf8EncodeSize(strlen(dspname))<(buflen-len))
-	{//对display name称进行utf8编码,并对编码buffersize加保护限定
+	{//对display name称进行utf8encoding,并对encodingbuffersize加保护限定
 		strcpy(buffer+len,"P4-Context: "); len+=12;
 		len+=cCoder::utf8_encode(dspname,strlen(dspname),buffer+len);
 		buffer[len++]='\r'; buffer[len++]='\n';
@@ -522,7 +522,7 @@ int msnMessager :: encodeChatMsgHeadW(char *buffer,int buflen,const wchar_t *IMF
 						   "X-MMS-IM-Format: ");
 	if(IMFont==NULL || IMFont[0]==0)
 	{
-		if(m_encodeFontname==""){//对字体name进行utf-8andmime编码
+		if(m_encodeFontname==""){//对font name进行utf-8andmimeencoding
 			m_encodeFontname=m_fontName;
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),m_encodeFontname.length(),buffer+len);
 			buffer[len+iret]=0; m_encodeFontname.assign(buffer+len);
@@ -542,7 +542,7 @@ int msnMessager :: encodeChatMsgHeadW(char *buffer,int buflen,const wchar_t *IMF
 	}
 	
 	if(dspname && cCoder::Utf8EncodeSize(stringlenW(dspname))<(buflen-len))
-	{//对display name称进行utf8编码,并对编码buffersize加保护限定
+	{//对display name称进行utf8encoding,并对encodingbuffersize加保护限定
 		strcpy(buffer+len,"P4-Context: "); len+=12;
 		len+=cCoder::utf8_encodeW(dspname,stringlenW(dspname),buffer+len);
 		buffer[len++]='\r'; buffer[len++]='\n';

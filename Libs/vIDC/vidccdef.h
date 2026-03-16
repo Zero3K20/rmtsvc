@@ -37,21 +37,21 @@ public:
 	int m_proxyType; //支持的代理type
 	std::string m_proxyuser;
 	std::string m_proxypswd;
-	bool m_proxyauth; //代理yesno需要authentication
+	bool m_proxyauth; //代理whether需要authentication
 	MPORTTYPE m_apptype;
 	int m_mportBegin;  //要求map port范围
 	int m_mportEnd;
 	char m_bindLocalIP[16]; //要求绑定的localIP
-	bool m_bAutoMap; //whenconnect上vIDCs后yesno自动map
+	bool m_bAutoMap; //whenconnect上vIDCs后whetherautomap
 	long m_ipaccess;
 	std::string m_ipRules;//IP access rules 
 	std::string m_clicert; //客户authenticationcertificateinfo
 	std::string m_clikey;
 	std::string m_clikeypswd;
 	int m_mappedPort; //实际map的port
-	bool m_mappedSSLv; //map后的serviceportyesno需要进行客户certificateauthentication
+	bool m_mappedSSLv; //map后的serviceportwhether需要进行客户certificateauthentication
 	
-	unsigned long m_maxconn; //限制maximumconnect，限制maximum带宽 kb/s
+	unsigned long m_maxconn; //限制maximumconnect，limit maximum bandwidth kb/s
 	unsigned long m_maxratio;
 	std::vector<std::string> m_hrspRegCond;
 	std::vector<std::string> m_hreqRegCond;

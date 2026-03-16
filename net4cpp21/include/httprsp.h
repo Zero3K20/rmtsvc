@@ -73,10 +73,10 @@ namespace net4cpp21
 			//receive remaining unfinished HTTP response body data
 			return recv_remainderX(psock,receiveBytes,HTTP_MAX_RESPTIMEOUT);
 		}
-		//saveHTTP response为specified的file(notcontainsHTTP response header)
-		//returnsavefile的size，==0发生error
+		//save HTTP response to specified file (not including HTTP response header)
+		//returns saved file size; ==0 means error occurred
 		unsigned long save_resp(socketTCP *psock,const char *filename);
-		//--------------------编码send HTTP response---------------------------
+		//--------------------encodingsend HTTP response---------------------------
 		void AddHeader(std::string &headName,std::string &headValue){ m_httprsp_HEADER[headName]=headValue;}
 		//setcatch控制头
 		//"No-cache" - Do not cache this page at all, even if for use by the same client
@@ -111,7 +111,7 @@ namespace net4cpp21
 		std::map<std::string,std::string> m_httprsp_HEADER;
 		//httprspresponsereceive的新set的cookieinfo
 		std::map<std::string,TNew_Cookie> m_httprsp_SETCOOKIE;
-		bool m_httprsp_bReceiveALL;//yesno已经HTTP request完整receive
+		bool m_httprsp_bReceiveALL;//whether已经HTTP request完整receive
 		cBuffer m_httprsp_data; //savereceive的partial/全部responseBodydata
 	};
 

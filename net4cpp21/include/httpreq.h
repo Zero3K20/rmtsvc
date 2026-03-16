@@ -80,11 +80,11 @@ namespace net4cpp21
 		std::map<std::string,std::string> &Cookies() { return m_httpreq_COOKIE; }
 		std::map<std::string,std::string> &Header() { return m_httpreq_HEADER; }
 	
-		//编码HTTP request并send,returns SOCKSERR_OK on success
+		//encodingHTTP request并send,returns SOCKSERR_OK on success
 		SOCKSRESULT send_req(socketTCP *psock,const char *lpszurl);
 		void SetPostData(const char *buf,long buflen) //set要send的POST data
 		{
-			m_httpreq_params_POST.clear(); //此时POST Paraminvalid
+			m_httpreq_params_POST.clear(); //at this pointPOST Paraminvalid
 			m_httpreq_postdata.len()=0; //clear原有的data
 			m_httpreq_postdata.Resize(buflen+1);
 			if(m_httpreq_postdata.str()==NULL) return; 
@@ -100,7 +100,7 @@ namespace net4cpp21
 		}
 		//--------------------------------------------------------------
 
-		//receive并解码handle HTTP request
+		//receive并decodinghandle HTTP request
 		SOCKSRESULT recv_reqH(socketTCP *psock,time_t timeout=HTTP_MAX_RESPTIMEOUT);
 		bool recv_remainder(socketTCP *psock,long receiveBytes=-1); //receive剩余未receive完的data
 		//parseBasicaccount password串
@@ -129,10 +129,10 @@ namespace net4cpp21
 		std::map<std::string,std::string> m_httpreq_params_POST;
 		std::map<std::string,std::string> m_httpreq_HEADER;
 		std::map<std::string,std::string> m_httpreq_COOKIE;
-		bool m_httpreq_bReceiveALL;//yesno已经HTTP request完整receive
+		bool m_httpreq_bReceiveALL;//whether已经HTTP request完整receive
 		cBuffer m_httpreq_postdata; //savereceive的partialpostdata
 
-		bool m_bParseParams; //yesno进行parameterparse，default为true
+		bool m_bParseParams; //whether进行parameterparse，default为true
 							//主要yes给proxy service使用，proxy serviceatreceivehandleHTTPS代理时notparseparameter提高速度
 	};
 

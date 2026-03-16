@@ -69,7 +69,7 @@ socketTCP * mapServer :: connect_mapped(std::pair<std::string,int>* &p)
 //triggered when a new client connects to this service
 void mapServer :: onAccept(socketTCP *psock)
 {
-	//connect被map的service
+	//connect to the mapped service
 	std::pair<std::string,int> *p=NULL;
 	socketTCP *ppeer=connect_mapped(p);
 	if(ppeer==NULL){
@@ -100,7 +100,7 @@ void mapServer :: onAccept(socketTCP *psock)
 	}//?while
 	ppeer->Close(); onData(NULL,0,psock,ppeer);
 	while(ppeer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-	onData(NULL,0,ppeer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关资源
+	onData(NULL,0,ppeer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关resource
 	delete ppeer; return;
 }
 
@@ -127,6 +127,6 @@ void mapServer :: transThread(socketTCP *psock)
 		if(iret<0) break;
 	}//?while
 	ppeer->Close(); 
-	psock->setParent(NULL); //用于onAcceptthread判断forwardthreadyesnoend
+	psock->setParent(NULL); //used by onAccept thread to check whether forward thread has ended
 	return;
 }

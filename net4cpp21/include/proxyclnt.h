@@ -34,7 +34,7 @@ namespace net4cpp21
 		//[in] svrIP, tells the SOCKS service which source IP is allowed to connect to the opened port; svrPort is meaningless
 		SOCKSRESULT Bind(std::string &svrIP,int &svrPort,time_t lWaitout=-1);
 		bool WaitForBinded(time_t lWaitout,bool BindedEvent);
-		//sendUDP代理协商request (UDP proxy is only supported by the SOCKS5 proxy protocol)
+		//sendUDP代理negotiaterequest (UDP proxy is only supported by the SOCKS5 proxy protocol)
 		//successreturn开立的UDPport>0 otherwisefailure
 		//[out] svrIP/svrPort returns the port and IP address opened by the SOCKS service
 		SOCKSRESULT UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout=-1);
@@ -51,9 +51,9 @@ namespace net4cpp21
 		SOCKSRESULT sendReq_Connect(const char *host,int port,time_t lWaitout);
 		//send代理BINDrequest，returns SOCKSERR_OK on success(0)
 		SOCKSRESULT sendReq_Bind(std::string &svrIP,int &svrPort,time_t lWaitout);
-		//sendUDP代理协商request，returns SOCKSERR_OK on success(0) (UDP proxy is only supported by the SOCKS5 proxy protocol)
+		//sendUDP代理negotiaterequest，returns SOCKSERR_OK on success(0) (UDP proxy is only supported by the SOCKS5 proxy protocol)
 		SOCKSRESULT sendReq_UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout);
-		//socks5协商authentication,successreturntrueotherwisereturnfalse
+		//socks5negotiateauthentication,successreturntrueotherwisereturnfalse
 		bool socks5_Negotiation(time_t lWaitout);
 	private:
 		PROXYTYPE m_proxytype;//代理type
@@ -61,7 +61,7 @@ namespace net4cpp21
 		int m_proxyport;//proxy service器port
 		std::string m_proxyuser;//connectproxy service器的account
 		std::string m_proxypwd;//connectproxy service器的password
-		int m_dnsType;//域名parse方式 0:server-sideparse 1：local端parse  2:先尝试local端parse，然后at尝试server-sideparse
+		int m_dnsType;//domain nameparse方式 0:server-sideparse 1：local端parse  2:先尝试local端parse，thenat尝试server-sideparse
 			//对于socks4只能local端parse,https代理方式totalyesserver端parse
 
 		cThread m_thread; //Bindcommandwaiting第二次responsethread

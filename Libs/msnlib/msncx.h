@@ -84,7 +84,7 @@ namespace net4cpp21
 
 		cMsnc1(msnMessager *pmsnmessager,cContactor *pcontact,int inviteType=0);//MSNINVITE_TYPE_UNKNOW
 		virtual ~cMsnc1();
-		//get某个联系人的头像。 saveas---图像领存为...
+		//get a contact's avatar。 saveas---image领存为...
 		bool getPicture(const char *saveas);
 		bool sendPicture(const char *filename);
 		bool sendFile(const char *filename);//sendspecifiedfile

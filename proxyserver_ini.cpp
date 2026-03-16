@@ -230,7 +230,7 @@ void proxysvrEx :: docmd_cassets(const char *strParam)
 	return;
 }
 
-//add新的proxy service访问accountinfo,ifaccount已存at则delete旧的，重新add
+//add新的proxy service访问accountinfo,ifaccount已exists则delete旧的，重新add
 //command format: 
 //	proxyuser account=<account> pswd=<account password> [maxlogin=<限制同时最多login人数>] [expired=<accountvalid期限>] [maxratio=<maximum带宽>] 
 //account=<account> : 必须项. 要add的account。
@@ -297,7 +297,7 @@ void proxysvrEx :: docmd_puser(const char *strParam)
 	return ;
 }
 
-//setip过滤规则and自动startflag
+//setip过滤规则andautostartflag
 //command format:
 //	iprules type=[proxy|proxyuser|proxydest] account=<proxy serviceaccount>] [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
@@ -317,7 +317,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			m_settings.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//setproxy service某个account的IP filter rules
+	{//setproxy servicea certainaccount的IP filter rules
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 
@@ -330,7 +330,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			puser.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//setproxy service某个account的目的过滤规则
+	{//setproxy servicea certainaccount的目的过滤规则
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 

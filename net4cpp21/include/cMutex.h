@@ -112,8 +112,8 @@ namespace net4cpp21
 		cMutexBase m_mutex; //false的mutexvariable，实际没有任何意义，因为windows下condition variableandmutex没有关系
 #else
 		cMutex m_mutex; //linux/unix下waiting需用到mutex，
-		//linux/unix下condition variable必须andmutex配合使用,以防止多个thread同时requestpthread_cond_wait()（orpthread_cond_timedwait()，下同）的竞争
-		//at调用pthread_cond_wait()前必须由本threadlock,mutex保持lockstatus，并atthread挂起进入waiting前unlock。atcondition满足and thus leavepthread_cond_wait()之前，mutex将被重新lock，以与进入pthread_cond_wait()前的lock动作对应
+		//linux/unix下condition variable必须andmutex配合使用,以防止multiplethread同时requestpthread_cond_wait()（orpthread_cond_timedwait()，下同）的竞争
+		//at调用pthread_cond_wait()前必须由本threadlock,mutex保持lockstatus，并in thread挂起进入waiting前unlock。atcondition满足and thus leavepthread_cond_wait()之前，mutex将被重新lock，以与进入pthread_cond_wait()前的lock动作对应
 #endif
         pthread_cond_t m_cond;
 		int m_status; //0处于非waitingstatus，otherwise处于waitingstatus
@@ -143,7 +143,7 @@ namespace net4cpp21
 			{
                 struct  timespec t;
 				t.tv_sec = (unsigned int)(time(NULL) + seconds);
-				t.tv_nsec = (long)seconds;//windows 系统下通过tv_nsec取得定时秒数!!!
+				t.tv_nsec = (long)seconds;//windows system下通过tv_nsec取得定时秒数!!!
 				pthread_cond_timedwait(&m_cond,m_mutex.address(),&t);
 			}
             m_mutex.unlock();
@@ -166,7 +166,7 @@ namespace net4cpp21
 			return &m_cond;
 		}
 
-		bool status() //yesno为waitingstatus
+		bool status() //whether为waitingstatus
 		{
 			return (m_status!=0)?true:false;
 		}

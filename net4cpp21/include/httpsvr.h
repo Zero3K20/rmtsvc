@@ -80,8 +80,8 @@ namespace net4cpp21
 		std::map<std::string,std::string> m_application;
 
 		std::map<std::string,std::pair<std::string,long> > m_dirAccess;//directory访问permissions
-			//first --- string : http的虚directorypath，例如/ or /aa/，虚directorynot区分size写全部转化为小写
-			//second --- pair : 此http虚directory对应的实际directoryanddirectory的访问permissions，实际directory必须为\结尾(win平台)
+			//first --- string : http的虚directorypath，例如/ or /aa/，虚directorynot区分size写全部convert to lowercase
+			//second --- pair : 此http虚directorycorresponding实际directoryanddirectory的访问permissions，实际directory必须为\结尾(winplatform)
 	};
 }//?namespace net4cpp21
 

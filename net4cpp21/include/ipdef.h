@@ -318,7 +318,7 @@ typedef struct _IpV4Header //IP message header defined according to the IPv4 pro
 	unsigned char IHL_Version;//unsigned char  IHL:4,Version:4; // 4-bit header length + 4-bit IP version number
 	unsigned char  TypeOfService;//8-bit service type TOS
 	unsigned short TotalLength;//16-bit total length (bytes)
-	unsigned short Identification;//标识
+	unsigned short Identification;//identifier
 	unsigned short Frag_and_flags;//unsigned short FragmentOffset:13,Flags:3;
 	unsigned char  TimeToLive;//生存time TTL
 	unsigned char  Protocol;
@@ -388,20 +388,20 @@ typedef struct _IpV4Header //IP message header defined according to the IPv4 pro
 /*
 一个TCPdatapacketpacket括一个TCP头，后面yesoptionanddata。一个TCP头contains6个flagbit。它们的意义分别为：
 
-　　SYN: flagbit用来建立connect，让connect双方synchronize序列号。ifSYN＝1而ACK=0，则表示该datapacket为connectrequest，ifSYN=1而ACK=1则表示接受connect。
+　　SYN: flagbit用来建立connect，让connect双方synchronize序列号。ifSYN＝1而ACK=0，则表示该datapacket为connectrequest，ifSYN=1而ACK=1则表示acceptconnect。
 
-　　FIN: 表示send端已经no data要求传输了，希望releaseconnect。
+　　FIN: 表示send端已经no data要求transfer了，希望releaseconnect。
 
-　　RST: 用来复bit一个connect。RSTflag置bit的datapacket称为复bitpacket.一般情况下，ifTCP收到的一个分段明显notyes属于该主机上的任何一个connect，则向远端send一个复bitpacket.
+　　RST: 用来复bit一个connect。RSTflag置bit的datapacket称为复bitpacket.一般情况下，ifTCP收到的一个fragment明显is not属于该主机上的任何一个connect，则向远端send一个复bitpacket.
 
-　　URG: 为紧急dataflag。if它为1，表示本datapacket中contains紧急data。此时紧急datapointervalid。
+　　URG: 为紧急dataflag。if它为1，表示本datapacket中contains紧急data。at this point紧急datapointervalid。
 
 　　ACK: 为confirmflagbit。if为1，表示packet中的confirm号时valid的。otherwise，packet中的confirm号invalid。
 
 　　PSH: if置bit，receive端应尽快把data传送给应用层。
 TCPconnect的建立
 
-　　TCPyes一个面向connect的可靠传输protocol。面向connect表示两个应用端at利用TCP传送data前必须先establish TCP connection。 TCP的可靠性通过校验and，定时器，data序号and应答来提供。通过给每个send的byte分配一个序号，receive端receive到data后send应答，TCPprotocol保证了data的可靠传输。data序号用来保证data的顺序，剔除重复的data。at一个TCP会话中，有两个data流（每个connect端从另外一端receivedata，同时向对方senddata），thereforeat建立connect时，必须要为每一个data流分配ISN（初始序号）。为了了解implementation过程，我们false设clientC希望跟server端S建立connect，然后分析connect建立的过程（通常称作三阶段握手）：
+　　TCPis a面向connect的可靠transferprotocol。面向connect表示两个应用端at利用TCP传送data前必须先establish TCP connection。 TCP的可靠性通过校验and，定时器，data序号and应答来提供。通过给eachsend的byte分配一个序号，receive端receive到data后send应答，TCPprotocol保证了data的可靠transfer。data序号用来保证data的顺序，剔除重复的data。at一个TCP会话中，有两个data流（eachconnect端从另外一端receivedata，同时向对方senddata），thereforeat建立connect时，必须要为每一个data流分配ISN（初始序号）。为了了解implementation过程，我们ifclientC希望跟server端S建立connect，then分析connect建立的过程（通常称作三阶段握手）：
 
 　　1： C –SYN XX -> S
 
@@ -409,9 +409,9 @@ TCPconnect的建立
 
 　　3： C —-ACK YY+1 --> S
 
-　　1：Csend一个TCPpacket（SYN request）给S，其中标记SYN（synchronize序号）要open。SYNrequestspecifies了client希望connect的server端port号andclient的ISN（XXyes一个例子）。
+　　1：Csend一个TCPpacket（SYN request）给S，其中标记SYN（synchronize序号）要open。SYNrequestspecifies了client希望connect的server端port号andclient的ISN（XXis a例子）。
 
-　　2：server端发回应答，contains自己的SYNinfoISN（YY）and对C的SYN应答，应答时returnnext希望得到的byte序号（YY+1）。
+　　2：server端发回应答，contains自己的SYNinfoISN（YY）and对C的SYN应答，应答时returnnext希望get的byte序号（YY+1）。
 
 　　3：C 对从S 来的SYN进行应答，datasendstart。
 
@@ -431,7 +431,7 @@ TCPconnect的建立
 
 　　6：when一个SYNdatapacket到达一个监听port时，正常的三阶段握手continue，回答一个SYN　ACKdatapacket.
 
-　　7：when一个FINdatapacket到达一个监听port时，datapacket被丢弃。”FIN行为”（close得portreturnRST，监听port丢弃packet），atURGandPSHflagbit置bit时同样要发生。all的URG，PSHandFIN，or者没有任何标记的TCPdatapacket都会引起”FIN行为”。 　　
+　　7：when一个FINdatapacket到达一个监听port时，datapacket被丢弃。”FIN行为”（close得portreturnRST，监听port丢弃packet），atURGandPSHflagpositionbit时同样要发生。all的URG，PSHandFIN，or者没有任何标记的TCPdatapacket都会引起”FIN行为”。 　　
 
 */
 const int Tcp_Min_Header_Length = 20;

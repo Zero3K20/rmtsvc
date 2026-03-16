@@ -290,7 +290,7 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 
 //add new FTP account info; if account already exists, delete and re-add it
 //command format: 
-//	user account=<ftpaccount> pswd=<account password> root=<主directory> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<对主directory的访问permissions>] [hiddenfile=HIDE] [maxlogin=<限制同时最多login人数>] [expired=<accountvalid期限>] [maxup=<maximum上载流量>] [maxdw=<maximumdownload流量>] [maxupfile=<max upload file size>] [maxdisksize=<maximum可使用磁盘null间>[:<current已使用磁盘null间>]]
+//	user account=<ftpaccount> pswd=<account password> root=<主directory> [pswdmode=<OTP_NONE|OTP_MD4|OTP_MD5>] [access=<对主directory的访问permissions>] [hiddenfile=HIDE] [maxlogin=<限制同时最多login人数>] [expired=<accountvalid期限>] [maxup=<maximum上载流量>] [maxdw=<maximumdownload流量>] [maxupfile=<max upload file size>] [maxdisksize=<maximum可使用磁盘space>[:<current已使用磁盘space>]]
 //account=<ftpaccount> : required. The FTP account to add.
 //pswd=<account password>   : required. The password for the FTP account.
 //					if account password is empty, no password is required; just the correct account name suffices
@@ -321,9 +321,9 @@ void ftpsvrEx :: docmd_ftps(const char *strParam)
 //					if not set, default is 0 (no download speed limit for this account)
 //maxupfile=<max upload file size> : limit this FTP account's maximum upload file size in KBytes
 //					if not set, default is 0 (no upload file size limit for this account)
-//maxdisksize=<maximum可使用磁盘null间>[:<current已使用磁盘null间>] : limit this account's maximum usable disk space in KBytes
-//				<maximum可使用磁盘null间>: KBytes, sets the maximum usable disk space for this account. Default is 0 (unlimited) if not set
-//				[:<current已使用磁盘null间>] :KBytes, sets the current used disk space. Default is 0 (none used) if not set
+//maxdisksize=<maximum可使用磁盘space>[:<current已使用磁盘space>] : limit this account's maximum usable disk space in KBytes
+//				<maximum可使用磁盘space>: KBytes, sets the maximum usable disk space for this account. Default is 0 (unlimited) if not set
+//				[:<current已使用磁盘space>] :KBytes, sets the current used disk space. Default is 0 (none used) if not set
 void ftpsvrEx :: docmd_user(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -470,8 +470,8 @@ void ftpsvrEx :: docmd_iprules(const char *strParam)
 //vdir=<虚directory>     : required. The virtual directory to add or modify; each must start with /, e.g. /aa
 //		    cannot use this to add, modify or delete the virtual root directory. Note: virtual directories are case-sensitive
 //rdir=<true实directory>   : the real directory path corresponding to this virtual directory; must be an absolute path
-//		    if<true实directory>中containsnull格则要用""将<true实directory>括起,例如"c:\temp test\aa"
-//		    if没有setrdiror<true实directory>等于nullcharacter串例如rdir= orrdir=""则意味着delete此虚path
+//		    if<true实directory>中containsspaces则要用""将<true实directory>括起,例如"c:\temp test\aa"
+//		    if没有setrdiror<true实directory>等于nullstring例如rdir= orrdir=""则意味着delete此虚path
 //access=<虚directory访问permissions> : specified对此虚directory的访问permissions。if not set, default is ACCESS_ALL permissions. Format and meaning as follows
 //		 <虚directory访问permissions> : <FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL|DIR_NOINHERIT>
 //		 ACCESS_ALL=FILE_READ|FILE_WRITE|FILE_DEL|FILE_EXEC|DIR_LIST|DIR_MAKE|DIR_DEL

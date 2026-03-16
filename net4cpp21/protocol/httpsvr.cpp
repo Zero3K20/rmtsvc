@@ -36,7 +36,7 @@ httpSession::httpSession()
 		 m_sessionID[i]=(rand()*25)/RAND_MAX+65;
 	} m_sessionID[23]=0;
 }
-//user可以自己set新的sessionID，而not用自动生成的
+//user可以自己set新的sessionID，而not用auto生成的
 bool httpSession::SetSessionID(const char *strID)
 {
 	if(strID==NULL || strID[0]==0) return false;
@@ -90,7 +90,7 @@ void httpServer :: onTooMany(socketTCP *psock)
 void httpServer :: onIdle(void)
 {
 	static time_t checkedTime=time(NULL);
-	if(checkedTime-time(NULL)>20){//20秒钟check一次sessionyesnotimeout
+	if(checkedTime-time(NULL)>20){//20秒钟check一次sessionwhethertimeout
 		checkedTime=time(NULL);
 		m_mutex.lock();
 		std::map<std::string,httpSession *>::iterator it=m_sessions.begin();
@@ -107,9 +107,9 @@ void httpServer :: onIdle(void)
 void httpServer :: onAccept(socketTCP *psock)
 {
 	httpRequest httpreq;
-	while(true){ //循环handlereceive多个HTTP request
+	while(true){ //循环handlereceivemultipleHTTP request
 		SOCKSRESULT sr=httpreq.recv_reqH(psock,HTTP_MAX_RESPTIMEOUT);
-		if(sr<=HTTP_REQ_UNKNOWN) break; //notyesHTTP requestor者timeout
+		if(sr<=HTTP_REQ_UNKNOWN) break; //is notHTTP requestor者timeout
 		httpResponse httprsp; httpSession *psession;//handle并getsessionobject
 		const char *strSessionID=httpreq.Cookies(httpSession::SESSION_IDNAME);
 		m_mutex.lock();
@@ -121,7 +121,7 @@ void httpServer :: onAccept(socketTCP *psock)
 			if( (psession=new httpSession)==NULL ) return;
 			m_sessions[psession->sessionID()]=psession;	
 			httprsp.SetCookie(httpSession::SESSION_IDNAME,psession->sessionID(),"/");
-		}//防止userhandle阻塞or者非常耗时超过了设定的session的validtime，导致此session被删掉
+		}//防止userhandleblockedor者非常耗时超过了设定的session的validtime，导致此session被删掉
 		psession->m_lastTime=0x7fffffff; 
 		m_mutex.unlock();
 		if(!httpreq.ifReceivedAll() && httpreq.get_contentType(NULL)==HTTP_CONTENT_APPLICATION)
@@ -151,7 +151,7 @@ void httpServer :: onAccept(socketTCP *psock)
 						httprsp_listDir(psock,vpath,httpreq,httprsp);
 					}
 				}else{ //specified的yesfile
-					//判断fileyesno被modify-------------- start---------------------
+					//判断filewhether被modify-------------- start---------------------
 					cTime ct0; time_t t0=0,t1=1;
 					const char *p=httpreq.Header("If-Modified-Since");
 					if(p && ct0.parseDate(p) ){
@@ -168,7 +168,7 @@ void httpServer :: onAccept(socketTCP *psock)
 					if(t1<=t0) //file没有被modify过
 						httprsp_NotModify(psock,httprsp);
 					else
-					//判断fileyesno被modify--------------  end ---------------------
+					//判断filewhether被modify--------------  end ---------------------
 					{
 						long lstartpos,lendpos;//getfile的范围
 						int iRangeNums=httpreq.get_requestRange(&lstartpos,&lendpos,0);
@@ -194,7 +194,7 @@ void httpServer :: onAccept(socketTCP *psock)
 
 //将绝对虚pathconvert为绝对实path(!!!虚pathnot区分size写)
 //return对current实path的可操作permissions
-//vpath -- [in|out] 输入绝对虚path，输出绝对实path
+//vpath -- [in|out] input绝对虚path，output绝对实path
 long httpServer :: cvtVPath2RPath(std::string &vpath)
 {
 	if(vpath=="" || vpath[0]!='/') return HTTP_ACCESS_NONE; //异常保护

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	Wutils.cpp
-   *    DESCRIPTION:windows系统utility functions collection
+   *    DESCRIPTION:windowssystemutility functions collection
    *    get system CPU usage and memory usage
    *    AUTHOR:yyc
    *

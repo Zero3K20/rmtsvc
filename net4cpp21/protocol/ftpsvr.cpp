@@ -142,13 +142,13 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 		}//?while
 		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
+		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
 	}//?while
 	psock->Close(); //close connection
-	while(clientSession.m_opMode!=0) cUtils::usleep(1000*100);//休眠100ms,waitingdata传输thread end
+	while(clientSession.m_opMode!=0) cUtils::usleep(1000*100);//sleeping100ms,waitingdatatransferthread end
 	if(clientSession.m_paccount){
 		clientSession.m_paccount->m_loginusers--;
 		onLogEvent(FTP_LOGEVENT_LOGOUT,clientSession);
@@ -201,11 +201,11 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 		docmd_cdup(psock,clientSession);
 	else if(strncasecmp(ptrCommand,"CWD ",4)==0)
 		docmd_cwd(psock,ptrCommand+4,clientSession);
-	else if(strncasecmp(ptrCommand,"MKD ",4)==0) /*only for windows ftp控制台command */
+	else if(strncasecmp(ptrCommand,"MKD ",4)==0) /*only for windows ftpconsolecommand */
 		docmd_mkd(psock,ptrCommand+4,clientSession);
 	else if(strncasecmp(ptrCommand,"XMKD ",5)==0)
 		docmd_mkd(psock,ptrCommand+5,clientSession);
-	else if(strncasecmp(ptrCommand,"RMD ",4)==0 || /*only for windows ftp控制台command */
+	else if(strncasecmp(ptrCommand,"RMD ",4)==0 || /*only for windows ftpconsolecommand */
 		    strncasecmp(ptrCommand,"XRMD ",5)==0 )
 	{
 		unsigned long lsize=docmd_rmd(psock,ptrCommand+4,clientSession);
@@ -268,7 +268,7 @@ void cFtpsvr :: parseCommand(cFtpSession &clientSession,socketTCP *psock
 	return;
 }
 
-//data传输任务packet括LIST，file的download上载
+//datatransfertaskpacket括LIST，file的download上载
 bool fileio_list(std::string &strPath,long lAccess,bool bDsphidefiles,socketTCP &sock);
 void cFtpsvr::dataTask(cFtpSession *psession)
 {
@@ -303,7 +303,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 		//------------------------file上载操作----------------------------
 		if(psession->m_opMode=='S') 
 		{
-			//即使typespecified为A也not能以文本方式openfile写，otherwise用fwritewrite时会对任何的0x0Dconvert为0x0D 0x0A
+			//即使typespecified为A也cannot以文本方式openfile写，otherwise用fwritewrite时会对任何的0x0Dconvert为0x0D 0x0A
 			//If stream is opened in text mode, each carriage return is replaced with a carriage-return – linefeed pair.
 			//The replacement has no effect on the return value.
 			FILE *fp=NULL;
@@ -394,7 +394,7 @@ void cFtpsvr::dataTask(cFtpSession *psession)
 				//列出current虚directory下的下一级虚directory
 				psession->list();
 			}//?if(psession->m_filename=="")
-			//此时m_filenamepointer to的yes实际系统directory--------------
+			//at this pointm_filenamepointer to的yes实际systemdirectory--------------
 			fileio_list(psession->m_filename,lAccess,
 				psession->m_paccount->bDsphidefiles(),datasock);
 		}//?else if(psession->m_opMode=='L')
@@ -511,7 +511,7 @@ inline const char * cFtpsvr::cFtpSession::cvtRelative2Absolute(std::string &vpat
 }
 //将绝对虚pathconvert为绝对实path(!!!虚path区分size写)
 //return对current实path的可操作permissions
-//vpath -- [in|out] 输入绝对虚path，输出绝对实path
+//vpath -- [in|out] input绝对虚path，output绝对实path
 inline long cFtpsvr::cFtpSession::cvtVPath2RPath(std::string &vpath)
 {
 //	ASSERT(vpath!="" && vpath[0]!='/');
@@ -558,7 +558,7 @@ SOCKSRESULT cFtpsvr::cFtpSession::setvpath(const char *vpath_p)
 	std::string rpath=vpath;
 	long lAccess=cvtVPath2RPath(rpath);
 	
-	//判断此实directoryyesno存at
+	//判断此实directorywhetherexists
 	if(rpath!="")
 	{
 		char c=rpath[rpath.length()-1];
@@ -582,7 +582,7 @@ SOCKSRESULT cFtpsvr::cFtpSession::getRealPath(std::string &vpath)
 	cvtRelative2Absolute(vpath);
 	return cvtVPath2RPath(vpath);
 }
-//yesno为set的虚directory
+//whether为set的虚directory
 //ifyes则return虚directory的permissionsotherwisereturn0
 SOCKSRESULT cFtpsvr::cFtpSession::ifvpath(std::string &vpath)
 {

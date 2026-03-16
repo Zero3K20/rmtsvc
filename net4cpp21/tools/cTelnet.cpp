@@ -61,7 +61,7 @@ bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 {
 	bool bret=false; time_t t=time(NULL);
 	int bESC=0; //=0没有receive到ESC =1receive到ESC =2receive到ESC且紧跟着receive了一个[
-	int curpos=-1;//character的currentbit置
+	int curpos=-1;//character的currentposition
 	while(psock->status()==SOCKS_CONNECTED)
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
@@ -144,7 +144,7 @@ void cTelnet::onConnect(socketTCP *psock)
 			}
 			if( (strUser==m_telUser && strPwd==m_telPwd) )break;
 
-			if(count<2)//输入accountorincorrect password
+			if(count<2)//inputaccountorincorrect password
 				psock->Send(48,"\r\nuser or password is wrong,please try again! \r\n",-1);
 			else{
 				psock->Send(34,"\r\nTry too much,to be disconnect.\r\n",-1); return; }
@@ -169,16 +169,16 @@ void cTelnet::onConnect(socketTCP *psock)
 		{
 			cmdShell.destroy(); delete pp;
 			m_telClntnums--; return;
-		}else Sleep(200); //暂时休眠200ms，otherwisethread.status()returnstatus可能not对
+		}else Sleep(200); //暂时sleeping200ms，otherwisethread.status()returnstatus可能not对
 	}//?if( onLogin() )
 	int bEcho=0; //defaultcloseecho，设为-1defaultopenecho 
 	string strInput,strOutput;
 	socketBase *psvr=psock->parent();
 	while( psvr && psvr->status()!=SOCKS_CLOSED )
 	{
-		//if没有重定向到cmd shell则输出提示符
+		//if没有重定向到cmd shell则output提示符
 		if(!thread.status()) psock->Send(m_telTip.length(),m_telTip.c_str(),-1);
-		strInput="";//getuser的输入
+		strInput="";//getuser的input
 		if(!getInput(psock,strInput,bEcho,-1)) break;
 		if(strInput=="echo off"){
 			bEcho=0;strInput="";
@@ -196,7 +196,7 @@ void cTelnet::onConnect(socketTCP *psock)
 
 		if(thread.status()) //重定向到cmd shell
 		{
-			if(bEcho!=0 && strInput.length()>0){//deleteuser输入的回显
+			if(bEcho!=0 && strInput.length()>0){//deleteuserinput的回显
 				string s; s.resize(strInput.length(),'\b');
 				psock->Send(s.length(),s.c_str(),-1);
 			}//?if(bEcho!=0 && (strInput.length()-2)>0){
@@ -204,14 +204,14 @@ void cTelnet::onConnect(socketTCP *psock)
 			{
 				strOutput=strInput; strOutput.append("\r\n");
 				psock->Send(strOutput.length(),strOutput.c_str(),-1);
-				onCommand(strInput.c_str()+1,psock);//交给派生classhandleuser输入
+				onCommand(strInput.c_str()+1,psock);//交给派生classhandleuserinput
 				strInput.assign("\r\n");
 			}else strInput.append("\r\n");
 			if( cmdShell.Write(strInput.c_str(),strInput.length())< 0) break;
 		}else{
 			strOutput=strInput; strOutput.append("\r\n");
 			psock->Send(strOutput.length(),strOutput.c_str(),-1);
-			onCommand(strInput.c_str(),psock);//交给派生classhandleuser输入
+			onCommand(strInput.c_str(),psock);//交给派生classhandleuserinput
 		}
 	}//?while(...
 	RW_LOG_DEBUG(0,"[Telnet] one telnet-client is closing.\r\n");

@@ -363,7 +363,7 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 		}//?while
 		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
+		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -409,13 +409,13 @@ void vidcClient :: onPipeThread(vidcClient *pvidcc)
 	}//?while
 	delete pipe; return;
 }
-//send command，并getserverresponse
+//send command and get server response
 inline bool vidcClient :: sendCommand(int response_expected,const char *buf,int buflen)
 {
 	RW_LOG_DEBUG("[vidcc] c--->s:\r\n\t%s",buf);
 	char c=buf[0];
 	if( this->Send(buflen,buf,-1)<=0 ) return false;
-	//sendsuccess，waitingreceiveserverresponse,server的response存储atm_szLastResponsebuffer中
+	//send success, waiting to receive server response,server的response存储atm_szLastResponsebuffer中
 	time_t tStart=time(NULL);
 	while(m_szLastResponse[0]==c){
 		if((time(NULL)-tStart)>m_lTimeout) break; //timeout
@@ -452,7 +452,7 @@ void vidccSets :: Destroy()
 	m_vidccs.clear();
 	m_mutex.unlock();
 }
-//自动重连检测
+//auto重连检测
 void vidccSets :: autoConnect()
 {
 	m_mutex.lock();

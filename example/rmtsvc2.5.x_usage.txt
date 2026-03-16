@@ -1,127 +1,124 @@
-rmtsvc2.5.x ʹ��˵��
-������ܣ�
-	1��Զ���������/���� 
-	2��Զ���ļ�/����/ע���/����/telnet���� 
-	3������ǿ���FTP���� 
-	4������ǿ��Ĵ�������֧�ֶ���������֧��HTTPS/SOCKS4/SOCKS5 
-	4�����Ƶ�vIDC�������ã�֧�ֱ��ض˿�ӳ�䣬Զ�̶˿�ӳ�䣬������������������ȵ� 
-	5��SSL VPN���ܣ�Ϊ�������Ӧ�÷����ṩ��ȫ���ʱ��� 
-	6��msnbot���ܣ���ͨ��MSN�����������ܵĲ������� 
-	7��֧��UPnP��ֱ����֧��UPnP�����ػ�·���Ͻ��ж˿�ӳ��(new 20070806����)
-	
-���������С�:
-	rmtsvc��һ������̨Ӧ�ó�����������Ϊϵͳ�������С�֧�ֵ������в�������:
--i [DisplayName] [ServiceDesc] --- ��װ����
-	����: rmtsvc.exe -i
-	      rmtsvc.exe -i test ���Է���
--u ---ж�ط���
-	����: rmtsvc.exe -u
--s --- ��������
-	����: rmtsvc.exe -s
--e --- ֹͣ����
-	����: rmtsvc.exe -e
--d --- Debug��ʽ����,-d0 ~ -d4ָ����ͬ��debug������Ϣ���𣬹رտ���̨���ڽ�������������
-	����: rmtsvc.exe -d4
--f filename ָ��������������ļ���,�����ָ����Ĭ�ϲ��������ļ���Ϊ�ͳ���ͬ������չ��Ϊini���ļ�
-	����: rmtsvc.exe -d4 -f aa.ini
--c saveasfile --- ����ǰini���ò���д��exe�ļ�����������Ϊָ�����ļ�
--C saveasfile --- ����ǰini���ò���д��exe�ļ�����������Ϊָ�����ļ�,�ô˲��������EXE����ʱ����֧��ini�����ļ�
-	ע�� -c/-C ���������-d����һ����	
-	����: rmtsvc.exe -d4 -c rmtsvc1.exe 
-	      rmtsvc.exe -d4 -c rmtsvc1.exe -f aaa.ini
-	      rmtsvc.exe -d4 -C rmtsvc2.exe 
+rmtsvc2.5.x Usage Guide
+
+Program Overview:
+1. Remote host monitoring/surveillance
+2. Remote file/service/registry/process/telnet management
+3. Feature-rich FTP service
+4. Feature-rich proxy service, supporting secondary proxy, HTTPS/SOCKS4/SOCKS5
+4. Complete vIDC management configuration, supporting local port mapping, remote port mapping, intranet proxy, proxy service, etc.
+5. SSL VPN functionality, providing secure remote access protection for your intranet applications
+6. msnbot functionality, allows managing the above features via MSN chat
+7. UPnP support, directly perform port mapping on UPnP-capable gateways or routers (new, added 20070806)
+
+[Running the Program]:
+rmtsvc is a console application that can run as a system service. Supported command-line parameters:
+-i [DisplayName] [ServiceDesc] --- Install as service
+Example: rmtsvc.exe -i
+         rmtsvc.exe -i test "Test Service"
+-u --- Uninstall service
+Example: rmtsvc.exe -u
+-s --- Start service
+Example: rmtsvc.exe -s
+-e --- Stop service
+Example: rmtsvc.exe -e
+-d --- Run in debug mode; -d0 ~ -d4 specify different debug message levels; closing the console window will end the program
+Example: rmtsvc.exe -d4
+-f filename --- Specify the configuration file name; if not specified, defaults to a file with the same name as the program but with .ini extension
+Example: rmtsvc.exe -d4 -f aa.ini
+-c saveasfile --- Write current ini configuration parameters into the exe file itself and save as the specified file
+-C saveasfile --- Write current ini configuration parameters into the exe file itself and save as the specified file; EXEs saved with this parameter will not support ini config files at runtime
+Note: -c/-C parameters must be used together with -d
+Examples: rmtsvc.exe -d4 -c rmtsvc1.exe
+          rmtsvc.exe -d4 -c rmtsvc1.exe -f aaa.ini
+          rmtsvc.exe -d4 -C rmtsvc2.exe
 
 
-�����������ļ���:
-rmtsvc֧��ini�����ļ����û�������-f����ָ�������ļ����ƣ������ָ������Ĭ�϶�ȡ�ͳ���ͬ������չ��Ϊini�Ĳ��������ļ�.
-���������Ϊrmtsvc.exe,��Ĭ�϶�ȡ�������ļ�Ϊrmtsvc.ini��
-�����ȡ������Ϣ��˳��Ϊ�ȶ�ȡexe��������ĵ��������Ȼ���ȡini�����ļ�������ȡ�����е������������
-������-C�����������ɵ�exe�ļ������򽫲��ڶ�ȡini�����ļ�����ʹ����ʱָ����ini�����ļ���
-ini�����ļ��ɳ���֧�ֵ�һϵ������������ɣ�ÿ��Ϊһ���������
-����п�ͷΪ!,˵������Ϊע�ͣ��������͡�����֧�ֵ���������������˵����
+[About Configuration Files]:
+rmtsvc supports ini configuration files. Users can specify the config file name with the -f parameter. If not specified, the program defaults to reading a config file with the same name as the program but with the .ini extension.
+For example, if the program is rmtsvc.exe, the default config file is rmtsvc.ini.
+The program reads configuration info in this order: first the configuration commands embedded in the exe, then the ini config file, then special command-line parameters.
+For exe files saved with the -C parameter, the program will not read ini config files, even if an ini config file is specified at runtime.
+The ini config file consists of a series of configuration commands supported by the program, one command per line.
+If a line begins with !, it is a comment and will not be interpreted. See below for supported configuration commands.
 
-��ini���������
-ע�⣺�������������� <>�����û��������ݣ�[]�����������ɲ��� |��������������һ��
-	������������������ĳ��=���ұߵ�ֵ�а����ո�����Ҫ��"�Ž�ֵ������������: sets log="c:\program files\aaa.log"
+[ini Configuration Commands]:
+Note: In the command descriptions below, <> represents user-supplied content, [] means the item is optional, and | means one of the options can be entered.
+If the value on the right side of = contains spaces, enclose the value with " characters. Example: sets log="c:\program files\aaa.log"
 
-���ñ��������Ϣ
-�����ʽ: 
-	sets [spyself=FALSE] [stop_pswd=<ֹͣ���������>] [log=<��־����ļ�>] [opentype=APPEND] [loglevel=DEBUG|INFO|WARN|ERROR]
-spyself=FALSE      : �ر��쳣�˳����ӡ����������Ĭ�ϴ��쳣�˳�����,��������쳣�˳��򱻷Ƿ�ɱ���Զ�����
-stop_pswd=<ֹͣ���������> : ����ֹͣ��������룬����������������������뽫�޷�ֹͣ����
-		��������������û�ֻ������������ͨ��-e <����> ����ֹͣ���񣬶��޷�ͨ��SCM�������̨��net stop����ֹͣ����
-		���������Ϊxx.exe,������ֹͣ����Ϊ123����Ҫֹͣ�˷�������������������xx.exe -e 123	
-log=<��־����ļ�> : ���ó����Ƿ������־�ļ��������ָ��������������ָ������־�ļ�
-opentype=APPEND    : ���ó�������ʱ�Ƿ�Ϊ׷��д��־�ļ����Ǹ���д,��������ô�����Ϊ����д
-loglevel=DEBUG|INFO|WARN|ERROR : ������־����ļ���Ĭ��ΪINFO����
-faceless=TRUE : ����ԷǷ���ʽ����������ʱûָ��-d���������޴��ڵ���ʽ���б�����
-	����˫��ֱ�����б�����ʱ����������˴��������޴��ڵ���ʽ���У���ʹ�رտ���̨���ڳ���Ҳ�������
-	�����Դ����ڵ���ʽ���а�Ctrl+c���߹رմ�������򽫽���
-install=TRUE : ��������˴��������к��Զ���װΪ���� 	
-����: sets stop_pswd=1234
+Set service information
+Command format: 
+sets [spyself=FALSE] [stop_pswd=<stop password>] [log=<log file>] [opentype=APPEND] [loglevel=DEBUG|INFO|WARN|ERROR]
+spyself=FALSE      : Disable crash-restart monitoring. By default, crash-restart monitoring is enabled.
+stop_pswd=<stop password> : Set the password to stop the service. If set, the service cannot be stopped without the password.
+If set, the user can only stop the service via command line: -e <password>. Cannot stop via SCM or net stop.
+For example, if the program name is xx.exe and stop password is 123: xx.exe -e 123
+log=<log output file> : Set whether the program outputs a log file.
+opentype=APPEND    : Set whether the program appends to or overwrites the log file on startup. Default is overwrite.
+loglevel=DEBUG|INFO|WARN|ERROR : Set the log output level. Default is INFO.
+faceless=TRUE : If started in non-service mode and -d is not specified, run the program without a window.
+For example, when double-clicking to run the program, if this is set, it runs without a window.
+Otherwise, run with a window; pressing Ctrl+C or closing the window will end the program.
+install=TRUE : If set, the program will automatically install as a service on startup.
+Example: sets stop_pswd=1234
  
-����web����������Ϣ
-�����ʽ: 
-	webs [port=<web����˿�>] [bindip=<������󶨵ı���IP>] [ssl_enabled=true] [ssl_verify=true]
-port=<����˿�>    : ���÷���˿ڣ������������Ĭ��Ϊ7778.����Ϊ0������web���� <0���漴����˿�
-bindip=<������󶨵ı���IP> : ���ñ�����󶨵ı���IP�������������Ĭ�ϰ󶨱�������IP
-ssl_enabled=true: ָʾ��������ΪSSL���ܷ��������������Ϊ��ͨ����
-ssl_verify=true��ֻ��ָ��ssl_enabled=true����������Ч��ֻ�Ǵ�SSL������Ҫ��֤�ͻ���֤�飬Ĭ�ϲ���Ҫ
+Set web service information
+Command format: 
+webs [port=<web service port>] [bindip=<local IP>] [ssl_enabled=true] [ssl_verify=true]
+port=<service port>    : Set the service port. Default is 7778. 0 means do not start web service; <0 assigns randomly.
+bindip=<local IP> : Set the local IP to bind. If not set, binds to all local IPs.
+ssl_enabled=true: Indicates SSL-encrypted service. If not configured, plain service.
+ssl_verify=true: Only valid with ssl_enabled=true; requires client certificate verification. Default: no verification.
 
-����: webs port=7779 
-
-
-���÷������ʺ�Ȩ����Ϣ
-�����ʽ��
-	user account=<�ʺ�> [pswd=<�ʺ�����>] access=<�ʺŵķ���Ȩ��>
-account=<�����ʺ�> : ������. Ҫ���ӵ�rmtsvc�������ʺš�
-pswd=<�ʺ�����>    : ������. ָ���ʺŵ�����
-access=<�ʺŵķ���Ȩ��>
-	�����������Ĭ�Ͼ���ACCESS_NONE����Ȩ�ޡ����ø�ʽ�ͺ�������
-		ACCESS_ALL=ACCESS_SCREEN_ALL|ACCESS_FILE_ALL|ACCESS_REGIST_ALL|ACCESS_SERVICE_ALL|ACCESS_TELNET_ALL|ACCESS_FTP_ADMIN|ACCESS_VIDC_ADMIN
-		ACCESS_SCREEN_ALL: Զ����Ļ��ȫ����Ȩ��
-		ACCESS_SCREEN_VIEW: Զ�̲鿴��ĻȨ��
-		ACCESS_FILE_ALL  : Զ���ļ������������ɶ�дɾ����
-		ACCESS_FILE_VIEW : Զ���ļ���������������������
-		ACCESS_REGIST_ALL: Զ��ע��������ɶ�д����ɾ����
-		ACCESS_REGIST_VIEW:�����ɲ鿴ע�����Ϣ
-		ACCESS_SERVICE_ALL:Զ�̷������������ȫ����
-		ACCESS_SERVICE_VIEW:Զ�̷���Ȩ�������ɲ鿴
-		ACCESS_TELNET_ALL:  Զ��telnet����
-		ACCESS_FTP_ADMIN : Զ��FTP�������ù���
-		ACCESS_VIDC_ADMIN : Զ��vIDC��������
-!�����ö���ʺţ�ÿ���ʺ�һ��
-
-����: user account=aa pswd=bb access=ACCESS_ALL
-
-����msn�����������Ϣ
-�����ʽ:
-	msnbot account=<msn�ʺ�>:<����> [trusted=<�����ε�msn�ʺ�>] [prefix="<�ƶ�MSN������Ϣǰ׺>"]
-account=<msn�ʺ�>:<����> : ָ��msn�����˵ĵ�¼�ʺź�����.
-trusted=<�����ε�msn�ʺ�>: ָ��msn���������ε�msn�ʺţ�
-			  ���ʺź�msn�����������������������Ʒ�������
-			  ���������ʺţ���','�ָ�
-prefix="<�ƶ�MSN������Ϣǰ׺>" : ָ����Ϣ���ص�ǰ׺��msnbot�ڽ���MSN��Ϣʱ��ص�ָ����ǰ׺Ȼ���ٽ��н���
-			�����������ֻ������ƶ�MSN��msnbot�Ựʱ���ƶ�MSN�����㷢�͵�ÿ�仰ǰ�����"�Է�����ʹ���ֻ�MSN,���http://mobile.msn.com.cn��"
-			����msnbot��������������������ã���msnbot����ȥ��ָ����ǰ׺�ٽ���
-			msnbot account=xxx@hotmail.com:aaa prefix="�Է�����ʹ���ֻ�MSN,���http://mobile.msn.com.cn��"
-			
-ע: ���û������prefix�������ڲ�Ĭ��ǰ׺Ϊ"�Է�����ʹ���ֻ�MSN,���http://mobile.msn.com.cn��"
-    ��Ĭ��֧���ƶ�MSN�����ƶ�MSN��ǰ׺���˺��ͨ������prefix����ǰ׺
-ע�����������msn�������ʺţ���msn�����˵��ʺ�����Ĭ��Ҳ��rmtsvc�ķ����ʺ����룬Ȩ����ACCESS_ALL	
-
-����: msnbot account=XXX@163.com:111 trusted=aaa@hotmail.com
-
-����msn������ͨ����������������MSN����
-�����ʽ: 
-	proxy type=HTTPS|SOCKS4|SOCKS5 host=<���������ַ> port=<��������˿�> [user=<���ʴ��������ʺ�>] [pswd=<���ʴ�����������>]
-�����������ͨ��ָ���Ĵ��������������ʼ�������ͨ������������
-type=HTTPS|SOCKS4|SOCKS5 : ָ������Э�����ͣ�����:type=SOCKS5
-host=<���������ַ>      : ָ������������������ַ
-port=<��������˿�>      : ָ����������˿�
+Example: webs port=7779 
 
 
-rmtsvc.ini�ļ�����
+Set visitor account permissions
+Command format:
+user account=<account> [pswd=<password>] access=<permissions>
+account=<account> : Required. The rmtsvc visitor account to add.
+pswd=<password>   : Required. The password for the specified account.
+access=<permissions>
+Defaults to ACCESS_NONE if not set. Format and meaning:
+ACCESS_ALL=ACCESS_SCREEN_ALL|ACCESS_FILE_ALL|ACCESS_REGIST_ALL|ACCESS_SERVICE_ALL|ACCESS_TELNET_ALL|ACCESS_FTP_ADMIN|ACCESS_VIDC_ADMIN
+ACCESS_SCREEN_ALL: Full remote screen control permissions
+ACCESS_SCREEN_VIEW: Remote screen view-only permissions
+ACCESS_FILE_ALL  : Remote file management (read/write/delete, etc.)
+ACCESS_FILE_VIEW : Remote file management, read and download only
+ACCESS_REGIST_ALL: Remote registry management (read/write/add/delete, etc.)
+ACCESS_REGIST_VIEW: Registry view-only
+ACCESS_SERVICE_ALL: Remote service management, full control
+ACCESS_SERVICE_VIEW: Remote service, view-only
+ACCESS_TELNET_ALL:  Remote telnet management
+ACCESS_FTP_ADMIN : Remote FTP service configuration management
+ACCESS_VIDC_ADMIN : Remote vIDC management configuration
+! Multiple accounts can be configured, one per line
+
+Example: user account=aa pswd=bb access=ACCESS_ALL
+
+Set MSN bot information
+Command format:
+msnbot account=<msn account>:<password> [trusted=<trusted msn account>] [prefix="<mobile MSN reply prefix>"]
+account=<msn account>:<password> : Specify the login account and password for the MSN bot.
+trusted=<trusted msn account>: Specify an MSN account trusted by the MSN bot.
+  This account can control the MSN bot without entering the access password.
+  Multiple accounts can be entered, separated by ','.
+prefix="<mobile MSN reply prefix>" : Prefix to strip from incoming messages before interpretation.
+Example: msnbot account=xxx@hotmail.com:aaa prefix="The other party is using mobile MSN, see http://mobile.msn.com.cn."
+
+Note: If prefix is not configured, the default prefix is "The other party is using mobile MSN, see http://mobile.msn.com.cn."
+Note: If an MSN bot account is configured, it is also the rmtsvc access account with ACCESS_ALL permissions.
+
+Example: msnbot account=XXX@163.com:111 trusted=aaa@hotmail.com
+
+Configure MSN bot proxy
+Command format: 
+proxy type=HTTPS|SOCKS4|SOCKS5 host=<proxy address> port=<proxy port> [user=<account>] [pswd=<password>]
+type=HTTPS|SOCKS4|SOCKS5 : Specify proxy protocol type
+host=<proxy address>      : Specify proxy server host address
+port=<proxy port>         : Specify proxy service port
+
+
+rmtsvc.ini Example
 sets
 msnbot account=XXX@163.com:111 trusted=aaa@hotmail.com
 webs port=7779
@@ -129,179 +126,104 @@ user account=aa pswd=1234 access=ACCESS_ALL
 
 
 //------------------------------------------------------------------------------------------------------------------------
-//---------------------------------------------------------msn������֧�ֵ������ʽ˵��------------------------------------
-//===========��������������ں�msn������������ƴ���������========================================
-//===========��������ʱҪ������ǰ���#��===================================
-//===========����ɱ������aa.exe ,Ҫ�������� #kill aa.exe =================================
-kill - ɱ��ָ���Ľ���
-   �÷�: kill <������>,<������>,<������>...
+//---------------------------------------------------------MSN Bot Supported Commands------------------------------------
+//===========All commands below can be entered in the MSN bot chat control window
+//===========Prefix each command with #
+//===========Example: to terminate process aa.exe, enter: #terminate aa.exe
+terminate - Terminate the specified process
+   Usage: terminate <process name>,<process name>,<process name>...
 
-exec - ����ָ���Ľ���
-   �÷�: exec [-hide] [-check <programname>] [-user <[Domain\]account:password>] [-wait <dwMilliseconds>] <full path program>
-   -hide  - �Ƿ��̨����ָ���ĳ���
-   -check <programname> - ִ��ָ���ĳ���ǰ�Ƿ��ȼ��<programname>�Ƿ��Ѿ����У���<programname>�����ִ�Сд.
-			�����������ִ��ָ���ĳ���
-   -user <[Domain\]account:password> - ��ָ�����ʺ�����ָ���ĳ��򣬽����ڱ������Է���ʽ����ʱ��Ч��
-			Domain����Բ�ָ���������ָ����Ĭ��Ϊ�����ʺ�
-   -wait <dwMilliseconds> - �ɹ��������̺��Ƿ�ȴ����̽���==0�����ȴ�,<0�ȴ����̽���,>0 �ȴ�ָ���ú���
-   <full path program>  - ָ��Ҫִ�еĳ���ͳ������в���
+exec - Launch the specified program
+   Usage: exec [-hide] [-check <programname>] [-user <[Domain\]account:password>] [-wait <dwMilliseconds>] <full path program>
+   -hide  - Run the specified program in the background
+   -check <programname> - Check if <programname> is already running before executing (case-insensitive); if so, do not execute.
+   -user <[Domain\]account:password> - Start program with specified account; only valid when running as a service.
+   -wait <dwMilliseconds> - Wait behavior: ==0 don't wait; <0 wait until process ends; >0 wait specified milliseconds.
+   <full path program>  - Program and its parameters.
 
-plst - �г�������ǰ����
-   �÷�: plst [<��������>,<��������>,<��������>...]
-       <��������> - ָ�������г���Щ���̣�֧��*?ͨ�����*ƥ�����ַ���?ƥ��һ���ַ���
-                  �������������������г����еĽ���
+plst - List current processes on this machine
+   Usage: plst [<filter>,<filter>,...]
+       <filter> - Specify processes to list; supports * and ? wildcards. If omitted, list all.
 
-path - ���������ļ���Ĭ�ϵĴ洢·����
-   �÷�: path [<Ĭ�ϴ洢·��>]
-	<Ĭ�ϴ洢·��> - ��������ô���򷵻ص�ǰ���õĴ洢·�����������Ϊ.��洢·��Ϊ��ǰmsnbot�����·��������Ϊ�û�����·��
-			����������Ĭ�ϵĴ洢·��Ϊmsnbot��������Ŀ¼
+path - Set the default storage path for uploaded files.
+   Usage: path [<default storage path>]
+If not set, return current path. If set to ., use msnbot program directory.
 
-down - ��ָ����url�����ļ���msnbot���еĻ������msnbot���ڻ��������ļ�������
-   �÷�: down <http://url>|<ftp://url>|<msnbot�����ļ�>
-	 <http://url>- ��ָ����web�����������ļ���msnbot���ڻ�����Ĭ�ϴ洢·��Ϊpathָ����·��
-	 <ftp://url> - ��ָ����ftp�����������ļ���msnbot���ڻ�����Ĭ�ϴ洢·��Ϊpathָ����·��
-         <msnbot�����ļ�>  - ����ָ����msnbot�����ļ��������������ƶˡ�
+down - Download a file from a URL to the msnbot machine, or download from msnbot to local machine
+   Usage: down <http://url>|<ftp://url>|<msnbot local file>
 
-head - ָ��msnbot�����˵�ͷ��
-   �÷�: head [<msnbot����ͼ���ļ�>]
-         <msnbot����ͼ���ļ�> - msnbot�������ص�png/jpgͼ���ļ��������������ȡ��������ͷ��
+head - Specify the avatar for the msnbot
+   Usage: head [<msnbot local image file>]
 
-nick - ָ��msnbot�����˵��ǳ�
-   �÷�: nick <�û������ǳ�>
+nick - Specify the nickname for the msnbot
+   Usage: nick <nickname>
 
-snap - ����ǰ��Ļ
-   �÷�: snap [<jpegͼƬ����>]
-         <jpegͼƬ����> - ָ�������jpegͼƬ������1~100,�������Ĭ����60
-                          ָ����ֵԽ��ͼƬ����Խ�ߣ���ͼƬ�ļ���СԽ��
-stat - ��ʾϵͳ��Ϣ
-          ��ʾ������������ϵͳ��Ϣ��cpu��Ϣ�Լ���ǰ����վ��״̬
+snap - Capture the current screen
+   Usage: snap [<jpeg quality>]  (default 60; higher = better quality but larger file)
 
-keys - ģ�ⷢ��ָ���İ���/�ַ���
-    �÷�: keys <Ҫ���͵��ַ���>
+stat - Display system information (machine name, OS, CPU, workstation status)
 
-fpas - ���ҵ�¼�ʺ�����
-    �÷�: fpas [<Domain>\<Ҫ���ҵ��ʺ�>]
-          <Domain>        - ָ��Ҫ�����ʺŵ��������������Ϊ������ǰ��
-          <Ҫ���ҵ��ʺ�>  - ָ��Ҫ�����ʺŵ����룬�����������Ϊ��ǰ��¼�ʺ�
-          ʾ�� #fpas
-               #fpas find_account
-               #fpas mydomain\find_account
+keys - Simulate sending specified keystrokes/strings
+    Usage: keys <string to send>
 
-shutdown - �ػ�
-restart  - �������
-logoff   - ע����ǰ�û�
-lock     - ������ǰ����(only for NT/2K/xp)
-3key     - ģ�ⷢ��Ctrl+Alt+del����
+fpas - Find login account password
+    Usage: fpas [<Domain>\<account>]
+
+shutdown - Shutdown the machine
+restart  - Restart the machine
+logoff   - Log off the current user
+lock     - Lock the current machine (NT/2K/XP only)
+3key     - Simulate Ctrl+Alt+Del
   
+vcap - Camera commands
+   vcap status - View camera information
+   vcap snap [<jpeg quality>] - Capture camera image
+   vcap sets [size=<width:height>] [device=<device index>] - Select camera or set image size
 
-
-vcap - ����ͷ����
-   vcap status - �鿴���ƻ�����ͷ��Ϣ
-	�÷�: vcap status
-	
-   vcap snap - �򿪲���������ͷͼ��
-	�÷�: vcap snap [<jpegͼƬ����>]
-	<jpegͼƬ����> - ָ�������jpegͼƬ������1~100,�������Ĭ����60
-                          ָ����ֵԽ��ͼƬ����Խ�ߣ���ͼƬ�ļ���СԽ��
-
-   vcap sets - ѡ������ͷ����������ͷ��ͼ���С
-	�÷�: vcap sets [size=<width:height>] [device=<�豸���>]
-     	size=<width:height> : ��������ͷ��ͼ���С������㲻���������ͷ֧����Щͼ��ߴ���ò�Ҫ��
-	device=<�豸���> : ѡ�������������豸���豸��ſ�ͨ��vcap status����鿴
-	
-www - ������ֹͣrmtsvc��webԶ�̿��Ʒ���
-   www stop  -  ֹͣrmtsvc��webԶ�̿��Ʒ���
-   www start [<�˿�>] - ����rmtsvc��webԶ�̿��Ʒ���
-   		���ָ���˶˿ڣ�����ָ���Ķ˿���������,���ָ���˿�Ϊ0�������������˿�
-   		���û��ָ���˿��������õĶ˿�����rmtsvc��webԶ�̿��Ʒ���
-   www       - ����rmtsvc��webԶ�̿��Ʒ����״̬
+www - Start or stop rmtsvc web remote control service
+   www stop / www start [<port>] / www (status)
   
-ftp - ������ֹͣFTP����
-   ftp stop - ֹͣFTP����
-   ftp start [<�˿�>] - ����FTP����
-   	      ���ָ���˶˿ڣ�����ָ���Ķ˿���������,���ָ���˿�Ϊ0�������������˿�
-   	      ���û��ָ���˿��������õĶ˿�����FTP����
-   ftp      -  ����FTP�����״̬
+ftp - Start or stop FTP service
+   ftp stop / ftp start [<port>] / ftp (status)
 
-proxy - ������ֹͣ��������
-   proxy stop - ֹͣ��������
-   proxy start [<�˿�>] - ������������
-   	      ���ָ���˶˿ڣ�����ָ���Ķ˿���������,���ָ���˿�Ϊ0�������������˿�
-   	      ���û��ָ���˿��������õĶ˿�������������
-   proxy      -  ���ش��������״̬
+proxy - Start or stop proxy service
+   proxy stop / proxy start [<port>] / proxy (status)
    
-vidcs - ������ֹͣvidc����
-   vidcs stop - ֹͣvidc����
-   vidcs start [<�˿�>] - ����vidc����
-   	      ���ָ���˶˿ڣ�����ָ���Ķ˿���������,���ָ���˿�Ϊ0�������������˿�
-   	      ���û��ָ���˿��������õĶ˿�����vidc����
-   vidcs      -  ����vidc�����״̬
+vidcs - Start or stop vidc service
+   vidcs stop / vidcs start [<port>] / vidcs (status)
 
+mtcpr - Perform remote port mapping
+   Format: mtcpr vidcs=<host:port@pswd> appsvr=<host:port> mport=<map port>[+-ssl]
+   Example: mtcpr vidcs=222.33.11.xx:8088@aa appsvr=192.168.1.11:21 mport=222
    
-mtcpr - ����Զ�̶˿�ӳ��
-   ��ʽ: mtcpr vidcs=<host:port@pswd> appsvr=<host:port> mport=<ӳ��˿�>[+-ssl]
-   vidcs: ָ��Զ��vidcs��IP/��������˿ںźͷ�������
-   appsvr: ָ��Ҫӳ���Ӧ�÷���
-   ���磺 mtcpr vidcs=222.33.11.xx:8088@aa appsvr=192.168.1.11:21 mport=222
-   
-export - ��������exe/ftp/proxy/vidc�����ò���
-fport - ���̶˿ڹ����б�
-help  - �г�����֧�ֵ�����
+export - Export all exe/ftp/proxy/vidc configuration parameters
+fport - Process/port association list
+help  - List all supported commands
 
-import - ����FTP/Proxy/vidc���ò���
-��ʽ: #import [ftp|proxy|vidc]<[���ò����ļ�·��]
-����: ��c:\1.txt����ftp������
-      #import ftp<c:\1.txt
-      ��c:\2.ini����proxy����
-      #import proxy<c:\2.ini
-ע��: Ϊ�˱�����д���ò������������ò����ļ������һ����ĳ��rmtsvc���ú��˺��ɵ������ܵ���
-	Ȼ��copy��һ���ļ��У�����ϴ���msnbot���ڻ�����ִ��import����
-	
-upnp - UPnP�豸�����Լ�UPnPӳ��
-    ��ʽ: upnp [status|add|delete|find|stop]
-    upnp find  - ����UPnP�豸
-    upnp stop  - ֹͣ����
-    upnp add type=[TCP|UDP] appsvr=<Ӧ�÷���> mport=<�����˿�> appdesc=<����>
-               - UPnP�˿�ӳ�䡣ӳ��ָ��������Ӧ�÷���UPnP�豸(NAT���ء�·��)ָ���Ķ˿���
-               ����: upnp add type=TCP appsvr=127.0.0.1:7777 mport=7778 appdesc="aa"
-    upnp delete <�����˿�> <TCP|UDP>
-    	       - ��UPnP�豸��ɾ��ĳ���˿�ӳ�䡣
-    	       ����ɾ������ӳ��Ķ˿�: upnp delete 7778 TCP
-    upnp status - ��ʾ��ǰUPnP�豸��Ϣ��ӳ��˿���Ϣ
+import - Import FTP/Proxy/vidc configuration parameters
+Format: #import [ftp|proxy|vidc]<[config file path]
+Example: #import ftp<c:\1.txt
 
-update - ����rmtsvc
-��ʽ: #update <�°汾exe�ļ�·����URL��ַ>   
-����: #update c:\aa.exe
-  ���� #update http://host/aa.exe
-      ��aa.exe���Ǹ��µ�ǰ��rmtsvc
-<�°汾exe�ļ�·����URL��ַ> - ָrmtsvc���л����ϵ��°汾exe������ָ��url��ַ��������http��ftp��ַ
-      ��Ȼ��Ҳ������#down�����ָ������վ��ftp���������°汾��exe��rmtsvc���еĻ�����
-ע��: ����°汾��exe�����Ѿ�д�����ò������򲻻��õ�ǰ���а汾exe�е�д����������°汾exe�е�д�����
+upnp - UPnP device discovery and port mapping
+    upnp find / upnp stop / upnp status
+    upnp add type=[TCP|UDP] appsvr=<service> mport=<port> appdesc=<desc>
+    upnp delete <port> <TCP|UDP>
 
-telnet - ����ֹͣtelnet���񣬷���telnet����
-   telnet stop - ֹͣtelnet����
-   telnet start [<�˿�>] [account=<�ʺ�:����>]- ����telnet����
-   	      ���ָ���˶˿ڣ�����ָ���Ķ˿���������,�������������õĶ˿���������
-   	      ���ָ���˷����ʺ������Ҳ�Ϊ����ֻ����ָ�����ʺŷ��ʣ������ʺ�����Ϊ����������������
-   	      �������û��ָ��account����ini���õĲ���Ϊ׼������:#telnet start 23 account=aa:bb
-   telnet -r <host>:<port>: ��������ָ���������Ͷ˿ڻ��һ��CMD Shell�����磺#telnet -r 192.168.1.2:1234
-   telnet      -  ����telnet�����״̬
-ע��: telnet֧��msnbot����չ����÷���msnbot������head,nick,snap,vcap��MSN����֧�ֵ�����
-     ini���ò�������֧��telnet���������ʽ��
-     telnet [port=<����˿�>] [bindip=<������󶨵ı���IP>] [account=<�ʺ�:����>]
-     
+update - Upgrade rmtsvc
+Format: #update <new exe path or URL>
+
+telnet - Start/stop telnet service, reverse telnet connection
+   telnet stop / telnet start [<port>] [account=<account:password>]
+   telnet -r <host>:<port>: Reverse-connect to get a CMD shell
+   telnet (status)
+Note: Supports same commands as msnbot (except MSN-specific: head, nick, snap, vcap).
+     ini config: telnet [port=<port>] [bindip=<local IP>] [account=<account:password>]
 
 2007-03-12
-��������msnbot����֧��������ض����� > ������ض���ָ�����ļ�
-����ϣ����#plst����Ľ�����Ϣ�����aa.txt,��������������:
-#plst > a.txt
-Ȼ��ͨ��#down��������a.txt
-#down a.txt
+All msnbot commands support output redirection with >:
+Example: #plst > a.txt
+Then: #down a.txt
 
-Q:Ϊ����ͨ��msnbotֹͣ��ĳ����(����ftp,www,proxy��)����ͨ������򿪴˷���ȷ����ʾ��ʧ��
-A:�رպʹ�msnbot������Ự���ڣ�Ȼ�����´򿪣��������������������
-  ԭ���Ǵ�cmdshell�̳��˸����̵ľ������˼�ʹ�ر���ĳsocket���񣬵����ڴ�cmdshell���̼̳��˸þ�������
-  ϵͳ�����ͷŸþ����ռ�˿ڣ�ֻ�д�cmdshell�����������ͷ�
-
-  
-  
+Q: Why does stopping a service via msnbot and then restarting it always fail?
+A: Close the chat session window with the msnbot, reopen it, then enter the start command.
+  The cmdshell inherits handles from its parent process, so the port is not released until the cmdshell ends.

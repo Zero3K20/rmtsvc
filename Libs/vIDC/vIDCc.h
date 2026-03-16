@@ -68,7 +68,7 @@ namespace net4cpp21
 		void str_list_vidcc(std::string &strini);
 	private:
 		cMutex m_mutex;
-		//每个vidcClient对应connect一个vIDCs
+		//eachvidcClient对应connect一个vIDCs
 		std::map<std::string,vidcClient *> m_vidccs;
 		std::string m_strName; //vidcc的name
 		std::string m_strDesc;

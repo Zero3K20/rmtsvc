@@ -182,7 +182,7 @@ void httpRequest::set_Authorization(const char *user,const char *pswd)
 	std::string s1,s("Basic ");
 	s.append(user); s.append(":"); s.append(pswd);
 	int l=cCoder::Base64EncodeSize(s.length())+1;
-	s1.resize(l); //分配null间
+	s1.resize(l); //allocate space
 	l=cCoder::base64_encode((char *)s.c_str(),s.length(),(char *)s1.c_str());
 	s1[l]=0; m_httpreq_HEADER["Authorization"]=s1.c_str();
 	return;
@@ -191,8 +191,8 @@ void httpRequest::set_Authorization(const char *user,const char *pswd)
 SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 {
 //	ASSERT(psock);
-	if(lpszurl) parseURL(lpszurl); //先将request parametersandurl分离，分别save再param_GETandurl中
-	//false如有POST data应先编码POST data
+	if(lpszurl) parseURL(lpszurl); //first separate request parameters and URL, save them in param_GET and url respectively
+	//if POST data exists, encode POST data first
 	if(m_httpreq_params_POST.size()>0) 
 		encodeParam(m_httpreq_postdata,'&',m_httpreq_params_POST);
 	
@@ -210,13 +210,13 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 		if(m_httpreq_iType==HTTP_REQ_UNKNOWN) m_httpreq_iType=HTTP_REQ_GET;
 	}//?if(m_httpreq_iType==HTTP_REQ_UNKNOWN)
 
-	//编码HTTP request header
+	//encodingHTTP request header
 	int l; cBuffer contentBuffer(1024); //HTTP requestbuffer
 	EncodeFirstRequestLine(contentBuffer);
 	
-	if(m_bParseParams){//yyc add 2007-12-10 对代理forwardnot做判断
+	if(m_bParseParams){//yyc add 2007-12-10: do not check for proxy forwarding
 		std::map<std::string,std::string>::iterator it=m_httpreq_HEADER.find("Content-Length");
-		if( it==m_httpreq_HEADER.end() && //yesno有Contentdata
+		if( it==m_httpreq_HEADER.end() && //whether there is Content data
 			(m_httpreq_iType==HTTP_REQ_POST || m_httpreq_postdata.len()>0) ) 
 		{
 			l=sprintf(contentBuffer.str()+contentBuffer.len(),"%d",m_httpreq_postdata.len());
@@ -240,7 +240,7 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 		for(;it!=m_httpreq_HEADER.end();it++)
 		{
 			l=(*it).first.length()+(*it).second.length()+4;
-			if(l<128) l=128; //totalyes保留一定的null间免得频繁分配并移动
+			if(l<128) l=128; //reserve some space to avoid frequent allocation and movement
 			if((int)contentBuffer.Space()<l)
 				if(contentBuffer.Resize(contentBuffer.size()+l)==NULL) break;
 			l=sprintf(contentBuffer.str()+contentBuffer.len(),"%s: %s\r\n",
@@ -263,9 +263,9 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 	l=sprintf(contentBuffer.str()+contentBuffer.len(),"\r\n");
 	contentBuffer.len()+=l;
 	
-	SOCKSRESULT sr=SOCKSERR_OK; //打印send的HTTP request header
+	SOCKSRESULT sr=SOCKSERR_OK; //print the sent HTTP request header
 	RW_LOG_DEBUG("[httpreq] Sending HTTP Request Header,len=%d\r\n%s",contentBuffer.len(),contentBuffer.str());
-	if(psock==NULL) //仅仅get要send的data，并步send
+	if(psock==NULL) //only get the data to send, do not send
 	{
 		if(contentBuffer.Space()<=m_httpreq_postdata.len())
 			if(contentBuffer.Resize(contentBuffer.size()+m_httpreq_postdata.len())==NULL) return SOCKSERR_MEMORY;
@@ -280,7 +280,7 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 			sr=psock->Send(m_httpreq_postdata.len(),m_httpreq_postdata.str(),-1);
 		}
 	}
-	m_httpreq_postdata=contentBuffer; //此时m_httpreq_postdatasave了send的HTTP request header
+	m_httpreq_postdata=contentBuffer; //at this point m_httpreq_postdata has saved the sent HTTP request header
 	return (sr<0)?sr:SOCKSERR_OK;
 }
 
@@ -289,41 +289,41 @@ SOCKSRESULT httpRequest::send_req(socketTCP *psock,const char *lpszurl)
 SOCKSRESULT httpRequest::recv_reqH(socketTCP *psock,time_t timeout)
 {
 //	ASSERT(psock);
-	const char * pFoundTerminator=NULL; //HTTP request headeryesnoreceive完毕
+	const char * pFoundTerminator=NULL; //whether HTTP request header is fully received
 	cBuffer buffer(1024); char *pbuf;
 	while(	psock->status()==SOCKS_CONNECTED ) 
 	{
 		pbuf=buffer.str()+buffer.len();
-		//if超过timeout仍没收到data可认为client异常
+		//if data is not received after timeout, the client may be abnormal
 		int iret=psock->Receive(pbuf,buffer.Space()-1,timeout);
 		if(iret<0) break;//==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		*(pbuf+iret)=0; buffer.len()+=iret;
 		if( (pFoundTerminator=strstr(buffer.str(),"\r\n\r\n")) ) break;
-		if(buffer.Space()<256) //预分配一定的null间，以便完整receiverequest头
+		if(buffer.Space()<256) //pre-allocate some space to fully receive the request header
 			if( buffer.Resize(buffer.size()+256)==NULL ) break;						
 	}//?while
-	if(pFoundTerminator==NULL) return SOCKSERR_HTTP_RESP; //未receive到完整的HTTP request header
-	//打印receive的HTTP request header
+	if(pFoundTerminator==NULL) return SOCKSERR_HTTP_RESP; //did not receive complete HTTP request header
+	//print the received HTTP request header
 	*(char *)pFoundTerminator=0;
 	RW_LOG_DEBUG("[httpreq] Received HTTP Request Header\r\n%s\r\n",buffer.str());
 	*(char *)pFoundTerminator='\r';
 
-	init_httpreq(); //initializationhttp requestobject的variable
+	init_httpreq(); //initialize http request object variables
 	if(ParseRequest(buffer.str())==HTTP_REQ_UNKNOWN) return HTTP_REQ_UNKNOWN;
 	if(m_httpreq_lContentlen>0)
-	{//判断postdatayesnoreceive完毕
-		pbuf=(char *)pFoundTerminator+4; //postparameter起始address
+	{//check whether post data is fully received
+		pbuf=(char *)pFoundTerminator+4; //starting address of post parameters
 		long receivedBytes=buffer.len()-(pbuf-buffer.str());
 		if(receivedBytes>=m_httpreq_lContentlen)
-		{//postdata已经receive完毕
+		{//post data fully received
 			m_httpreq_bReceiveALL=true; *(pbuf+m_httpreq_lContentlen)=0;
 			if(m_bParseParams && get_contentType(NULL)==HTTP_CONTENT_APPLICATION)
-			{//解码form提交parameter
+			{//decode form submission parameters
 				const char *ptrCharset=get_contentCharset();
 				parseParam(pbuf,'&',m_httpreq_params_POST,ptrCharset);
 			}
-			else //ifnot解码ornotyesform表单提交的编码data则save到m_httpreq_postdata
+			else //if not decoding or not form-submitted encoded data, save to m_httpreq_postdata
 			{
 				m_httpreq_postdata.Resize(receivedBytes+1);
 				::memcpy(m_httpreq_postdata.str(),pbuf,receivedBytes);
@@ -331,7 +331,7 @@ SOCKSRESULT httpRequest::recv_reqH(socketTCP *psock,time_t timeout)
 				m_httpreq_postdata[m_httpreq_lContentlen]=0;
 			}
 		}//?if(receivedBytes>=m_httpreq_lContentlen)
-		else //没有receive完毕，将data先临时存放到m_httpreq_postdata中
+		else //not fully received; temporarily store data in m_httpreq_postdata
 		{
 			m_httpreq_bReceiveALL=false;
 			if(receivedBytes>0) ::memmove(buffer.str(),pbuf,receivedBytes);
@@ -342,8 +342,8 @@ SOCKSRESULT httpRequest::recv_reqH(socketTCP *psock,time_t timeout)
 	else m_httpreq_bReceiveALL=true;
 	return m_httpreq_iType;
 }
-//receive剩余的未receive完的POST data
-//receiveBytes - receivespecified的bytelength  <=0:receiveall未完data
+//receive remaining unfinished POST data
+//receiveBytes - receive specified byte length; <=0 means receive all remaining data
 //successreturntrue,otherwisereturnfalse
 bool httpRequest::recv_remainder(socketTCP *psock,long receiveBytes)
 {
@@ -355,14 +355,14 @@ bool httpRequest::recv_remainder(socketTCP *psock,long receiveBytes)
 	{
 		if(m_httpreq_lContentlen>(long)m_httpreq_postdata.len())
 		{
-			if(m_httpreq_postdata.Space()<1024) //预分配一定的null间
+			if(m_httpreq_postdata.Space()<1024) //pre-allocate some space
 				if( m_httpreq_postdata.Resize(m_httpreq_postdata.size()+1024)==NULL ) 
 					break;
 
 			char *pbuf=m_httpreq_postdata.str()+m_httpreq_postdata.len();
 			l=m_httpreq_postdata.Space()-1;
 			if(receiveBytes>0 && l>remainBytes) l=remainBytes;
-			//if超过HTTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+			//if data is not received within HTTP_MAX_RESPTIMEOUT, the client may be abnormal
 //			RW_LOG_DEBUG("[httpRequest] - Receive %d Bytes...\r\n",l);
 			l=psock->Receive(pbuf,l,HTTP_MAX_RESPTIMEOUT);
 //			RW_LOG_DEBUG("[httpRequest] - Receive Data return %d\r\n",l);
@@ -370,7 +370,7 @@ bool httpRequest::recv_remainder(socketTCP *psock,long receiveBytes)
 			if(l==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 			m_httpreq_postdata.len()+=l; 
 			m_httpreq_postdata[m_httpreq_postdata.len()]=0;
-			if( receiveBytes>0) if( (remainBytes-=l)<=0 ) break; //receive完specified的data
+			if( receiveBytes>0) if( (remainBytes-=l)<=0 ) break; //specified data fully received
 		} else m_httpreq_bReceiveALL=true;
 	}//?while
 //	RW_LOG_DEBUG("[httpRequestX] -stat=%d bReceiveALL=%d ContentLen=%d,received=%d\r\n",
@@ -378,19 +378,19 @@ bool httpRequest::recv_remainder(socketTCP *psock,long receiveBytes)
 	m_httpreq_postdata[m_httpreq_postdata.len()]=0;
 	if( m_bParseParams && m_httpreq_bReceiveALL && 
 		get_contentType(NULL)==HTTP_CONTENT_APPLICATION)
-	{//解码form提交parameter
+	{//decode form submission parameters
 		const char *ptrCharset=get_contentCharset();
 		parseParam(m_httpreq_postdata.str(),'&',m_httpreq_params_POST,ptrCharset);
-		m_httpreq_postdata.Resize(0);//releasenull间
+		m_httpreq_postdata.Resize(0);//release space
 	}
 	
 	if( receiveBytes>0) if(remainBytes<=0) return true;
 	return m_httpreq_bReceiveALL;
 }
-//parse HTTP request头,returnHTTP requesttype
+//parse HTTP request header, return HTTP request type
 HTTPREQ_TYPE httpRequest::ParseRequest(const char *httpreqH)
 {
-	//handle每一行data
+	//handle each line of data
 	bool bFirstLine = true;
 	const char *ptrLineStart=httpreqH;
 	const char *ptrLineEnd=strchr(ptrLineStart,'\n');
@@ -402,13 +402,13 @@ HTTPREQ_TYPE httpRequest::ParseRequest(const char *httpreqH)
 		}
 
 		if(bFirstLine)
-		{//handlefirst行data
+		{//handle first line of data
 			if( ParseFirstRequestLine(ptrLineStart)==HTTP_REQ_UNKNOWN)
 				return HTTP_REQ_UNKNOWN;
 			bFirstLine=false;
 		}
 		else
-		{//handle其它行data
+		{//handle other lines of data
 			const char *pvalue,*pFoundTerminator=strchr(ptrLineStart,':');
 			if(pFoundTerminator)
 			{
@@ -418,14 +418,14 @@ HTTPREQ_TYPE httpRequest::ParseRequest(const char *httpreqH)
 				
 				if(strcmp(ptrLineStart,"Content-Length")==0)
 				{
-					if(!m_bParseParams) //ifnotparse则...
+					if(!m_bParseParams) //if not parsing then...
 						m_httpreq_HEADER[ptrLineStart]=string(pvalue);
 					m_httpreq_lContentlen=atol(pvalue);
-					//认为ifnotyesPOSTrequest则没有content，简化以后的datareceivecomplete情况判断
+					//assume if not POST request there is no content; simplifies subsequent data receive completion checks
 					if(m_httpreq_iType!=HTTP_REQ_POST) m_httpreq_lContentlen=0;
 				}
 				else if(m_bParseParams && strcmp(ptrLineStart,"Cookie")==0)
-				{//cookiedataformat：Cookie: name=value; name=value...
+				{//cookie data format: Cookie: name=value; name=value...
 					std::string strtmp(pvalue);
 					parseParam((char *)strtmp.c_str(),';',m_httpreq_COOKIE,NULL);
 				}
@@ -442,7 +442,7 @@ HTTPREQ_TYPE httpRequest::ParseRequest(const char *httpreqH)
 		{
 			*(char *)ptrLineEnd='\n';
 			if(*(ptrLineEnd-1)=='\0') *(char*)(ptrLineEnd-1)='\r';
-			//遇到null行则HTTP request headerend
+			//encountering empty line means HTTP request header end
 			if(ptrLineStart[0]=='\r' || ptrLineStart[0]=='\n') break; 
 		}
 		ptrLineStart=ptrLineEnd+1;
@@ -450,7 +450,7 @@ HTTPREQ_TYPE httpRequest::ParseRequest(const char *httpreqH)
 	}//?while
 	return m_httpreq_iType;
 }
-//parse HTTP requestfirst行的data，returnHTTP requesttype
+//parse HTTP request first line data, return HTTP request type
 HTTPREQ_TYPE httpRequest::ParseFirstRequestLine(const char *lpszLine)
 {
 //	ASSERT(lpszLine);
@@ -509,18 +509,18 @@ HTTPREQ_TYPE httpRequest::ParseFirstRequestLine(const char *lpszLine)
 		ptrStart=pFoundTerminator+1;
 	}
 	else{ m_httpreq_strUrl.assign(ptrStart); ptrStart=NULL; }
-	//解码http URL -----------------start---------------------------
+	//decodinghttp URL -----------------start---------------------------
 	if(m_httpreq_iType==HTTP_REQ_CONNECT)
 	{
 		m_httpreq_HEADER["PHost"]=m_httpreq_strUrl;
 		m_httpreq_strUrl="";
-	}else{ //ifyesHTTP代理，则send过来的URL中带有主机info，即完整的URLaddresshttp://xxxx
+	}else{ //if HTTP proxy, the sent URL contains host info, i.e. complete URL like http://xxxx
 		char c=0;
 		if(m_httpreq_strUrl.length()>10) { c=m_httpreq_strUrl[10]; m_httpreq_strUrl[10]=0;}
 		pFoundTerminator=strstr(m_httpreq_strUrl.c_str(),"://");
 		if(c!=0) m_httpreq_strUrl[10]=c;
-		if(pFoundTerminator) //带有完整path，应去掉主机头info
-		{//"PHost"头yes自define的，主要yes为了给proxy servicegetconnect主机的info用
+		if(pFoundTerminator) //has complete path; should remove host header info
+		{//"PHost" header is custom-defined, mainly for proxy service to get the connect host info
 			if( (pFoundTerminator=strchr(pFoundTerminator+3,'/')) )
 			{
 				m_httpreq_HEADER["PHost"]=string(m_httpreq_strUrl.c_str(),pFoundTerminator-m_httpreq_strUrl.c_str());
@@ -531,14 +531,14 @@ HTTPREQ_TYPE httpRequest::ParseFirstRequestLine(const char *lpszLine)
 			}
 		}//?if(pFoundTerminator)
 	}
-	//解码http URL ----------------- end ---------------------------
+	//decodinghttp URL ----------------- end ---------------------------
 	if(m_bParseParams) parseURL(NULL);
 
 	//gethttpprotocolversion
 	//No version included in the request, so set it to HTTP v0.9
 	m_httpreq_dwVer=MAKELONG(9, 0);
 	if(ptrStart==NULL) return m_httpreq_iType;
-	m_httpreq_dwVer=0; //otherwise必定containsprotocolversion
+	m_httpreq_dwVer=0; //otherwise must contain protocol version
 	while(*ptrStart==' ') ptrStart++;//delete leading spaces
 	if(strncasecmp(ptrStart,"HTTP/",5)==0)
 	{
@@ -595,9 +595,9 @@ void httpRequest::EncodeFirstRequestLine(cBuffer &buf)
 		strcpy(buf.str()+buf.len(),"CONNECT ");
 		buf.len()+=8;
 	}
-	else return; //error的HTTP request
+	else return; //invalid HTTP request
 	if(m_bParseParams){
-		encodeURL(buf); //编码URL
+		encodeURL(buf); //encodingURL
 		if(buf.Space()<12) if(buf.Resize(buf.size()+12)==NULL) return;
 		buf.len()+=sprintf(buf.str()+buf.len()," HTTP/%d.%d\r\n",
 				HIWORD(m_httpreq_dwVer),LOWORD(m_httpreq_dwVer));
@@ -614,36 +614,36 @@ void httpRequest::EncodeFirstRequestLine(cBuffer &buf)
 inline void httpRequest::parseURL(const char *lpszurl)
 {
 	if(lpszurl) m_httpreq_strUrl.assign(lpszurl);
-	//分离request parametersandrequesturl
+	//detachrequest parametersandrequesturl
 	const char *pFoundTerminator=strchr(m_httpreq_strUrl.c_str(),'?');
 	if( pFoundTerminator)
 	{
 		parseParam((char *)pFoundTerminator+1,'&',m_httpreq_params_GET,NULL);
 		m_httpreq_strUrl.erase(pFoundTerminator-m_httpreq_strUrl.c_str());
 	}
-	//url可能被编码，对于汉字将先进行mime编码then performutf8编码，therefore要解码
+	//URL may be encoded; for Chinese characters MIME encoding followed by UTF-8 encoding is used; decoding is needed
 	{
 		int urllen=m_httpreq_strUrl.length();
 		int iret=cCoder::mime_decode(m_httpreq_strUrl.c_str(),urllen,(char *)m_httpreq_strUrl.c_str());
-		if(iret<urllen) //只有有编码才有可能解码
+		if(iret<urllen) //decoding is only possible if encoding was applied
 		iret=cCoder::utf8_decode(m_httpreq_strUrl.c_str(),iret,(char *)m_httpreq_strUrl.c_str());
 		if(iret!=0) m_httpreq_strUrl.erase(iret); //yyc modify 2009-09-15
-		//m_httpreq_strUrl.erase(iret);			  //yyc remove 加入error保护，有可能非utf8编码
+		//m_httpreq_strUrl.erase(iret);			  //yyc remove: added error protection; may not be UTF-8 encoded
 	}
 	return;
 }
 
-//编码URL
+//encodingURL
 inline void httpRequest::encodeURL(cBuffer &buf)
 {
 	int l=cCoder::MimeEncodeSize(m_httpreq_strUrl.length());
-	if(l<128) l=128; //totalyes保留一定的null间免得频繁分配并移动
+	if(l<128) l=128; //reserve some space to avoid frequent allocation and movement
 	if((int)buf.Space()<l)
 		if(buf.Resize(buf.size()+l)==NULL) return;
 	l=cCoder::mime_encodeURL(m_httpreq_strUrl.c_str(),m_httpreq_strUrl.length(),
 		buf.str()+buf.len());
 	buf.len()+=l;
-	//编码GETparameter
+	//encodingGETparameter
 	if(m_httpreq_params_GET.size()>0)
 	{
 		buf[buf.len()]='?'; buf.len()++;
@@ -675,14 +675,14 @@ void httpRequest::parseParam(char *strParam,char delm,
 			iret=cCoder::mime_decode(ptr,len,ptr);
 			if(ifutf_8)
 				iret=cCoder::utf8_decode(ptr,iret,ptr);
-			//name应not区分size写，therefore全convert为小写
+			//name should be case-insensitive; convert all to lowercase
 			::_strlwr(ptrStart);
 			maps[ptrStart]=string(ptr);
 		}
 		ptrStart=ptrEnd+1;
 		while(*ptrStart==' ') ptrStart++;//delete leading spaces
 	}//?while
-	//可能还有一个parameter没有handle
+	//there may be one more parameter not handled
 	if( (ptr=strchr(ptrStart,'=')) )
 	{
 		*ptr=0;
@@ -690,18 +690,18 @@ void httpRequest::parseParam(char *strParam,char delm,
 		if(ifutf_8)
 			iret=cCoder::utf8_decode(ptrStart,iret,ptrStart);
 		ptr++; len=strlen(ptr);
-		//testMozilla浏览器时发现 last一个parameter可能含有回车换行，但IE没有
+		//testing with Mozilla browser found the last parameter may contain carriage return/newline, but IE does not
 //		while(len>0 && (*(ptr+len-1)=='\r' || *(ptr+len-1)=='\n') ) len--; //temporarily not handled, because this would discard the \r\n data sent by IE
 		iret=cCoder::mime_decode(ptr,len,ptr);
 		if(ifutf_8)
 			iret=cCoder::utf8_decode(ptr,iret,ptr);
-		//name应not区分size写，therefore全convert为小写
+		//name should be case-insensitive; convert all to lowercase
 		::_strlwr(ptrStart);
 		maps[ptrStart]=string(ptr);
 	}
 	return;
 }
-//编码parameter
+//encodingparameter
 void httpRequest::encodeParam(cBuffer &buf,char delm,
 							 std::map<std::string,std::string> &maps)
 {
@@ -710,14 +710,14 @@ void httpRequest::encodeParam(cBuffer &buf,char delm,
 	{
 		int l=cCoder::MimeEncodeSize((*it).first.length())+
 			cCoder::MimeEncodeSize((*it).second.length())+4; //+1;
-		if(l<128) l=128; //totalyes保留一定的null间免得频繁分配并移动
+		if(l<128) l=128; //reserve some space to avoid frequent allocation and movement
 		if((int)buf.Space()<l)
 			if(buf.Resize(buf.size()+l)==NULL) break;
 
 		if(it!=maps.begin()) 
 		{ 
 			buf[buf.len()]=delm; buf.len()++;
-			//对于cookie每个cookie值由; 分开
+			//for cookies, each cookie value is separated by ;
 			if(delm==';'){ buf[buf.len()]=' '; buf.len()++; } 
 		}
 		l=cCoder::mime_encodeEx((*it).first.c_str(),(*it).first.length(),
@@ -748,7 +748,7 @@ bool httpRequest::ParseAuthorizationBasic(const char *str,
 			return true;
 		} else username="";
 	}else if( (ptr=strchr(ptrStart,':')) )
-	{ //when作没有编码的passwordhandle,format user:pswd
+	{ //when handling unencoded password, format: user:pswd
 		username.assign(ptrStart,ptr-ptrStart);
 		password.assign(ptr+1); return true;
 	}

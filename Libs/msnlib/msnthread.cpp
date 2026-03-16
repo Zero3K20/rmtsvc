@@ -54,7 +54,7 @@ void msnMessager :: receiveThread(msnMessager *pmsnmessager)
 			if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
 
 //handleMSN NSservercommand ---- begin-------------------------------------------
-			//注意:收到的commandyes先进行utf8编码then performmime编码的
+			//注意:收到的commandyes先进行utf8encodingthen performmimeencoding的
 //			RW_LOG_DEBUG("[msnlib] recevied Command from NS: %s.\r\n",ptrBegin);
 			if( strncmp(ptrBegin,"MSG ",4)==0 || 
 				strncmp(ptrBegin,"GCF ",4)==0 ||
@@ -71,7 +71,7 @@ void msnMessager :: receiveThread(msnMessager *pmsnmessager)
 					if( (buflen-(ptrCmd-buffer+nSkip))>=len) 
 					{ //message已经全部receive完毕
 						char c=*(ptrCmd+len+nSkip); 
-						*(ptrCmd+len+nSkip)=0;//保护要handle的character串有end符号
+						*(ptrCmd+len+nSkip)=0;//保护要handle的string有end符号
 
 						//handlemessage //+nSkipskip \r\n
 						if(ptrBegin[0]=='M')
@@ -92,7 +92,7 @@ void msnMessager :: receiveThread(msnMessager *pmsnmessager)
 				}//?if( (tmpptr=strrchr(ptrBegin,' ')) )
 			}//?strncmp(ptrBegin,"MSG ",4)
 			else if( atol(ptrBegin)!=0 ) 
-			{//某个command的errorreturn format: error码 trID 说明\r\n
+			{//a certaincommand的errorreturn format: error码 trID 说明\r\n
 				if( (tmpptr=strchr(ptrBegin,' ')) ) 
 					trID=(unsigned long)atol(tmpptr+1);
 			}//?if( atol(ptrBegin)!=0 )
@@ -144,7 +144,7 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 		}//?while
 		//if有未receive完的command则移动
 		if((iret=(ptrBegin-buffer))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket
+		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buffer,ptrBegin,buflen);
 		} else buflen=0;
@@ -156,15 +156,15 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 
 }
 
-//handle本clientandSSserver的command交互
-//每个sessionThreadyes一个chat session
+//handle command interaction between this client and SS server
+//eachsessionThreadis achat session
 void msnMessager :: sessionThread(void *param) 
 {
 	std::pair<msnMessager *,cContactor *> *pp=(std::pair<msnMessager *,cContactor *> *)param;
 	msnMessager *pmsnmessager=pp->first;
 	cContactor *pcon=pp->second; delete pp;
 	if(pmsnmessager==NULL || pcon==NULL) return;
-	srand(clock()); //保证此thread的的rand的随机，otherwise每个thread都会以default的种子产生随机数，导致每次
+	srand(clock()); //保证此thread的的rand的随机，otherwiseeachthread都会以default的种子产生随机数，导致每次
 	//进入此thread产生的随机数相同 2005-07-18 yyc comment
 	socketProxy *pchatsock=&pcon->m_chatSock;
 	RW_LOG_PRINT(LOGLEVEL_WARN,"session-thread(%s) of msnMessager has been started.\r\n",
@@ -172,7 +172,7 @@ void msnMessager :: sessionThread(void *param)
 	pmsnmessager->onChatSession((HCHATSESSION)pcon,MSN_CHATSESSION_CREATE,
 		pcon->m_email.c_str(),0);
 	
-	pcon->m_chat_contacts=0;//参与此次交谈的会话的联系人个数
+	pcon->m_chat_contacts=0;//参与此次交谈的会话的contact个数
 	time_t tStart=time(NULL);//会话starttime
 	time_t tTimeout=60;//10*MSN_MAX_RESPTIMEOUT;
 	char buffer[MSN_MAX_SS_COMMAND_SIZE]; //receive client commands
@@ -225,7 +225,7 @@ void msnMessager :: sessionThread(void *param)
 						if( (tmpptr=strchr(ptrBegin+4,' ')) ) *tmpptr=0;
 
 						char c=*(ptrCmd+len+nSkip); 
-						*(ptrCmd+len+nSkip)=0;//保护要handle的character串有end符号
+						*(ptrCmd+len+nSkip)=0;//保护要handle的string有end符号
 						//handlemessage //+nSkipskip \r\n
 						if(ptrBegin[0]=='M')
 							pmsnmessager->sscmd_msg(pcon,ptrBegin+4,ptrCmd+nSkip,len); 
@@ -238,14 +238,14 @@ void msnMessager :: sessionThread(void *param)
 				}//?if( (tmpptr=strrchr(ptrBegin,' ')) )
 			}//?strncmp(ptrBegin,"MSG ",4)
 			else if( atol(ptrBegin)!=0 ) 
-			{//某个command的errorreturn format: error码 trID 说明\r\n
+			{//a certaincommand的errorreturn format: error码 trID 说明\r\n
 				if( (tmpptr=strchr(ptrBegin,' ')) ) 
 					trID=(unsigned long)atol(tmpptr+1);
 			}//?if( atol(ptrBegin)!=0 )
 			else if(strncmp(ptrBegin,"IRO ",4)==0)
-			{//ifnotyes我发起的聊天，则其他人进入yes收到IRO
+			{//ifis not我发起的chat，则其他人进入yes收到IRO
 				//IRO <trID> 1 1 yycnet@hotmail.com yyc:)\r\n
-				//parse出email
+				//parsedemail
 				char *ptrStart=NULL,*ptr=ptrBegin+4;
 				int icount=0;
 				while(*ptr){
@@ -263,7 +263,7 @@ void msnMessager :: sessionThread(void *param)
 				pcon->m_chat_contacts++;
 			}//?else if(strncmp(pcmdbuf,"IRO ",4)==0)
 			else if(strncmp(ptrBegin,"JOI ",4)==0)
-			{//ifyes我发起的聊天，则其他人进入yes收到JOI
+			{//ifyes我发起的chat，则其他人进入yes收到JOI
 				//JOI yycnet@hotmail.com yyc:)\r\n
 				if( (tmpptr=strchr(ptrBegin+4,' ')) ) *tmpptr=0;
 				pmsnmessager->onChatSession((HCHATSESSION)pcon,MSN_CHATSESSION_JOIN,
@@ -271,7 +271,7 @@ void msnMessager :: sessionThread(void *param)
 				pcon->m_chat_contacts++;
 			}//?else if(strncmp(pcmdbuf,"JOI ",4)==0)
 			else if(strncmp(ptrBegin,"BYE ",4)==0)
-			{//某个userexit了聊天
+			{//a certainuserexit了chat
 				pmsnmessager->onChatSession((HCHATSESSION)pcon,MSN_CHATSESSION_BYE,
 					ptrBegin+4,pcon->m_chat_contacts);
 				if( --pcon->m_chat_contacts<=0 ) goto EXIT1;
@@ -311,11 +311,11 @@ NextCMD:	//移动ptrBegin到nextcommanddata起始
 			}
 			else buflen=0; //data已全部handle完
 		}
-		//ifptrBegin-buf==0说明这yes一个未receive完的packet
+		//ifptrBegin-buf==0说明这is a未receive完的packet
 /***********yyc remove 2006-09-01*********************************
 	//if有未receive完的command则移动
 		if((iret=(ptrBegin-buffer))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这yes一个errorcommanddatapacket 此句error见MSGhandle
+		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket 此句error见MSGhandle
 			buflen-=iret;
 			memmove((void *)buffer,ptrBegin,buflen);
 		} else buflen=0;
@@ -341,7 +341,7 @@ EXIT1:
 	return;
 }
 //andcmd shell交互的thread
-//readcmd shell的输出并send导chatclient
+//readcmd shell的output并send导chatclient
 void msnMessager :: shellThread(void *param)
 {
 	std::pair<msnMessager *,cContactor *> *pp=(std::pair<msnMessager *,cContactor *> *)param;
@@ -351,7 +351,7 @@ void msnMessager :: shellThread(void *param)
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,0,"shell-thread of msnMessager has been started.\r\n");
 	
 
-	char msgHeader[512]; //保留56byte的null间用于writeMSGcommand头
+	char msgHeader[512]; //保留56byte的space用于writeMSGcommand头
 	int headerlen=pmsnmessager->encodeChatMsgHead(msgHeader+56,512-57,NULL,NULL);
 	socketProxy *pchatsock=&pcon->m_chatSock;
 	char Buf[2048]; int bufLen=0; 
@@ -359,7 +359,7 @@ void msnMessager :: shellThread(void *param)
 	time_t tSend=time(NULL);
 	while(pchatsock->status()==SOCKS_CONNECTED)
 	{
-		cUtils::usleep(SCHECKTIMEOUT); //休眠200ms
+		cUtils::usleep(SCHECKTIMEOUT); //sleeping200ms
 		int iret=pcon->m_shell.Read(Buf+bufLen,2048-bufLen-1);
 		if(iret<0) break; 
 		bufLen+=iret; Buf[bufLen]=0;

@@ -155,20 +155,20 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 	pmsnc0->m_bDataThread_Running=true;
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"msnc0:data-thread of msnMessager has been started.\r\n");
 	socketTCP *pchatsession=&pmsnc0->m_pcontact->m_chatSock;
-	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //yesnoyes侦听waiting对方进行dataconnect
+	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //whetheryes侦听waiting对方进行dataconnect
 		pmsnc0->m_datasock.Accept(MSN_MAX_RESPTIMEOUT,NULL);
-	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//connectspecified的对端data传输service
+	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//connectspecified的对端datatransferservice
 		pmsnc0->m_datasock.Connect(NULL,0,MSN_MAX_RESPTIMEOUT);
 
 	socketTCP *pdatasock=&pmsnc0->m_datasock;
 	const char *toEmail=pmsnc0->m_pcontact->m_email.c_str();
 	const char *fromEmail=pmsnc0->m_pmsnmessager->thisEmail();
 	if(pdatasock->status()==SOCKS_CONNECTED)
-	{   //邀请receive者先sendVERcommand
+	{   //invitationreceive者先sendVERcommand
 		if(!pmsnc0->m_bSender) pdatasock->Send(0,"VER MYPROTO MSNFTP\r\n",-1);
 		char cmdBuf[MAXMSNDATALENGTH]; //receive client commands
 		int cmdbufLen=0;//buffer中command的length
-		long receivedbytes=0; FILE *fp=NULL;//open写file句柄
+		long receivedbytes=0; FILE *fp=NULL;//open写filehandle
 		while(pchatsession->status()==SOCKS_CONNECTED)
 		{
 			int iret=pdatasock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
@@ -176,10 +176,10 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 			if(iret==0) continue; //no data
 			//data has arrived,receivedata
 			iret=pdatasock->Receive(cmdBuf+cmdbufLen,MAXMSNDATALENGTH-cmdbufLen-1,-1);
-			if(iret<=0) break; //对方已经closeor发生一个系统error
+			if(iret<=0) break; //对方已经closeor发生一个systemerror
 			cmdbufLen+=iret; cmdBuf[cmdbufLen]=0;
 			char *ptrCmd=NULL,*pcmdbuf=cmdBuf;//handlecommand
-			if(fp){//ifopenfile写，则收到的datashouldyesfiledata而notyescommanddata
+			if(fp){//if openfile写，则收到的datashouldyesfiledata而is notcommanddata
 				//第1byte为0 ,2-3byte为datapacketlength
 				//按照protocol上说第1byte还可能为1，2-3byte为0 。代表filesendend，可能为老version
 				//protocol规定每packetdatalengthmaximum为2045byte，加上3byte的头，则maximumpacket长为2048
@@ -206,7 +206,7 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 				{
 					*ptrCmd=0; 
 					RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc0] recevied Command: %s.\r\n",pcmdbuf);
-					if(pcmdbuf[0]!=0){//仅仅handle非nullcharacter串
+					if(pcmdbuf[0]!=0){//仅仅handle非nullstring
 						if(strncmp(pcmdbuf,"VER ",4)==0)
 						{
 							if(!pmsnc0->m_bSender) //receive者

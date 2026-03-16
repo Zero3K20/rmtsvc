@@ -38,7 +38,7 @@ namespace net4cpp21
 			select(0, NULL, NULL, NULL, &to);
 		}
 #endif
-		//剔除character串的前导null格，以及尾部null格
+		//剔除string的前导spaces，以及尾部spaces
 		static const char *strTrimLeft(const char *str)
 		{
 			if(str) for(;*str==' ';str++) NULL;
@@ -93,7 +93,7 @@ namespace net4cpp21
 		static unsigned long fileio_deleteDir(const char *spath);
 		
 		//iffile does not exist则return-1
-		//ifspecified的pathyes一个directory则return-2
+		//ifspecified的pathis adirectory则return-2
 		//otherwisereturnfile sizeBytes
 		static long fileio_exist(const char *spath);
 		static bool fileio_exec(char *filename,bool ifHide);
@@ -107,7 +107,7 @@ namespace net4cpp21
 /*
 //二分法从一个有序array中查找specified的值
 	//returnarray下标,return-1未found
-	//uiSize -- arraysize, ifUp -- specifiesyesno为升序排列
+	//uiSize -- arraysize, ifUp -- specifieswhether为升序排列
 	template<class X> 
 	int findit(const X iArray[],size_t uiSize,const X& xfind,bool ifUp)
 	{
@@ -147,11 +147,11 @@ namespace net4cpp21
   //bubble sort
 //最简单的排序methodyes冒泡排序method。这种method的基本思想yes，将待排序的元素看作yes竖着排列的“气泡”，
 //较小的元素比较轻，从而要往上浮。at冒泡排序算法中我们要对这个“气泡”序列handle若干遍。
-//所谓一遍handle，就yes自底向上check一遍这个序列，并时刻注意两个相邻的元素的顺序yesno正确。
-//if发现两个相邻元素的顺序not对，即“轻”的元素at下面，就交换它们的bit置。显然，handle
-//一遍之后，“最轻”的元素就浮到了最高bit置；handle二遍之后，“次轻”的元素就浮到了次高bit置。
-//at作第二遍handle时，由于最高bit置上的元素已yes“最轻”元素，所以not必check。一般地，第i遍handle时，
-//not必check第i高bit置以上的元素，因为经过前面i-1遍的handle，它们已正确地排好序	
+//所谓一遍handle，就yes自底向上check一遍这个序列，并时刻注意两个相邻的元素的顺序whether正确。
+//if发现两个相邻元素的顺序not对，即“轻”的元素at下面，就交换它们的position。显然，handle
+//一遍after，“最轻”的元素就浮到了最高position；handle二遍after，“次轻”的元素就浮到了次高position。
+//at作第二遍handle时，由于最高position上的元素已yes“最轻”元素，所以not necessary tocheck。一般地，第i遍handle时，
+//not necessary tocheck第i高position以上的元素，因为经过前面i-1遍的handle，它们已正确地排好序	
 template <class X>
 void Sort(X iArray[],size_t lbound,size_t ubound)
 {
@@ -176,9 +176,9 @@ void Sort(X iArray[],size_t lbound,size_t ubound)
 }
 
 //快速排序算法的基本思想：
-//快速排序的基本思想yes基于分治策略的。对于输入的子序列ap..ar，if规模足够小则直接进行排序，otherwise分三步handle：
+//快速排序的基本思想yes基于分治策略的。对于input的子序列ap..ar，if规模足够小则直接进行排序，otherwise分三步handle：
 //
-//分解(Divide)：将输入的序列ap..ar划分成两个非null子序列ap..aqandaq+1..ar，使ap..aq中任一元素的值not大于aq+1..ar中任一元素的值。
+//分解(Divide)：将input的序列ap..ar划分成两个非null子序列ap..aqandaq+1..ar，使ap..aq中任一元素的值not大于aq+1..ar中任一元素的值。
 //递归求解(Conquer)：通过递归调用快速排序算法分别对ap..aqandaq+1..ar进行排序。
 //合并(Merge)：由于对分解出的两个子序列的排序yes就地进行的，所以atap..aqandaq+1..ar都排好序后not需要执行任何count算ap..ar就已排好序。
 //这个解决流程yes符合分治法的基本步骤的。therefore，快速排序法yes分治法的经典应用实例之一。

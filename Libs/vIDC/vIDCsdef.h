@@ -57,7 +57,7 @@ namespace net4cpp21
 		
 		void parseCommand(const char *ptrCommand);
 		void Destroy(); //destroy and free resources
-		bool AddPipe(socketTCP *pipe); //add一个null闲管道
+		bool AddPipe(socketTCP *pipe); //add一个idle管道
 		bool DelPipe(socketTCP *pipe); //delete一个管道
 		socketTCP *GetPipe();
 		
@@ -79,7 +79,7 @@ namespace net4cpp21
 		std::string m_strDesc; //vIDCc的nameordescription
 		socketTCP * m_psock_command; //主socket，command通道socket
 		std::map<std::string,mportTCP_vidcs *> m_tcpsets; //TCPservicemapset
-		std::vector<socketTCP *> m_pipes; //null闲管道set
+		std::vector<socketTCP *> m_pipes; //idle管道set
 		cMutex m_mutex;
 	};
 }//?namespace net4cpp21

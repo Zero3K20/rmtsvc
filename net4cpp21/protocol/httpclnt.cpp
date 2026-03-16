@@ -35,7 +35,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试分离访问accountandpassword
+	//先尝试detach访问accountandpassword
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
 	if(ptr){//set了访问accountandpassword
 		*(char *)ptr=0;
@@ -49,7 +49,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//分离出httpservice的address:portand实际的URL
+	//detach出httpservice的address:portand实际的URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);
@@ -128,7 +128,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试分离访问accountandpassword
+	//先尝试detach访问accountandpassword
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
 	if(ptr){//set了访问accountandpassword
 		*(char *)ptr=0;
@@ -142,7 +142,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//分离出httpservice的address:portand实际的URL
+	//detach出httpservice的address:portand实际的URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);

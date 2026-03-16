@@ -34,13 +34,13 @@ namespace net4cpp21
 		SOCKSRESULT sendMail_MX(mailMessage &mms,const char *dnssvr,int dnsport);
 		//****************************************
 		// function功能：direct mail delivery. Returns SOCKSERR_OK on success
-		//emlfile : 邮件formatfile，两种formatfile. email body前!开头的为comment行
-		//iffirst行为Email body is base64 encoded，则代表yessmtpsvrreceive的要forward的邮件
-		//otherwise为user编辑要send的邮件,format:
+		//emlfile: email format file, two types of format files. email body前!开头的为comment行
+		//if first line is 'Email body is base64 encoded', it represents an email received by smtpsvr to be forwarded
+		//otherwise it is an email composed by user to send, format:
 		//FROM: <sender>\r\n
-		//TO: <收件人>,<收件人>,...\r\n
+		//TO: <recipient>,<recipient>,...\r\n
 		//Attachs: <attachment>,<attachment>,...\r\n
-		//Subject: <主题>\r\n
+		//Subject: <subject>\r\n
 		//Bodytype: <TEXT|HTML>\r\n
 		//\r\n
 		//...
@@ -56,7 +56,7 @@ namespace net4cpp21
 		bool sendCommand(int response_expected,char *buf,int buflen,int maxbuflen);
 
 	private:
-		SMTPAUTH_TYPE m_authType;//smtpserviceyesno需要authentication,目前仅仅支持LOGINauthentication方式
+		SMTPAUTH_TYPE m_authType;//smtpservicewhether需要authentication,目前仅仅支持LOGINauthentication方式
 		std::string m_strAccount;//account and password for LOGIN authentication
 		std::string m_strPwd;
 		time_t m_lTimeout;//maximum wait timeout return in seconds

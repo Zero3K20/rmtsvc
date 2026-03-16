@@ -25,7 +25,7 @@ typedef struct _TPROXYSETTINGS
 	int svrtype; //proxy type supported by the service
 	bool bAuth; //whether the proxy service requires authentication
 	bool autorun;  //whether to auto-start proxy service on program start
-	bool bCascade; //yesno启用secondary proxy
+	bool bCascade; //whether启用secondary proxy
 	std::string cassvrip; //secondary proxy serviceaddressandport
 	int castype; //secondary proxy支持的代理type
 	bool casAuth; //whether secondary proxy requires authentication
@@ -33,7 +33,7 @@ typedef struct _TPROXYSETTINGS
 	std::string caspswd;
 	long ipaccess;   //访问本proxy service IP filtering规则
 	std::string ipRules;
-	bool bLogdatafile; //yesno记录代理forward data
+	bool bLogdatafile; //whether记录代理forward data
 }PROXYSETTINGS;
 
 
@@ -47,7 +47,7 @@ typedef struct _TProxyUser
 	unsigned long maxratio;//maximum bandwidth K/s, 0 means unlimited
 	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
 	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
-	long forbid; //yesno禁用此account
+	long forbid; //whether禁用此account
 
 	std::string strAccessDest;//允许or禁止访问的目的
 	int bAccessDest; //上述specified的目的yes禁止还yes允许 0禁止otherwise允许

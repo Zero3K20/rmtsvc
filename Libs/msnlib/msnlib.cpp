@@ -83,7 +83,7 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 			MSN_SERVER_HOST,MSN_SERVER_PORT,
 			(m_nsSocket.proxyType()!=PROXY_NONE)?"by proxy":"");
 		m_lasterrorcode= SOCKSERR_MSN_DSCONN; 
-		goto EXIT1; //not能connectDSserver
+		goto EXIT1; //cannotconnectDSserver
 	}
 	m_lasterrorcode= SOCKSERR_MSN_RESP;
 	if(!sendcmd_VER()) goto EXIT1;
@@ -97,7 +97,7 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 			strMsnNS.c_str(),iMsnNSport,
 			(m_nsSocket.proxyType()!=PROXY_NONE)?"by proxy":"");
 		m_lasterrorcode= SOCKSERR_MSN_NSCONN; 
-		goto EXIT1;//not能connectNSserver
+		goto EXIT1;//cannotconnectNSserver
 	}
 	m_lasterrorcode= SOCKSERR_MSN_RESP;
 	if(!sendcmd_VER()) goto EXIT1;
@@ -129,7 +129,7 @@ EXIT1:
 	return (m_lasterrorcode==MSN_ERR_OK);
 }
 
-//set聊天字体
+//set chat font
 bool msnMessager :: setChatFont(const char *fontName,const char *fontEF,long fontColor)
 {
 	m_lasterrorcode=MSN_ERR_OK;
@@ -142,7 +142,7 @@ bool msnMessager :: setChatFont(const char *fontName,const char *fontEF,long fon
 		{	
 			m_fontName.assign(fontName);
 			m_encodeFontname=m_fontName;
-			//对字体name进行utf8andmime编码
+			//对font name进行utf8andmimeencoding
 			char buf[256]; 
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),
 				m_encodeFontname.length(),buf);
@@ -195,10 +195,10 @@ bool msnMessager :: changeNick(const char *nick)
 	int nicklen=strlen(nick);
 	wchar_t *nickW=new wchar_t[nicklen+1];
 	if(nickW==NULL) return false;
-	//将单byte编码convert为unicode双byte编码
+	//将单byteencodingconvert为unicode双byteencoding
 #ifdef WIN32
 	nicklen=MultiByteToWideChar(CP_ACP,0,nick,nicklen,nickW,nicklen);
-#else //error得convert，convert得character集not对(althoughyes双byte码，但notyesunicode码)
+#else //error得convert，convert得character集not对(althoughyes双byte码，但is notunicode码)
 	nicklen=swprintf(nickW,L"%S",nick);
 #endif
 	
@@ -206,7 +206,7 @@ bool msnMessager :: changeNick(const char *nick)
 	delete[] nickW; return b;
 }
 
-//阻塞某个account，将account从AL中rem，add到BL中
+//block an account; remove it from AL and add to BL
 bool msnMessager :: blockEmail(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -223,7 +223,7 @@ bool msnMessager :: blockEmail(const char *email)
 		sendcmd_ADC(email,"BL");
 	return true;
 }
-//cancel某个account的阻塞
+//cancela certainaccount的blocked
 bool msnMessager :: unblockEmail(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -240,7 +240,7 @@ bool msnMessager :: unblockEmail(const char *email)
 		sendcmd_ADC(email,"AL");
 	return true;
 }
-//delete某个account，ifBlock--yesno阻止此account
+//delete an account; Block--whether to also block this account
 bool msnMessager :: remEmail(const char *email,bool ifBlock)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -257,8 +257,8 @@ bool msnMessager :: remEmail(const char *email,bool ifBlock)
 }
 
 
-//add联系人 
-//ifwaittimeout＝0则notwaitingserver的return
+//add contact 
+//if waittimeout=0, do not wait for server response
 //>0 wait for the specified time, otherwise wait MSN_MAX_TIMEOUT
 bool msnMessager :: addEmail(const char *email,long waittimeout)
 {
@@ -289,7 +289,7 @@ bool msnMessager :: addEmail(const char *email,long waittimeout)
 	return true;
 }
 
-//邀请某人进入一个聊天会话
+//invite someone into a chat session
 bool msnMessager :: inviteChat(HCHATSESSION hchat,const char *email)
 {
 	if(email==NULL) return false;
@@ -310,7 +310,7 @@ bool msnMessager :: inviteChat(HCHATSESSION hchat,const char *email)
 
 HCHATSESSION msnMessager :: createChat(cContactor *pcon)
 {
-	//查看yesnoand这个user已经open了一个聊天会话，ifyes直接return聊天会话的句柄
+	//查看whetherand这个user已经open了一个chat会话，ifyes直接returnchat会话的handle
 	if(pcon->m_chatSock.status()==SOCKS_CONNECTED) return (HCHATSESSION)pcon;
 	if( sendcmd_XFR(pcon->m_chatSock,pcon->m_email.c_str()) )
 	{
@@ -324,8 +324,8 @@ HCHATSESSION msnMessager :: createChat(cContactor *pcon)
 	pcon->m_chatSock.Close(); return 0;
 }
 
-//向某个user发起一个聊天,successreturnHCHATSESSION，otherwisereturn0
-//能发起聊天的user必须yesvalid的userstatusnot能yesFLN，且at我的联系人FLqueue中
+//initiate a chat with a user; returns HCHATSESSION on success, 0 otherwise
+//the user being chatted with must have a valid status (not FLN) and be in my Forward List
 HCHATSESSION msnMessager :: createChat(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_SIGNIN;
@@ -340,7 +340,7 @@ HCHATSESSION msnMessager :: createChat(const char *email)
 	if((pcon->m_flags &0x01)==0) return 0;
 	if(pcon->m_status=="FLN") return 0;
 	m_lasterrorcode=MSN_ERR_OK;
-	//查看yesnoand这个user已经open了一个聊天会话，ifyes直接return聊天会话的句柄
+	//查看whetherand这个user已经open了一个chat会话，ifyes直接returnchat会话的handle
 	if(pcon->m_chatSock.status()==SOCKS_CONNECTED) return (HCHATSESSION)pcon;
 	if( sendcmd_XFR(pcon->m_chatSock,email) )
 	{
@@ -353,7 +353,7 @@ HCHATSESSION msnMessager :: createChat(const char *email)
 	} else m_lasterrorcode=SOCKSERR_MSN_XFR;
 	pcon->m_chatSock.Close(); return 0;
 }
-//endand某个联系人的聊天
+//endanda certaincontact的chat
 void msnMessager :: destroyChat(HCHATSESSION hchat)
 {
 	if(hchat==0) return;
@@ -364,7 +364,7 @@ void msnMessager :: destroyChat(HCHATSESSION hchat)
 	}
 	return;
 }
-//回复聊天内容
+//回复chat内容
 bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,const wchar_t *strMsg,const wchar_t *dspname)
 {
 	m_lasterrorcode=SOCKSERR_MSN_NULL;
@@ -372,7 +372,7 @@ bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,const wchar_t *strMsg,const 
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!=NULL)
 	{
-		char msgHeader[512]; //保留56byte的null间用于writeMSGcommand头
+		char msgHeader[512]; //保留56byte的space用于writeMSGcommand头
 		int headerlen=encodeChatMsgHeadW(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsgW(pcon,msgHeader,headerlen,strMsg,0);
 	}
@@ -386,14 +386,14 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,const char *strMsg,const char
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!=NULL)
 	{
-		char msgHeader[512]; //保留56byte的null间用于writeMSGcommand头
+		char msgHeader[512]; //保留56byte的space用于writeMSGcommand头
 		int headerlen=encodeChatMsgHead(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsg(pcon,msgHeader,headerlen,strMsg,0);
 	}
 	else
 		return sendcmd_SS_Typing(pcon,NULL);
 }
-//回复聊天内容
+//回复chat内容
 bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,std::wstring &strMsg,const wchar_t *dspname)
 {
 	m_lasterrorcode=SOCKSERR_MSN_NULL;
@@ -401,7 +401,7 @@ bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,std::wstring &strMsg,const w
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg[0]!=0)
 	{
-		char msgHeader[512]; //保留56byte的null间用于writeMSGcommand头
+		char msgHeader[512]; //保留56byte的space用于writeMSGcommand头
 		int headerlen=encodeChatMsgHeadW(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsgW(pcon,msgHeader,headerlen
 				,strMsg.c_str(),strMsg.length());
@@ -416,7 +416,7 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,std::string &strMsg,const cha
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!="")
 	{
-		char msgHeader[512]; //保留56byte的null间用于writeMSGcommand头
+		char msgHeader[512]; //保留56byte的space用于writeMSGcommand头
 		int headerlen=encodeChatMsgHead(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsg(pcon,msgHeader,headerlen
 				,strMsg.c_str(),strMsg.length());
@@ -424,8 +424,8 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,std::string &strMsg,const cha
 	else
 		return sendcmd_SS_Typing(pcon,NULL);
 }
-//set/cancel本account的头像
-//imagefile --- gif/pngformat的图像file
+//set/cancel this account's avatar
+//imagefile --- gif/pngformat的imagefile
 //MSNObject was introduced into MSNP9 as a way of identifying Backgrounds, Emoticons or User Display Pictures. It was part of the MSNC1 specification. 
 //A MSNObject is always in the following format: 
 //<msnobj Creator="buddy1@hotmail.com" Size="24539" Type="3" Location="TFR2C.tmp" Friendly="AAA=" SHA1D="trC8SlFx2sWQxZMIBAWSEnXc8oQ=" SHA1C="U32o6bosZzluJq82eAtMpx5dIEI="/>
@@ -442,7 +442,7 @@ SHA1C - This field contains all previous fields hashed with SHA1 encoded in Base
 bool msnMessager :: setPhoto(const char *imagefile)
 {
 	if(imagefile==NULL || imagefile[0]==0) 
-	{//cancel本account的头像
+	{//cancel本account的avatar
 		m_curAccount.m_strMsnObj="";
 		m_photofile="";
 	}
@@ -468,7 +468,7 @@ bool msnMessager :: setPhoto(const char *imagefile)
 	}
 	return sendcmd_CHG(m_curAccount.m_status.c_str());
 }
-//get某个联系人的头像
+//get a contact's avatar
 bool msnMessager :: getPhoto(const char *email,const char *filename)
 {
 	::_strlwr((char *)email);
