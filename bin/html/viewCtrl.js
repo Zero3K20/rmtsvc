@@ -74,20 +74,14 @@ function sendEvent(strurl,param,bLoad)
 
 function msmove()
 {
-	var x=ptX;
-	var y=ptY;
  	msPosition(window.event);
- 	if(autoRefresh>0 && (ptX-x)==0 && (ptY-y)==0)
- 	{
- 		var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
- 		if(timerID_move==0)
-			timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",autoRefresh);
-	}
-	else if(timerID_move!=0)
+ 	var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
+	if(timerID_move!=0)
 	{
 		window.clearTimeout(timerID_move);
 		timerID_move=0;
 	}
+	timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",50);
 }
 
 function msclick()
