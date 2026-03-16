@@ -62,17 +62,17 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 			}
 			if(strSaveas==""){ if( (ptr=strrchr(strurl,'/')) ) strSaveas.assign(ptr+1); }
 			if(strSaveas[0]!='\\' && strSaveas[1]!=':') strSaveas.insert(0,g_savepath);
-			if(bUpdate) strSaveas.append(".upd"); //防止download的fileand要升级的程序重名
+			if(bUpdate) strSaveas.append(".upd"); //prevent naming conflict between downloaded file and the program to upgrade
 			bRet=(iType==2)?downfile_ftp(strurl,strSaveas.c_str(),sout):downfile_http(strurl,strSaveas.c_str(),sout);
 			strurl=(bRet)?strSaveas.c_str():NULL;
 		}else if(!bUpdate) strOutput.append("Failed , wrong URLs.\r\n");
-		//升级rmtsvc
+		//upgrade rmtsvc
 		if(bUpdate)  bRet=updateRV(strurl,strOutput);
-	}else if(strcasecmp(strCmd,"telnet")==0) //开启telnet
+	}else if(strcasecmp(strCmd,"telnet")==0) //enable telnet
 		bRet=FALSE;
-	else //执行扩展command
+	else //execute extended command
 		bRet=doCommandEx(strCmd,strParam,strOutput);
-//----------  扩展控制command  end ------------------------------
+//----------  extended control command  end ------------------------------
 	
 	if(bRet)
 	{
@@ -107,7 +107,7 @@ bool telServerEx :: Start()
 	if(m_svrport==0) return true; //notstart service
 	
 	const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
-	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许port重用
+	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//if IP is bound, allow port reuse
 	SOCKSRESULT sr=Listen( ((m_svrport<0)?0:m_svrport) ,bReuseAddr,ip);
 	return (sr>0)?true:false;
 }
@@ -136,12 +136,12 @@ SOCKSRESULT telServerEx :: revConnect(const char *host,int port,time_t lWaitout)
 	return sr;
 }
 
-//settelnet service的相关info
+//set telnet service related info
 //command format: 
-//	telnet [port=<serviceport>] [bindip=<本service绑定的local machineIP>]  [account=<访问account:password>] 
-//port=<serviceport>    : setserviceport，if not set则default为0.set为0则do not start web service <0则随即分配port
+//	telnet [port=<serviceport>] [bindip=<local machine IP for this service>]  [account=<access account:password>] 
+//port=<serviceport>    : set service port, if not set then default is 0. Set to 0 means do not start web service; <0 means randomly assign port
 //bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
-//account=<访问account:password>
+//account=<access account:password>
 void telServerEx :: docmd_sets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -164,16 +164,16 @@ void telServerEx :: docmd_sets(const char *strParam)
 			*(char *)ptr=0;
 			setTelAccount((*it).second.c_str(),ptr+1);
 			*(char *)ptr=':';
-		}else setTelAccount(NULL,NULL); //无需account password
+		}else setTelAccount(NULL,NULL); //no account/password required
 	}
 	
 	return;
 }
-//setservice的ip过滤规则or针对a certainaccount的IP filter rules
+//set service IP filter rules or IP filter rules for a specific account
 //command format:
 //	iprules [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
-//例如:
+//example:
 // iprules access=0 ipaddr="192.168.0.*,192.168.1.10"
 void telServerEx :: docmd_iprules(const char *strParam)
 {

@@ -34,7 +34,7 @@
 //[in] filename ---- bitmap filename
 //[out] lpbi ---- return bitmap info
 //[out] lppBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-//				iflppBits==NULL则仅仅return bitmap info
+//				if lppBits==NULL, only return bitmap info
 //return: 0 on failure, non-zero (image data size) on success
 IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
@@ -67,7 +67,7 @@ IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 //[in] filename ---- JPEGfilename
 //[out] lpbi ---- return bitmap info
 //[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-//				iflpBits==NULL则仅仅return bitmap info
+//				if lpBits==NULL, only return bitmap info
 //return: 0 on failure, non-zero (image data size) on success
 IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
@@ -137,7 +137,7 @@ IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPB
 */
 /*
 //save BMP file -- 
-//[in] filename ---- 目的bitmap filename
+//[in] filename ---- destination bitmap filename
 //[in] lpbi ---- bitmap info
 //[in] lpBits ---- bitmap data pointer
 //return: 0 on failure, file size on success
@@ -189,7 +189,7 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 
 //save JPEG file -- 
 //currently only supports 8-bit grayscale or 24-bit true color
-//[in] filename ---- 目的bitmap filename
+//[in] filename ---- destination bitmap filename
 //[in] lpbi ---- bitmap info
 //[in] lpBits ---- bitmap data pointer
 //[in] quality --- JPEG compression quality (0~100)
@@ -249,8 +249,8 @@ IPFRESULT cImageF :: IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lp
 	return lEffWidth;
 }
 
-//lpBuf --- jpegdata流 
-//dwSize --- jpegdata流size
+//lpBuf --- JPEG data stream 
+//dwSize --- JPEG data streamsize
 //return: 0 on failure, file size on success
 IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSize)
 {
@@ -276,14 +276,14 @@ IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSi
 	return dwSize;
 }
 
-//将bitmapdata压缩为JPEGdata流 -- 
+//compress bitmap data into JPEG data stream -- 
 //currently only supports 8-bit grayscale or 24-bit true color
-//[in] lpbih ---- bitmap info头
+//[in] lpbih ---- bitmap info header
 //[in] lpBits ---- bitmap data pointer
-//[out] dstBuf ---- 存储convert后的JPEGdata的space,user必须保证space足够大
-//					一般来说分配and原bitmap一样大的space即可
+//[out] dstBuf ---- storage space for converted JPEG data, user must ensure sufficient space
+//					generally allocating the same size as the original bitmap is sufficient
 //[in] quality --- JPEG compression quality (0~100)
-//return：iffailurereturn0，otherwisereturn压缩成jpeg后data的size
+//return：iffailurereturn0，otherwisereturncompressed JPEG data size
 METHODDEF void init_destination (j_compress_ptr cinfo)
 {
 	return;
@@ -308,7 +308,7 @@ IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYT
 	long lEffWidth =lpbih->biSizeImage/lpbih->biHeight;
 	LPBYTE lpDstBits=dstBuf;
 	if(dstBuf==lpBits)
-	{//源addressand目的address相同
+	{//source address and destination address are the same
 		if( (lpDstBits=(LPBYTE)::malloc(lpbih->biSizeImage))==NULL)
 			return 0;
 	}
@@ -354,19 +354,19 @@ IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYT
 	jpeg_destroy_compress(&cinfo);
 
 	if(dstBuf==lpBits)
-	{//源addressand目的address相同
+	{//source address and destination address are the same
 		memcpy((void *)lpBits,(const void *)lpDstBits,lEffWidth);
 		::free(lpDstBits);
 	}
 	return lEffWidth;
 }
 /*
-//将jpegdata解压缩为bitmapdata流 -- 
+//decompress JPEG data into bitmap data stream -- 
 //[in] srcBuf ---- jpegdatapointer
-//[in] dwSize ---- srcBufpointer to的space的size
+//[in] dwSize ---- size of the space pointed to by srcBuf
 //[out] lpbi ---- return bitmap info
 //[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-//				iflpBits==NULL则仅仅return bitmap info
+//				if lpBits==NULL, only return bitmap info
 //return: 0 on failure, non-zero (image data size) on success
 IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi,LPBYTE lpBits)
 {
@@ -436,14 +436,14 @@ IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi
 }
 */
 //------------------------------------------------------------------------------------------
-//捕捉windowimage --- 24bittrue彩色image
-//ifhWnd==NULL则捕捉整个screen
+//capture window image --- 24-bit true color image
+//if hWnd==NULL, capture the entire screen
 //lpbih --- 
-//			biCompressionspecifiedimagedata的压缩方式，目前只支持BI_RGB(not压缩)，BI_JPEG(jpeg压缩)
-//			returnimage的info
-//lpBits --- saveimagedataor压缩后的imagedata
-//			if==NULL,则仅仅returnimagedata需要的spacesize
-//quality --- ifspecified了BI_JPEG压缩则此parameterspecifiesjpegcompression quality
+//			biCompression specifies image data compression method, currently supports BI_RGB (no compression) and BI_JPEG (JPEG compression)
+//			returns image info
+//lpBits --- save image data or compressed image data
+//			if==NULL, only return the space size needed for image data
+//quality --- if BI_JPEG compression is specified, this parameter specifies JPEG compression quality
 //failurereturn0，otherwisereturnimagedatasize
 //ifCapCursorwhethercapture mouse cursor
 IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor)
@@ -455,7 +455,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	RECT rect;
 	::GetClientRect(hWnd, &rect);
 
-	//要save的原image区域的起始点坐标and宽高
+	//starting point coordinates and width/height of the original image area to save
 	long lX=0,tY=0;
 	long lWidth=rect.right - rect.left;
 	long lHeight=rect.bottom - rect.top ;
@@ -472,7 +472,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	long lEffWidth=DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount );
 	DWORD dwRet=lpbih->biSizeImage =lEffWidth * lpbih->biHeight ;
 	if(lpBits==NULL) return dwRet;
-	//whether压缩
+	//whether to compress
 	BOOL ifComp=(lpbih->biCompression==BI_JPEG);
 	lpbih->biCompression =BI_RGB;
 	
@@ -491,18 +491,18 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 		POINT ptCursor;
 		::GetCursorPos(&ptCursor);
 		//first get the window handle under the mouse cursor, then get that window's thread ID
-		//Attatchcurrent thread到specified的windowthread
-		//get该windowcurrentmousecursorhandle
+		//Attach current thread to the specified window thread
+		//get the current mouse cursor handle of that window
 		//Deattach
-		//!!!ifnot这样做，直接调用GetCursor()则totalyesgetcurrent thread的cursorhandle
-		//if没有set则get的totalyes漏斗cursorhandle
+		//!!!if not done this way, calling GetCursor() directly will only get the current thread's cursor handle
+		//if not set, the cursor handle retrieved will be the hourglass cursor handle
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=::GetDesktopWindow();
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
 		HCURSOR hCursor=::GetCursor();
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
-		//getcursor的图标data 
+		//get cursor icon data 
 		ICONINFO IconInfo;
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
@@ -514,7 +514,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 			//if (IconInfo.hbmColor != NULL)
 			//	::DeleteObject(IconInfo.hbmColor);
 		}
-		//at兼容设备description表上画出该cursor
+		//draw the cursor on the compatible device context
 		::DrawIconEx(
 		hMemDC, // handle to device context 
 		ptCursor.x, ptCursor.y,
@@ -543,16 +543,16 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 //***********************************************************************************************
 //**********************************************private function ********************************
 /*
-//getspecifiedDIB的调色板尺寸（以byte为单bit）
+//get palette size of the specified DIB (in bytes)
 WORD cImageF::PaletteSize(LPBITMAPINFOHEADER lpbih)
 {
 	WORD size, wBitCount;
 
-	// geteach像素所占的bit数
+	// get number of bits per pixel
 	wBitCount =lpbih->biBitCount;
 				
-	// 16bitand32bitbitmapatcolor表中占用三个DWORD数值来表示
-	// 红、绿、蓝atbitdata中的掩码
+	// 16-bit and 32-bit bitmaps use three DWORD values in the color table to represent
+	// red, green, blue masks in the bit data
 	if ((wBitCount == 16)||(wBitCount == 32))
 	{
 		return sizeof(DWORD)*3;
@@ -570,18 +570,18 @@ WORD cImageF::PaletteSize(LPBITMAPINFOHEADER lpbih)
 			{
 				case 1:
 					wc=2;
-					break;          // 单色bitmap，只有黑白两种color
+					break;          // monochrome bitmap, only black and white
 				case 4:
 					wc=16;		
-					break;			// 标准VGAbitmap，有16种color
+					break;			// standard VGA bitmap, 16 colors
 				case 8:
 					wc=256;		
-					break;			// SVGAbitmap，有256种color
-				case	16:			// 64K色bitmap
-				case	24:			// 16M色bitmap（true彩色）
-				case	32:			// 16M+色bitmap（true彩色）
+					break;			// SVGA bitmap, 256 colors
+				case	16:			// 64K-color bitmap
+				case	24:			// 16M-color bitmap (true color)
+				case	32:			// 16M+ color bitmap (true color)
 					wc=0;		
-					break;			// color表中没有colordatareturn0
+					break;			// no color data in color table, return 0
 				default:
 					return 0; //error
 			}

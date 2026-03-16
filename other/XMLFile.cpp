@@ -330,7 +330,7 @@ long CXMLFile::GetKeysValue(const char* cstrBaseKeyName, std::map<std::string, s
 std::map<std::string, std::string> mp;
 	std::map<std::string, std::string>::const_iterator iter;
 	std::string strmsg;
-	xmlfile.GetKeysValue("xmlRoot/西安/null军工程大学/学生/入学新生", mp);
+	xmlfile.GetKeysValue("xmlRoot/Example/null/test/newentry", mp);
 	for(iter=mp.begin(); iter!=mp.end(); ++iter)
 	{
 		strmsg+=" ("+iter->first+", "+ iter->second+") \n";
@@ -468,7 +468,7 @@ static bool FileExist(const char* pszFileName)
 	
 	return (bExist);
 }
-//get装载xmlerror
+//get XML load error
 std::string CXMLFile::loadError()
 {
 	std::string strError;
@@ -499,7 +499,7 @@ std::string CXMLFile::loadError()
 	return strError;
 }
 
-//装载xmlcharacter流 //yyc add
+//load XML character stream //yyc add
 bool CXMLFile::loadXML(const char *xmlBuffer, const char* root_name)
 {
 	if(xmlBuffer==NULL || XmlDocPtr != NULL)
@@ -581,7 +581,7 @@ bool CXMLFile::load(const char* filename, const char* root_name)
 			pIParseError->get_reason(&bstr);
 			//std::string cstrMessage=(char *)_bstr_t(bstr, true);
 
-			MessageBox( NULL, (char *)_bstr_t(bstr, true), "error提示",
+			MessageBox( NULL, (char *)_bstr_t(bstr, true), "error message",
 				MB_OK|MB_ICONERROR);
 
 			if (bstr) { SysFreeString(bstr); bstr = NULL; }	

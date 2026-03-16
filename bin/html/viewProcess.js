@@ -1,4 +1,4 @@
-var autoRefresh=1000; //自动刷新时间ms
+var autoRefresh=1000; // Auto-refresh interval in ms
 var imgLoaded=true; 
 
 var curPid=0;
@@ -8,8 +8,8 @@ var loadcount=0;
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
-		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			var xmlobj = xmlHttp.responseXML;
 			var nodes=xmlobj.getElementsByTagName("pcname");
 			document.getElementById("lblName").innerText=nodes[0].firstChild.data;
@@ -26,7 +26,7 @@ function processRequest()
 			curPid=nodes[0].firstChild.data;
 			mlistXML.src="/mlist?pid="+curPid;
 			
-            } else alert("请求的页面有异常");
+            } else alert("Request error");
         }
 }
 
@@ -84,10 +84,10 @@ function moduleClick(tblElement)
 	loadcount=mlistXML.recordset("usage");
 	document.getElementById("lblModule").innerText=mlistXML.recordset("mname");
 }
-//结束当前选中进程
+// Kill the currently selected process
 function pkill()
 {
-	if(curPname!="" && confirm("确信结束进程"+curPname) )
+	if(curPname!="" && confirm("Are you sure you want to kill process "+curPname) )
 	{
 		xmlHttp.open("GET", "/pkill?pid="+curPid, false);
     		xmlHttp.send(null);
@@ -101,8 +101,8 @@ function deattach()
 {
 	if(curPid==0 || curHmdl=="") return;
 	if(loadcount<=0 || loadcount==65535)
-		alert("不可卸载此DLL");
-	else if( confirm("确信卸载此DLL") )
+		alert("Cannot unload this DLL");
+	else if( confirm("Are you sure you want to unload this DLL?") )
 	{
 		xmlHttp.open("GET", "/mdattach?pid="+curPid+"&hmdl="+curHmdl+"&count="+loadcount, false);
     		xmlHttp.send(null);
@@ -115,14 +115,14 @@ function proFile()
 	var qx=parent.frmLeft.userQX;
 	var fpath=mlistXML.recordset("mname");
 	if(fpath=="")
-		alert("请选择要查看属性的文件!");
+		alert("Please select a file to view properties!");
 	else
 	{
 		window.showModalDialog("proFile.htm",qx+","+fpath,"dialogHeight: 350px;dialogWidth: 400px;center: yes;resizable: no;scroll: no;status: no");
 	}
 }
 
-//----------------排序 func--------------------------
+//----------------sort func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
 try {

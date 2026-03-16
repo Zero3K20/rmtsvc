@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="viewProcess.js"></SCRIPT>
@@ -10,12 +10,12 @@
 <tr height=110px>
 <td  valign=top width=400px>
 <br>
-&nbsp;<b>系统信息</b>:<br>
-&nbsp;机 器 名:&nbsp;<label name=lblName id=lblName></label><br>
-&nbsp;OS 信 息:&nbsp;<label id=lblOS></label><br>
-&nbsp;cpu个 数:&nbsp;<label id=lblCPU></label><br>
-&nbsp;当前状态:&nbsp;<label id=lblSta></label><br>
-&nbsp;当前帐号:&nbsp;<label id=lblAccount></label><br>
+&nbsp;<b>System Info</b>:<br>
+&nbsp;Machine Name:&nbsp;<label name=lblName id=lblName></label><br>
+&nbsp;OS Info:&nbsp;<label id=lblOS></label><br>
+&nbsp;CPU Count:&nbsp;<label id=lblCPU></label><br>
+&nbsp;Status:&nbsp;<label id=lblSta></label><br>
+&nbsp;Account:&nbsp;<label id=lblAccount></label><br>
 </td>
 <td align=right>
 <img width=200px height=80px onload='javascript:Imgloaded();' onclick='javascript:ifRefresh(1000);'  
@@ -27,21 +27,21 @@ click it to stop or resume refresh" >&nbsp;
 
 <tr height=25px>
 <td>
-&nbsp;<b>进程列表</b>&nbsp;
+&nbsp;<b>Process List</b>&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="结 束" onclick="javascript:pkill();">
+ onmouseover='javascript:this.className="btnUP";' value="Kill" onclick="javascript:pkill();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="javascript:plistXML.src='/plist';">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:plistXML.src='/plist';">
  &nbsp;&nbsp;<span id="lblProcess" name="lblProcess"></span>
 </td>
 <td>
-&nbsp;<b>模块列表</b>&nbsp;
+&nbsp;<b>Module List</b>&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="卸 载" onclick="javascript:deattach();">
+ onmouseover='javascript:this.className="btnUP";' value="Unload" onclick="javascript:deattach();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="属 性" onclick="javascript:proFile();">
+ onmouseover='javascript:this.className="btnUP";' value="Properties" onclick="javascript:proFile();">
  &nbsp;&nbsp;<span id="lblModule" name="lblModule"></span>
 </td>
 </tr>
@@ -54,11 +54,11 @@ click it to stop or resume refresh" >&nbsp;
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','pid');"> <u>进程ID</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','ppid');"> <u>父进程</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','priority');"> <u>优先级</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','threads');"> <u>线程数</u> </th>
- <th style="cursor:hand" onclick="sort('plistXML','plistStyle','pname');"> <u>进程名</u> </th>
+ <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','pid');"> <u>PID</u> </th>
+ <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','ppid');"> <u>Parent PID</u> </th>
+ <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','priority');"> <u>Priority</u> </th>
+ <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','threads');"> <u>Threads</u> </th>
+ <th style="cursor:hand" onclick="sort('plistXML','plistStyle','pname');"> <u>Process Name</u> </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 
@@ -80,9 +80,9 @@ click it to stop or resume refresh" >&nbsp;
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=80px style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mbase');"> <u>基地址</u> </th>
- <th width=80px> 加载次数 </th>
- <th style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mname');"> <u>模块名</u> </th>
+ <th width=80px style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mbase');"> <u>Base Address</u> </th>
+ <th width=80px> Load Count </th>
+ <th style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mname');"> <u>Module Name</u> </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 

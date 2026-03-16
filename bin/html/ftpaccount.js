@@ -111,8 +111,8 @@ function disp_userinfo(xmlobj)
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
-		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var userlist=(xmlobj.getElementsByTagName("userlist")[0] || null)
@@ -126,7 +126,7 @@ function processRequest()
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
 				alert((retmsg.item(0).textContent || retmsg.item(0).text));
-            	} //else alert("请求的页面有异常,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -186,24 +186,24 @@ function isvalidInteger(s)
 {
 	var re=/^\d*$/;
 	if(re.test(s)) return true;
-	alert("请输入合法的整数"); 
+	alert("Please enter a valid integer"); 
 	return false;
 }
 function isvalidNumber(s)
 {
 	var re=/^\d*.\d*$/;
 	if(re.test(s)) return true;
-	alert("请输入合法的数值"); 
+	alert("Please enter a valid number"); 
 	return false;
 }
-//有效性检查
+// Input validation
 function chkvalid()
 {
 	var rets="";
 	var qx=0;
 	if(document.getElementById("lblUser").value=="")
 	{
-		alert("无效得帐号名"); 
+		alert("Invalid account name"); 
 		document.getElementById("lblUser").focus();
 		return "";
 	}else{
@@ -225,7 +225,7 @@ function chkvalid()
 //		var re_time=/^^((((1[6-9]|[2-9]\d)\d{2})-(0?[13578]|1[02])-(0?[1-9]|[12]\d|3[01]))|(((1[6-9]|[2-9]\d)\d{2})-(0?[13456789]|1[012])-(0?[1-9]|[12]\d|30))|(((1[6-9]|[2-9]\d)\d{2})-0?2-(0?[1-9]|1\d|2[0-8]))|(((1[6-9]|[2-9]\d)(0[48]|[2468][048]|[13579][26])|((16|[2468][048]|[3579][26])00))-0?2-29-)) (20|21|22|23|[0-1]?\d):[0-5]?\d:[0-5]?\d$/;
 		if(!re.test(s))
 		{
-			alert("不合法的有效期限格式"); 
+			alert("Invalid expiry date format"); 
 			document.getElementById("lblExpired").focus();
 			return "";
 		}
@@ -283,13 +283,13 @@ function chkvalid()
 		var re=/^(((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),)*((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),?$/;
 		if(!re.test(s))
 		{
-			alert("请输入正确的IP过滤地址");
+			alert("Please enter a valid IP filter address");
 			return "";
 		}
 		if(document.getElementById("chkIPAccess1").checked==false && 
 		   document.getElementById("chkIPAccess0").checked==false )
 		{
-		   	alert("请设置IP过滤的访问许可/禁止");
+		   	alert("Please set IP filter access permission");
 		   	return "";
 		}
 		rets=rets+"&ipaddr="+document.getElementById("lblIPAddr").value;
@@ -304,7 +304,7 @@ function chkvalid()
 		var re=/^([c-z]|[C-Z]){1}:{1}\\{1}/;
 		if(!re.test(s))
 		{
-			alert("不合法的主目录路径");
+			alert("Invalid home directory path");
 			document.getElementById("lblRoot").focus();
 			return "";
 		}
@@ -315,10 +315,10 @@ function chkvalid()
 		var idx=1<<i;
 		if(document.getElementById("lAccess"+idx).checked) qx=qx+idx;
 	}
-	if(qx==0){ alert("请设置主目录的访问权限"); return ""; }
+	if(qx==0){ alert("Please set home directory access permissions"); return ""; }
 	rets=rets+"&rootqx="+qx;
 	
-	//虚目录的设置
+	// Virtual directory settings
 	rets=rets+"&vpath=";
 	var oSelect=document.getElementById("selVPath");
 	for(i=1;i<oSelect.options.length;i++)
@@ -331,7 +331,7 @@ function user_change(el)
 	initAccount();
 	if(el.selectedIndex==0) return;
 	showPopup(250, 200, 150, 20);
-	//获取指定帐号的信息
+	// Get specified account info
 	xmlHttp.open("GET", "/ftpusers?cmd=info&user="+el[el.selectedIndex].value, true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );
@@ -342,8 +342,8 @@ function user_dele()
 {
 	var oSelect=document.getElementById("selAccount");
 	if(oSelect.selectedIndex==0)
-		alert("请选择要删除的帐号!");
-	else if(confirm("确信删除帐号 "+oSelect[oSelect.selectedIndex].value+"?"))
+		alert("Please select an account to delete!");
+	else if(confirm("Are you sure you want to delete account "+oSelect[oSelect.selectedIndex].value+"?"))
 	{
 		showPopup(250, 200, 150, 20);
 		xmlHttp.open("GET", "/ftpusers?cmd=dele&user="+oSelect[oSelect.selectedIndex].value, true);
@@ -370,11 +370,11 @@ function user_save()
 		}
 		if(idx==0)
 		{
-			if( !confirm("确信添加帐号 "+struser+"?") ) return;
+			if( !confirm("Are you sure you want to add account "+struser+"?") ) return;
 		}
 		else
 		{
-			if( !confirm("确信修改帐号 "+struser+"?") ) return;
+			if( !confirm("Are you sure you want to edit account "+struser+"?") ) return;
 		}
 		showPopup(250, 200, 150, 20);
 		oSelect.selectedIndex=0;
@@ -414,8 +414,8 @@ function vpath_dele()
 {
 	var oSelect=document.getElementById("selVPath");
 	if(oSelect.selectedIndex==0)
-		alert("请选择要删除的虚目录!");
-	else if(confirm("确信删除虚目录 "+oSelect[oSelect.selectedIndex].value+"?"))
+		alert("Please select a virtual directory to delete!");
+	else if(confirm("Are you sure you want to delete virtual directory "+oSelect[oSelect.selectedIndex].value+"?"))
 	{
 		oSelect.options.remove(oSelect.selectedIndex);
 		oSelect.selectedIndex=0;
@@ -433,12 +433,12 @@ function vpath_save()
 		var idx=1<<i;
 		if(document.getElementById("lVAccess"+idx).checked) qx=qx+idx;
 	}
-	if(vpath==""){alert("虚目录名设置无效"); return;}
-	if(qx==0) { alert("请设置虚目录的访问权限"); return; }
+	if(vpath==""){alert("Invalid virtual directory name"); return;}
+	if(qx==0) { alert("Please set virtual directory access permissions"); return; }
 	var re=/^([c-z]|[C-Z]){1}:{1}\\{1}/;
 	if(vpath=="" || !re.test(vpath))
 	{
-		alert("物理路径设置无效");
+		alert("Invalid physical path");
 		return;
 	}
 	var oSelect=document.getElementById("selVPath");
@@ -446,7 +446,7 @@ function vpath_save()
 	for(i=1;i<oSelect.options.length;i++)
 		if(vname==oSelect.options.item(i).value){ idx=i; break; }
 	if(idx==0){
-		if( confirm("确信添加虚目录 "+vname+"?") )
+		if( confirm("Are you sure you want to add virtual directory "+vname+"?") )
 		{
 			var oOption = document.createElement("OPTION");
 			oOption.value=vname;
@@ -455,7 +455,7 @@ function vpath_save()
 			oSelect.selectedIndex=oSelect.options.length-1;
 		}
 	}else{
-		if( confirm("确信修改虚目录 "+vname+"?") )
+		if( confirm("Are you sure you want to edit virtual directory "+vname+"?") )
 		{
 			oSelect.options.item(i).text=vname+","+qx+","+vpath;
 		}

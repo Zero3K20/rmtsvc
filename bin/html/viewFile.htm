@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="viewFile.js"></SCRIPT>
@@ -12,30 +12,30 @@
 <td>
 &nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="更 名" id=fRenFolder onclick="renFolder();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Rename" id=fRenFolder onclick="renFolder();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="删 除" id=fDelFolder onclick="delFolder();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Delete" id=fDelFolder onclick="delFolder();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="新 建" id=fNewFolder onclick="newFolder();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="New" id=fNewFolder onclick="newFolder();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="属 性" id=fProFolder onclick="proFolder();">
+ onmouseover='javascript:this.className="btnUP";' value="Properties" id=fProFolder onclick="proFolder();">
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="refreshFolder();">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="refreshFolder();">
 </td>
 <td>
 &nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="运 行" id=fRunFile onclick="runFile();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Run" id=fRunFile onclick="runFile();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="删 除" id=fDelFile onclick="delFile();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Delete" id=fDelFile onclick="delFile();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="上 传" id=fUpFile onclick="upFile();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Upload" id=fUpFile onclick="upFile();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="下 载" id=fDwFile onclick="dwFile();" >
+ onmouseover='javascript:this.className="btnUP";' value="Download" id=fDwFile onclick="dwFile();" >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="属 性" id=fProFile onclick="proFile();" >
+ onmouseover='javascript:this.className="btnUP";' value="Properties" id=fProFile onclick="proFile();" >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="refreshFile();">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="refreshFile();">
  &nbsp;<span id="lblHelp" name="lblHelp"></span>
 </td>
 </tr>
@@ -49,7 +49,7 @@
  <tr height=18px bgColor="Silver">
  <th width="20px">&nbsp;<A href="javascript:goup();" style="cursor:hand;">UP</A>  
  </th>
- <th> 文件夹 </th>
+ <th> Folder </th>
  <th width="20px">&nbsp;<A href="javascript:document.getElementById('lblFolder').innerText='';refreshFile();" style="cursor:hand;">./</A>  
  </th>
  </tr>
@@ -72,11 +72,11 @@
  <table id=tblFile name=tblFile datasrc="#fileXML" width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
- <th align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','fname');">&nbsp;<u>文件名</u> </th>
+ <th align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','fname');">&nbsp;<u>Filename</u> </th>
  <th width="20px"> &nbsp; </th>
- <th width=80px align=right style="cursor:hand" onclick="sort('fileXML','fileStyle','lsize');"> <u>大小</u>&nbsp; </th>
- <th width=150px align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','ftype');">&nbsp;<u>类型</u> </th>
- <th width=150px align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','ftime');">&nbsp;<u>修改时间</u> </th>
+ <th width=80px align=right style="cursor:hand" onclick="sort('fileXML','fileStyle','lsize');"> <u>Size</u>&nbsp; </th>
+ <th width=150px align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','ftype');">&nbsp;<u>Type</u> </th>
+ <th width=150px align=left style="cursor:hand" onclick="sort('fileXML','fileStyle','ftime');">&nbsp;<u>Modified</u> </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';"  
@@ -95,23 +95,23 @@
 
 <tr>
 <td bgcolor=Silver height=20px nowrap>
-&nbsp;共 <span id="lblFolderNum" name="lblFolderNum">0</span> 子目录
+&nbsp;Total <span id="lblFolderNum" name="lblFolderNum">0</span> subfolder(s)
 &nbsp;- <span id="lblFolder" name="lblFolder"></span>
 </td>
 <td bgcolor=Silver height=20px nowrap>
-&nbsp;共 <span id="lblFileNum" name="lblFileNum">0</span> 个文件
-&nbsp;- 文件:<span id="lblFile" name="lblFile"></span>
+&nbsp;Total <span id="lblFileNum" name="lblFileNum">0</span> file(s)
+&nbsp;- File: <span id="lblFile" name="lblFile"></span>
 </td>
 </tr>
 
 <tr><td colspan=2 bgcolor=Silver height=20px nowrap>
-<a href="adostream.reg" target="_blank" title="下载运行REG文件修正注册表,启用ADODB.Stream对象">
+<a href="adostream.reg" target="_blank" title="Download and run REG file to fix registry and enable ADODB.Stream object">
 S</a>&nbsp;
 <A href="" onclick="javascript:window.event.returnValue=false;">
-<span onclick="javascript:swichHide(this);" style="cursor:hand;">显示隐藏文件 </span></A>
+<span onclick="javascript:swichHide(this);" style="cursor:hand;">Show Hidden Files </span></A>
 &nbsp;
-<A href="javascript:goto();" style="cursor:hand;">跳转至</A>
-<A href="javascript:goup();" style="cursor:hand;">上一级</A>&nbsp;
+<A href="javascript:goto();" style="cursor:hand;">Go to</A>
+<A href="javascript:goup();" style="cursor:hand;">Up</A>&nbsp;
 <span id="lblFilePath" name="lblFilePath"></span>
 
 </td></tr>

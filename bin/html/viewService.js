@@ -15,7 +15,7 @@ function serviceClick(tblElement)
 	var row=tblElement.rowIndex;
 	slistXML.recordset.absoluteposition=row;
 	stat=slistXML.recordset("status");
-	if(stat=="已启动")
+	if(stat=="Running")
 	{
 		document.getElementById("btnStart").disabled=true;
 		document.getElementById("btnStop").disabled=svrQX;
@@ -24,19 +24,19 @@ function serviceClick(tblElement)
 		document.getElementById("btnStop").disabled=true;
 	}
 	runtype=slistXML.recordset("rtype");
-	if(runtype=="自动")
+	if(runtype=="Auto")
 	{
 		document.getElementById("btnAuto").disabled=true;
 		document.getElementById("btnManual").disabled=svrQX;
 		document.getElementById("btnForbid").disabled=svrQX;
 	}
-	else if(runtype=="手动")
+	else if(runtype=="Manual")
 	{
 		document.getElementById("btnManual").disabled=true;
 		document.getElementById("btnAuto").disabled=svrQX;
 		document.getElementById("btnForbid").disabled=svrQX;
 	}
-	else //禁用
+	else // Disabled
 	{
 		document.getElementById("btnManual").disabled=svrQX;
 	document.getElementById("btnAuto").disabled=svrQX;
@@ -47,7 +47,7 @@ function serviceClick(tblElement)
 	document.getElementById("lblService").innerText="Service : "+curSname;
 }
 
-//----------------排序 func--------------------------
+//----------------sort func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
 try {

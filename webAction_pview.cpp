@@ -41,9 +41,9 @@ DWORD procList(cBuffer &buffer,const char *filter)
 		return procList_NT(buffer,filter);
 	return procList_2K(buffer,filter);
 }
-//列出某process的all模块
+//list all modules of a specific process
 //buffer - returned xml document, format:
-//<?xml version="1.0" encoding="gb2312" ?>
+//<?xml version="1.0" encoding="utf-8" ?>
 //<xmlroot>
 //<module>
 //<id>sequence number</id>
@@ -111,7 +111,7 @@ bool webServer::httprsp_pkill(socketTCP *psock,httpResponse &httprsp,DWORD pid)
 }
 
 #include "cInjectDll.h"
-//从a certainprocess中卸载某dll
+//unload a specific DLL from a certain process
 bool webServer::httprsp_mdattach(socketTCP *psock,httpResponse &httprsp,DWORD pid,HMODULE hmdl,long count)
 {
 	cInjectDll inject(NULL);
@@ -141,8 +141,8 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	}//?while
 	return bMatch;
 }
-//enumNTsystem的process
-//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
+//enumerate NT system processes
+//for NT operating system, use PSAPI.DLL to enumerate processes and module info
 DWORD procList_NT(cBuffer &buffer,const char *filter)
 {
 	typedef BOOL (WINAPI *pfnEnumProcesses_D)(
@@ -172,7 +172,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 
 	DWORD dwret=0;
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 
 	//enumsystemprocess IDlist
 	if (pfnEnumProcesses!=NULL && (*pfnEnumProcesses)(aProcesses, sizeof(aProcesses), &cbNeeded ) )
@@ -180,7 +180,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 		cProcesses = cbNeeded / sizeof(DWORD);
 		HANDLE hProcess;
 		char szProcessName[MAX_PATH];
-		int filternums=0;//过滤condition个数
+		int filternums=0;//filter condition count
 		if(filter && filter[0]!=0 )
 			filternums=(strchr(filter,','))?2:1;//2 means multiple
 		for (unsigned int i = 0; i < cProcesses; i++ )
@@ -194,7 +194,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 				::CloseHandle( hProcess );
 			}
 			bool bMatch=true;
-			if(filternums==1) //一个过滤condition
+			if(filternums==1) //single filter condition
 				bMatch=MatchingString(szProcessName,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(szProcessName,filter);
@@ -222,9 +222,9 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//enumwin9x/2ksystem的process
-//对于win9x/2k可以通过toolhelp32function列举process及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等function
+//enumerate win9x/2k system processes
+//for win9x/2k, use toolhelp32 functions to enumerate processes and module info
+//only 2k&&win9x support CreateToolhelp32Snapshot and similar functions
 DWORD procList_2K(cBuffer &buffer,const char *filter)
 {
 	HINSTANCE hDll=::LoadLibrary("KERNEL32.dll");
@@ -243,16 +243,16 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 	
 	 DWORD dwret=0;
 	 if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
-	 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	 if ((*pfnProcess32First)(hSnapShot, processInfo))
 	 {
 		const char *ptrFilename=NULL;
-		int filternums=0;//过滤condition个数
+		int filternums=0;//filter condition count
 		if(filter && filter[0]!=0 ) filternums=(strchr(filter,','))?2:1;//2 means multiple
 		do
 		{
-			//win9x下显示的yesfile path全名，去掉path
-			//2k下仅仅显示的yesfilename（therefore可以do not此判断）
+			//in win9x, display is the full file path; remove the path prefix
+			//in 2k, only the filename is displayed (so this check can be skipped)
 			//yyc modify 2003-04-20
 			if((ptrFilename=strrchr(processInfo->szExeFile,'\\'))==NULL) 
 				ptrFilename=processInfo->szExeFile;
@@ -260,7 +260,7 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 				ptrFilename+=1;//remove '\'
 			
 			bool bMatch=true;
-			if(filternums==1) //一个过滤condition
+			if(filternums==1) //single filter condition
 				bMatch=MatchingString(ptrFilename,filter,false);
 			else if(filternums>1)
 				bMatch=ifMatch(ptrFilename,filter);
@@ -292,8 +292,8 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 	return dwret;
 }
 
-//enumNTsystem的process
-//对于NT操作system可以用PSAPI.DLLenumprocess以及模块info
+//enumerate NT system process modules
+//for NT operating system, use PSAPI.DLL to enumerate processes and module info
 DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 {
 	typedef BOOL (WINAPI *pfnEnumProcessModules_D)(
@@ -359,9 +359,9 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 	return dwret;
 }
 
-//enumwin9x/2ksystemprocess的模块
-//对于win9x/2k可以通过toolhelp32function列举process及模块info
-//只有2k&&win9x支持CreateToolhelp32Snapshot等function
+//enumerate win9x/2k system process modules
+//for win9x/2k, use toolhelp32 functions to enumerate processes and module info
+//only 2k&&win9x support CreateToolhelp32Snapshot and similar functions
 DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 {
 	HINSTANCE hDll=::LoadLibrary("KERNEL32.dll");

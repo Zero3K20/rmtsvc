@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="viewReg.js"></SCRIPT>
@@ -12,23 +12,23 @@
 <td>
 &nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="删 除" id=fDelkey onclick="delKey();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Delete" id=fDelkey onclick="delKey();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="增 加" id=fAddkey onclick="addKey();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Add" id=fAddkey onclick="addKey();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="refreshKey();">
- &nbsp;共 <span id="lblKeyNum" name="lblKeyNum"></span>&nbsp;项子键
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="refreshKey();">
+ &nbsp;Total <span id="lblKeyNum" name="lblKeyNum"></span>&nbsp;subkey(s)
 </td>
 <td>
 &nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="增 加" id=fAddItem onclick="addItem();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Add" id=fAddItem onclick="addItem();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="删 除" id=fDelItem onclick="delItem();" disabled >
+ onmouseover='javascript:this.className="btnUP";' value="Delete" id=fDelItem onclick="delItem();" disabled >
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="refreshItem();">
- &nbsp;子键:<span id="lblRegKey" name="lblRegKey"></span>
- &nbsp; - 项目:<span id="lblRegItem" name="lblRegItem"></span>
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="refreshItem();">
+ &nbsp;Subkey: <span id="lblRegKey" name="lblRegKey"></span>
+ &nbsp; - Item: <span id="lblRegItem" name="lblRegItem"></span>
  &nbsp;<span id="lblHelp" name="lblHelp"></span>
 </td>
 </tr>
@@ -41,7 +41,7 @@
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width="20px"> &nbsp;<A href="javascript:goup();" style="cursor:hand;">UP</A> </th>
- <th> 项名称 </th>
+ <th> Key Name </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';"  height=18px>
@@ -60,10 +60,10 @@
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=100px> 类型 </th>
- <th width=80px> 长度 </th>
- <th width=220px> 名称 </th>
- <th> 数据 </th>
+ <th width=100px> Type </th>
+ <th width=80px> Length </th>
+ <th width=220px> Name </th>
+ <th> Data </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';"  
@@ -82,8 +82,8 @@
 
 <tr><td colspan=2 bgcolor=Silver height=20px nowrap>
 &nbsp;
-<A href="javascript:goto();" style="cursor:hand;">跳转至</A>
-<A href="javascript:goup();" style="cursor:hand;">上一级</A>&nbsp;
+<A href="javascript:goto();" style="cursor:hand;">Go to</A>
+<A href="javascript:goup();" style="cursor:hand;">Up</A>&nbsp;
 <span id="lblRegPath" name="lblRegPath"></span>
 </td></tr>
 </table>

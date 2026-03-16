@@ -162,13 +162,13 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	}//?if(spath && spath[0]=='\\')
 	return httprsp_reglist(psock,httprsp,spath,2);
 }
-//将二进制string conversion为二进制array，returnarraysize
+//convert binary string to binary array, return array size
 DWORD cvtBinaryString2Binary(char *strBinary)
 {
 	LPBYTE pbyte=(LPBYTE)strBinary;
 	char *p,*ptr=strBinary;
 	while(*ptr==' ') ptr++; //remove leading spaces
-	::strupr(ptr);//convert为大写
+	::strupr(ptr);//convert to uppercase
 	while(true)
 	{
 		p=strchr(ptr,' ');
@@ -217,7 +217,7 @@ bool webServer::httprsp_regitem_add(socketTCP *psock,httpResponse &httprsp,const
 			}//?if(strcmp(stype,"REG_BINARY")==0)
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//convert为大写
+				::strupr((char *)svalue);//convert to uppercase
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			} 
@@ -265,7 +265,7 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 			}
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//convert为大写
+				::strupr((char *)svalue);//convert to uppercase
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			}
@@ -335,14 +335,14 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 						if( (dwBufferSize+=80)<256 ) dwBufferSize=256;
 						if(buffer.Resize(buffer.size()+dwBufferSize)==NULL) break;
 					}
-					//get此键，子键的个数 start----------------------------------
+					//get this key's subkey count - start----------------------------------
 					dwSubKeys=0; HKEY hsubKey=NULL;
 					if(::RegOpenKeyEx(hKEY_ROOT, ((ptr_tmpbuf[0]=='\\')?(ptr_tmpbuf+1):ptr_tmpbuf), 0, KEY_READ|KEY_ENUMERATE_SUB_KEYS, &hsubKey)==ERROR_SUCCESS)
 					{
 						::RegQueryInfoKey(hsubKey,NULL,NULL,NULL,&dwSubKeys,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 						::RegCloseKey(hsubKey);
 					}
-					////get此键，子键的个数 end-----------------------------
+					////get this key's subkey count - end-----------------------------
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),
 						"<kitem><id>%d</id><subkeys>%c</subkeys><regkey>%s</regkey></kitem>",
 						++lret, ((dwSubKeys>0)?'+':' '), subkey_buffer);
@@ -356,7 +356,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 	
 	if(lret==0 && buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),
-					"<kitem><id></id><regkey>(none - no data项)</regkey></kitem>");
+					"<kitem><id></id><regkey>(none - no data items)</regkey></kitem>");
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regkeys>");
 	return (lret<0)?false:true;
@@ -426,9 +426,9 @@ bool regitemList(cBuffer &buffer,const char *skey)
 					
 					if(dwType==REG_BINARY)
 					{
-						int i,j,lines=(dwValueBufferSize+15)/16; //count算共多少行
-						size_t count=0;//打印charactercounting
-						if(lines>10) lines=10; //只显示10行的data
+						int i,j,lines=(dwValueBufferSize+15)/16; //calculate total number of lines
+						size_t count=0;//printed character count
+						if(lines>10) lines=10; //display only 10 rows of data
 
 						if((int)buffer.Space()<(lines*50+20)){
 							if( buffer.Resize(buffer.size()+lines*50+30)==NULL ) break;
@@ -473,7 +473,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 							else
 								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%s]]></rdata>",subvalue_buffer);
 						}
-					} //非二进制data
+					} //non-binary data
 					if(buffer.Space()<12) buffer.Resize(buffer.size()+12);
 					if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</vitem>");
 					dwNameBufferSize=dwMaxValueNameLen+1;
@@ -491,7 +491,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str()) 
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(default)</rname>"
-						"<rdlen>0</rdlen><rdata>(data未set)</rdata></vitem>");
+						"<rdlen>0</rdlen><rdata>(data not set)</rdata></vitem>");
 	}
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regitems>");

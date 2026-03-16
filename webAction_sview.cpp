@@ -56,11 +56,11 @@ bool webServer::sevent(const char *sname,const char *cmd)
 	if(hService==NULL){ ::CloseServiceHandle(schSCManager); return false; }
 	
 	SERVICE_STATUS	ssStatus; 
-	if(strcmp(cmd,"run")==0) //startspecified的service
+	if(strcmp(cmd,"run")==0) // start specified service
 	{
 		if( ::StartService(hService, 0, 0) ) Sleep(1000);
 	}
-	else if(strcmp(cmd,"stop")==0) //stopspecified的service
+	else if(strcmp(cmd,"stop")==0) // stop specified service
 	{
 		if( ::ControlService(hService, SERVICE_CONTROL_STOP, &ssStatus) )
 		{
@@ -87,7 +87,7 @@ bool webServer::sevent(const char *sname,const char *cmd)
 		}
 		DeleteService(hService);
 	}
-	else if(strcmp(cmd,"forbid")==0) //禁用service
+	else if(strcmp(cmd,"forbid")==0) // disable service
 	{
 		ChangeServiceConfig(hService,SERVICE_NO_CHANGE,SERVICE_DISABLED,SERVICE_NO_CHANGE,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 	}
@@ -128,7 +128,7 @@ DWORD serviceList(cBuffer &buffer)
 		bytes,&bytesNeeded,&servicesReturned,&resumeHandle);
 
 	DWORD dwret=0;
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	while( servicesReturned-- >0 ) //lpservice->lpServiceName)
 	{
 		if(buffer.Space()<280) buffer.Resize(buffer.size()+280);
@@ -137,22 +137,22 @@ DWORD serviceList(cBuffer &buffer)
 		switch(lpservice->ServiceStatus.dwCurrentState)
 		{
 			case SERVICE_RUNNING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>已start</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Running</status>");
 				break;
 			case SERVICE_STOPPED:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>已stop</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Stopped</status>");
 				break;
 			case SERVICE_PAUSED:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>已pause</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Paused</status>");
 				break;
 			case SERVICE_STOP_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>正stop</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Stopping</status>");
 				break;
 			case SERVICE_CONTINUE_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>已挂起</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Suspended</status>");
 				break;
 			case SERVICE_PAUSE_PENDING:
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>已挂起</status>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>Suspended</status>");
 				break;
 			default:
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>---</status>");
@@ -161,7 +161,7 @@ DWORD serviceList(cBuffer &buffer)
 		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_ALL_ACCESS);
 		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); continue; }
 		
-		bytesNeeded=0;//进一步getinfo
+		bytesNeeded=0;// get further info
 		QueryServiceConfig( hService, NULL, 0, &bytesNeeded);
 		DWORD lpqscBuf_Size=bytesNeeded;
 		LPQUERY_SERVICE_CONFIG lpqscBuf=(LPQUERY_SERVICE_CONFIG)::malloc(lpqscBuf_Size);
@@ -171,21 +171,21 @@ DWORD serviceList(cBuffer &buffer)
 			if( lpqscBuf->dwStartType==SERVICE_AUTO_START)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>auto</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DEMAND_START)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>手动</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>Manual</rtype>");
 			else if( lpqscBuf->dwStartType==SERVICE_DISABLED)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>禁用</rtype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>Disabled</rtype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rtype>---</rtype>");
 			
 			if( lpqscBuf->dwServiceType & SERVICE_WIN32_OWN_PROCESS)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>独立processservice%s</stype>",
-				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",可交互":"");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Own Process Service%s</stype>",
+				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?", Interactive":"");
 			else if( lpqscBuf->dwServiceType & SERVICE_WIN32_SHARE_PROCESS)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>共享processservice%s</stype>",
-				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?",可交互":"");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Shared Process Service%s</stype>",
+				(lpqscBuf->dwServiceType & SERVICE_INTERACTIVE_PROCESS)?", Interactive":"");
 			else if( lpqscBuf->dwServiceType & SERVICE_FILE_SYSTEM_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>filesystem驱动</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Filesystem Driver</stype>");
 			else if( lpqscBuf->dwServiceType & SERVICE_KERNEL_DRIVER)
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>system内核驱动</stype>");
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Kernel Driver</stype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>---</stype>");
 			
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp>%s</sdisp>",lpqscBuf->lpDisplayName);

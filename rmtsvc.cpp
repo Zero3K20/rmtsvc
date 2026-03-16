@@ -294,8 +294,8 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	ReportStatus(SERVICE_START_PENDING);
 	
 	//servicestartstart------------------------------
-	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //打印start运行time
-	if(m_bSpyself) //start自身异常exit监视
+	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print start run time
+	if(m_bSpyself) //start monitoring for self crash/abnormal exit
 	{
 		char commandline[MAX_PATH]; int len=0;
 		if(!m_bDebug) len=sprintf(commandline," -s");
@@ -303,15 +303,15 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 			len+=sprintf(commandline+len," %s",argv[i]);
 		commandline[len]=0; AutoSpy(commandline);
 	} RW_LOG_PRINT(LOGLEVEL_INFO,0,"program starting up.\r\n");
-//*********************user其他代码 start ****************************************	
+//*********************user other code start ****************************************	
 	if(!m_websvr.Start()) //start web service
 		RW_LOG_PRINT(LOGLEVEL_ERROR,"Can not start WWW server(%d).\r\n",m_websvr.m_svrport);
 	if(!m_telsvr.Start()) //startTelnetservice
 		RW_LOG_PRINT(LOGLEVEL_ERROR,"Can not start Telnet server(%d).\r\n",m_telsvr.m_svrport);
 	
-	m_ftpsvr.readIni(); //read并configurationFTPservice的info
-	m_proxysvr.readIni(); //read并configurationproxy service的info
-	m_vidcManager.readIni(); //read并configurationvIDC的info
+	m_ftpsvr.readIni(); //read and configure FTP service info
+	m_proxysvr.readIni(); //read and configure proxy service info
+	m_vidcManager.readIni(); //read and configure VIDC info
 	if(m_vidcManager.m_upnp.upnpinfo().size()>0) m_vidcManager.m_upnp.Search(); //search UPnP device
 	if(m_ftpsvr.m_settings.autoStart)
 	{
@@ -330,7 +330,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	}
 	m_vidcManager.mtcpl_Start();
 	DWORD dwCount_vidcc=1;	//,dwCount_msnbot=1; //yyc remove MSN 2010-11-05
-	//user双击temporarystart的程序且没有configurationiniparameter且web servicestart了，匿名访问方式。则defaultstartIE
+	//user double-clicked to temporarily start the program with no ini config and web service started, anonymous access mode, then start IE by default
 	if(!bReadedIni && !m_bFaceless && m_websvr.status()==SOCKS_LISTEN){
 		char execmd[128]; 
 		sprintf(execmd,"exec -shell http://127.0.0.1:%d/",m_websvr.getLocalPort());
@@ -342,15 +342,15 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	//waitingserviceend
 	while( WaitForSingleObject(m_hStop, 1000) != WAIT_OBJECT_0 )
 	{
-//*********************user其他代码 start ****************************************
+//*********************user other code start ****************************************
 		/* //yyc remove MSN 2010-11-05
 		if(!m_msnbot.ifSigned() && --dwCount_msnbot==0 )
 		{
 			if(!m_msnbot.signin()){
-				dwCount_msnbot=60; //下一次尝试at一分钟后进行
+				dwCount_msnbot=60; //next attempt will be in one minute
 				int err=m_msnbot.getLastErrorCode();
-				//loginfailure，可能由于network原因造成的
-				if(err==SOCKSERR_OK) NULL;//没有configurationMSNaccount
+				//login failed, possibly due to network reasons
+				if(err==SOCKSERR_OK) NULL;//MSN account not configured
 				else if( err==SOCKSERR_MSN_EMAIL) //loginfailure，invalidaccountorpassword
 					RW_LOG_PRINT(LOGLEVEL_ERROR,0,"Can not signin MSN server,invalid account or password.\r\n");
 				else
@@ -358,11 +358,11 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 			}else dwCount_msnbot=1;
 		}//?if(!m_msnbot.ifSigned()) */ //yyc remove MSN 2010-11-05
 
-		//if set,auto重连远端vIDCs，则检测并auto重连
+		//if set, auto-reconnect to remote VIDCs, then check and auto-reconnect
 		if(--dwCount_vidcc==0){ dwCount_vidcc=10; m_vidcManager.m_vidccSets.autoConnect();}
 //*********************user additional code end  ****************************************
 		if(m_tasklist.size()>0)
-		{//handle定时执行tasklist
+		{//handle scheduled task list
 			time_t tNow=time(NULL);
 			struct tm * ltime=localtime(&tNow);
 			for(int i=0;i<(int)m_tasklist.size();i++)
@@ -377,22 +377,22 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 				}else if(task.type=='d'){ //execute daily at scheduled time
 					if(task.h==ltime->tm_hour && task.m==ltime->tm_min)
 					{	
-						if(task.flag==0) //whether executable此定时task
+						if(task.flag==0) //whether this scheduled task is executable
 							task.flag=1,parseCommand(sTask.c_str());
-					}else task.flag=0; //可以执行此定时task
+					}else task.flag=0; //this scheduled task can now execute
 				}
 			}//?for(int i=0;i<m_tasklist.size();i++)
 		}//?if(m_tasklist.size()>0)
 	}//while
 	
-	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //打印end运行time
+	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print end run time
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"Stopping program,please waiting...\r\n");
 	RW_LOG_FFLUSH();
-//*********************user其他代码 start ****************************************
-	m_ftpsvr.saveIni();   //saveftpservice的configurationinfo
+//*********************user other code start ****************************************
+	m_ftpsvr.saveIni();   //save FTP service configuration info
 	m_proxysvr.saveIni();
-	m_vidcManager.saveIni(); //saveconfigurationvIDC的info
-	m_vidcManager.Destroy(); //stopvidc相关service并销毁release相关resource
+	m_vidcManager.saveIni(); //save VIDC configuration info
+	m_vidcManager.Destroy(); //stop VIDC-related services and destroy/release related resources
 	m_ftpsvr.Stop(); //stopFTPservice
 	m_proxysvr.Stop();
 	m_websvr.Stop();
@@ -400,23 +400,23 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 //	m_msnbot.signout();//exitlogin  //yyc remove MSN 2010-11-05
 //*********************user additional code end  ****************************************
 
-	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //打印end运行time
+	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print end run time
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"program end!\r\n");
-	//if set,password保护，exit时检测serverwhether安装正常
+	//if set, password protection, check whether service is installed correctly on exit
 	if(m_hStopEvent)
 	{
 		QUERY_SERVICE_CONFIG sc;
-		if( !GetServiceConfig(&sc) ) InstallService(); //service可能被delete了，重新安装
+		if( !GetServiceConfig(&sc) ) InstallService(); //service may have been deleted, reinstall
 		else if(sc.dwStartType!=m_dwStartType || sc.dwServiceType!=m_dwServiceType) 
-			SetServiceConfig();//servicestartstatus被modify了
+			SetServiceConfig();//service start status has been modified
 	}//?if(m_hStopEvent)
-	//service已经end------------------------------
-	if(m_hStop) ::CloseHandle(m_hStop); //service/程序exit
-	if(m_hStopEvent) ::CloseHandle(m_hStopEvent); //service/程序exit
+	//service has ended------------------------------
+	if(m_hStop) ::CloseHandle(m_hStop); //service/program exit
+	if(m_hStopEvent) ::CloseHandle(m_hStopEvent); //service/program exit
 	ReportStatus(SERVICE_STOPPED,3000,0); 
 }
 
-//往registry读/写service name称
+//read/write service name to/from registry
 void delreg(const char *svrkey)
 {
 	HKEY  hKEY;
@@ -471,10 +471,10 @@ void getDefaultSvrname(std::string &svrname)
 	if(svrname=="") svrname.assign(sServiceName);
 	return;
 }
-//将一个相对path名convert为一个绝对path名
+//convert a relative path to an absolute path
 void getAbsolutfilepath(std::string &spath)
 {
-	if(spath!="" && spath[1]==':') return; //本身is a绝对path
+	if(spath!="" && spath[1]==':') return; //already an absolute path
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0; 
@@ -483,7 +483,7 @@ void getAbsolutfilepath(std::string &spath)
 	*(char *)(ptr+1)=0;
 	spath.insert(0,buf); return;
 }
-//delete升级后的temporaryfile
+//delete temporary files after upgrade
 void delUpdateTmpfile()
 {
 	char buf[MAX_PATH];
@@ -498,11 +498,11 @@ void delUpdateTmpfile()
 //-e --- stop service
 //-d --- run in debug mode
 //-n serverName ---- specifies the name of the service to install
-//		ifnot通过-nspecified安装的service name称，则default的service name称为executablefilename，otherwise为specified的name
-//		specified了install servicename，程序会记录安装的service name到registry，executablefilename为key值
-//-c saveasfile --- 将currentiniconfigurationparameterwriteexefile本身并另存为specified的file
-//-C saveasfile --- 将currentiniconfigurationparameterwriteexefile本身并另存为specified的file,
-//					同时运行另存的exe程序将not supportediniconfigurationfile
+//		if not specified via -n, the default service name is the executable filename, otherwise the specified name
+//		if an install service name is specified, the program will record it to the registry, with the executable filename as the key
+//-c saveasfile --- write current ini config parameters into the exe itself and save as the specified file
+//-C saveasfile --- write current ini config parameters into the exe itself and save as the specified file,
+//					simultaneously run the saved exe program which will not support ini config file
 //-f filename specifies the config filename for this program; if not specified, defaults to a file with the same name as the program but with .ini extension
 int main(int argc, char* argv[])
 {
@@ -531,20 +531,20 @@ int main(int argc, char* argv[])
 				saveasfile.append(argv[i+1]);
 			}else printf("Error param : -c/C new_filename\r\n");
 		}
-		//*********************user其他代码 start ****************************************
+		//*********************user other code start ****************************************
 		//*********************user additional code end  ****************************************
 	}//?for(int i=1;i<argc;i++){
 	if(svrname=="") regsvrname(svrkey.c_str(),svrname,false);
-	//configurationfilename，default为exe同filename的inifile
+	//configuration filename, default is ini file with same name as exe
 	if(g_cfgfile=="") 
 		getDefaultCfgfile(g_cfgfile);
-	else //ifuserinput的yes相对path则at以service方式start时可能找not到configurationfile
+	else //if user input is a relative path, it may not be found when started as a service
 		getAbsolutfilepath(g_cfgfile);
-	//将parameterwrite，另存为新的exe 
+	//write parameters, save as new exe 
 	if(saveasfile!=""){ saveAsExe(saveasfile); return 0; }
-	delUpdateTmpfile();//delete升级后的temporaryfile
+	delUpdateTmpfile();//delete temporary files after upgrade
 	MyService serv(svrname.c_str(),sServiceDesc);
-	//input了stop servicepassword,尝试此passwordstop service
+	//input stop service password, try this password to stop the service
 	if(ptr_stoppswd) serv.SetStopEvent(ptr_stoppswd);
 	serv.RegisterService(argc, argv);
 	return 0;

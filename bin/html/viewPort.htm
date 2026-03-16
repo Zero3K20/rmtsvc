@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="viewPort.js"></SCRIPT>
@@ -10,16 +10,16 @@
 
 <tr height=25px>
 <td>
-&nbsp;<b>端口进程列表</b>&nbsp;
+&nbsp;<b>Port/Process List</b>&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷新列表" onclick="javascript:fportXML.src='/fport';">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:fportXML.src='/fport';">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="结束进程" onclick="javascript:pkill();">
+ onmouseover='javascript:this.className="btnUP";' value="Kill Process" onclick="javascript:pkill();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="进程属性" onclick="javascript:proFile();">
- &nbsp;&nbsp;当前进程ID：<span id="lblProcess" name="lblProcess">
+ onmouseover='javascript:this.className="btnUP";' value="Process Properties" onclick="javascript:proFile();">
+ &nbsp;&nbsp;Current PID:<span id="lblProcess" name="lblProcess">
 </td>
 </tr>
 
@@ -31,12 +31,12 @@
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','ptype');"> <u>协议</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','pid');"> <u>进程ID</u> </th>
- <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','laddr');"> <u>本地地址</u> </th>
- <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','raddr');"> <u>远程地址</u> </th>
- <th width=80px style="cursor:hand" onclick="sort('fportXML','fportStyle','status');"> <u>状态</u> </th>
- <th width=200px> 进程名称 </th>
+ <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','ptype');"> <u>Protocol</u> </th>
+ <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','pid');"> <u>PID</u> </th>
+ <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','laddr');"> <u>Local Address</u> </th>
+ <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','raddr');"> <u>Remote Address</u> </th>
+ <th width=80px style="cursor:hand" onclick="sort('fportXML','fportStyle','status');"> <u>State</u> </th>
+ <th width=200px> Process Name </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 

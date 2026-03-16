@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="Left.js"></SCRIPT>
@@ -11,26 +11,26 @@
 <tr>
 	<td id="tdControl" bgColor="#e5e5e5" style="CURSOR: hand; HEIGHT: 27px; TEXT-ALIGN: center;border: #888888 solid 1px;"
 	align="center" width="100%" 
-	onclick="Show_ChangeTool('Control')"><b>远  程  控  制</b></td>
+	onclick="Show_ChangeTool('Control')"><b>Remote Control</b></td>
 </tr>
 <tr><td align="center" valign=top width="100%">
 	<table id="TabControl" width="180px" cellSpacing="0" cellPadding="0" border="0" item="1">
 	<tr><td align="left" valign=top >
 <br>
-<b> 图像质量:</b>
-<input type=radio value=10 name=quality id=quality10 onclick="javascript:capsetting();">较差
-<input type=radio value=30 name=quality id=quality30 onclick="javascript:capsetting();">一般
+<b> Image Quality:</b>
+<input type=radio value=10 name=quality id=quality10 onclick="javascript:capsetting();">Poor
+<input type=radio value=30 name=quality id=quality30 onclick="javascript:capsetting();">Normal
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type=radio value=60 name=quality id=quality60 onclick="javascript:capsetting();">较好
-<input type=radio value=90 name=quality id=quality90 onclick="javascript:capsetting();">很好
+<input type=radio value=60 name=quality id=quality60 onclick="javascript:capsetting();">Good
+<input type=radio value=90 name=quality id=quality90 onclick="javascript:capsetting();">Excellent
 <br>
-<b> 当前坐标:</b> &nbsp;<span id="lblXY" name="lblXY" >X:000 Y:000</span>&nbsp;&nbsp;&nbsp;&nbsp;
+<b> Cursor Position:</b> &nbsp;<span id="lblXY" name="lblXY" >X:000 Y:000</span>&nbsp;&nbsp;&nbsp;&nbsp;
 <br>
-<A href="javascript:refreshScreen();">刷新屏幕</A>&nbsp;&nbsp;
-<input type=checkbox id=chkAuto name=chkAuto value=1000 onclick="chkAuto_click(this);">自动
+<A href="javascript:refreshScreen();">Refresh Screen</A>&nbsp;&nbsp;
+<input type=checkbox id=chkAuto name=chkAuto value=1000 onclick="chkAuto_click(this);">Auto
 &nbsp;<span id=lblInterval name=lblInterval></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <br>
-<A id=fKeys onclick="javascript:window.setTimeout('refreshScreen()',500);" disabled >发送按键</A>
+<A id=fKeys onclick="javascript:window.setTimeout('refreshScreen()',500);" disabled >Send Keys</A>
 <select id=selCSA>
 <option value=0 SELECTED> </option>
 <option value=1>Ctrl</option>
@@ -48,11 +48,11 @@
 <tr><td align="center" valign=top >
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fView target="frmView" disabled >屏  幕  查  看</A>
+<A id=fView target="frmView" disabled >Screen View</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fControl target="frmView" disabled >完  全  控  制</A>
+<A id=fControl target="frmView" disabled >Full Control</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
@@ -61,33 +61,33 @@
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fSetClip disabled >设置剪贴板</A>
+<A id=fSetClip disabled >Set Clipboard</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fGetClip disabled >获取剪贴板</A>
+<A id=fGetClip disabled >Get Clipboard</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fRun disabled > 运行程序 ... </A>
+<A id=fRun disabled > Run Program ... </A>
 </span><br>
 
 <br>
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
 <A id=fShDw target="frmHide" disabled 
-onclick="javascript:return confirm('你确信要关机?');">关  机</A>
+onclick="javascript:return confirm('Are you sure you want to shut down?');">Shutdown</A>
 </span>&nbsp;
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
 <A id=fRest target="frmHide" disabled 
-onclick="javascript:return confirm('你确信要重启?');">重  启</A>
+onclick="javascript:return confirm('Are you sure you want to restart?');">Restart</A>
 </span><br>
 <br>
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
 <A id=fLgOf target="frmHide" disabled 
-onclick="javascript:return confirm('你确信要注销?');">注  销</A>
+onclick="javascript:return confirm('Are you sure you want to log off?');">Log Off</A>
 </span>&nbsp;
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fLock target="frmHide" disabled >锁  定</A>
+<A id=fLock target="frmHide" disabled >Lock</A>
 </span><br>
 
 	</td></tr>
@@ -97,38 +97,38 @@ onclick="javascript:return confirm('你确信要注销?');">注  销</A>
 <tr>
 	<td id="tdManage" bgColor="Silver" style="CURSOR: hand; HEIGHT: 27px; TEXT-ALIGN: center;border: #888888 solid 1px;"
 	align="center" width="100%" 
-	onclick="Show_ChangeTool('Manage')"><b>远  程  管  理</b></td>
+	onclick="Show_ChangeTool('Manage')"><b>Remote Management</b></td>
 </tr>
 <tr><td align="center" valign=top width="100%">
 	<table id="TabManage" width="180px" cellSpacing="0" cellPadding="0" border="0" item="1">
 	<tr><td align="center" valign=top >
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fTele disabled >Telnet控  制</A>
+<A id=fTele disabled >Telnet Control</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fFile target="frmView" disabled >文  件  管  理</A>
+<A id=fFile target="frmView" disabled >File Manager</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fProc target="frmView" disabled >进  程  列  表</A>
+<A id=fProc target="frmView" disabled >Process List</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fPort target="frmView" disabled >端  口  列  表</A>
+<A id=fPort target="frmView" disabled >Port List</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fServ target="frmView" disabled > 服  务  列  表 </A>
+<A id=fServ target="frmView" disabled > Service List </A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fReg target="frmView" disabled >  注 &nbsp; 册 &nbsp; 表 </A>
+<A id=fReg target="frmView" disabled >  Registry </A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fFTP target="frmView" disabled >  FTP  管 &nbsp; 理 </A>
+<A id=fFTP target="frmView" disabled >  FTP Manager </A>
 </span><br>
 
 	</td></tr>
@@ -138,7 +138,7 @@ onclick="javascript:return confirm('你确信要注销?');">注  销</A>
 <tr>
 	<td id="tdVIDC" bgColor="Silver" style="CURSOR: hand; HEIGHT: 27px; TEXT-ALIGN: center;border: #888888 solid 1px;"
 	align="center" width="100%" 
-	onclick="Show_ChangeTool('VIDC')"><b> vIDC  管  理</b></td>
+	onclick="Show_ChangeTool('VIDC')"><b> vIDC Management</b></td>
 </tr>
 <tr><td align="center" valign=top width="100%">
 	<table id="TabVIDC" width="180px" cellSpacing="0" cellPadding="0" border="0" item="1">
@@ -146,27 +146,27 @@ onclick="javascript:return confirm('你确信要注销?');">注  销</A>
 
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fUPnP target="frmView" disabled >UPnP  端 口 映 射</A>
+<A id=fUPnP target="frmView" disabled >UPnP Port Mapping</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fMapL target="frmView" disabled >本 地 端 口 映 射</A>
+<A id=fMapL target="frmView" disabled >Local Port Mapping</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fMapR target="frmView" disabled >远 程 端 口 映 射</A>
+<A id=fMapR target="frmView" disabled >Remote Port Mapping</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fvIDCs target="frmView" disabled >vIDC &nbsp;&nbsp;服 务 管 理</A>
+<A id=fvIDCs target="frmView" disabled >vIDC Service Manager</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fProxy target="frmView" disabled >代 理 服 务 配 置</A>
+<A id=fProxy target="frmView" disabled >Proxy Service Config</A>
 </span><br>
 <br>
 <span style="height:20px;width:120px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-<A id=fvIDCi target="frmView" disabled >配 置 导 入 导 出</A>
+<A id=fvIDCi target="frmView" disabled >Config Import/Export</A>
 </span><br>
 </td></tr>
 	</table>

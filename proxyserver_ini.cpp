@@ -182,7 +182,7 @@ void proxysvrEx :: docmd_psets(const char *strParam)
 }
 //setsecondary proxy serviceparameter
 //command format:
-//	casproxy enabled=<0|1> host=<代理address> type=[HTTPS|SOCKS4|SOCKS5] [bauth=<1|0>] [account=<account:password>]"
+//	casproxy enabled=<0|1> host=<proxy address> type=[HTTPS|SOCKS4|SOCKS5] [bauth=<1|0>] [account=<account:password>]"
 void proxysvrEx :: docmd_cassets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -230,17 +230,17 @@ void proxysvrEx :: docmd_cassets(const char *strParam)
 	return;
 }
 
-//add新的proxy service访问accountinfo,ifaccount已exists则delete旧的，重新add
+//add new proxy service access account info; if account already exists, delete old one and re-add
 //command format: 
-//	proxyuser account=<account> pswd=<account password> [maxlogin=<限制同时最多login人数>] [expired=<accountvalid期限>] [maxratio=<maximum带宽>] 
-//account=<account> : 必须项. 要add的account。
-//pswd=<account password>   : 必须项. specifiedaccount的password，
+//	proxyuser account=<account> pswd=<account password> [maxlogin=<max simultaneous logins>] [expired=<account expiry date>] [maxratio=<max bandwidth>] 
+//account=<account> : required. The account to add.
+//pswd=<account password>   : required. The password for the specified account,
 //					if account password is empty, no password is required; just the correct account name suffices
-//maxlogin=<限制同时最多login人数> : limit the number of simultaneous logins for this FTP account.
+//maxlogin=<max simultaneous logins> : limit the number of simultaneous logins for this proxy account.
 //					if not set, default is 0 (unlimited simultaneous logins for this account)
-//expired=<accountvalid期限> : limit this account's usage period, format YYYY-MM-DD
+//expired=<account expiry date> : limit this account's usage period, format YYYY-MM-DD
 //					if not set, the account never expires
-//maxratio=<maximum带宽> : 限制此account的maximum上download流量Kb/秒
+//maxratio=<max bandwidth> : limit this account's maximum upload/download bandwidth in Kb/s
 //					if not set, default is 0 (no upload speed limit for this account)
 void proxysvrEx :: docmd_puser(const char *strParam)
 {
@@ -297,7 +297,7 @@ void proxysvrEx :: docmd_puser(const char *strParam)
 	return ;
 }
 
-//setip过滤规则andautostartflag
+//set IP filter rules and autostart flag
 //command format:
 //	iprules type=[proxy|proxyuser|proxydest] account=<proxy serviceaccount>] [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
@@ -309,7 +309,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("type"))==maps.end()) return;
 	if((*it).second=="proxy")
-	{//setproxy service IP filtering规则
+	{//set proxy service IP filter rules
 		if( (it=maps.find("access"))!=maps.end())
 			m_settings.ipaccess=atoi((*it).second.c_str());
 		
@@ -317,7 +317,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			m_settings.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//setproxy servicea certainaccount的IP filter rules
+	{//set IP filter rules for a specific proxy service account
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 
@@ -330,7 +330,7 @@ void proxysvrEx :: docmd_iprules(const char *strParam)
 			puser.ipRules=(*it).second;
 	}
 	else if((*it).second=="proxyuser")
-	{//setproxy servicea certainaccount的目的过滤规则
+	{//set destination filter rules for a specific proxy service account
 		std::string strUser;
 		if( (it=maps.find("account"))!=maps.end())  strUser=(*it).second;
 

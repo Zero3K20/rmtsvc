@@ -1,42 +1,42 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript>
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) {
-		if (xmlHttp.status == 200){
-			document.getElementById("txtOutput").value=document.getElementById("txtOutput").value+xmlHttp.responseText;
-			
-            	} //else alert("�����ҳ�����쳣,status="+xmlHttp.status);
-            	hidePopup();
+if (xmlHttp.readyState == 4) {
+if (xmlHttp.status == 200){
+document.getElementById("txtOutput").value=document.getElementById("txtOutput").value+xmlHttp.responseText;
+
+            } //else alert("Request error, status="+xmlHttp.status);
+            hidePopup();
         }
 }
 
 function window_onload()
 {
-	if(!oPopup) createpopup();   	
-	if(!xmlHttp) createXMLHttpRequest();
-	document.getElementById("cmdInput").focus();
+if(!oPopup) createpopup();   
+if(!xmlHttp) createXMLHttpRequest();
+document.getElementById("cmdInput").focus();
 }
 function keypress(txtElement)
 {
-	var scmd=document.getElementById("cmdInput").value;
-	if(window.event.keyCode==13 && scmd!="")
-	{
-		window.event.keyCode=0;
-		showPopup(250, 200, 150, 20);
-		xmlHttp.open("GET", "/cmdpage", true);
-		xmlHttp.onreadystatechange = processRequest;
-		xmlHttp.send("cmd="+scmd);	
-	}
+var scmd=document.getElementById("cmdInput").value;
+if(window.event.keyCode==13 && scmd!="")
+{
+window.event.keyCode=0;
+showPopup(250, 200, 150, 20);
+xmlHttp.open("GET", "/cmdpage", true);
+xmlHttp.onreadystatechange = processRequest;
+xmlHttp.send("cmd="+scmd);
+}
 }
 function clsOutput()
 {
-	document.getElementById("txtOutput").value="";
+document.getElementById("txtOutput").value="";
 }
 
 </SCRIPT>
@@ -46,14 +46,14 @@ function clsOutput()
 <table BORDER=0 CELLSPACING=0 CELLPADDING=0 align="center">
 <tr bgcolor="#e5e5e5" height=25px >
 <td width="80px">
-&nbsp;<B>��������:<B>
+&nbsp;<B>Command:<B>
 </td>
 <td width=520px>
 <input id=cmdInput type="text" style="width:450px" onkeypress="javascript:keypress(this);">
 &nbsp;
 <input id=btnInput type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- title="���������Ӧ�������" 
- onmouseover='javascript:this.className="btnUP";' value="�� ��" onclick="javascript:clsOutput();">
+ title="Clear the output area" 
+ onmouseover='javascript:this.className="btnUP";' value="Clear" onclick="javascript:clsOutput();">
 </td><tr>
 
 <tr>

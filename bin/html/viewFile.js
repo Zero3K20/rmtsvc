@@ -3,8 +3,8 @@ var bdsphide=false;
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
-		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			//alert(xmlHttp.responseText);
 			var xmlobj = xmlHttp.responseXML;
@@ -28,7 +28,7 @@ function processRequest()
     			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
 				alert((retmsg.item(0).textContent || retmsg.item(0).text));
-            	} //else alert("请求的页面有异常,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -73,7 +73,7 @@ function folderClick(tblElement)
 	
 	document.getElementById("lblFolder").innerText=fld;
 	document.getElementById("lblFile").innerHTML="";
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	var path=fpath+"\\"+fld;
 	if(fpath=="") path=fpath+fld;
 	strEncode="listwhat=2&bdsph="+bdsphide+"&path="+path.replace(/&/g,"%26");
@@ -95,7 +95,7 @@ function folderDblClick(tblElement)
 		filepath=fpath+fld;
 	else 
 		filepath=fpath+"\\"+fld;
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=3&bdsph="+bdsphide+"&path="+filepath.replace(/&/g,"%26");
 	submitIt(strEncode,"/filelist");
 }
@@ -123,14 +123,14 @@ function goup()
 {
 	var fpath=document.getElementById("lblFilePath").innerText;
 	if(fpath=="")
-		alert("到头了");
+		alert("Reached the end");
 	else
 	{
 		var p=fpath.lastIndexOf("\\");
 		if(p!=-1)
 			filepath=fpath.substr(0,p);
 		else filepath="";
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="listwhat=3&bdsph="+bdsphide+"&path="+filepath.replace(/&/g,"%26");
 		submitIt(strEncode,"/filelist");
 	}
@@ -139,11 +139,11 @@ function goup()
 function goto()
 {
 	var fpath=document.getElementById("lblFilePath").innerText;
-	var new_fpath=prompt("输入有效路径,路径最后不要带\\",fpath);
+	var new_fpath=prompt("Enter a valid path (no trailing \\)",fpath);
 	if(new_fpath!=null && new_fpath!="" )
 	{
 		filepath=new_fpath;
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
     		strEncode="listwhat=3&bdsph="+bdsphide+"&path="+filepath.replace(/&/g,"%26");
 		submitIt(strEncode,"/filelist");
 	}
@@ -152,7 +152,7 @@ function goto()
 function refreshFolder()
 {
 	filepath=document.getElementById("lblFilePath").innerText;
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=1&bdsph="+bdsphide+"&path="+filepath.replace(/&/g,"%26");
 	submitIt(strEncode,"/filelist");
 }
@@ -167,7 +167,7 @@ function refreshFile()
 		else
 			fpath=fpath+"\\"+fld;
 	}
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=2&bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26");
 	submitIt(strEncode,"/filelist");
 }
@@ -177,12 +177,12 @@ function swichHide(e)
 	if(bdsphide)
 	{
 		bdsphide=false;
-		e.innerText="显示隐藏文件";
+		e.innerText="Show Hidden Files";
 	}
 	else
 	{
 		bdsphide=true;
-		e.innerText="不显示隐藏文件 ";
+		e.innerText="Hide Hidden Files";
 	}
 	refreshFile();
 }
@@ -192,11 +192,11 @@ function delFolder()
 	var fld=document.getElementById("lblFolder").innerText;
 	var fpath=document.getElementById("lblFilePath").innerText;
 	if(fld=="")
-		alert("请选择要删除的子目录!");
-	else if( confirm("确信删除子目录 "+fld+"?") )
+		alert("Please select a subfolder to delete!");
+	else if( confirm("Are you sure you want to delete subfolder "+fld+"?") )
 	{
 		document.getElementById("lblFolder").innerText="";
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26")+"&fname="+fld.replace(/&/g,"%26");
 		submitIt(strEncode,"/folder_del");
 	}
@@ -207,14 +207,14 @@ function renFolder()
 	var fld=document.getElementById("lblFolder").innerText;
 	var fpath=document.getElementById("lblFilePath").innerText;
 	if(fld=="")
-		alert("请选择要更名的子目录!");
+		alert("Please select a subfolder to rename!");
 	else
 	{
-		var fld1=prompt("输入新子目录名",fld);
+		var fld1=prompt("Enter new subfolder name",fld);
 		if(fld1!=null && fld1!="" )
 		{
 		document.getElementById("lblFolder").innerText="";
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26")+"&fname="+fld.replace(/&/g,"%26")+"&nname="+fld1.replace(/&/g,"%26");
 		submitIt(strEncode,"/folder_ren");
 		}
@@ -224,10 +224,10 @@ function renFolder()
 function newFolder()
 {
 	var fpath=document.getElementById("lblFilePath").innerText;
-	var fld=prompt("输入子目录名","新建子目录");
+	var fld=prompt("Enter subfolder name","New Folder");
 	if(fld!=null && fld!="" )
 	{
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26")+"&fname="+fld.replace(/&/g,"%26");
 		submitIt(strEncode,"/folder_new");
 	}
@@ -237,7 +237,7 @@ function runFile()
 {
 	var fitem=document.getElementById("lblFile").innerText;
 	if(fitem=="")
-		alert("请选择要远端运行/打开的文件!");
+		alert("Please select a file to run/open remotely!");
 	else
 	{
 		var fld=document.getElementById("lblFolder").innerText;
@@ -248,7 +248,7 @@ function runFile()
 		if(fld!="")
 			fpath=fpath+"\\"+fitem;
 		else	fpath=fpath+fitem;
-		if( confirm("确信远程运行/打开 "+fitem+" 文件?") )
+		if( confirm("Are you sure you want to remotely run/open file "+fitem+"?") )
 		{
 			strEncode="path="+fpath.replace(/&/g,"%26");
 			submitIt(strEncode,"/file_run");
@@ -260,19 +260,19 @@ function delFile()
 {
 	var fitem=document.getElementById("lblFile").innerText;
 	if(fitem=="")
-		alert("请选择要删除的文件!");
+		alert("Please select a file to delete!");
 	else
 	{
 		var fld=document.getElementById("lblFolder").innerText;
 		var fpath=document.getElementById("lblFilePath").innerText;
-		if( confirm("确信删除目录 "+fld+" 下的 "+fitem+" 文件?") )
+		if( confirm("Are you sure you want to delete file "+fitem+" in "+fld+"?") )
 		{
 			if(fpath!="")
 			{
 				if(fld!="") fpath=fpath+"\\"+fld;
 			}
 			else	fpath=fpath+fld;
-			//对特殊字符&进行mime编码.replace(/&/g,"%26")
+			// MIME encode the special character & using .replace(/&/g,"%26")
 			strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26")+"&fname="+fitem.replace(/&/g,"%26");
 			document.getElementById("lblFile").innerText="";
 			submitIt(strEncode,"/file_del");
@@ -284,12 +284,12 @@ function renFile()
 {
 	var fitem=document.getElementById("lblFile").innerText;
 	if(fitem=="")
-		alert("请选择要更名的文件!");
+		alert("Please select a file to rename!");
 	else
 	{
 		var fld=document.getElementById("lblFolder").innerText;
 		var fpath=document.getElementById("lblFilePath").innerText;
-		var fitem1=prompt("输入新文件名",fitem);
+		var fitem1=prompt("Enter new filename",fitem);
 		if(fitem1!=null && fitem1!="" )
 		{
 			document.getElementById("lblFile").innerText="";
@@ -298,7 +298,7 @@ function renFile()
 				if(fld!="") fpath=fpath+"\\"+fld;
 			}
 			else	fpath=fpath+fld;
-			//对特殊字符&进行mime编码.replace(/&/g,"%26")
+			// MIME encode the special character & using .replace(/&/g,"%26")
 			strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26")+"&fname="+fitem.replace(/&/g,"%26")+"&nname="+fitem1.replace(/&/g,"%26");
 			submitIt(strEncode,"/file_ren");
 		}
@@ -309,7 +309,7 @@ function dwFile()
 {
 	var fitem=document.getElementById("lblFile").innerText;
 	if(fitem=="")
-		alert("请选择要下载的文件!");
+		alert("Please select a file to download!");
 	else
 	{
 		var fld=document.getElementById("lblFolder").innerText;
@@ -338,7 +338,7 @@ function proFile()
 	var qx=parent.frmLeft.userQX;
 	var fitem=document.getElementById("lblFile").innerText;
 	if(fitem=="")
-		alert("请选择要查看属性的文件!");
+		alert("Please select a file to view properties!");
 	else
 	{
 		var fld=document.getElementById("lblFolder").innerText;
@@ -361,7 +361,7 @@ function proFolder()
 	if(fpath=="")
 	{
 		if(fld=="")
-			alert("请选择要查看属性的文件夹!");
+			alert("Please select a folder to view properties!");
 		else
 			window.showModalDialog("proDrive.htm",qx+","+fld,"dialogHeight: 350px;dialogWidth: 400px;center: yes;resizable: no;scroll: no;status: no");
 	}
@@ -391,7 +391,7 @@ function keypress(txtElement)
 		}
 		else	fpath=fpath+fld;
 		document.getElementById("lblFile").innerHTML="";
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="bdsph="+bdsphide+"&path="+fpath.replace(/&/g,"%26");
 		strEncode=strEncode+"&fname="+fname.replace(/&/g,"%26");
 		strEncode=strEncode+"&nname="+nname.replace(/&/g,"%26");
@@ -418,9 +418,9 @@ function modifyItem(txtElement)
 	txtElement.value=fileXML.recordset("fname");
 	txtElement.className="txtInput_normal";
 	txtElement.readOnly=false;
-	document.getElementById("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
+	document.getElementById("lblHelp").innerHTML="(<font color=red>Press Ctrl+Enter to save changes</font>)"
 }
-//----------------排序 func--------------------------
+//----------------sort func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
 try {

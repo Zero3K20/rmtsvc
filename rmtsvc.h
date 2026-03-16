@@ -137,32 +137,32 @@ private:
 	
 	bool httprsp_upnp(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 	bool httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
-	//从resource中getspecified的file
+	//get the specified file from the resource
 	const char *GetFileFromRes(const char *filepath,DWORD &flength);
 
-	std::string m_defaultPage; //default文档
-	int m_quality;//捕获desktopimage的质量
-	DWORD m_dwImgSize;//捕获desktopimage的size 0-desktopsize，otherwisespecifiedsizeHWORD=h,WWORD=w
+	std::string m_defaultPage; //default document
+	int m_quality;//capture desktop image quality
+	DWORD m_dwImgSize;//capture desktop image size: 0=desktop size, otherwise specified size HWORD=h, WWORD=w
 	bool m_bGetFileFromRes;
 
-	//first,访问者account - not区分size写。save时一律为小写
-	//second.first - 访问者account second.second - 访问者permissions
+	//first, visitor account - case insensitive. Saved in lowercase
+	//second.first - visitor account  second.second - visitor permissions
 	std::map<std::string,std::pair<std::string,long> > m_mapUsers;
 
 	bool m_bSSLenabled; //startSSLservice
-	bool m_bSSLverify; //whether进行clientcertificateauthentication
-	//yyc add 2010-02-23 if从ini中显示的configuration了account则not supported匿名方式
-	bool m_bAnonymous; //whether允许匿名访问，default为true
+	bool m_bSSLverify; //whether to perform client certificate authentication
+	//yyc add 2010-02-23 if account is configured in ini, anonymous access is not supported
+	bool m_bAnonymous; //whether to allow anonymous access, default is true
 };
 
 //---------------------------------------------------------------
 //---------------------------------------------------------------
-typedef struct _TaskTimer //定时taskstructure
+typedef struct _TaskTimer //scheduled task structure
 {
-	long h,m;//定时的时分,ifyes定time隔task则h指示定time隔(秒)
-	long type; //定时type 't'-轮询间隔(s)执行 'd'execute daily at scheduled time
+	long h,m;//scheduled hour/minute, if interval task then h indicates the interval (seconds)
+	long type; //schedule type: 't'-poll interval (s) execution, 'd'-execute daily at scheduled time
 	long flag; //default0
-	std::string strTask; //定时task
+	std::string strTask; //scheduled task
 }TaskTimer;
 class sockEvent : public socketBase
 {
@@ -170,17 +170,17 @@ public:
 	sockEvent(){ m_sockstatus=SOCKS_OPENED; }
 	virtual ~sockEvent(){}
 	virtual void Close(){ m_sockstatus=SOCKS_CLOSED;}
-}; //用于program exit时及时closeall的blockedsocket
+}; //used to close all blocked sockets in time when program exits
 #include "NTService.h"
 class MyService : public CNTService 
 {
-	sockEvent m_hSockEvent; //用于program exit时及时closeall的blockedsocket
+	sockEvent m_hSockEvent; //used to close all blocked sockets in time when program exits
 	HANDLE m_hStop; //service stoppedEventobjecthandle
-	HANDLE m_hStopEvent; //whether允许通过SCMorconsolestop serviceevent
-						//if set,stoppassword，则根据stoppasswordcreate命名event
-	bool m_bSpyself;//whether监视自身异常exit
-	bool m_bFaceless; //default双击运行程序whethernot带console界面
-	std::vector<TaskTimer> m_tasklist; //定时执行tasklist
+	HANDLE m_hStopEvent; //event for whether to allow stopping service via SCM or console
+						//if set, stop password, then create a named event based on stop password
+	bool m_bSpyself;//whether to monitor for self crash/abnormal exit
+	bool m_bFaceless; //default double-click run: whether to show console window
+	std::vector<TaskTimer> m_tasklist; //scheduled task list
 	bool CreateTaskTime(const char *ptrAt,const char *strTask);
 	void parseCommand(const char *strCommand);
 	void docmd_sets(const char *strParam);
@@ -192,8 +192,8 @@ public:
 	proxysvrEx m_proxysvr;
 	telServerEx m_telsvr;
 	//---------------------------vIDC------------------------------
-	vidcManager m_vidcManager; //vidcset管理class
-	std::string m_preCmdpage; //cmdpagecommand行页commandhandle前缀
+	vidcManager m_vidcManager; //VIDC manager class
+	std::string m_preCmdpage; //cmdpage command line page handler prefix
 //*********************user additional code end  ****************************************
 public:
 	static const char *ServiceVers;
@@ -206,16 +206,16 @@ public:
 	BOOL AutoSpy(const char *commandline);//start automatic monitoring
 	socketBase *GetSockEvent(){ return &m_hSockEvent; }
 private:
-	//createservice stoppedpassword保护event
+	//create service stopped password protection event
 	void CreateStopEvent(const char *stop_pswd);
-	//重载function
-	virtual void	Run(DWORD argc, LPTSTR *argv); //service/program execution体
+	//overloaded function
+	virtual void	Run(DWORD argc, LPTSTR *argv); //service/program execution body
 	virtual void	Stop();//service stoppedhandle
 	virtual void	Stop_Request();
 	virtual void	Shutdown(); //system shutdownhandle
 
 };
-//将一个相对path名convert为一个绝对path名
+//convert a relative path to an absolute path
 extern void getAbsolutfilepath(std::string &spath);
 extern int splitString(const char *str,char delm,std::map<std::string,std::string> &maps);
 extern int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxSplit);
