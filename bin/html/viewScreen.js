@@ -83,7 +83,7 @@ function msup()
 function window_onload()
 {
 	var o=window.parent.frmLeft.document.getElementById("chkAuto");
-	if( o.checked ) autoRefresh=o.value;
+	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
 	loadImg()
 	return;	
