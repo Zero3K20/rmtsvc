@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="vidcMapL.js"></SCRIPT>
@@ -10,14 +10,14 @@
 <table BORDER=0 CELLSPACING=0 CELLPADDING=0 align="center">
 <tr bgcolor="#e5e5e5" height=25px>
 <td width="500px">
-&nbsp;<B>映射服务列表:<B>
+&nbsp;<B>Mapping List:<B>
 <select id=selMapped style="width:250px" onchange="javascript:mapped_change(this);">
-<option value="">选择已映射服务进行修改/删除</option>
+<option value="">Select mapped service to edit/delete</option>
 </select>
 <span id=lblHelp></span>
 </td>
 <td width=120px>
-类型:<input type=radio value=0 name=tcpudp id=tcpudp0 checked onclick="javascript:tcpudp_sel();">TCP
+Type:<input type=radio value=0 name=tcpudp id=tcpudp0 checked onclick="javascript:tcpudp_sel();">TCP
 <input type=radio value=1 name=tcpudp id=tcpudp1 onclick="javascript:tcpudp_sel();">UDP
 </td><tr>
 
@@ -26,97 +26,97 @@
 
 <tr bgcolor="#e5e5e5" height=25px>
 <td>
-&nbsp;<B>映射服务状态:<B>
+&nbsp;<B>Mapping Service Status:<B>
 </td>
 <td>
 <input id=btnRefresh type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED
- onmouseover='javascript:this.className="btnUP";' value="刷新" onclick="javascript:mapped_info();">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:mapped_info();">
 &nbsp;
 <input id=btnStart type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED
- onmouseover='javascript:this.className="btnUP";' value="启动" onclick="javascript:mapped_start();">
+ onmouseover='javascript:this.className="btnUP";' value="Start" onclick="javascript:mapped_start();">
 <input id=btnStop type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="停止" onclick="javascript:mapped_stop();"> 
+ onmouseover='javascript:this.className="btnUP";' value="Stop" onclick="javascript:mapped_stop();"> 
 </td><tr>
 
 <tr>
 <td colspan=2>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<span id=lblStatus><font color=red>●</font>服务停止运行</span>
+<span id=lblStatus><font color=red>鈼�</font>Service stopped</span>
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-服务开始运行时间 <span id=lblRuntime>YYYY年MM月DD日 hh:mm:ss</span>
+Service Start Time <span id=lblRuntime>YYYY-MM-DD hh:mm:ss</span>
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-当前共 <span id=lblConnected>0</span> 个连接本映射服务<br>
+Currently <span id=lblConnected>0</span> connection(s) to this service<br>
 <br>
 </td></tr>
 
 <tr bgcolor="#e5e5e5" height=25px>
 <td>
-&nbsp;<B>映射服务信息:<B>
+&nbsp;<B>Mapping Service Info:<B>
 </td>
 <td>
 <input id=btnSave type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="新增修改" onclick="javascript:mapped_save();">
+ onmouseover='javascript:this.className="btnUP";' value="Add/Edit" onclick="javascript:mapped_save();">
 <input id=btnDele type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";'  
- onmouseover='javascript:this.className="btnUP";' value="删 除" onclick="javascript:mapped_dele();">
+ onmouseover='javascript:this.className="btnUP";' value="Delete" onclick="javascript:mapped_dele();">
 </td><tr>
 
 <tr>
 <td colspan=2>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-应用服务地址:<input id=lblAppIP type=text class="txtInput_b" > 
+App Service Address:<input id=lblAppIP type=text class="txtInput_b" > 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-应用服务端口:<input id=lblAppPort type=text class="txtInput_b" >
+App Service Port:<input id=lblAppPort type=text class="txtInput_b" >
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-应用服务描述:<input id=lblAppDesc type=text class="txtInput_b" style="width:395px" MAXLENGTH=50>
+App Service Description:<input id=lblAppDesc type=text class="txtInput_b" style="width:395px" MAXLENGTH=50>
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-应用服务类型:<input type=radio value="UNK" name=apptype id=apptype0 checked>自动检测
-<input type=radio value="TCP" name=apptype id=apptype1 >普通TCP服务
-<input type=radio value="WWW" name=apptype id=apptype2 >WWW服务
-<input type=radio value="FTP" name=apptype id=apptype3 >FTP服务
+App Service Type:<input type=radio value="UNK" name=apptype id=apptype0 checked>Auto Detect
+<input type=radio value="TCP" name=apptype id=apptype1 >Regular TCP
+<input type=radio value="WWW" name=apptype id=apptype2 >WWW Service
+<input type=radio value="FTP" name=apptype id=apptype3 >FTP Service
 <br>
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-本地映射端口:<input id=lblMapport name=mapport type=text class="txtInput_b"> 
+Local Mapped Port:<input id=lblMapport name=mapport type=text class="txtInput_b"> 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-绑定本地 IP:<select id=selMapip name=selMapip ><option value="" selected>(全部未分配)</option></select>
+Bind Local IP:<select id=selMapip name=selMapip ><option value="" selected>(All unassigned)</option></select>
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-注:<font color=blue>映射端口如果设为0则自动分配,如果本机有多个IP可将映射服务绑定到指定的IP</font>
+Note: <font color=blue>Setting mapped port to 0 auto-assigns it. If the host has multiple IPs, you can bind the mapping to a specific IP.</font>
 <br>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-SSL服务转换:
-<input type=radio value=0 name=ssltype id=ssltype0 checked onclick="javascript:ssltype_sel();">不进行转换
-<input type=radio value=1 name=ssltype id=ssltype1 onclick="javascript:ssltype_sel();">转换为SSL加密服务
-<input type=radio value=2 name=ssltype id=ssltype2 onclick="javascript:ssltype_sel();">转换为非SSL加密服务
+SSL Conversion:
+<input type=radio value=0 name=ssltype id=ssltype0 checked onclick="javascript:ssltype_sel();">No conversion
+<input type=radio value=1 name=ssltype id=ssltype1 onclick="javascript:ssltype_sel();">Convert to SSL
+<input type=radio value=2 name=ssltype id=ssltype2 onclick="javascript:ssltype_sel();">Convert to non-SSL
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-注:<font color=blue>此选项可将SSL加密应用服务转换为普通服务,将普通服务转换为SSL加密服务</font><br>
+Note: <font color=blue>This option converts SSL-encrypted app services to regular or converts regular services to SSL.</font><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-SSL证书验证:<input type=radio value=0 name=sslverify id=sslverify0 checked disabled>不启用客户端证书验证
+SSL Certificate Verification:<input type=radio value=0 name=sslverify id=sslverify0 checked disabled>Disable client cert verification
 &nbsp;&nbsp;&nbsp;&nbsp;
-<input type=radio value=1 name=sslverify id=sslverify1 disabled>启用客户端证书验证
+<input type=radio value=1 name=sslverify id=sslverify1 disabled>Enable client cert verification
 <input type=hidden value="" name=clicert id=clicert>
 <br><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-最大并发连接:<input id=lblMaxconn type=text class="txtInput_b" > 
+Max Connections:<input id=lblMaxconn type=text class="txtInput_b" > 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-最大带宽限制:<input id=lblMaxratio type=text class="txtInput_b" style="width:100px">KB/s (0则不限制)
+Max Bandwidth:<input id=lblMaxratio type=text class="txtInput_b" style="width:100px">KB/s (0=unlimited)
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-映射服务名称:<input id=lblMapname type=text class="txtInput_b" MAXLENGTH=20>
+Service Name:<input id=lblMapname type=text class="txtInput_b" MAXLENGTH=20>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type=checkbox value=1 name=autorun id=chkAutorun >&nbsp;程序运行自动启动本映射服务
+<input type=checkbox value=1 name=autorun id=chkAutorun >&nbsp;Auto-start this mapping service on program launch
 <br><br>
 </td></tr>
 
 <tr bgcolor="#e5e5e5" height=25px>
 <td>
-&nbsp;<B>映射服务过滤:<B>
+&nbsp;<B>IP Filter:<B>
 </td>
 <td>&nbsp;
 </td><tr>
@@ -124,21 +124,21 @@ SSL证书验证:<input type=radio value=0 name=sslverify id=sslverify0 checked disab
 <tr>
 <td colspan=2>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-访问许可:
-<input type=radio value=1 name=chkIPAccess id=chkIPAccess1 checked>允许访问
-<input type=radio value=0 name=chkIPAccess id=chkIPAccess0 >禁止访问
+Access:
+<input type=radio value=1 name=chkIPAccess id=chkIPAccess1 checked>Allow
+<input type=radio value=0 name=chkIPAccess id=chkIPAccess0 >Deny
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-IP 地 址:<input id=lblIPAddr type=text class="txtInput_b" style="width:400px"> 
+IP Address:<input id=lblIPAddr type=text class="txtInput_b" style="width:400px"> 
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-注:可输入多个IP地址,IP地址之间以逗号分割.IP地址支持*通配符号.
+Note: Multiple IPs can be entered separated by commas. IP supports * wildcard.
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-例如: 192.168.0.12,192.169.1.*,192.166.*.5
+Example: 192.168.0.12,192.169.1.*,192.166.*.5
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-*仅用来匹配IP地址4段号码中的一个段.下列写法不支持192.168.1.1*
+* only matches one segment. The following format is not supported: 192.168.1.1*
 <br>
 </td></tr>
 

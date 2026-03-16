@@ -11,15 +11,15 @@ function disp_status(xmlobj)
 		document.getElementById("btnSet").disabled=true;
 		node=xmlobj.getElementsByTagName("ifssl");
 		if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="0")
-			document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>SSL¼ÓÃÜ·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
-		else	document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
+			document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>SSL encrypted service running... &nbsp;Port:"+port;
+		else	document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>Service running... &nbsp;Port:"+port;
 	}
 	else
 	{
 		document.getElementById("btnStart").disabled=false;
 		document.getElementById("btnStop").disabled=true;
 		document.getElementById("btnSet").disabled=false;
-		document.getElementById("lblStatus").innerHTML="<font color=red>¡ñ</font>·şÎñÍ£Ö¹ÔËĞĞ";
+		document.getElementById("lblStatus").innerHTML="<font color=red>â—</font>Service stopped";
 	}
 	node=xmlobj.getElementsByTagName("curtime");
 	if(node.length>0) document.getElementById("lblCurtime").innerText=(node.item(0).textContent || node.item(0).text);
@@ -107,8 +107,8 @@ function disp_vidcc_status(xmlobj)
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // ÅĞ¶Ï¶ÔÏó×´Ì¬
-		if (xmlHttp.status == 200) { // ĞÅÏ¢ÒÑ¾­³É¹¦·µ»Ø£¬¿ªÊ¼´¦ÀíĞÅÏ¢
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var vidccs=(xmlobj.getElementsByTagName("vidccs")[0] || null)
@@ -125,7 +125,7 @@ function processRequest()
 			var vidcc_stat_xml=(xmlobj.getElementsByTagName("vidcc_status")[0] || null)
 			if(vidcc_stat_xml!=null && vidcc_stat_xml.childNodes.length>0)
 				disp_vidcc_status(vidcc_stat_xml);
-            	} //else alert("ÇëÇóµÄÒ³ÃæÓĞÒì³£,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -162,13 +162,13 @@ function vidcs_stop()
 	xmlHttp.send( null );
 }
 
-//ÓĞĞ§ĞÔ¼ì²é
+// Input validation
 function chkvalid()
 {
 	var rets="";
 	if(document.getElementById("lblSvrport").value=="")
 	{
-		alert("ÇëÊäÈëvIDCs·şÎñµÄ¶Ë¿ÚºÅ,0ÓÉÏµÍ³×Ô¶¯·ÖÅä"); 
+		alert("Please enter vIDCs service port (0 for auto-assign)"); 
 		document.getElementById("lblSvrport").focus();
 		return "";
 	}else
@@ -188,13 +188,13 @@ function chkvalid()
 		var re=/^(((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),)*((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),?$/;
 		if(!re.test(s))
 		{
-			alert("ÇëÊäÈëÕıÈ·µÄIP¹ıÂËµØÖ·");
+			alert("Please enter a valid IP filter address");
 			return "";
 		}
 		if(document.getElementById("chkIPAccess1").checked==false && 
 		   document.getElementById("chkIPAccess0").checked==false )
 		{
-		   	alert("ÇëÉèÖÃIP¹ıÂËµÄ·ÃÎÊĞí¿É/½ûÖ¹");
+		   	alert("Please set IP filter access permission");
 		   	return "";
 		}
 		rets=rets+"&ipaddr="+document.getElementById("lblIPAddr").value;
@@ -264,7 +264,7 @@ function init_vidccinfo()
 	document.getElementById("vidccname").innerText="vidcc";
 	document.getElementById("vidccip").innerText="";
 	document.getElementById("lblVer").innerText="";
-	document.getElementById("lblConntime").innerText="YYYYÄêMMÔÂDDÈÕ hh:mm:ss";
+	document.getElementById("lblConntime").innerText="YYYY-MM-DD hh:mm:ss";
 	document.getElementById("lblDesc").innerText="";
 	if(infoXML.documentElement!=null)
 		infoXML.removeChild(infoXML.documentElement);

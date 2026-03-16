@@ -1,6 +1,6 @@
 <HTML>
-<HEAD><title>文件上载</title>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<HEAD><title>File Upload</title>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE="javascript">
@@ -9,16 +9,16 @@
 	var autoRefresh=0;
 	function processRatio() 
 	{
-		if (xmlRatio.readyState == 4) { // 判断对象状态
+		if (xmlRatio.readyState == 4) { // Check object state
 			if (xmlRatio.status == 200) 
-			{ // 信息已经成功返回，开始处理信息
+			{ // Data returned successfully, start processing
 				var xmlobj = xmlRatio.responseXML;
 				var node_ratio=xmlobj.getElementsByTagName("ratio");
 				var node_rbyte=xmlobj.getElementsByTagName("rbyte");
 				var node_abyte=xmlobj.getElementsByTagName("abyte");
 				var node_speed=xmlobj.getElementsByTagName("speed");
-				document.getElementById("lblRatio").innerText="上传进度: "+(node_ratio.item(0).textContent || node_ratio.item(0).text)+"  上传速度: "+(node_speed.item(0).textContent || node_speed.item(0).text);
-				document.getElementById("lblBytes").innerText="上传字节: "+(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  总字节数: "+(node_abyte.item(0).textContent || node_abyte.item(0).text);
+				document.getElementById("lblRatio").innerText="Upload Progress: "+(node_ratio.item(0).textContent || node_ratio.item(0).text)+"  Upload Speed: "+(node_speed.item(0).textContent || node_speed.item(0).text);
+				document.getElementById("lblBytes").innerText="Uploaded Bytes: "+(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  Total Bytes: "+(node_abyte.item(0).textContent || node_abyte.item(0).text);
 				if(autoRefresh>0) window.setTimeout("get_upratio()",autoRefresh);
             		}
         	}
@@ -33,17 +33,17 @@
 	
 	function processRequest() 
 	{
-		if (xmlHttp.readyState == 4) { // 判断对象状态
+		if (xmlHttp.readyState == 4) { // Check object state
 			autoRefresh=0;
 			if (xmlHttp.status == 200) 
-			{ // 信息已经成功返回，开始处理信息
-				if(!window.confirm("文件上载成功，是否继续上载"))
+			{ // Data returned successfully, start processing
+				if(!window.confirm("File uploaded successfully. Upload another file?"))
 				{
 					window.returnValue=1;
 					window.close();
 				}
             		}
-            		else alert("上传失败，status="+xmlHttp.status)
+            		else alert("Upload failed, status="+xmlHttp.status)
         	}
 	}
 	function window_onload()
@@ -61,7 +61,7 @@
     		}
 	}
 	
-	// 上传函数
+	// Upload function
 	function sendfile()
 	{
 		var ado_stream=false;
@@ -72,7 +72,7 @@
 		}
 		catch(e)
 		{
-			alert("不能创建ADODB.Stream对象，你的注册表可能设置禁用此对象!");
+			alert("Cannot create ADODB.Stream object. Your registry may have it disabled!");
 			return;
 		}
 		
@@ -91,7 +91,7 @@
 		}
 		catch(e)
 		{
-			alert("当前IE安全设置禁止通过域访问数据资源\r\n请将此选项设为启用或提示!");
+			alert("Current IE security settings prevent domain data resource access.\r\nPlease enable or allow this option!");
 			return;
 		}
 		
@@ -113,12 +113,12 @@
 <form name="form1" name="form1"  method="post" >
   &nbsp;<label id=lblRatio name=lblRatio></label><br>
   &nbsp;<label id=lblBytes name=lblBytes></label><br>
-  &nbsp;目的路径：<br>&nbsp;
+  &nbsp;Destination Path:<br>&nbsp;
   <input type="text" id=destpath name=destpath class="txtInput_b" value="">
-  <br>&nbsp;源文件：<br>&nbsp;
+  <br>&nbsp;Source File:<br>&nbsp;
   <input name="sourcefile" id="sourcefile" TYPE=FILE class="txtInput_b">
   <br><br><center>
-  <INPUT TYPE=button VALUE="文件上载" onclick="javascript:sendfile();">
+  <INPUT TYPE=button VALUE="Upload File" onclick="javascript:sendfile();">
   </center>
 </form>
 <br>

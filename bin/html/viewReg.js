@@ -2,8 +2,8 @@ var regpath="";
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
-		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var rkeys=(xmlobj.getElementsByTagName("regkeys")[0] || null)
@@ -23,7 +23,7 @@ function processRequest()
     					regitemXML.removeChild(regitemXML.documentElement);
 				regitemXML.appendChild(ritems);
     			}
-            	} //else alert("请求的页面有异常,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -65,7 +65,7 @@ function regkeyClick(tblElement)
 	
 	document.getElementById("lblRegKey").innerText=regkey;
 	document.getElementById("lblRegItem").innerText="";
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	var rkey=rpath+"\\"+regkey;
 	strEncode="listwhat=2&rkey="+rkey.replace(/&/g,"%26");
 	submitIt(strEncode,"/reglist");
@@ -82,7 +82,7 @@ function regkeyDblClick(tblElement)
 	document.getElementById("lblRegKey").innerText="";
 	document.getElementById("lblRegItem").innerText="";
 	regpath=rpath+"\\"+regkey;
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
 	submitIt(strEncode,"/reglist");
 }
@@ -103,21 +103,21 @@ function goup()
 	if(p!=-1)
 	{
 		regpath=rpath.substr(0,p);
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
     		strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
 		submitIt(strEncode,"/reglist");
 	}
-	else alert("到头了");
+	else alert("Reached the end");
 }
 
 function goto()
 {
 	var rpath=document.getElementById("lblRegPath").innerText;
-	var new_rpath=prompt("输入有效路径",rpath);
+	var new_rpath=prompt("Enter a valid path",rpath);
 	if(new_rpath!=null && new_rpath!="" )
 	{
 		regpath=new_rpath;
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
     		strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
 		submitIt(strEncode,"/reglist");
 	}
@@ -126,7 +126,7 @@ function goto()
 function refreshKey()
 {
 	regpath=document.getElementById("lblRegPath").innerText;
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=1&rkey="+regpath.replace(/&/g,"%26");
 	submitIt(strEncode,"/reglist");
 }
@@ -136,7 +136,7 @@ function refreshItem()
 	var regkey=document.getElementById("lblRegKey").innerText;
 	var rpath=document.getElementById("lblRegPath").innerText;
 	if(regkey!="") rpath=rpath+"\\"+regkey;
-	//对特殊字符&进行mime编码.replace(/&/g,"%26")
+	// MIME encode the special character & using .replace(/&/g,"%26")
 	strEncode="listwhat=2&rkey="+rpath.replace(/&/g,"%26");
 	submitIt(strEncode,"/reglist");
 }
@@ -146,10 +146,10 @@ function delKey()
 	var regkey=document.getElementById("lblRegKey").innerText;
 	var rpath=document.getElementById("lblRegPath").innerText;
 	if(regkey=="")
-		alert("请选择要删除的子键!");
-	else if( confirm("确信删除子键 "+regkey+"?") )
+		alert("Please select a subkey to delete!");
+	else if( confirm("Are you sure you want to delete subkey "+regkey+"?") )
 	{
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="rpath="+rpath.replace(/&/g,"%26")+"&rkey="+regkey.replace(/&/g,"%26");
 		submitIt(strEncode,"/regkey_del");
 	}
@@ -158,10 +158,10 @@ function delKey()
 function addKey()
 {
 	var rpath=document.getElementById("lblRegPath").innerText;
-	var regkey=prompt("输入子键名","");
+	var regkey=prompt("Enter subkey name","");
 	if(regkey!=null && regkey!="" )
 	{
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		strEncode="rpath="+rpath.replace(/&/g,"%26")+"&rkey="+regkey.replace(/&/g,"%26");
 		submitIt(strEncode,"/regkey_add");
 	}
@@ -173,14 +173,14 @@ function delItem()
 {
 	var regitem=document.getElementById("lblRegItem").innerText;
 	if(regitem=="")
-		alert("请选择要删除的项目!");
+		alert("Please select an item to delete!");
 	else
 	{
 		var regkey=document.getElementById("lblRegKey").innerText;
 		var rpath=document.getElementById("lblRegPath").innerText;
-		if( confirm("确信删除子键 "+regkey+" 下的 "+regitem+" 项目?") )
+		if( confirm("Are you sure you want to delete item "+regitem+" under subkey "+regkey+"?") )
 		{
-			//对特殊字符&进行mime编码.replace(/&/g,"%26")
+			// MIME encode the special character & using .replace(/&/g,"%26")
 			if(regkey!="")
 			{
 				var rtmp=rpath+"\\"+regkey;
@@ -201,7 +201,7 @@ function addItem()
 	{
 		var regkey=document.getElementById("lblRegKey").innerText;
 		var rpath=document.getElementById("lblRegPath").innerText;
-		//对特殊字符&进行mime编码.replace(/&/g,"%26")
+		// MIME encode the special character & using .replace(/&/g,"%26")
 		if(regkey!="")
 		{
 			var rtmp=rpath+"\\"+regkey;
@@ -229,7 +229,7 @@ function keypress(txtElement)
 			var regkey=document.getElementById("lblRegKey").innerText;
 			var rpath=document.getElementById("lblRegPath").innerText;
 			var strEncode="";
-			//对特殊字符&进行mime编码.replace(/&/g,"%26")
+			// MIME encode the special character & using .replace(/&/g,"%26")
 			if(regkey!="")
 			{
 				var rtmp=rpath+"\\"+regkey;
@@ -270,7 +270,7 @@ function modifyItem(txtElement)
 		txtElement.value=regitemXML.recordset("rdata");
 		txtElement.className="txtInput_normal";
 		txtElement.readOnly=false;
-		document.getElementById("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
+		document.getElementById("lblHelp").innerHTML="(<font color=red>Press Ctrl+Enter to save changes</font>)"
 	}
 }
 

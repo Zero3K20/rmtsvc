@@ -3,9 +3,9 @@ var spath="";
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
+	if (xmlHttp.readyState == 4) { // Check object state
 		if (xmlHttp.status == 200) 
-		{ // 信息已经成功返回，开始处理信息
+		{ // Data returned successfully, start processing
 			var xmlobj = xmlHttp.responseXML;
 			var node = xmlobj.getElementsByTagName("fname");
 			if(node.length>0)
@@ -49,9 +49,9 @@ function processRequest()
 
 function processRequest_ver() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
+	if (xmlHttp.readyState == 4) { // Check object state
 		if (xmlHttp.status == 200) 
-		{ // 信息已经成功返回，开始处理信息
+		{ // Data returned successfully, start processing
 			var xmlobj = xmlHttp.responseXML;
 			var node = xmlobj.getElementsByTagName("FileVer");
 			if(node.length>0)

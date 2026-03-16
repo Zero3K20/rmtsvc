@@ -8,11 +8,11 @@ function disp_vidcsinfo(xmlobj)
 	var node=xmlobj.getElementsByTagName("connected");
 	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 	{
-		document.getElementById("btnConn_vidcs").value="∂œø™";
-		document.getElementById("lblStatus").innerHTML="<font color=green>°Ò</font>“—¡¨Ω”¥ÀvIDCs∑˛ŒÒ";
+		document.getElementById("btnConn_vidcs").value="Disconnect";
+		document.getElementById("lblStatus").innerHTML="<font color=green>‚óè</font>Connected to this vIDCs service";
 		node=xmlobj.getElementsByTagName("starttime");
 		if(node.length>0) document.getElementById("lblRuntime").innerText=(node.item(0).textContent || node.item(0).text);
-	}else	document.getElementById("btnConn_vidcs").value="¡¨Ω”";
+	}else	document.getElementById("btnConn_vidcs").value="Connect";
 	
 	
 	node=xmlobj.getElementsByTagName("vname");
@@ -64,8 +64,8 @@ function disp_maplist(xmlobj)
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // ≈–∂œ∂‘œÛ◊¥Ã¨
-		if (xmlHttp.status == 200) { // –≈œ¢“—æ≠≥…π¶∑µªÿ£¨ø™ º¥¶¿Ì–≈œ¢
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var vidcslist=(xmlobj.getElementsByTagName("vidcslist")[0] || null)
@@ -90,7 +90,7 @@ function processRequest()
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
 				alert((retmsg.item(0).textContent || retmsg.item(0).text));
-            	} //else alert("«Î«Ûµƒ“≥√Ê”–“Ï≥£,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -153,7 +153,7 @@ function vidcs_conn()
 	if(document.getElementById("tcpudp1").checked) stype="udp";
 	else if(document.getElementById("tcpudp2").checked) stype="proxy";
 	var vcmd="disconn";
-	if(document.getElementById("btnConn_vidcs").value=="¡¨Ω”") vcmd="connect";
+	if(document.getElementById("btnConn_vidcs").value=="Connect") vcmd="connect";
 	initinfo();
 	showPopup(250, 200, 150, 20);
 	xmlHttp.open("GET", "/mportR?cmd="+vcmd+"&vname="+vname+"&type="+stype, true);
@@ -195,7 +195,7 @@ function ssltype_sel()
 	document.getElementById("sslverify0").disabled=true;
 	document.getElementById("sslverify1").disabled=true;
 	var scert=document.getElementById("clicert").value;
-	var new_clicert=prompt("»Áπ˚”¶”√∑˛ŒÒ–Ë“™Ω¯––øÕªß÷§ È—È÷§,«Î‘⁄¥À ‰»ÎøÕªß∂À÷§ È(PEM∏Ò Ω)\r\n∏Ò Ω:<÷§ È>,<ÀΩ‘ø>,<√‹¬Î> ¿˝»Á: client.pem,client.key,1234",scert);
+	var new_clicert=prompt("If the app service requires client certificate verification, enter the client certificate (PEM format)\r\nFormat: <cert>,<key>,<password> Example: client.pem,client.key,1234",scert);
 	if(new_clicert!=null) document.getElementById("clicert").value=new_clicert;
 	}else{
 	document.getElementById("sslverify0").disabled=true;
@@ -211,13 +211,13 @@ function mapped_change(el)
 	else if(document.getElementById("tcpudp2").checked) stype="proxy";
 	initmapinfo();
 	if(el.selectedIndex==0){
-		document.getElementById("btnAdd").value="ÃÌº”";
+		document.getElementById("btnAdd").value="Add";
 		document.getElementById("lblMapname").disabled=false;
 		document.getElementById("btnMap").disabled=true;
 		document.getElementById("btnDel").disabled=true;
 		 return;
 	}else{
-		 document.getElementById("btnAdd").value="–ﬁ∏ƒ"; 
+		 document.getElementById("btnAdd").value="Edit"; 
 		 document.getElementById("lblMapname").disabled=true;
 	}
 	showPopup(250, 200, 150, 20);
@@ -231,7 +231,7 @@ function mapped_map()
 {
 	var oSelect=document.getElementById("selMapped");
 	if(oSelect.selectedIndex==0)
-		alert("«Î—°‘Ò“™”≥…‰µƒ∑˛ŒÒ!");
+		alert("Please select a service to map!");
 	else
 	{
 		var vname=vidcsXML.recordset("vname");
@@ -240,7 +240,7 @@ function mapped_map()
 		if(document.getElementById("tcpudp1").checked) stype="udp";
 		else if(document.getElementById("tcpudp2").checked) stype="proxy";
 		var scmd="unmap";
-		if(document.getElementById("btnMap").value=="”≥…‰") scmd="maped";
+		if(document.getElementById("btnMap").value=="Map") scmd="maped";
 		initmapinfo();
 		showPopup(250, 200, 150, 20);
 		xmlHttp.open("GET", "/mportR?cmd="+scmd+"&type="+stype+"&mapname="+mapname+"&vname="+vname, true);
@@ -255,9 +255,9 @@ function mapped_add()
 	if(strEncode=="") return;
 	var vname=vidcsXML.recordset("vname");
 	var mapname=document.getElementById("lblMapname").value;
-	if(document.getElementById("btnAdd").value=="–ﬁ∏ƒ"){
-		 if( !confirm("»∑–≈–ﬁ∏ƒ”≥…‰–≈œ¢ "+mapname+"?") ) return;
-	}else if( !confirm("»∑–≈ÃÌº””≥…‰–≈œ¢ "+mapname+"?") ) return;
+	if(document.getElementById("btnAdd").value=="Edit"){
+		 if( !confirm("Are you sure you want to edit mapping "+mapname+"?") ) return;
+	}else if( !confirm("Are you sure you want to add mapping "+mapname+"?") ) return;
 	
 	var stype="tcp";
 	if(document.getElementById("tcpudp1").checked) stype="udp";
@@ -274,8 +274,8 @@ function mapped_del()
 {
 	var oSelect=document.getElementById("selMapped");
 	if(oSelect.selectedIndex==0)
-		alert("«Î—°‘Ò“™…æ≥˝µƒ”≥…‰–≈œ¢!");
-	else if(confirm("»∑–≈…æ≥˝”≥…‰ "+oSelect[oSelect.selectedIndex].value+"?"))
+		alert("Please select a mapping to delete!");
+	else if(confirm("Are you sure you want to delete mapping "+oSelect[oSelect.selectedIndex].value+"?"))
 	{
 		var stype="tcp";
 		if(document.getElementById("tcpudp1").checked) stype="udp";
@@ -295,14 +295,14 @@ function initinfo()
 	document.getElementById("btnConn_vidcs").disabled=true;
 	document.getElementById("btnMod_vidcs").disabled=true;
 	document.getElementById("btnDel_vidcs").disabled=true;
-	document.getElementById("btnConn_vidcs").value="¡¨Ω”";
+	document.getElementById("btnConn_vidcs").value="Connect";
 	
 	document.getElementById("lblName").innerText="vIDCs";
 	document.getElementById("vidcsip").innerText="";
 	document.getElementById("vidcsport").innerText="";
 	
-	document.getElementById("lblStatus").innerHTML="<font color=red>°Ò</font>Œ¥¡¨Ω”¥ÀvIDCs∑˛ŒÒ";
-	document.getElementById("lblRuntime").innerText="YYYYƒÍMM‘¬DD»’ hh:mm:ss";
+	document.getElementById("lblStatus").innerHTML="<font color=red>‚óè</font>Not connected to this vIDCs service";
+	document.getElementById("lblRuntime").innerText="YYYY-MM-DD hh:mm:ss";
 	
 	document.getElementById("tcpudp0").disabled=true;
 	document.getElementById("tcpudp1").disabled=true;
@@ -310,8 +310,8 @@ function initinfo()
 	document.getElementById("btnDel").disabled=true;
 	document.getElementById("btnAdd").disabled=true;
 	document.getElementById("btnMap").disabled=true;
-	document.getElementById("btnMap").value="”≥…‰";
-	document.getElementById("btnAdd").value="ÃÌº”";
+	document.getElementById("btnMap").value="Map";
+	document.getElementById("btnAdd").value="Add";
 	
 	var oSelect=document.getElementById("selMapped");
 	for(i=oSelect.options.length;i>1;i--) oSelect.options.remove(i-1);
@@ -321,7 +321,7 @@ function initinfo()
 
 function initmapinfo()
 {	
-	document.getElementById("lblmapped").innerHTML="<font color=red>°Ò</font>Œ¥”≥…‰µΩ‘∂≥ÃvIDCs";
+	document.getElementById("lblmapped").innerHTML="<font color=red>‚óè</font>Not mapped to remote vIDCs";
 	document.getElementById("lblAppIP").value="";
 	document.getElementById("lblAppPort").value="";
 	document.getElementById("lblAppDesc").value="";
@@ -403,20 +403,20 @@ function clkAuth(e)
 	}
 }
 
-//”––ß–‘ºÏ≤È
+// Input validation
 function chkvalid()
 {
 	var rets="";
 	var mapname=document.getElementById("lblMapname").value;
 	var re_mapname=/^\w{1,20}$/;
 	if( !re_mapname.test(mapname) ){
-		alert("”≥…‰∑˛ŒÒ√˚≥∆≤ªƒ‹Œ™ø’«“◊Ó∂‡20∏ˆ◊÷∑˚\r\n÷ªƒ‹∞¸∫¨œ¬¡–◊÷ƒ∏ A-Za-z0-9_");
+		alert("Service name cannot be empty and must be max 20 characters\r\nOnly A-Za-z0-9_ are allowed");
 		document.getElementById("lblMapname").focus();
 		return "";
 	}else rets="mapname="+mapname;
 	
 	if(document.getElementById("tcpudp2").checked)
-	{//ƒ⁄Õ¯¥˙¿Ì
+	{// Internal proxy
 		var svrtype=0;
 		if(document.getElementById("svrtype0").checked)
 			svrtype=svrtype+1;
@@ -429,24 +429,24 @@ function chkvalid()
 		{
 			if(document.getElementById("authuser").value=="" &&  document.getElementById("authpswd").value=="")
 			{
-				alert("¥˙¿Ì∑√Œ ’ ∫≈∫Õ√‹¬Î≤ª–Ì∂ºŒ™ø’"); 
+				alert("Proxy username and password cannot both be empty"); 
 				document.getElementById("authuser").focus();
 				return "";
 			}
 			rets=rets+"&bauth=1&&authuser="+document.getElementById("authuser").value+"&authpswd="+document.getElementById("authpswd").value;
 		}else rets=rets+"&bauth=0";
-		rets=rets+"&appdesc=ƒ⁄Õ¯¥˙¿Ì";
+		rets=rets+"&appdesc=InternalProxy";
 	}
 	else
-	{//∆’Õ®tcp/udp”¶”√∑˛ŒÒ”≥…‰
+	{// Regular tcp/udp app service mapping
 		var sip=document.getElementById("lblAppIP").value;
 		var sport=document.getElementById("lblAppPort").value;
 		if(sport!="") sip=sip+":"+sport;
-		//ø… ‰»Î∂‡∏ˆ”¶”√∑˛ŒÒµÿ÷∑£¨∏Ò Ωaaa.bb.cc:ddd,aaa1.bb1.cc1:dddd
+		// Multiple app service addresses can be entered, format: aaa.bb.cc:ddd,aaa1.bb1.cc1:dddd
 		var re_sip=/^((\w+.?)+:\d+,?)+$/;
 		if( !re_sip.test(sip) )
 		{
-			alert("“™”≥…‰µ√”¶”√∑˛ŒÒµÿ÷∑∫Õ∂Àø⁄ ‰»Î≤ª’˝»∑"); 
+			alert("Invalid app service address and port"); 
 			document.getElementById("lblAppIP").focus();
 			return "";
 		}else rets=rets+"&appsvr="+sip;
@@ -454,7 +454,7 @@ function chkvalid()
 		var re_desc=/^[^&]*$/;
 		if(!re_desc.test(appdesc))
 		{
-			alert("√Ë ˆ÷–≤ª‘ –Ì∞¸∫¨&◊÷∑˚");
+			alert("Description cannot contain & character");
 			document.getElementById("lblAppDesc").focus();
 			return "";
 		}else rets=rets+"&appdesc="+appdesc;
@@ -464,7 +464,7 @@ function chkvalid()
 	var re_mport=/^\d*-?\d*$/;
 	if(!re_mport.test(mport))
 	{
-		alert("«Î ‰»Î∫œ∑®µƒ”≥…‰∂Àø⁄");
+		alert("Please enter a valid mapping port");
 		document.getElementById("lblMapport").focus();
 		return "";
 	}else rets=rets+"&mport="+mport;
@@ -512,13 +512,13 @@ function chkvalid()
 		var re=/^(((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),)*((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),?$/;
 		if(!re.test(s))
 		{
-			alert("«Î ‰»Î’˝»∑µƒIPπ˝¬Àµÿ÷∑");
+			alert("Please enter a valid IP filter address");
 			return "";
 		}
 		if(document.getElementById("chkIPAccess1").checked==false && 
 		   document.getElementById("chkIPAccess0").checked==false )
 		{
-		   	alert("«Î…Ë÷√IPπ˝¬Àµƒ∑√Œ –Ìø…/Ω˚÷π");
+		   	alert("Please set IP filter access permission");
 		   	return "";
 		}
 		rets=rets+"&ipaddr="+document.getElementById("lblIPAddr").value;
@@ -541,22 +541,22 @@ function disp_mapinfo(xmlobj)
 		node=xmlobj.getElementsByTagName("ifssl");
 		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
-			var s="&nbsp;(SSL - Œﬁ–ËøÕªß÷§ È—È÷§)";
+			var s="&nbsp;(SSL - no client certificate required)";
 			node=xmlobj.getElementsByTagName("ifsslv");
-			if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") s="&nbsp;(SSL - –ËøÕªß÷§ È—È÷§)";
-			document.getElementById("lblmapped").innerHTML="<font color=green>°Ò</font>”≥…‰µΩvIDCs...&nbsp;∂Àø⁄:"+mapped_port+s;
+			if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") s="&nbsp;(SSL - client certificate required)";
+			document.getElementById("lblmapped").innerHTML="<font color=green>‚óè</font>Mapped to vIDCs...&nbsp;Port:"+mapped_port+s;
 		}
-		else	document.getElementById("lblmapped").innerHTML="<font color=green>°Ò</font>”≥…‰µΩvIDCs...&nbsp;∂Àø⁄:"+mapped_port;
-		document.getElementById("btnMap").value="»°œ˚";
+		else	document.getElementById("lblmapped").innerHTML="<font color=green>‚óè</font>Mapped to vIDCs...&nbsp;Port:"+mapped_port;
+		document.getElementById("btnMap").value="Cancel";
 		document.getElementById("btnAdd").disabled=true;
 		document.getElementById("btnDel").disabled=true;
 	}else{
-		document.getElementById("lblmapped").innerHTML="<font color=red>°Ò</font>Œ¥”≥…‰µΩ‘∂≥ÃvIDCs";
-		document.getElementById("btnMap").value="”≥…‰";
+		document.getElementById("lblmapped").innerHTML="<font color=red>‚óè</font>Not mapped to remote vIDCs";
+		document.getElementById("btnMap").value="Map";
 		document.getElementById("btnAdd").disabled=false;
 		document.getElementById("btnDel").disabled=false;
 	}
-	if( document.getElementById("btnConn_vidcs").value=="¡¨Ω”" )
+	if( document.getElementById("btnConn_vidcs").value=="Connect" )
 		document.getElementById("btnMap").disabled=true;
 	
 	if(document.getElementById("tcpudp2").checked)

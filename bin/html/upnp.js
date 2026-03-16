@@ -2,13 +2,13 @@
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
-		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var sta=xmlobj.getElementsByTagName("status");
 			if(sta.length>0 && (sta.item(0).textContent || sta.item(0).text)=="1"){
-				document.getElementById("lblHelp").innerText="  正在查找中...";
+				document.getElementById("lblHelp").innerText="  Searching...";
 				document.getElementById("btnStop").disabled=false;
 			}else{
 				document.getElementById("lblHelp").innerText=" ";
@@ -22,7 +22,7 @@ function processRequest()
 			if(devname.length>0 && (devname.item(0).textContent || devname.item(0).text)!="")
 			{
 				var s=(devname.item(0).textContent || devname.item(0).text)+" / "+(devmacf.item(0).textContent || devmacf.item(0).text);
-				document.getElementById("lblDevName").innerHTML=s+"&nbsp;&nbsp;<a href=upnpxml target=_blank>详细信息</a>";
+				document.getElementById("lblDevName").innerHTML=s+"&nbsp;&nbsp;<a href=upnpxml target=_blank>Details</a>";
 			}
 			else
 				document.getElementById("lblDevName").innerHTML="";
@@ -38,7 +38,7 @@ function processRequest()
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
 				alert((retmsg.item(0).textContent || retmsg.item(0).text));
-            	} //else alert("请求的页面有异常,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }

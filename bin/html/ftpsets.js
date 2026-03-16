@@ -10,14 +10,14 @@ function disp_status(xmlobj)
 		document.getElementById("btnStop").disabled=false;
 		node=xmlobj.getElementsByTagName("ifssl");
 		if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="0")
-			document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>SSL¼ÓÃÜ·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
-		else	document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
+			document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>SSL encrypted service running... &nbsp;Port:"+port;
+		else	document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>Service running... &nbsp;Port:"+port;
 	}
 	else
 	{
 		document.getElementById("btnStart").disabled=false;
 		document.getElementById("btnStop").disabled=true;
-		document.getElementById("lblStatus").innerHTML="<font color=red>¡ñ</font>·şÎñÍ£Ö¹ÔËĞĞ";
+		document.getElementById("lblStatus").innerHTML="<font color=red>â—</font>Service stopped";
 	}
 	node=xmlobj.getElementsByTagName("curtime");
 	if(node.length>0) document.getElementById("lblCurtime").innerText=(node.item(0).textContent || node.item(0).text);
@@ -58,11 +58,11 @@ function disp_status(xmlobj)
 	node=xmlobj.getElementsByTagName("maxconn");
 	if(node.length>0 && (node.item(0).textContent || node.item(0).text)!=0) 
 		document.getElementById("lblMaxconn").value=(node.item(0).textContent || node.item(0).text);
-	else	document.getElementById("lblMaxconn").value="²»ÏŞ";
+	else	document.getElementById("lblMaxconn").value="Unlimited";
 	node=xmlobj.getElementsByTagName("dataport");
 	if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="0-0") 
 		document.getElementById("lblDataport").value=(node.item(0).textContent || node.item(0).text);
-	else	document.getElementById("lblDataport").value="²»ÏŞ";
+	else	document.getElementById("lblDataport").value="Unlimited";
 	var logevent=0;
 	node=xmlobj.getElementsByTagName("logging");
 	if(node.length>0) logevent=(node.item(0).textContent || node.item(0).text);
@@ -79,15 +79,15 @@ function disp_status(xmlobj)
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // ÅĞ¶Ï¶ÔÏó×´Ì¬
-		if (xmlHttp.status == 200) { // ĞÅÏ¢ÒÑ¾­³É¹¦·µ»Ø£¬¿ªÊ¼´¦ÀíĞÅÏ¢
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var stat_xml=(xmlobj.getElementsByTagName("ftp_status")[0] || null)
 			if(stat_xml!=null && stat_xml.childNodes.length>0)
 				disp_status(stat_xml);
 		
-            	} //else alert("ÇëÇóµÄÒ³ÃæÓĞÒì³£,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -123,13 +123,13 @@ function ftp_stop()
 	xmlHttp.send( null );
 }
 
-//ÓĞĞ§ĞÔ¼ì²é
+// Input validation
 function chkvalid()
 {
 	var rets="";
 	if(document.getElementById("lblSvrport").value=="")
 	{
-		alert("ÇëÊäÈëFTP·şÎñµÄ¶Ë¿ÚºÅ,0ÓÉÏµÍ³×Ô¶¯·ÖÅä"); 
+		alert("Please enter FTP service port number (0 for auto-assign)"); 
 		document.getElementById("lblSvrport").focus();
 		return "";
 	}else
@@ -141,10 +141,10 @@ function chkvalid()
 	if(document.getElementById("chkAutorun").checked)
 		rets=rets+"&autorun=1";
 	else	rets=rets+"&autorun=0";
-	if(document.getElementById("lblMaxconn").value=="²»ÏŞ")
+	if(document.getElementById("lblMaxconn").value=="Unlimited")
 		rets=rets+"&maxconn=0";
 	else	rets=rets+"&maxconn="+document.getElementById("lblMaxconn").value;
-	if(document.getElementById("lblDataport").value=="²»ÏŞ")
+	if(document.getElementById("lblDataport").value=="Unlimited")
 		rets=rets+"&dataport=0-0";
 	else rets=rets+"&dataport="+document.getElementById("lblDataport").value;
 	var logging=0;

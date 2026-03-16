@@ -49,15 +49,15 @@ function disp_status(xmlobj)
 		document.getElementById("btnSet").disabled=true;
 		node=xmlobj.getElementsByTagName("ifssl");
 		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
-			document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>SSL¼ÓÃÜ·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
-		else	document.getElementById("lblStatus").innerHTML="<font color=green>¡ñ</font>·şÎñÕıÔÚÔËĞĞ... &nbsp;¶Ë¿Ú:"+port;
+			document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>SSL encrypted service running... &nbsp;Port:"+port;
+		else	document.getElementById("lblStatus").innerHTML="<font color=green>â—</font>Service running... &nbsp;Port:"+port;
 	}
 	else
 	{
 		document.getElementById("btnStart").disabled=false;
 		document.getElementById("btnStop").disabled=true;
 		document.getElementById("btnSet").disabled=false;
-		document.getElementById("lblStatus").innerHTML="<font color=red>¡ñ</font>·şÎñÍ£Ö¹ÔËĞĞ";
+		document.getElementById("lblStatus").innerHTML="<font color=red>â—</font>Service stopped";
 	}
 	node=xmlobj.getElementsByTagName("curtime");
 	if(node.length>0) document.getElementById("lblCurtime").innerText=(node.item(0).textContent || node.item(0).text);
@@ -164,15 +164,15 @@ function disp_status(xmlobj)
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // ÅĞ¶Ï¶ÔÏó×´Ì¬
-		if (xmlHttp.status == 200) { // ĞÅÏ¢ÒÑ¾­³É¹¦·µ»Ø£¬¿ªÊ¼´¦ÀíĞÅÏ¢
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
 			var stat_xml=(xmlobj.getElementsByTagName("proxy_status")[0] || null)
 			if(stat_xml!=null && stat_xml.childNodes.length>0)
 				disp_status(stat_xml);
 		
-            	} //else alert("ÇëÇóµÄÒ³ÃæÓĞÒì³£,status="+xmlHttp.status);
+            	} //else alert("Request error,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -212,10 +212,10 @@ function isvalidInteger(s)
 {
 	var re=/^\d+$/;
 	if(re.test(s)) return true;
-	alert("ÇëÊäÈëºÏ·¨µÄ·şÎñ¶Ë¿Ú"); 
+	alert("Please enter a valid service port"); 
 	return false;
 }
-//ÓĞĞ§ĞÔ¼ì²é
+// Input validation
 function chkvalid()
 {
 	var rets="";
@@ -246,11 +246,11 @@ function chkvalid()
 		var sip=document.getElementById("casSvrIP").value;
 		var sport=document.getElementById("casSvrport").value;
 		if(sport!="") sip=sip+":"+sport;
-		//¿ÉÊäÈë¶à¸öÓ¦ÓÃ·şÎñµØÖ·£¬¸ñÊ½aaa.bb.cc:ddd,aaa1.bb1.cc1:dddd
+		// Multiple app service addresses can be entered, format: aaa.bb.cc:ddd,aaa1.bb1.cc1:dddd
 		var re_sip=/^((\w+.?)+:\d+,?)+$/;
 		if( !re_sip.test(sip) )
 		{
-			alert("¶ş¼¶´úÀí·şÎñµØÖ·ºÍ¶Ë¿ÚÊäÈë²»ÕıÈ·"); 
+			alert("Invalid cascaded proxy service address and port"); 
 			document.getElementById("casSvrIP").focus();
 			return "";
 		}else rets=rets+"&cassvrip="+sip;
@@ -268,7 +268,7 @@ function chkvalid()
 			if(document.getElementById("casuser").value=="" &&  
 		   	document.getElementById("caspswd").value=="")
 			{
-				alert("¶ş¼¶´úÀí·ÃÎÊÕÊºÅºÍÃÜÂë²»Ğí¶¼Îª¿Õ"); 
+				alert("Cascaded proxy username and password cannot both be empty"); 
 				document.getElementById("casuser").focus();
 				return "";
 			}
@@ -282,13 +282,13 @@ function chkvalid()
 		var re=/^(((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),)*((\d{1,3}|\*{1}).){3}(\d{1,3}|\*{1}),?$/;
 		if(!re.test(s))
 		{
-			alert("ÇëÊäÈëÕıÈ·µÄIP¹ıÂËµØÖ·");
+			alert("Please enter a valid IP filter address");
 			return "";
 		}
 		if(document.getElementById("chkIPAccess1").checked==false && 
 		   document.getElementById("chkIPAccess0").checked==false )
 		{
-		   	alert("ÇëÉèÖÃIP¹ıÂËµÄ·ÃÎÊĞí¿É/½ûÖ¹");
+		   	alert("Please set IP filter access permission");
 		   	return "";
 		}
 		rets=rets+"&ipaddr="+document.getElementById("lblIPAddr").value;

@@ -163,9 +163,9 @@ function setButtonStatus()
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // �ж϶���״̬
+	if (xmlHttp.readyState == 4) { // Check object state
 		if (xmlHttp.status == 200) 
-		{ // ��Ϣ�Ѿ��ɹ����أ���ʼ������Ϣ
+		{ 
 		//	alert(xmlHttp.responseText);
 			var xmlobj = xmlHttp.responseXML;
 			var quality = xmlobj.getElementsByTagName("quality");
@@ -183,8 +183,8 @@ function processRequest()
 
 function processRequestX() 
 {
-	if (xmlHttp.readyState == 4) { // �ж϶���״̬
-		if (xmlHttp.status == 200) { // ��Ϣ�Ѿ��ɹ����أ���ʼ������Ϣ
+	if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			
 			var xmlobj = xmlHttp.responseXML;
     			var retmsg=xmlobj.getElementsByTagName("retmsg");
@@ -194,7 +194,7 @@ function processRequestX()
 			if(dwurl.length>0)
     				window.open((dwurl.item(0).textContent || dwurl.item(0).text));
 			//refreshScreen();
-            	} //else alert("�����ҳ�����쳣,status="+xmlHttp.status);
+            	} //else alert("Request error, status="+xmlHttp.status);
         }
 }
 
@@ -227,7 +227,7 @@ function chkAuto_click(e)
 	var w=window.parent.frmView; 
 	if(e.checked)
 	{ 
-		var interval=prompt("���趨�Զ�ˢ�¼��,��Χ[300~8000]����",e.value);
+		var interval=prompt("Set auto-refresh interval, range [300~8000] ms",e.value);
 		if(interval<300 || interval>8000) interval=e.value;
 		w.autoRefresh=interval;
 		document.getElementById("lblInterval").innerText=interval+"ms";
@@ -244,7 +244,7 @@ function refreshScreen()
 	w.imgLoaded=true;
 	w.loadImg(); 
 }
-//�������ⰴ��
+
 function sendKey()
 {
 	var altk=document.getElementById("selCSA").value;
@@ -256,23 +256,23 @@ function sendKey()
 	
 }
 
-//���ü���������
+
 function SetClipBoard()
 {
 	var v=prompt("\u8bf7\u8f93\u5165\u8981\u8bbe\u7f6e\u5230\u526a\u8d34\u677f\u7684\u5185\u5bb9:","");
 	if(v!=null && v!="")
 	{
-		var v1=v.replace(/&/g,"%26"); //�������ַ�&����mime����
+		var v1=v.replace(/&/g,"%26"); 
 		var strEncode="val="+v1;
 		xmlHttp.open("POST", "/SetClipBoard", true);
 		xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
-//		xmlHttp.setRequestHeader("Content-Length",strEncode.length); //�˾�ɲ�Ҫ��������Զ�����
+
 		xmlHttp.onreadystatechange = processRequest;
 		xmlHttp.send(strEncode);
 	}
 }
 
-//��ü���������
+
 function GetClipBoard()
 {
 	window.open("/GetClipBoard","_blank","height=300,width=300,directories=no,location=no,menubar=no,status=no,toolbar=no");
@@ -280,7 +280,7 @@ function GetClipBoard()
 
 function RunProcess()
 {
-	var scmd=prompt("��������Iternet��Դ���ƻ���չ����,����Ϊ��Զ��ִ�л����","");
+	var scmd=prompt("Enter the application path or name", "");
 	if(scmd==null) return;
 	var strEncode="path="+scmd.replace(/&/g,"%26");
 	xmlHttp.open("POST","/file_run",true);

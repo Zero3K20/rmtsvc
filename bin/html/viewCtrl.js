@@ -1,6 +1,6 @@
-var autoRefresh=0; //自动刷新时间ms
-var imgLoaded=true;//屏幕捕获是否完成
-var loadTimes=500; //事件激活后延时刷新image时间ms
+var autoRefresh=0; // Auto-refresh interval in ms
+var imgLoaded=true; // Whether screen capture is done
+var loadTimes=500; // Delay in ms before refreshing image after event
 var ptX,ptY;
 var ptX_drag,ptY_drag;
 var timerID_key=0;
@@ -41,9 +41,9 @@ function window_onload()
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // 判断对象状态
+	if (xmlHttp.readyState == 4) { // Check object state
 		if (xmlHttp.status == 200) 
-		{ // 信息已经成功返回，开始处理信息
+		{ // Data returned successfully, start processing
 			if(loadTimes>0)
 				window.setTimeout(loadImg,loadTimes);
 			else loadImg();
@@ -126,7 +126,7 @@ function msdrop()
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
 	sendEvent("/msevent",param,false);
 }
-//获取鼠标按下事件，记录drag的起始点。 ondrag事件获取起始点不正确有偏移
+// Get mouse down event, record drag start point. ondrag event has offset issues
 function msdown()
 {
 	if(window.event.button==1)
@@ -136,11 +136,11 @@ function msdown()
 		ptY_drag=ptY;
 	}
 }
-//获取非左键的单击动作
+// Get non-left button click actions
 function msup()
 {
 	var b=window.event.button;
-	if(b==1) return; //去除左键单击
+	if(b==1) return; // Skip left button click
 	msPosition(window.event);
 	var altk=0;
 	if(window.event.ctrlKey) altk=altk | 1;

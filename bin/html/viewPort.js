@@ -13,11 +13,11 @@ function processClick(tblElement)
 	document.getElementById("lblProcess").innerText=" "+curPid;
 }
 
-//结束当前选中进程
+// Kill the currently selected process
 function pkill()
 {
 	var curPid=fportXML.recordset("pid");
-	if(curPid!=0 && confirm("确信结束进程"+curPid) )
+	if(curPid!=0 && confirm("Are you sure you want to kill process "+curPid) )
 	{
 		xmlHttp.open("GET", "/pkill?pid="+curPid, false);
     		xmlHttp.send(null);
@@ -33,14 +33,14 @@ function proFile()
 	var qx=parent.frmLeft.userQX;
 	var fpath=fportXML.recordset("pname");
 	if(fpath=="")
-		alert("请选择要查看属性的模块!");
+		alert("Please select a module to view properties!");
 	else
 	{
 		window.showModalDialog("proFile.htm",qx+","+fpath,"dialogHeight: 350px;dialogWidth: 400px;center: yes;resizable: no;scroll: no;status: no");
 	}
 }
 
-//----------------排序 func--------------------------
+//----------------sort func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
 try {

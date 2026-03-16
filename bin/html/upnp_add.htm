@@ -1,10 +1,10 @@
 <HTML>
 <HEAD><title>UPnP_add</title>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <script language="javascript">
-//有效性检查
+// Input validation
 function chkvalid()
 {
 	var rets="param=upnp ";
@@ -19,7 +19,7 @@ function chkvalid()
 	var re_sip=/^((\w+.?)+:\d+,?)+$/;
 	if( !re_sip.test(sip) )
 	{
-		alert("要映射得内网服务地址和端口输入不正确"); 
+		alert("Invalid internal service address and port"); 
 		document.getElementById("lblHost").focus();
 		return "";
 	}else rets=rets+"appsvr="+sip+" ";
@@ -29,7 +29,7 @@ function chkvalid()
 	var re_mport=/^\d*$/;
 	if(!re_mport.test(mport))
 	{
-		alert("请输入合法的映射端口");
+		alert("Please enter a valid mapping port");
 		document.getElementById("lblMapped").focus();
 		return "";
 	}else rets=rets+"mport="+mport+" ";
@@ -38,7 +38,7 @@ function chkvalid()
 	var re_desc=/^[^&]*$/;
 	if(!re_desc.test(appdesc))
 	{
-		alert("描述中不允许包含&字符");
+		alert("Description cannot contain & character");
 		document.getElementById("lblDesc").focus();
 		return "";
 	}else rets=rets+"appdesc=\""+appdesc+"\"\r\n";
@@ -62,28 +62,28 @@ function upnp_add()
 <br>
 <table WIDTH=100%  height=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <tr><td>&nbsp;
-协议类型: 
+Protocol Type: 
 <input type=radio value="TCP" name=ptype id=ptype0 checked>TCP
 &nbsp;
 <input type=radio value="UDP" name=ptype id=ptype1 >UDP
 </td></tr>
 <tr><td>&nbsp;
-内网地址: <input id=lblHost type=text class="txtInput_b" >
+Internal Address: <input id=lblHost type=text class="txtInput_b" >
 </td></tr>
 <tr><td>&nbsp;
-内网端口: <input id=lblPort type=text class="txtInput_b" >
+Internal Port: <input id=lblPort type=text class="txtInput_b" >
 </td></tr>
 <tr><td>&nbsp;
-映射端口: <input id=lblMapped type=text class="txtInput_b" >
+Mapped Port: <input id=lblMapped type=text class="txtInput_b" >
 </td></tr>
 <tr><td>&nbsp;
-服务描述: <input id=lblDesc type=text class="txtInput_b">
+Description: <input id=lblDesc type=text class="txtInput_b">
 </td></tr>
 <tr><td>
 <hr>
 </td></tr>
 <tr><td align=center>
-<input type=button  id=btnOK value="新 增" onclick="javascript:upnp_add();" >
+<input type=button  id=btnOK value="Add" onclick="javascript:upnp_add();" >
 </td></tr>
 <tr><td>&nbsp;</td></tr>
 </table>

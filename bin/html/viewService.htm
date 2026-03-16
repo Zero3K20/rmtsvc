@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <SCRIPT LANGUAGE=javascript src="viewService.js"></SCRIPT>
@@ -9,19 +9,19 @@
 <table WIDTH=100%  height=100% BORDER=1 CELLSPACING=0 CELLPADDING=0>
 <tr height=25px>
 <td  valign=middle>
-&nbsp;<b>服务列表</b>&nbsp;&nbsp;
+&nbsp;<b>Service List</b>&nbsp;&nbsp;
 <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="刷 新" onclick="javascript:slistXML.src='/slist';">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:slistXML.src='/slist';">
 <input id=btnStart type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="启 动" onclick="javascript:slistXML.src='/slist?cmd=run&sname='+curSname;">
+ onmouseover='javascript:this.className="btnUP";' value="Start" onclick="javascript:slistXML.src='/slist?cmd=run&sname='+curSname;">
 <input id=btnStop type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="停 止" onclick="javascript:slistXML.src='/slist?cmd=stop&sname='+curSname;">
+ onmouseover='javascript:this.className="btnUP";' value="Stop" onclick="javascript:slistXML.src='/slist?cmd=stop&sname='+curSname;">
 <input id=btnForbid type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="禁 用" onclick="javascript:slistXML.src='/slist?cmd=forbid&sname='+curSname;">
+ onmouseover='javascript:this.className="btnUP";' value="Disable" onclick="javascript:slistXML.src='/slist?cmd=forbid&sname='+curSname;">
 <input id=btnManual type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="手 动" onclick="javascript:slistXML.src='/slist?cmd=manual&sname='+curSname;">
+ onmouseover='javascript:this.className="btnUP";' value="Manual" onclick="javascript:slistXML.src='/slist?cmd=manual&sname='+curSname;">
 <input id=btnAuto type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' DISABLED 
- onmouseover='javascript:this.className="btnUP";' value="自 动" onclick="javascript:slistXML.src='/slist?cmd=auto&sname='+curSname;">
+ onmouseover='javascript:this.className="btnUP";' value="Auto" onclick="javascript:slistXML.src='/slist?cmd=auto&sname='+curSname;">
 &nbsp;&nbsp;<span id="lblService" name="lblService"></span>
 </td>
 </tr>
@@ -34,13 +34,13 @@
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px > &nbsp; </th>
- <th width=60px style="cursor:hand" onclick="sort('slistXML','slistStyle','status');"> <u>服务状态</u> </th>
- <th width=60px style="cursor:hand" onclick="sort('slistXML','slistStyle','rtype');"> <u>启动类别</u> </th>
- <th width=120px> 服务类型 </th>
- <th style="cursor:hand" onclick="sort('slistXML','slistStyle','sname');"> <u>服务名</u> </th>
- <th> 显示名称 </th>
- <th> 服务描述 </th>
- <th> 服务模块路径 </th>
+ <th width=60px style="cursor:hand" onclick="sort('slistXML','slistStyle','status');"> <u>Status</u> </th>
+ <th width=60px style="cursor:hand" onclick="sort('slistXML','slistStyle','rtype');"> <u>Start Type</u> </th>
+ <th width=120px> Service Type </th>
+ <th style="cursor:hand" onclick="sort('slistXML','slistStyle','sname');"> <u>Service Name</u> </th>
+ <th> Display Name </th>
+ <th> Description </th>
+ <th> Module Path </th>
  </tr><THEAD>
  <TBODY>
  <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 

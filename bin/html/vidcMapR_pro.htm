@@ -1,6 +1,6 @@
 <HTML>
-<HEAD><title>vIDCs属性</title>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=gb2312">
+<HEAD><title>vIDCs Properties</title>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
 <LINK REL="stylesheet" TYPE="text/css" HREF="style.css">
 <SCRIPT LANGUAGE=javascript src="common.js"></SCRIPT>
 <script language="javascript">
@@ -59,7 +59,7 @@ function mdProperty()
 	var re_sip=/^(\w+.?)+:\d+$/;
 	if( !re_sip.test(sip) )
 	{
-		alert("错误的vIDCs服务的地址或端口"); 
+		alert("Invalid vIDCs service address or port"); 
 		document.getElementById("lblHost").focus();
 		return;
 	}
@@ -80,25 +80,25 @@ function mdProperty()
 <br>
 <table datasrc="#profileXML"  WIDTH=100%  height=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <tr><td>&nbsp;
-名称/标签: <input id=lblName type=text class="txtInput_b" MAXLENGTH=40>
+Name/Label: <input id=lblName type=text class="txtInput_b" MAXLENGTH=40>
 </td></tr>
 <tr><td>&nbsp;
-vIDCs地址: <input id=lblHost type=text class="txtInput_b" >
+vIDCs Address: <input id=lblHost type=text class="txtInput_b" >
 </td></tr>
 <tr><td>&nbsp;
-vIDCs端口: <input id=lblPort type=text class="txtInput_b" >
+vIDCs Port: <input id=lblPort type=text class="txtInput_b" >
 </td></tr>
 <tr><td>&nbsp;
-访问 密码: <input id=lblPswd type=text class="txtInput_b" MAXLENGTH=20>
+Access Password: <input id=lblPswd type=text class="txtInput_b" MAXLENGTH=20>
 </td></tr>
 <tr><td>&nbsp;
-<input type=checkbox value=1 id=chkAutoconn >程序运行后是否自动连接本vIDCs
+<input type=checkbox value=1 id=chkAutoconn >Auto-connect to this vIDCs on startup
 </td></tr>
 <tr><td>
 <hr>
 </td></tr>
 <tr><td align=center>
-<input type=button  id=btnOK value="保 存" onclick="javascript:mdProperty();" disabled >
+<input type=button  id=btnOK value="Save" onclick="javascript:mdProperty();" disabled >
 </td></tr>
 <tr><td>&nbsp;</td></tr>
 </table>
