@@ -8,7 +8,7 @@
 
 #include "vidcManager.h"
 
-void getAbsolutfilepath(std::string &spath);
+void getAbsoluteFilePath(std::string &spath);
 
 vidcManager :: vidcManager()
 {
@@ -48,8 +48,8 @@ void vidcManager :: mtcpl_Start()
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
 			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL decryption service, set client certificate
 				std::string clicert=p->clicert,clikey=p->clikey;
-				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
-#ifdef _SURPPORT_OPENSSL_
+				getAbsoluteFilePath(clicert); getAbsoluteFilePath(clikey);
+#ifdef _SUPPORT_OPENSSL_
 				ptr_mtcp->setCacert(clicert.c_str(),clikey.c_str(),p->clikeypswd.c_str(),false,NULL,NULL);
 #endif
 			}
@@ -147,8 +147,8 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 			ptr_mtcp->rules().addRules_new(RULETYPE_TCP,p->ipaccess,p->ipRules.c_str());
 			if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR){ //SSL decryption service, set client certificate
 				std::string clicert=p->clicert,clikey=p->clikey;
-				getAbsolutfilepath(clicert); getAbsolutfilepath(clikey);
-#ifdef _SURPPORT_OPENSSL_
+				getAbsoluteFilePath(clicert); getAbsoluteFilePath(clikey);
+#ifdef _SUPPORT_OPENSSL_
 				ptr_mtcp->setCacert(clicert.c_str(),clikey.c_str(),p->clikeypswd.c_str(),false,NULL,NULL);
 #endif
 			}

@@ -45,10 +45,10 @@ void docmd_ssls(const char *strParam)
 		g_strCaCRL=(*it).second;
 	else g_strCaCRL="";
 	//yyc modify 2007-01-24
-	if(g_strMyCert!="") getAbsolutfilepath(g_strMyCert);
-	if(g_strMyKey!="") getAbsolutfilepath(g_strMyKey);
-	if(g_strCaCert!="") getAbsolutfilepath(g_strCaCert);
-	if(g_strCaCRL!="") getAbsolutfilepath(g_strCaCRL);
+	if(g_strMyCert!="") getAbsoluteFilePath(g_strMyCert);
+	if(g_strMyKey!="") getAbsoluteFilePath(g_strMyKey);
+	if(g_strCaCert!="") getAbsoluteFilePath(g_strCaCert);
+	if(g_strCaCRL!="") getAbsoluteFilePath(g_strCaCRL);
 }
 //*********************define global user-defined certificate parameters  end  ****************************************
 //start automatic monitoring
@@ -169,7 +169,7 @@ void MyService :: docmd_sets(const char *strParam)
 	{//setlogfile
 		if((*it).second!="" && (*it).second!="null")
 		{
-			getAbsolutfilepath((*it).second);
+			getAbsoluteFilePath((*it).second);
 			RW_LOG_SETFILE((long)(*it).second.c_str())
 		}
 	}

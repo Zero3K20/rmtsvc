@@ -434,7 +434,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 //addMSNC1 protocol头，thensendMSNC1message
 //Splitting Messages
 //When the content of the message between de binary header and footer is larger then 1202 characters 
-//(or 1352 in case of a Direct Connection), you should split the data in seperate parts and add a message header, 
+//(or 1352 in case of a Direct Connection), you should split the data in separate parts and add a message header, 
 //binary header and a binary footer to it. 
 unsigned long  cMsnc1 :: sendMSNC1(const char *ptr_msnp2p,long p2p_length)
 {

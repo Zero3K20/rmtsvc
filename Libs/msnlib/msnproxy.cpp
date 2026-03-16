@@ -19,7 +19,7 @@
 using namespace std;
 using namespace net4cpp21;
 
-#ifdef __SURPPORT_MSNPROXY__
+#ifdef __SUPPORT_MSNPROXY__
 
 #define MSN_PROXY_DATA		0
 #define MSN_PROXY_CONNECT	1

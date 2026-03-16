@@ -47,7 +47,7 @@
 #define DNS_RCODE_ERR_FORMAT 0x0100 //format error
 #define DNS_RCODE_ERR_DNS 0x0200 //DNS error
 #define DNS_RCODE_ERR_EXIST 0x0300 //domain name does not exist
-#define DNS_RCODE_ERR_SURPPORT 0x0400 //DNS does not support this type of query
+#define DNS_RCODE_ERR_SUPPORT 0x0400 //DNS does not support this type of query
 #define DNS_RCODE_ERR_REJECT 0x0500 //DNS rejected query
 
 //--------------constants here define the meaning of DNS_HEADER.flags bit masks for BIG-ENDIAN systems--------
@@ -68,7 +68,7 @@
 //#define DNS_RCODE_ERR_FORMAT 0x01 //format error
 //#define DNS_RCODE_ERR_DNS 0x02 //DNS error
 //#define DNS_RCODE_ERR_EXIST 0x03 //domain name does not exist
-//#define DNS_RCODE_ERR_SURPPORT 0x04 //DNS does not support this type of query
+//#define DNS_RCODE_ERR_SUPPORT 0x04 //DNS does not support this type of query
 //#define DNS_RCODE_ERR_REJECT 0x05 //DNS rejected query
 //-----------------------------------------------------------------------
 /* querytype Q_type

@@ -18,7 +18,7 @@
 #include "net4cpp21/include/httpsvr.h"
 #ifdef _DEBUG
 #pragma comment( lib, "libs/bin/net4cpp21_d" )
-#elif defined _SURPPORT_OPENSSL_
+#elif defined _SUPPORT_OPENSSL_
 #pragma comment( lib, "libs/bin/net4cpp21" )
 #else
 #pragma comment( lib, "libs/bin/net4cpp21_nossl" )
@@ -146,7 +146,7 @@ private:
 	//second.first - visitor account  second.second - visitor permissions
 	std::map<std::string,std::pair<std::string,long> > m_mapUsers;
 
-	bool m_bSSLenabled; //startSSLservice
+	bool m_bSSLenabled; //start SSL service
 	bool m_bSSLverify; //whether to perform client certificate authentication
 	//yyc add 2010-02-23 if account is configured in ini, anonymous access is not supported
 	bool m_bAnonymous; //whether to allow anonymous access, default is true
@@ -158,7 +158,7 @@ typedef struct _TaskTimer //scheduled task structure
 {
 	long h,m;//scheduled hour/minute, if interval task then h indicates the interval (seconds)
 	long type; //schedule type: 't'-poll interval (s) execution, 'd'-execute daily at scheduled time
-	long flag; //default0
+	long flag; //default: 0
 	std::string strTask; //scheduled task
 }TaskTimer;
 class sockEvent : public socketBase
@@ -172,7 +172,7 @@ public:
 class MyService : public CNTService 
 {
 	sockEvent m_hSockEvent; //used to close all blocked sockets in time when program exits
-	HANDLE m_hStop; //service stoppedEventobjecthandle
+	HANDLE m_hStop; //service stopped event object handle
 	HANDLE m_hStopEvent; //event for whether to allow stopping service via SCM or console
 						//if set, stop password, then create a named event based on stop password
 	bool m_bSpyself;//whether to monitor for self crash/abnormal exit
@@ -207,12 +207,12 @@ private:
 	void CreateStopEvent(const char *stop_pswd);
 	//overloaded function
 	virtual void	Run(DWORD argc, LPTSTR *argv); //service/program execution body
-	virtual void	Stop();//service stoppedhandle
+	virtual void	Stop();//service stopped handle
 	virtual void	Stop_Request();
-	virtual void	Shutdown(); //system shutdownhandle
+	virtual void	Shutdown(); //system shutdown handle
 
 };
 //convert a relative path to an absolute path
-extern void getAbsolutfilepath(std::string &spath);
+extern void getAbsoluteFilePath(std::string &spath);
 extern int splitString(const char *str,char delm,std::map<std::string,std::string> &maps);
 extern int splitString(const char *str,char delm,std::vector<std::string> &vec,int maxSplit);

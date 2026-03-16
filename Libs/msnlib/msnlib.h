@@ -15,12 +15,12 @@
 
 #include "msndef.h"
 
-#define __SURPPORT_MSNPROXY__
+#define __SUPPORT_MSNPROXY__
 namespace net4cpp21
 {
 	class msnMessager //MSN client object
 	{
-#ifdef __SURPPORT_MSNPROXY__
+#ifdef __SUPPORT_MSNPROXY__
 	public:
 		void *proxy_createConnection(HCHATSESSION hchat,socketTCP *psock,const char *host);
 //				std::vector<std::pair<HCHATSESSION,msnMessager *> > *pipes);

@@ -17,7 +17,7 @@
 #include "../utils/utils.h"
 #include "../include/cLogger.h"
 
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 #include "../utils/OTP.h"
 #endif
 
@@ -45,7 +45,7 @@ inline SOCKSRESULT response(socketTCP *psock,const char *buf,int buflen)
 
 void cFtpsvr :: docmd_authssl(socketTCP *psock)
 {
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	response(psock,RESPINFO_200OK,sizeof(RESPINFO_200OK)-1);
 	//yyc remove 2006-11-23 cFtpsvr object does not inherit from socketSSL
 //	psock->initSSL(true,(socketTCP *)this);
@@ -120,7 +120,7 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 		bAccess=true; 
 	else if(pswdmode==OTP_NONE)
 		bAccess=(strcmp(ftpa.m_userpwd.c_str(),strpwd)==0);
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	else //OTP_MD4orOTP_MD5encryption
 	{
 		OTP otps; const char *ptrmd=NULL;
@@ -535,7 +535,7 @@ void cFtpsvr :: docmd_pasv(socketTCP *psock,cFtpSession &clientSession)
 			response(psock,resp,sizeof(resp)-1);
 			return;
 		}
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		if(clientSession.m_sslMode=='P') //whether encrypted data transfer is specified
 			clientSession.m_datasock.initSSL(true,(socketTCP *)psock->parent() ); //yyc modify 2006-11-23
 #endif
@@ -584,7 +584,7 @@ void cFtpsvr :: docmd_port(socketTCP *psock,char *strParam,
 		else strParam++;
 	}//?while
 	clientSession.m_datasock.setRemoteInfo(ptrIP,iport);
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	if(clientSession.m_sslMode=='P') //whether encrypted data transfer is specified
 		clientSession.m_datasock.initSSL(true,(socketTCP *)psock->parent()); //yyc modify 2006-11-23
 #endif

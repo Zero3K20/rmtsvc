@@ -198,7 +198,7 @@ void ftpsvrEx :: docmd_sets(const char *strParam)
 //capwd=<private key password>    : password for the specified private key
 void ftpsvrEx :: docmd_ssls(const char *strParam)
 {
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	std::map<std::string,std::string> maps;
 	if(splitString(strParam,' ',maps)<=0) return;
 	std::string strCert,strKey,strPwd;
@@ -211,8 +211,8 @@ void ftpsvrEx :: docmd_ssls(const char *strParam)
 		strPwd=(*it).second;
 	if(strCert!="" && strKey!="")
 	{
-		getAbsolutfilepath(strCert);
-		getAbsolutfilepath(strKey);
+		getAbsoluteFilePath(strCert);
+		getAbsoluteFilePath(strKey);
 		setCacert(strCert.c_str(),strKey.c_str(),strPwd.c_str(),false); //use the user-specified certificate
 	}
 	else setCacert(NULL,NULL,NULL,true); //use the built-in certificate

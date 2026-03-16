@@ -66,7 +66,7 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 				ptr_TypingUser=tmpptr+2;
 //			else if(strcmp(pStart,"P2P-Dest")==0)
 //				ptr_P2pDest=tmpptr+2;
-#ifdef __SURPPORT_MSNPROXY__
+#ifdef __SUPPORT_MSNPROXY__
 			else if(strcmp(pStart,"MSN-Proxy")==0)
 				ptr_MSNProxy=tmpptr+2;
 #endif
@@ -91,7 +91,7 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 	else if(strncmp(ptr_ContentType,"text/plain",10)==0)
 	{//received a chat message
 		if(pBodyData==NULL) return 0;
-#ifdef __SURPPORT_MSNPROXY__
+#ifdef __SUPPORT_MSNPROXY__
 		if(ptr_MSNProxy)
 			onProxyChat((HCHATSESSION)pcon,ptr_MSNProxy,pBodyData,bodyDataLen);
 		else

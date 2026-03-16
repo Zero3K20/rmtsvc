@@ -308,7 +308,7 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 					other[other[0]+1]='\0'; other++; //other pointer to domain name
 					IPAddr=socketBase::Host2IP(other);
 				}else{
-					RW_LOG_DEBUG(0,"[ProxySvr] socks5-UDP : Not surpport Address Type\r\n");
+					RW_LOG_DEBUG(0,"[ProxySvr] socks5-UDP : Not support Address Type\r\n");
 					break; //unsupported address type
 				}
 				sockUdp.SetRemoteInfo(IPAddr,hostport);

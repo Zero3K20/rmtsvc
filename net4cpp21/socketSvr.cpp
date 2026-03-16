@@ -78,7 +78,7 @@ void socketSvr :: listenThread(socketSvr *psvr)
 {
 	if(psvr==NULL) return;
 	int svrPort=psvr->getLocalPort();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	RW_LOG_DEBUG("[socketSvr] %s%s has been started,port=%d\r\n",
 				psvr->m_strSvrname.c_str(),(psvr->ifSSL())?"(ssl)":"",svrPort);
 #else
@@ -128,7 +128,7 @@ void socketSvr :: doacceptTask(socketTCP *psock)
 {
 	if(psock==NULL) return;
 	socketSvr *psvr=(socketSvr *)psock->parent();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	if(psock->ifSSL()) psock->SSL_Associate();
 #endif
 	if(psvr){

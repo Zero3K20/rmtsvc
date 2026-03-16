@@ -26,7 +26,7 @@ typedef struct _TPROXYSETTINGS
 	bool bAuth; //whether the proxy service requires authentication
 	bool autorun;  //whether to auto-start proxy service on program start
 	bool bCascade; //whether to enable secondary/cascading proxy
-	std::string cassvrip; //secondary proxy serviceaddressandport
+	std::string cassvrip; //secondary proxy service address and port
 	int castype; //proxy type supported by the secondary proxy
 	bool casAuth; //whether secondary proxy requires authentication
 	std::string casuser; //account and password for accessing the secondary proxy

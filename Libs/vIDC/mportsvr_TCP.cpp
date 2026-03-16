@@ -37,7 +37,7 @@ private:
 mportTCP :: mportTCP()
 {
 	m_strSvrname="mapped-Server";
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		setCacert(NULL,NULL,NULL,true); //load built-in certificate by default
 #endif
 		
@@ -66,7 +66,7 @@ SOCKSRESULT mportTCP :: Start(const char *strMyCert,const char *strMyKey,const c
 					   const char *strCaCert,const char *strCaCRL) 
 {
 	if(this->status()==SOCKS_LISTEN) return this->getLocalPort();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	if(m_ssltype==TCPSVR_SSLSVR){ //convert plain TCP service to SSL-encrypted service
 		if(m_bSSLVerify)
 			setCacert(strMyCert,strMyKey,strKeypwd,false,strCaCert,strCaCRL); //use the user-specified certificateandCRL
@@ -80,7 +80,7 @@ SOCKSRESULT mportTCP :: Start(const char *strMyCert,const char *strMyKey,const c
 SOCKSRESULT mportTCP :: StartX() 
 {
 	if(this->status()==SOCKS_LISTEN) return this->getLocalPort();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	if(m_ssltype==TCPSVR_SSLSVR) //convert plain TCP service to SSL-encrypted service
 		this->initSSL(true,NULL);
 #endif
@@ -90,7 +90,7 @@ SOCKSRESULT mportTCP :: StartX()
 void mportTCP :: Stop()
 { 
 	Close();
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 	freeSSL();
 #endif
 	return;
@@ -121,7 +121,7 @@ void mportTCP :: setAppsvr(const char *appsvr,int apport,const char *appdesc,MPO
 			int hostport=apport;
 			if(ptr){ *(char *)ptr=0; hostport=atoi(ptr+1);}
 			if(hostport>0 && ptrBegin[0]!=0)
-			{ //secondary proxy serviceaddressandportvalid
+			{ //secondary proxy service address and port valid
 				std::pair<std::string,int> p(ptrBegin,hostport);
 				m_appSvr.push_back(p);
 			}
@@ -173,7 +173,7 @@ void mportTCP :: onAccept(socketTCP *psock)
 	RW_LOG_DEBUG("Success to connect Mapped server(%s)\r\n",strHost);
 	if(m_ssltype==SSLSVR_TCPSVR)
 	{//if application service is SSL-encrypted but mapped as plain service, load client certificate
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		ppeer->setCacert(this,true); //copy client certificate from server
 		ppeer->initSSL(false,NULL); //initializationSSLclient
 		if(!ppeer->SSL_Associate()){ 
@@ -412,7 +412,7 @@ void mportTCP :: xml_info_mtcp(cBuffer &buffer)
 	if(buffer.str()==NULL) return;
 	if(this->status()==SOCKS_LISTEN)
 	{
-#ifdef _SURPPORT_OPENSSL_
+#ifdef _SUPPORT_OPENSSL_
 		int bssl=((this->ifSSL())?1:0), bsslv=((this->ifSSLVerify())?1:0);
 #else
 		int bssl=0, bsslv=0;
