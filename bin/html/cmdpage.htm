@@ -9,9 +9,9 @@ function processRequest()
 {
 	if (xmlHttp.readyState == 4) {
 		if (xmlHttp.status == 200){
-			document.all("txtOutput").value=document.all("txtOutput").value+xmlHttp.responseText;
+			document.getElementById("txtOutput").value=document.getElementById("txtOutput").value+xmlHttp.responseText;
 			
-            	} //else alert("ÇëÇóµÄÒ³ÃæÓÐÒì³£,status="+xmlHttp.status);
+            	} //else alert("ï¿½ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ì³£,status="+xmlHttp.status);
             	hidePopup();
         }
 }
@@ -20,11 +20,11 @@ function window_onload()
 {
 	if(!oPopup) createpopup();   	
 	if(!xmlHttp) createXMLHttpRequest();
-	document.all("cmdInput").focus();
+	document.getElementById("cmdInput").focus();
 }
 function keypress(txtElement)
 {
-	var scmd=document.all("cmdInput").value;
+	var scmd=document.getElementById("cmdInput").value;
 	if(window.event.keyCode==13 && scmd!="")
 	{
 		window.event.keyCode=0;
@@ -36,7 +36,7 @@ function keypress(txtElement)
 }
 function clsOutput()
 {
-	document.all("txtOutput").value="";
+	document.getElementById("txtOutput").value="";
 }
 
 </SCRIPT>
@@ -46,14 +46,14 @@ function clsOutput()
 <table BORDER=0 CELLSPACING=0 CELLPADDING=0 align="center">
 <tr bgcolor="#e5e5e5" height=25px >
 <td width="80px">
-&nbsp;<B>ÊäÈëÃüÁî:<B>
+&nbsp;<B>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½:<B>
 </td>
 <td width=520px>
 <input id=cmdInput type="text" style="width:450px" onkeypress="javascript:keypress(this);">
 &nbsp;
 <input id=btnInput type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- title="Çå¿ÕÃüÁîÏìÓ¦Êä³öÄÚÈÝ" 
- onmouseover='javascript:this.className="btnUP";' value="Çå ¿Õ" onclick="javascript:clsOutput();">
+ title="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" 
+ onmouseover='javascript:this.className="btnUP";' value="ï¿½ï¿½ ï¿½ï¿½" onclick="javascript:clsOutput();">
 </td><tr>
 
 <tr>

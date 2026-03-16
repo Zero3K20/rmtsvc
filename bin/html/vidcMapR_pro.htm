@@ -15,7 +15,7 @@ function window_onload()
 		vidcsname=vidcsname.substr(p+1);
 	}
 	if((qx & ACCESS_VIDC_ADMIN)==ACCESS_VIDC_ADMIN)
-		document.all("btnOK").disabled=false;
+		document.getElementById("btnOK").disabled=false;
 	if(vidcsname!=""){
 		var vhost="";
 		var vport=0;
@@ -41,14 +41,14 @@ function window_onload()
 				}
 			}
 		}
-		 document.all("lblName").disabled=true;
-		 document.all("lblName").value=vidcsname; 
-		 document.all("lblHost").value=vhost;
-		 document.all("lblPort").value=vport;
-		 document.all("lblPswd").value=vpswd;
+		 document.getElementById("lblName").disabled=true;
+		 document.getElementById("lblName").value=vidcsname; 
+		 document.getElementById("lblHost").value=vhost;
+		 document.getElementById("lblPort").value=vport;
+		 document.getElementById("lblPswd").value=vpswd;
 		 if(vconn==1)
-		 	document.all("chkAutoconn").checked=true;
-		 else	document.all("chkAutoconn").checked=false;
+		 	document.getElementById("chkAutoconn").checked=true;
+		 else	document.getElementById("chkAutoconn").checked=false;
 	}
 }
 function mdProperty()
@@ -63,11 +63,11 @@ function mdProperty()
 		document.getElementById("lblHost").focus();
 		return;
 	}
-	var param="vname="+document.all("lblName").value;
-	param=param+"&vhost="+document.all("lblHost").value;
-	param=param+"&vport="+document.all("lblPort").value;
-	param=param+"&vpswd="+document.all("lblPswd").value;
-	if(document.all("chkAutoconn").checked)
+	var param="vname="+document.getElementById("lblName").value;
+	param=param+"&vhost="+document.getElementById("lblHost").value;
+	param=param+"&vport="+document.getElementById("lblPort").value;
+	param=param+"&vpswd="+document.getElementById("lblPswd").value;
+	if(document.getElementById("chkAutoconn").checked)
 		param=param+"&vconn=1";
 	else	param=param+"&vconn=0";
 	window.event.returnValue=false;

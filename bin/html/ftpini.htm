@@ -13,11 +13,11 @@ function processRequest()
 			var xmlobj = xmlHttp.responseXML;
 			var node=xmlobj.getElementsByTagName("settings");
 			if(node.length>0) 
-				document.getElementById("txtSetings").value=node.item(0).text;
+				document.getElementById("txtSetings").value=(node.item(0).textContent || node.item(0).text);
 			
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }

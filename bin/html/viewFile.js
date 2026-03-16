@@ -8,7 +8,7 @@ function processRequest()
 			
 			//alert(xmlHttp.responseText);
 			var xmlobj = xmlHttp.responseXML;
-			var flds=xmlobj.selectSingleNode("//folders")
+			var flds=(xmlobj.getElementsByTagName("folders")[0] || null)
 			if(flds!=null)
 			{
 				document.getElementById("lblFolderNum").innerText=flds.childNodes.length;
@@ -17,7 +17,7 @@ function processRequest()
 				if(flds.childNodes.length>0) folderXML.appendChild(flds);
 				document.getElementById("lblFilePath").innerText=filepath;
 			}
-			var fies=xmlobj.selectSingleNode("//files")
+			var fies=(xmlobj.getElementsByTagName("files")[0] || null)
 			if(fies!=null)
     			{
     				document.getElementById("lblFileNum").innerText=fies.childNodes.length;
@@ -27,7 +27,7 @@ function processRequest()
     			}
     			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
-				alert(retmsg.item(0).text);
+				alert((retmsg.item(0).textContent || retmsg.item(0).text));
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
             	hidePopup();
         }
@@ -54,12 +54,12 @@ function window_onload()
 	var qx=parent.frmLeft.userQX;
 	if((qx & ACCESS_FILE_ALL)==ACCESS_FILE_ALL)
 	{
-		document.all("fRenFolder").disabled=false;
-		document.all("fDelFolder").disabled=false;
-		document.all("fNewFolder").disabled=false;
-		document.all("fRunFile").disabled=false;
-		document.all("fDelFile").disabled=false;
-		document.all("fUpFile").disabled=false;
+		document.getElementById("fRenFolder").disabled=false;
+		document.getElementById("fDelFolder").disabled=false;
+		document.getElementById("fNewFolder").disabled=false;
+		document.getElementById("fRunFile").disabled=false;
+		document.getElementById("fDelFile").disabled=false;
+		document.getElementById("fUpFile").disabled=false;
 	}
 }
 
@@ -375,7 +375,7 @@ function proFolder()
 
 function keypress(txtElement)
 {
-	if(document.all("fUpFile").disabled) return;
+	if(document.getElementById("fUpFile").disabled) return;
 	if(window.event.keyCode==10 && window.event.ctrlKey)
 	{
 		var tblElement=txtElement.parentElement.parentElement;
@@ -405,11 +405,11 @@ function cancelModifyItem(txtElement)
 	txtElement.dataFld="fname";
 	txtElement.className="txtInput_none";
 	txtElement.readOnly=true;
-	document.all("lblHelp").innerHTML="";
+	document.getElementById("lblHelp").innerHTML="";
 }
 function modifyItem(txtElement)
 {
-	if(document.all("fUpFile").disabled) return;
+	if(document.getElementById("fUpFile").disabled) return;
 	if(txtElement.readOnly==false) return;
 	var tblElement=txtElement.parentElement.parentElement;
 	var row=tblElement.rowIndex;
@@ -418,13 +418,15 @@ function modifyItem(txtElement)
 	txtElement.value=fileXML.recordset("fname");
 	txtElement.className="txtInput_normal";
 	txtElement.readOnly=false;
-	document.all("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
+	document.getElementById("lblHelp").innerHTML="(<font color=red>按Ctrl+Enter键保存修改</font>)"
 }
 //----------------排序 func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
-var xmlData=eval("document.all."+xmlObj).XMLDocument;
-var xslData=eval("document.all."+xslObj).XMLDocument;
+try {
+var xmlData=document.getElementById(xmlObj) && document.getElementById(xmlObj).XMLDocument;
+var xslData=document.getElementById(xslObj) && document.getElementById(xslObj).XMLDocument;
+if(!xmlData || !xslData) return;
 var nodes=xslData.documentElement.selectSingleNode("xsl:for-each"); 
 var s=nodes.selectSingleNode("@order-by").value;
 if(s.substr(1)==sortByColName)
@@ -438,4 +440,5 @@ else
 nodes.selectSingleNode("@order-by").value=s;
 
 xmlData.documentElement.transformNodeToObject(xslData.documentElement,xmlData); 
+} catch(e) {} 
 } 

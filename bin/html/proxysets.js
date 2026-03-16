@@ -41,14 +41,14 @@ function disp_status(xmlobj)
 {
 	var node=xmlobj.getElementsByTagName("status");
 	var port=0;
-	if(node.length>0) port=node.item(0).text;
+	if(node.length>0) port=(node.item(0).textContent || node.item(0).text);
 	if(port>0)
 	{
 		document.getElementById("btnStart").disabled=true;
 		document.getElementById("btnStop").disabled=false;
 		document.getElementById("btnSet").disabled=true;
 		node=xmlobj.getElementsByTagName("ifssl");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 			document.getElementById("lblStatus").innerHTML="<font color=green>●</font>SSL加密服务正在运行... &nbsp;端口:"+port;
 		else	document.getElementById("lblStatus").innerHTML="<font color=green>●</font>服务正在运行... &nbsp;端口:"+port;
 	}
@@ -60,22 +60,22 @@ function disp_status(xmlobj)
 		document.getElementById("lblStatus").innerHTML="<font color=red>●</font>服务停止运行";
 	}
 	node=xmlobj.getElementsByTagName("curtime");
-	if(node.length>0) document.getElementById("lblCurtime").innerText=node.item(0).text;
+	if(node.length>0) document.getElementById("lblCurtime").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("starttime");
-	if(node.length>0) document.getElementById("lblRuntime").innerText=node.item(0).text;
+	if(node.length>0) document.getElementById("lblRuntime").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("connected");
-	if(node.length>0) document.getElementById("lblConnected").innerText=node.item(0).text;
+	if(node.length>0) document.getElementById("lblConnected").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("svrport");
-	if(node.length>0) document.getElementById("lblSvrport").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblSvrport").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("bindip");
 	var bindip="";
-	if(node.length>0) bindip=node.item(0).text;
+	if(node.length>0) bindip=(node.item(0).textContent || node.item(0).text);
 	var oSelect=document.getElementById("lblSvrip");
 	for(i=oSelect.options.length;i>1;i--) oSelect.options.remove(i-1);
 	node=xmlobj.getElementsByTagName("localip");
 	if(node.length>0)
 	{
-		var localip=node.item(0).text;
+		var localip=(node.item(0).textContent || node.item(0).text);
 		var ss=localip.split(" ");
 		for(i=0;i<ss.length;i++)
 		{
@@ -88,7 +88,7 @@ function disp_status(xmlobj)
 	}
 	var svrtype=0;
 	node=xmlobj.getElementsByTagName("svrtype");
-	if(node.length>0) svrtype=node.item(0).text;
+	if(node.length>0) svrtype=(node.item(0).textContent || node.item(0).text);
 	if(svrtype & 1)
 		document.getElementById("svrtype0").checked=true;
 	else	document.getElementById("svrtype0").checked=false;
@@ -100,26 +100,26 @@ function disp_status(xmlobj)
 	else	document.getElementById("svrtype2").checked=false;
 	
 	node=xmlobj.getElementsByTagName("bauth");
-	if(node.length>0 && node.item(0).text=="1")
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		document.getElementById("chkAuth").checked=true;
 	else document.getElementById("chkAuth").checked=false;
 	
 	node=xmlobj.getElementsByTagName("autorun");
-	if(node.length>0 && node.item(0).text=="1") 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") 
 		document.getElementById("chkAutorun").checked=true;
 	else	document.getElementById("chkAutorun").checked=false;
 	
 	node=xmlobj.getElementsByTagName("cascade");
-	if(node.length>0 && node.item(0).text=="1") 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1") 
 		document.getElementById("chkCascade").checked=true;
 	else	document.getElementById("chkCascade").checked=false;
 	node=xmlobj.getElementsByTagName("cassvrip");
-	if(node.length>0) document.getElementById("casSvrIP").value=node.item(0).text;
+	if(node.length>0) document.getElementById("casSvrIP").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("cassvrport");
-	if(node.length>0) document.getElementById("cassvrport").value=node.item(0).text;
+	if(node.length>0) document.getElementById("cassvrport").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("castype");
 	if(node.length>0) 
-		svrtype=node.item(0).text;
+		svrtype=(node.item(0).textContent || node.item(0).text);
 	else	svrtype=0;
 	if(svrtype & 1)
 		document.getElementById("castype0").checked=true;
@@ -131,27 +131,27 @@ function disp_status(xmlobj)
 		document.getElementById("castype2").checked=true;
 	else	document.getElementById("castype2").checked=false;
 	node=xmlobj.getElementsByTagName("casauth");
-	if(node.length>0 && node.item(0).text=="1")
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		document.getElementById("casAuth").checked=true;
 	else document.getElementById("casAuth").checked=false;
 	node=xmlobj.getElementsByTagName("casuser");
 	if(node.length>0)
-		document.getElementById("casuser").value=node.item(0).text;
+		document.getElementById("casuser").value=(node.item(0).textContent || node.item(0).text);
 	else	document.getElementById("casuser").value="";
 	node=xmlobj.getElementsByTagName("caspswd");
 	if(node.length>0)
-		document.getElementById("caspswd").value=node.item(0).text;
+		document.getElementById("caspswd").value=(node.item(0).textContent || node.item(0).text);
 	else	document.getElementById("caspswd").value="";
 	clkCasAuth(document.getElementById("chkAuth"));
 	clkCasecade(document.getElementById("chkCascade"));
 	
-	var ipfilter_xml=xmlobj.selectSingleNode("//ipfilter")
+	var ipfilter_xml=(xmlobj.getElementsByTagName("ipfilter")[0] || null)
 	if(ipfilter_xml!=null && ipfilter_xml.childNodes.length>0)
 	{
 		node=ipfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblIPAddr").value=node.item(0).text;
+		document.getElementById("lblIPAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=ipfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkIPAccess1").checked=true;
 			document.getElementById("chkIPAccess0").checked=false;
@@ -168,7 +168,7 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			
 			var xmlobj = xmlHttp.responseXML;
-			var stat_xml=xmlobj.selectSingleNode("//proxy_status")
+			var stat_xml=(xmlobj.getElementsByTagName("proxy_status")[0] || null)
 			if(stat_xml!=null && stat_xml.childNodes.length>0)
 				disp_status(stat_xml);
 		

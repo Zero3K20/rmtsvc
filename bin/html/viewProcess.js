@@ -12,17 +12,17 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			var xmlobj = xmlHttp.responseXML;
 			var nodes=xmlobj.getElementsByTagName("pcname");
-			document.all("lblName").innerText=nodes[0].firstChild.data;
+			document.getElementById("lblName").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("OS");
-			document.all("lblOS").innerText=nodes[0].firstChild.data;
+			document.getElementById("lblOS").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("CPU");
-			document.all("lblCPU").innerText=nodes[0].firstChild.data;
+			document.getElementById("lblCPU").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("status");
-			document.all("lblSta").innerText=nodes[0].firstChild.data;
+			document.getElementById("lblSta").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("account");
-			document.all("lblAccount").innerText=nodes[0].firstChild.data;
+			document.getElementById("lblAccount").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("pid");
-			document.all("lblProcess").innerText="pid:"+nodes[0].firstChild.data;
+			document.getElementById("lblProcess").innerText="pid:"+nodes[0].firstChild.data;
 			curPid=nodes[0].firstChild.data;
 			mlistXML.src="/mlist?pid="+curPid;
 			
@@ -72,7 +72,7 @@ function processClick(tblElement)
 	plistXML.recordset.absoluteposition=row;
 	curPid=plistXML.recordset("pid");
 	curPname=plistXML.recordset("pname");
-	document.all("lblProcess").innerText="pid:"+curPid+" - "+curPname;
+	document.getElementById("lblProcess").innerText="pid:"+curPid+" - "+curPname;
 	mlistXML.src="/mlist?pid="+plistXML.recordset("pid");
 }
 
@@ -82,7 +82,7 @@ function moduleClick(tblElement)
 	mlistXML.recordset.absoluteposition=row;
 	curHmdl=mlistXML.recordset("hmdl");
 	loadcount=mlistXML.recordset("usage");
-	document.all("lblModule").innerText=mlistXML.recordset("mname");
+	document.getElementById("lblModule").innerText=mlistXML.recordset("mname");
 }
 //结束当前选中进程
 function pkill()
@@ -125,8 +125,10 @@ function proFile()
 //----------------排序 func--------------------------
 function sort(xmlObj, xslObj, sortByColName) 
 { 
-var xmlData=eval("document.all."+xmlObj).XMLDocument;
-var xslData=eval("document.all."+xslObj).XMLDocument;
+try {
+var xmlData=document.getElementById(xmlObj) && document.getElementById(xmlObj).XMLDocument;
+var xslData=document.getElementById(xslObj) && document.getElementById(xslObj).XMLDocument;
+if(!xmlData || !xslData) return;
 var nodes=xslData.documentElement.selectSingleNode("xsl:for-each"); 
 var s=nodes.selectSingleNode("@order-by").value;
 if(s.substr(1)==sortByColName)
@@ -140,4 +142,5 @@ else
 nodes.selectSingleNode("@order-by").value=s;
 
 xmlData.documentElement.transformNodeToObject(xslData.documentElement,xmlData); 
+} catch(e) {} 
 } 

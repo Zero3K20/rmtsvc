@@ -7,25 +7,25 @@ function processRequest()
 			var xmlobj = xmlHttp.responseXML;
 			var node = xmlobj.getElementsByTagName("fname");
 			if(node.length>0)
-				document.all("fname").innerText=node.item(0).text;
+				document.getElementById("fname").innerText=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("ftype");
 			if(node.length>0)
-				document.all("ftype").innerText=node.item(0).text;
+				document.getElementById("ftype").innerText=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("fvolu");
 			if(node.length>0)
-				document.all("fvolu").value=node.item(0).text;
+				document.getElementById("fvolu").value=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("fsyst");
 			if(node.length>0)
-				document.all("fsyst").innerText=node.item(0).text;
+				document.getElementById("fsyst").innerText=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("fused");
 			if(node.length>0)
-				document.all("fused").innerText=node.item(0).text;
+				document.getElementById("fused").innerText=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("ffree");
 			if(node.length>0)
-				document.all("ffree").innerText=node.item(0).text;
+				document.getElementById("ffree").innerText=(node.item(0).textContent || node.item(0).text);
 			node = xmlobj.getElementsByTagName("fsize");
 			if(node.length>0)
-				document.all("fsize").innerText=node.item(0).text;
+				document.getElementById("fsize").innerText=(node.item(0).textContent || node.item(0).text);
             	}
             	hidePopup();
         }
@@ -50,16 +50,16 @@ function window_onload()
 	
 	if((qx & ACCESS_FILE_ALL)==ACCESS_FILE_ALL)
 	{
-		document.all("fvolu").className="txtInput_b";
-		document.all("fvolu").disabled=false;
-		document.all("btnApply").disabled=false;
+		document.getElementById("fvolu").className="txtInput_b";
+		document.getElementById("fvolu").disabled=false;
+		document.getElementById("btnApply").disabled=false;
 	}
 }
 
 function mdVolu()
 {
 	showPopup(100, 150, 150, 20);
-	var svolu=document.all("fvolu").value;
+	var svolu=document.getElementById("fvolu").value;
 	xmlHttp.open("GET", "/prodrive?path="+sdri+"&volu="+svolu, true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );

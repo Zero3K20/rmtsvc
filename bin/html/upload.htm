@@ -17,8 +17,8 @@
 				var node_rbyte=xmlobj.getElementsByTagName("rbyte");
 				var node_abyte=xmlobj.getElementsByTagName("abyte");
 				var node_speed=xmlobj.getElementsByTagName("speed");
-				document.all("lblRatio").innerText="上传进度: "+node_ratio.item(0).text+"  上传速度: "+node_speed.item(0).text;
-				document.all("lblBytes").innerText="上传字节: "+node_rbyte.item(0).text+"  总字节数: "+node_abyte.item(0).text;
+				document.getElementById("lblRatio").innerText="上传进度: "+(node_ratio.item(0).textContent || node_ratio.item(0).text)+"  上传速度: "+(node_speed.item(0).textContent || node_speed.item(0).text);
+				document.getElementById("lblBytes").innerText="上传字节: "+(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  总字节数: "+(node_abyte.item(0).textContent || node_abyte.item(0).text);
 				if(autoRefresh>0) window.setTimeout("get_upratio()",autoRefresh);
             		}
         	}
@@ -51,7 +51,7 @@
 		if(!oPopup) createpopup();
 		if(!xmlHttp) createXMLHttpRequest();
 		var spath=window.dialogArguments;
-		document.all("destpath").value=spath;
+		document.getElementById("destpath").value=spath;
 		
 		if (window.ActiveXObject) {
         		xmlRatio = new ActiveXObject("Microsoft.XMLHTTP");

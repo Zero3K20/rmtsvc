@@ -3,14 +3,14 @@ function disp_status(xmlobj)
 {
 	var node=xmlobj.getElementsByTagName("status");
 	var port=0;
-	if(node.length>0) port=node.item(0).text;
+	if(node.length>0) port=(node.item(0).textContent || node.item(0).text);
 	if(port>0)
 	{
 		document.getElementById("btnStart").disabled=true;
 		document.getElementById("btnStop").disabled=false;
 		document.getElementById("btnSet").disabled=true;
 		node=xmlobj.getElementsByTagName("ifssl");
-		if(node.length>0 && node.item(0).text!="0")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)!="0")
 			document.getElementById("lblStatus").innerHTML="<font color=green>●</font>SSL加密服务正在运行... &nbsp;端口:"+port;
 		else	document.getElementById("lblStatus").innerHTML="<font color=green>●</font>服务正在运行... &nbsp;端口:"+port;
 	}
@@ -22,21 +22,21 @@ function disp_status(xmlobj)
 		document.getElementById("lblStatus").innerHTML="<font color=red>●</font>服务停止运行";
 	}
 	node=xmlobj.getElementsByTagName("curtime");
-	if(node.length>0) document.getElementById("lblCurtime").innerText=node.item(0).text;
+	if(node.length>0) document.getElementById("lblCurtime").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("starttime");
-	if(node.length>0) document.getElementById("lblRuntime").innerText=node.item(0).text;
+	if(node.length>0) document.getElementById("lblRuntime").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("svrport");
-	if(node.length>0) document.getElementById("lblSvrport").value=node.item(0).text;
+	if(node.length>0) document.getElementById("lblSvrport").value=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("bindip");
 	var bindip="";
-	if(node.length>0) bindip=node.item(0).text;
+	if(node.length>0) bindip=(node.item(0).textContent || node.item(0).text);
 	var oSelect=document.getElementById("lblSvrip");
 	for(i=oSelect.options.length;i>1;i--) oSelect.options.remove(i-1);
 	node=xmlobj.getElementsByTagName("localip");
 	if(node.length>0)
 	{
 		var oSelect=document.getElementById("lblSvrip");
-		var localip=node.item(0).text;
+		var localip=(node.item(0).textContent || node.item(0).text);
 		var ss=localip.split(" ");
 		for(i=0;i<ss.length;i++)
 		{
@@ -49,10 +49,10 @@ function disp_status(xmlobj)
 	}
 	node=xmlobj.getElementsByTagName("pswd");
 	if(node.length>0)
-		document.getElementById("authpswd").value=node.item(0).text;
+		document.getElementById("authpswd").value=(node.item(0).textContent || node.item(0).text);
 	else	document.getElementById("authpswd").value="";
 	node=xmlobj.getElementsByTagName("bauth");
-	if(node.length>0 && node.item(0).text==1)
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)==1)
 	{
 		document.getElementById("chkAuth").checked=true;
 		document.getElementById("authpswd").disabled=false;
@@ -61,17 +61,17 @@ function disp_status(xmlobj)
 	 document.getElementById("authpswd").disabled=true;
 	}
 	node=xmlobj.getElementsByTagName("autorun");
-	if(node.length>0 && node.item(0).text==1) 
+	if(node.length>0 && (node.item(0).textContent || node.item(0).text)==1) 
 		document.getElementById("chkAutorun").checked=true;
 	else	document.getElementById("chkAutorun").checked=false;
 	
-	var ipfilter_xml=xmlobj.selectSingleNode("//ipfilter")
+	var ipfilter_xml=(xmlobj.getElementsByTagName("ipfilter")[0] || null)
 	if(ipfilter_xml!=null && ipfilter_xml.childNodes.length>0)
 	{
 		node=ipfilter_xml.getElementsByTagName("ipaddr");
-		document.getElementById("lblIPAddr").value=node.item(0).text;
+		document.getElementById("lblIPAddr").value=(node.item(0).textContent || node.item(0).text);
 		node=ipfilter_xml.getElementsByTagName("access");
-		if(node.length>0 && node.item(0).text=="1")
+		if(node.length>0 && (node.item(0).textContent || node.item(0).text)=="1")
 		{
 			document.getElementById("chkIPAccess1").checked=true;
 			document.getElementById("chkIPAccess0").checked=false;
@@ -86,21 +86,21 @@ function disp_vidcc_status(xmlobj)
 {
 	var node=xmlobj.getElementsByTagName("vname");
 	if(node.length>0)
-		document.getElementById("vidccname").innerText=node.item(0).text;
+		document.getElementById("vidccname").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("vip");
 	if(node.length>0)
-		document.getElementById("vidccip").innerText=node.item(0).text;
+		document.getElementById("vidccip").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("ver");
 	if(node.length>0)
-		document.getElementById("lblVer").innerText=node.item(0).text;
+		document.getElementById("lblVer").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("starttime");
 	if(node.length>0)
-		document.getElementById("lblConntime").innerText=node.item(0).text;
+		document.getElementById("lblConntime").innerText=(node.item(0).textContent || node.item(0).text);
 	node=xmlobj.getElementsByTagName("vdesc");
 	if(node.length>0)
-		document.getElementById("lblDesc").innerText=node.item(0).text;
+		document.getElementById("lblDesc").innerText=(node.item(0).textContent || node.item(0).text);
 	
-	var maplist=xmlobj.selectSingleNode("//maplist")
+	var maplist=(xmlobj.getElementsByTagName("maplist")[0] || null)
 	if(maplist!=null && maplist.childNodes.length>0)
 		infoXML.appendChild(maplist);
 }
@@ -111,18 +111,18 @@ function processRequest()
 		if (xmlHttp.status == 200) { // 信息已经成功返回，开始处理信息
 			
 			var xmlobj = xmlHttp.responseXML;
-			var vidccs=xmlobj.selectSingleNode("//vidccs")
+			var vidccs=(xmlobj.getElementsByTagName("vidccs")[0] || null)
 			if(vidccs!=null)
 			{
 				if(vidccXML.documentElement!=null)
 					vidccXML.removeChild(vidccXML.documentElement);
 				if(vidccs.childNodes.length>0) vidccXML.appendChild(vidccs);
 			}
-			var stat_xml=xmlobj.selectSingleNode("//vidcs_status")
+			var stat_xml=(xmlobj.getElementsByTagName("vidcs_status")[0] || null)
 			if(stat_xml!=null && stat_xml.childNodes.length>0)
 				disp_status(stat_xml);
 			
-			var vidcc_stat_xml=xmlobj.selectSingleNode("//vidcc_status")
+			var vidcc_stat_xml=(xmlobj.getElementsByTagName("vidcc_status")[0] || null)
 			if(vidcc_stat_xml!=null && vidcc_stat_xml.childNodes.length>0)
 				disp_vidcc_status(vidcc_stat_xml);
             	} //else alert("请求的页面有异常,status="+xmlHttp.status);
