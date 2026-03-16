@@ -107,17 +107,17 @@ void httpServer::httprsp_accessDenied(socketTCP *psock,httpResponse &httprsp)
 	return;
 }
 
-//file未found，return 404error
+//file not found, return 404 error
 void httpServer::httprsp_fileNoFind(socketTCP *psock,httpResponse &httprsp)
 {
 	const char rspContent[]=
-"<html><head><title>Not Find</title></head>\r\n"
-"<body><h1>Not Find</h1>File does not exist,please check URL.</body></html>";
+"<html><head><title>Not Found</title></head>\r\n"
+"<body><h1>Not Found</h1>File does not exist, please check URL.</body></html>";
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_HTML);
 	//set response content length
 	httprsp.lContentLength(sizeof(rspContent)-1); 
-	if(httprsp.send_rspH(psock,404,"OK")<0) return;
+	if(httprsp.send_rspH(psock,404,"Not Found")<0) return;
 	psock->Send(sizeof(rspContent)-1,rspContent,-1);
 	return;
 }
