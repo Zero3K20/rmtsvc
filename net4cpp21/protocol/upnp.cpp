@@ -1,6 +1,6 @@
 /*******************************************************************
    *	upnp.cpp
-   *    DESCRIPTION:upnp ÀàÊµÏÖ
+   *    DESCRIPTION:UPnP class implementation
    *
    *    AUTHOR:yyc
    *
@@ -18,10 +18,10 @@ using namespace net4cpp21;
 
 static char *UPNP_SEARCH_NAME[] = 
 {
-	"urn:schemas-upnp-org:service:WANPPPConnection:1",  //ÒÔ·şÎñÃû½øĞĞ²éÕÒ
+	"urn:schemas-upnp-org:service:WANPPPConnection:1",  //search by service name
 	"urn:schemas-upnp-org:service:WANIPConnection:1",
-	"urn:schemas-upnp-org:device:InternetGatewayDevice:1" //ÒÔÉè±¸Ãû½øĞĞ²éÕÒ
-}; //ÒòÎªÓĞĞ©Éè±¸Ö§³ÖÒÔ·şÎñÃû²éÕÒ£¬ÓĞĞ©Ö§³ÖÉè±¸Ãû²éÕÒ
+	"urn:schemas-upnp-org:device:InternetGatewayDevice:1" //ä»¥è®¾å¤‡åè¿›è¡ŒæŸ¥æ‰¾
+}; //å› ä¸ºæœ‰äº›è®¾å¤‡æ”¯æŒä»¥service nameæŸ¥æ‰¾ï¼Œæœ‰äº›æ”¯æŒè®¾å¤‡åæŸ¥æ‰¾
 bool GetProperty(const char *xml,const char *name,string &strret);
 
 upnp :: upnp()
@@ -59,7 +59,7 @@ bool upnp :: Search()
 		return false;
 	}
 	
-	char packet[256]; //×é²¥ÏûÏ¢
+	char packet[256]; //ç»„æ’­message
 	int l,len=sprintf(packet, "M-SEARCH * HTTP/1.1\r\n"
 							"HOST: %s:%d\r\n"
 							"MAN: \"ssdp:discover\"\r\n"
@@ -82,7 +82,7 @@ void upnp :: onData()
 	if(buflen<=0) return; else buf[buflen]=0;
 	RW_LOG_DEBUG("[UPnP] Received response ,len=%d\r\n%s",buflen,buf);
 	
-	// D-Link 504 ¾¹È»²»ÊÇ HTTP/*.* ¶øÊÇ HTTP*.*
+	// D-Link 504 ç«Ÿç„¶is not HTTP/*.* è€Œyes HTTP*.*
 	UINT32 maj_ver, min_ver, status_code;
 	if (::sscanf(buf, "HTTP/%u.%u %u", &maj_ver, &min_ver, &status_code) != 3 &&
 		::sscanf(buf, "HTTP%u.%u %u", &maj_ver, &min_ver, &status_code) != 3)
@@ -93,22 +93,22 @@ void upnp :: onData()
 	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nLocation:");
 	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nlocation:");
 	if(ptr_beg==NULL) return; else ptr_beg+=11;
-	while( *ptr_beg==' ') ptr_beg++; //È¥µô¿Õ¸ñ
+	while( *ptr_beg==' ') ptr_beg++; //remove spaces
 	const char *ptr_end=strchr(ptr_beg,'\r');
 	if(ptr_end==NULL) return;
 	m_strLocation.assign(ptr_beg,ptr_end-ptr_beg);
 	RW_LOG_DEBUG("[UPnP] Found Loaction: %s\r\n",m_strLocation.c_str());
-	//»ñÈ¡STµÄÖµ
+	//getSTçš„å€¼
 	if( (ptr_beg=strstr(buf,"\r\nST:")) ){
 		ptr_beg+=5;
-		while( *ptr_beg==' ') ptr_beg++; //È¥µô¿Õ¸ñ
+		while( *ptr_beg==' ') ptr_beg++; //remove spaces
 		if( (ptr_end=strchr(ptr_beg,'\r')) )
 			m_targetName.assign(ptr_beg,ptr_end-ptr_beg);
 	}else m_targetName="";
 	
-	std::string strXml; //»ñÈ¡Éè±¸ÃèÊöxml
+	std::string strXml; //getè®¾å¤‡descriptionxml
 	if(!GetDevXML(strXml)) return;
-	//»ñÈ¡¿ØÖÆurlµØÖ·
+	//getæ§åˆ¶urladdress
 	string sverviceType=string("<serviceType>")+m_targetName+string("</serviceType>");
 	ptr_beg=strstr(strXml.c_str(),sverviceType.c_str());
 	if(ptr_beg){
@@ -128,7 +128,7 @@ void upnp :: onData()
 		GetProperty(strXml.c_str(),"URLBase",base_url);
 		if(base_url==""){
 			const char *ptr=(m_strLocation[4]==':')?
-				strchr(m_strLocation.c_str()+7,'/'):  //+7 Ìø¹ıhttp://
+				strchr(m_strLocation.c_str()+7,'/'):  //+7 skip http://
 				strchr(m_strLocation.c_str()+8,'/');
 			if(ptr) base_url.assign(m_strLocation.c_str(),ptr-m_strLocation.c_str());
 		}
@@ -139,13 +139,13 @@ void upnp :: onData()
 	}
 	GetProperty(strXml.c_str(),"friendlyName",m_friendlyName);
 	GetProperty(strXml.c_str(),"manufacturer",m_manufacturer);
-	this->Close(); m_bFound=true; //³É¹¦
+	this->Close(); m_bFound=true; //success
 	RW_LOG_DEBUG("[UPnP] Success to search UPnP %s\r\n",m_targetName.c_str());
 	RW_LOG_DEBUG("[UPnP] controlURL: %s\r\n",m_control_url.c_str());
 	RW_LOG_DEBUG("[UPnP] friendlyName: %s\r\n",m_friendlyName.c_str());
 	RW_LOG_DEBUG("[UPnP] manufacturer: %s\r\n",m_manufacturer.c_str());
 	
-	//²éÕÒµ½UPnPÉè±¸ºó£¬½øĞĞÓ³Éä
+	//æŸ¥foundUPnP deviceåï¼Œè¿›è¡Œmap
 	std::vector<UPnPInfo *> ::iterator it=m_upnpsets.begin();
 	for(;it!=m_upnpsets.end();it++){
 		UPnPInfo *p=*it;
@@ -156,12 +156,12 @@ void upnp :: onData()
 
 bool upnp :: GetDevXML(std::string &strXml)
 {
-	//»ñÈ¡LocationÖ¸¶¨µÄxmlÎÄ¼ş
+	//getLocationspecifiedçš„xmlfile
 	httpClient httpsock; int iret;
 TRANS302:
 	httpsock.cls_httpreq();
 	iret=httpsock.send_httpreq(m_strLocation.c_str());
-	if(iret==302) //×ªÏò
+	if(iret==302) //è½¬å‘
 	{
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("Location");
@@ -169,13 +169,13 @@ TRANS302:
 		if(ptr==NULL) return false;
 		m_strLocation.assign(ptr); goto TRANS302;
 	}
-	else if(iret==200) //ÏìÓ¦³É¹¦
+	else if(iret==200) //responsesuccess
 	{
 		httpResponse & resp=httpsock.Response();
-		resp.recv_remainder(&httpsock,-1);//½ÓÊÕÍêÕûµÄhttpÏìÓ¦Ìå
+		resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP responseä½“
 //		RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 //				resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-		if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//Î´½ÓÊÕÍê
+		if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//æœªreceiveå®Œ
 //		if(resp.get_mimetype()!=MIMETYPE_XML) return false;
 		
 		strXml.assign(resp.szReceivedContent(),resp.lReceivedContent());
@@ -183,7 +183,7 @@ TRANS302:
 	}
 	return false;
 }
-//»ñÈ¡¹«ÍøIPµØÖ·
+//get public IP address
 bool upnp :: GetWanIP(std::string &strRet)
 {
 	std::string reqName("GetExternalIPAddress");
@@ -317,7 +317,7 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	xml_data  += string("    </u:")+strCmd;
 	xml_data  += ">\r\n  </s:Body>\r\n</s:Envelope>\r\n\r\n";
 	
-	//·¢ËÍhttpÇëÇó
+	//send HTTP request
 	httpClient httpsock; 
 	httpsock.add_reqHeader("Content-Type","text/xml");
 	string s=m_targetName+string("#")+strCmd;
@@ -326,15 +326,15 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//½ÓÊÕÍêÕûµÄhttpÏìÓ¦Ìå
+	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP responseä½“
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-//	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//Î´½ÓÊÕÍê
+//	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//æœªreceiveå®Œ
 
 	strCmd.assign(resp.szReceivedContent(),resp.lReceivedContent());
 	return (sr==200);
 }
-//ÊôĞÔ»ñÈ¡ ,reqName : ÇëÇóÊôĞÔÃû  rspName: ÏìÓ¦Ãû³Æ
+//attributeget ,reqName : requestattributeå  rspName: responsename
 bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 {
 	if(!m_bFound || m_control_url=="") return false;
@@ -347,7 +347,7 @@ bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 	xml_data  += string("    </u:")+reqName;
 	xml_data  += ">\r\n  </s:Body>\r\n</s:Envelope>\r\n\r\n";
 	
-	//·¢ËÍhttpÇëÇó
+	//send HTTP request
 	httpClient httpsock; 
 	httpsock.add_reqHeader("Content-Type","text/xml");
 	string s=m_targetName+string("#")+reqName;
@@ -356,10 +356,10 @@ bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 	if(sr!=200) return false;
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//½ÓÊÕÍêÕûµÄhttpÏìÓ¦Ìå
+	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP responseä½“
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//Î´½ÓÊÕÍê
+	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//æœªreceiveå®Œ
 	
 	return GetProperty(resp.szReceivedContent(),rspName.c_str(),rspName);
 }

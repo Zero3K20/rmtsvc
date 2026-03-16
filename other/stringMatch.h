@@ -1,7 +1,7 @@
 
-//²éÕÒ×Ö·û´®
+//find string
 int  FindingString(const char* lpszSour, const char* lpszFind, int nStart = 0);
-//´øÍ¨Åä·ûµÄ×Ö·û´®Æ¥Åä
+//string matching with wildcards
 bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase = false);//true);
-//¶àÖØÆ¥Åä
+//å¤šé‡åŒ¹é…
 bool MultiMatching(const char* lpszSour, const char* lpszMatch, int nMatchLogic = 0, bool bRetReversed = 0, bool bMatchCase = false);//true);

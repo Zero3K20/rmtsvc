@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketIcmp.h
-   *    DESCRIPTION:ICMP socket 类的定义
+   *    DESCRIPTION:ICMP socket class definition
    *
    *    AUTHOR:yyc
    *
@@ -24,13 +24,13 @@ namespace net4cpp21
 	public:
 		socketIcmp();
 		virtual ~socketIcmp();
-		//发送Icmp Echo数据包
+		//Send an ICMP Echo packet
 		SOCKSRESULT sendIcmp_echo(unsigned long ipDest);
-		//发送Icmp Echo响应数据包
+		//Send an ICMP Echo reply packet
 		SOCKSRESULT sendIcmp_reply(unsigned long ipDest,unsigned short usId, 
 										unsigned short usSeq,unsigned long ulData);
 	protected:
-		//发送Icmp数据包
+		//Send an ICMP packet
 		SOCKSRESULT sendIcmpPackage(unsigned long ipDest,IcmpHeader &icmph);
 	private:
 		unsigned short m_echo_seq;

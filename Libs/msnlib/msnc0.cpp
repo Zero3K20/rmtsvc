@@ -1,7 +1,7 @@
 /*******************************************************************
 *	msnc0.cpp
-*    DESCRIPTION:msnc0Ð­Òé´¦ÀíÀàµÄÊµÏÖ¡£
-*				snp10/11ÏÖÔÚÖ§³Ömsnc1.µ«msnp10/11ÈÔ¼æÈÝmsnc0
+*    DESCRIPTION:msnc0 protocol handler class implementation.
+*				msnp10/11 now supports msnc1, but msnp10/11 remains compatible with msnc0
 *    AUTHOR:yyc
 *
 *    HISTORY:
@@ -65,12 +65,12 @@ bool cMsnc0 :: sendmsg_ACCEPT(bool bListen)
 	int len=sprintf(buf+56,"MIME-Version: 1.0\r\nContent-Type: text/x-msmsgsinvite; charset=UTF-8\r\n\r\n"
 					"Invitation-Command: ACCEPT\r\nInvitation-Cookie: %s\r\n",m_inviteCookie.c_str());
 	if(m_datasock.status()!=SOCKS_CLOSED) m_datasock.Close();
-	if(bListen){//±¾µØ¿ªÕìÌý¶Ë¿ÚµÈ´ý¶Ô·½Á¬½Ó
+	if(bListen){//open a local listening port and wait for the other party to connect
 		int listenport=m_datasock.ListenX(0,FALSE,NULL);
 		m_authCookie=m_inviteCookie;
 		len+=sprintf(buf+56+len,"IP-Address: %s\r\nPort: %d\r\nAuthCookie: %s\r\n",
 			m_pcontact->m_chatSock.getLocalIP(),listenport,m_authCookie.c_str());
-		if(!m_bSender) //±»ÑûÇëÕß»òÎÄ¼þ½ÓÊÕÕß£¬ÒªÇó·¢ËÍÕßÁ¬½Ó
+		if(!m_bSender) //invitee or file receiver, requesting sender to connect
 			len+=sprintf(buf+56+len,"Sender-Connect: TRUE\r\n");
 	}//?if(bListen)
 	len+=sprintf(buf+56+len,"Launch-Application: FALSE\r\nRequest-Data: IP-Address:\r\n");
@@ -78,7 +78,7 @@ bool cMsnc0 :: sendmsg_ACCEPT(bool bListen)
 	memmove(buf+(56-iret),buf,iret);
 	return (m_pcontact->m_chatSock.Send(len+iret,buf+(56-iret),-1)>0)?true:false;
 }
-/* Cancel-Code:´úÂëº¬Òå
+/* Cancel-Code: meaning
 FAIL 
 The receiving client does not know any of the specified Session-protocols 
 FTTIMEOUT 
@@ -104,7 +104,7 @@ bool cMsnc0 :: sendmsg_REJECT(const char *errCode)
 	return (m_pcontact->m_chatSock.Send(len+iret,buf+(32-iret),-1)>0)?true:false;
 }
 
-bool cMsnc0 :: sendFile(const char *filename) //·¢ËÍÖ¸¶¨ÎÄ¼þ
+bool cMsnc0 :: sendFile(const char *filename) //sendspecifiedfile
 {
 	if(filename==NULL || filename[0]==0 ) return false;
 	FILE *fp=::fopen(filename,"rb");
@@ -147,7 +147,7 @@ void cMsnc0 :: setHostinfo(const char *hostip,int hostport,const char *authCooki
 	return;
 }
 
-//msnc0:msnftpÐ­ÒéµÄÎÄ¼þ·¢ËÍ»ò½ÓÊÕ´¦ÀíÏß³Ì
+//msnc0:msnftpprotocolçš„filesendorreceivehandlethread
 #define MAXMSNDATALENGTH 4096
 void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 {
@@ -155,34 +155,34 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 	pmsnc0->m_bDataThread_Running=true;
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"msnc0:data-thread of msnMessager has been started.\r\n");
 	socketTCP *pchatsession=&pmsnc0->m_pcontact->m_chatSock;
-	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //ÊÇ·ñÊÇÕìÌýµÈ´ý¶Ô·½½øÐÐÊý¾ÝÁ¬½Ó
+	if(pmsnc0->m_datasock.status()==SOCKS_LISTEN) //whetheryesä¾¦å¬waitingå¯¹æ–¹è¿›è¡Œdataconnect
 		pmsnc0->m_datasock.Accept(MSN_MAX_RESPTIMEOUT,NULL);
-	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//Á¬½ÓÖ¸¶¨µÄ¶Ô¶ËÊý¾Ý´«Êä·þÎñ
+	else if(pmsnc0->m_datasock.status()==SOCKS_CLOSED)//connectspecifiedçš„å¯¹ç«¯datatransferservice
 		pmsnc0->m_datasock.Connect(NULL,0,MSN_MAX_RESPTIMEOUT);
 
 	socketTCP *pdatasock=&pmsnc0->m_datasock;
 	const char *toEmail=pmsnc0->m_pcontact->m_email.c_str();
 	const char *fromEmail=pmsnc0->m_pmsnmessager->thisEmail();
 	if(pdatasock->status()==SOCKS_CONNECTED)
-	{   //ÑûÇë½ÓÊÕÕßÏÈ·¢ËÍVERÃüÁî
+	{   //invitationreceiveè€…å…ˆsendVERcommand
 		if(!pmsnc0->m_bSender) pdatasock->Send(0,"VER MYPROTO MSNFTP\r\n",-1);
-		char cmdBuf[MAXMSNDATALENGTH]; //½ÓÊÕ¿Í»§¶ËÃüÁî
-		int cmdbufLen=0;//»º³åÇøÖÐÃüÁîµÄ³¤¶È
-		long receivedbytes=0; FILE *fp=NULL;//´ò¿ªÐ´ÎÄ¼þ¾ä±ú
+		char cmdBuf[MAXMSNDATALENGTH]; //receive client commands
+		int cmdbufLen=0;//bufferä¸­commandçš„length
+		long receivedbytes=0; FILE *fp=NULL;//openå†™filehandle
 		while(pchatsession->status()==SOCKS_CONNECTED)
 		{
 			int iret=pdatasock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-			if(iret<0) break; //´Ësocket·¢Éú´íÎó
-			if(iret==0) continue; //Ã»ÓÐÊý¾Ý
-			//ÓÐÊý¾Ýµ½´ï,½ÓÊÕÊý¾Ý
+			if(iret<0) break; //æ­¤socketå‘ç”Ÿerror
+			if(iret==0) continue; //no data
+			//data has arrived,receivedata
 			iret=pdatasock->Receive(cmdBuf+cmdbufLen,MAXMSNDATALENGTH-cmdbufLen-1,-1);
-			if(iret<=0) break; //¶Ô·½ÒÑ¾­¹Ø±Õ»ò·¢ÉúÒ»¸öÏµÍ³´íÎó
+			if(iret<=0) break; //å¯¹æ–¹å·²ç»closeorå‘ç”Ÿä¸€ä¸ªsystemerror
 			cmdbufLen+=iret; cmdBuf[cmdbufLen]=0;
-			char *ptrCmd=NULL,*pcmdbuf=cmdBuf;//´¦ÀíÃüÁî
-			if(fp){//Èç¹û´ò¿ªÎÄ¼þÐ´£¬ÔòÊÕµ½µÄÊý¾ÝÓ¦¸ÃÊÇÎÄ¼þÊý¾Ý¶ø²»ÊÇÃüÁîÊý¾Ý
-				//µÚ1×Ö½ÚÎª0 ,2-3×Ö½ÚÎªÊý¾Ý°ü³¤¶È
-				//°´ÕÕÐ­ÒéÉÏËµµÚ1×Ö½Ú»¹¿ÉÄÜÎª1£¬2-3×Ö½ÚÎª0 ¡£´ú±íÎÄ¼þ·¢ËÍ½áÊø£¬¿ÉÄÜÎªÀÏ°æ±¾
-				//Ð­Òé¹æ¶¨Ã¿°üÊý¾Ý³¤¶È×î´óÎª2045×Ö½Ú£¬¼ÓÉÏ3×Ö½ÚµÄÍ·£¬Ôò×î´ó°ü³¤Îª2048
+			char *ptrCmd=NULL,*pcmdbuf=cmdBuf;//handlecommand
+			if(fp){//if openfileå†™ï¼Œåˆ™æ”¶åˆ°çš„datashouldyesfiledataè€Œis notcommanddata
+				//ç¬¬1byteä¸º0 ,2-3byteä¸ºdatapacketlength
+				//æŒ‰ç…§protocolä¸Šè¯´ç¬¬1byteè¿˜å¯èƒ½ä¸º1ï¼Œ2-3byteä¸º0 ã€‚ä»£è¡¨filesendendï¼Œå¯èƒ½ä¸ºè€version
+				//protocolè§„å®šæ¯packetdatalengthmaximumä¸º2045byteï¼ŒåŠ ä¸Š3byteçš„å¤´ï¼Œåˆ™maximumpacketé•¿ä¸º2048
 				while(cmdbufLen>0){
 					long len=256*((unsigned char)pcmdbuf[2])+(unsigned char)pcmdbuf[1];
 					if(cmdbufLen<len) break;
@@ -190,7 +190,7 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 					
 					if(pcmdbuf[0]!=0 || receivedbytes>=pmsnc0->m_filesize)
 					{
-						pdatasock->Send(0,"BYE 16777989\r\n",-1);//½ÓÊÕÍê±Ï
+						pdatasock->Send(0,"BYE 16777989\r\n",-1);//receiveå®Œæ¯•
 						pdatasock->Close(); break;
 					}
 					pcmdbuf+=(len+3); cmdbufLen-=(len+3);
@@ -206,25 +206,25 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 				{
 					*ptrCmd=0; 
 					RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc0] recevied Command: %s.\r\n",pcmdbuf);
-					if(pcmdbuf[0]!=0){//½ö½ö´¦Àí·Ç¿Õ×Ö·û´®
+					if(pcmdbuf[0]!=0){//ä»…ä»…handleéžnullstring
 						if(strncmp(pcmdbuf,"VER ",4)==0)
 						{
-							if(!pmsnc0->m_bSender) //½ÓÊÕÕß
+							if(!pmsnc0->m_bSender) //receiveè€…
 								pdatasock->Send("USR %s %s\r\n",toEmail,pmsnc0->m_authCookie.c_str());
 							else
 								pdatasock->Send(0,"VER MSNFTP\r\n",-1);
 						}//?if(strncmp(pcmdbuf,"VER ",4)==0)
 						else if(strncmp(pcmdbuf,"USR ",4)==0)
-						{//¸ñÊ½ USR email auth-cookie\r\n
+						{//format USR email auth-cookie\r\n
 							pdatasock->Send("FIL %d\r\n",pmsnc0->m_filesize);
 						}//?else if(strncmp(pcmdbuf,"USR ",4)==0)
 						else if(strncmp(pcmdbuf,"FIL ",4)==0)
 						{
 							pmsnc0->m_filesize=atoi(pcmdbuf+4);
 							if( (fp=pmsnc0->m_fp)==NULL ) {pdatasock->Close(); break; }
-							pdatasock->Send(5,"TFR\r\n",-1); //×¼±¸ºÃ¿ªÊ¼½ÓÊÕÎÄ¼þ
+							pdatasock->Send(5,"TFR\r\n",-1); //å‡†å¤‡å¥½startreceivefile
 						}//?else if(strncmp(pcmdbuf,"FIL ",4)==0)
-						else if(strcmp(pcmdbuf,"TFR")==0)//¿ªÊ¼·¢ËÍÎÄ¼þÊý¾Ý
+						else if(strcmp(pcmdbuf,"TFR")==0)//startsendfiledata
 						{
 							long sendbytes=0; FILE *rfp=pmsnc0->m_fp;
 							if(rfp==NULL) {pdatasock->Close(); break; }
@@ -243,14 +243,14 @@ void cMsnc0 :: msnc0Thread(cMsnc0 *pmsnc0)
 							pdatasock->Close(); break;
 						}//?else if(strcmp(pcmdbuf,"TFR")==0)
 						else if(strncmp(pcmdbuf,"BYE ",4)==0 || strncmp(pcmdbuf,"CCL",3)==0)
-						{//ÎÄ¼þ·¢ËÍÍê±Ï
+						{//filesendå®Œæ¯•
 							pdatasock->Close(); break;
 						}
 
 					}//?if(pcmdbuf[0]!=0)
-					pcmdbuf=ptrCmd+1; while(*pcmdbuf=='\r' || *pcmdbuf=='\n') pcmdbuf++; //Ìø¹ý\r\n
+					pcmdbuf=ptrCmd+1; while(*pcmdbuf=='\r' || *pcmdbuf=='\n') pcmdbuf++; //skip \r\n
 				}//?while( (ptrCmd=strchr(pcmdbuf,'\r')) )
-				//Èç¹ûÓÐÎ´½ÓÊÕÍêµÄÃüÁîÔòÒÆ¶¯
+				//ifæœ‰æœªreceiveå®Œçš„commandåˆ™ç§»åŠ¨
 				if( (iret=cmdbufLen-(pcmdbuf-cmdBuf))>0 ){
 					if( (cmdbufLen=iret)>=MAXMSNDATALENGTH-1) cmdbufLen=0;
 					if(pcmdbuf>cmdBuf) memmove((void *)cmdBuf,pcmdbuf,cmdbufLen);

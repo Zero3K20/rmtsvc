@@ -1,0 +1,22 @@
+If you are not satisfied with the built-in web management control page style of rmtsvc, and you are familiar with Javascript and HTML,
+you can freely customize your own pages by directly modifying the html and js script files in this archive.
+
+To enable your own web management control pages, you must add resource=FALSE to the webs configuration line in rmtsvc's ini configuration file.
+This tells rmtsvc not to use the web management control pages built into the exe.
+If your customized web pages are not in the same directory as the exe, for example in an html subdirectory of the exe's directory, you also need to specify the web service root path.
+For example: webs port=7779 root=html resource=FALSE
+Try accessing rmtsvc with a browser - it should now show your customized management control page!
+
+If you think your management control page is great, do not forget to send a copy. It may be considered for inclusion as a built-in page in rmtsvc :)
+
+Set web service information
+Command format:
+	webs [port=<web service port>] [bindip=<local IP to bind>] [ssl_enabled=true] [ssl_verify=true]
+port=<service port>    : Set the service port; if not set, the default is 7778. Set to 0 to disable the web service; negative value assigns a random port.
+bindip=<local IP to bind> : Set the local IP to bind for this service. If not set, defaults to binding all local IPs.
+ssl_enabled=true: Indicates this service uses SSL encryption; if not configured, it is a plain service.
+ssl_verify=true: Only valid when ssl_enabled=true is specified. Indicates that this SSL service requires client certificate verification; not required by default.
+
+resource=FALSE : Do not use the built-in html/js web management pages from the exe; use the user-customized html/js pages instead.
+root=<web service root path>: Specifies the physical path corresponding to the root of this web service. Absolute or relative paths can be configured. If not specified, defaults to
+                      the directory where the exe is located. For example, if configured as root=html, the web service root is the html subdirectory of the exe directory.

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketUdp.cpp
-   *    DESCRIPTION:UDP socket 类的实现
+   *    DESCRIPTION:UDP socket class implementation
    *
    *    AUTHOR:yyc
    *
@@ -30,7 +30,7 @@ SOCKSRESULT socketUdp::Open(int port,bool bReuse,const char *bindIP)
 	return sr;
 }
 /*
-//以组播方式打开
+//Open in multicast mode
 SOCKSRESULT socketUdp::OpenAsMulti(int port,const char *strMultiIP)
 {
 	if(strMultiIP==NULL || strMultiIP[0]==0) return SOCKSERR_PARAM;
@@ -42,7 +42,7 @@ SOCKSRESULT socketUdp::OpenAsMulti(int port,const char *strMultiIP)
 	Close(); return SOCKSERR_SETOPT;
 }
 
-bool socketUdp :: EnableMulticast(bool bEnabled) //使能或禁止组播/多播
+bool socketUdp :: EnableMulticast(bool bEnabled) //Enable or disable multicast
 {
     struct ip_mreq mreq;
 
@@ -82,8 +82,8 @@ void socketUdpAnsy :: recvThread(socketUdpAnsy *psock)
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret==0) continue;
-		if(iret<0) break; //发生错误
-		psock->onData(); //有数据到达
+		if(iret<0) break; //An error occurred
+		psock->onData(); //Data has arrived
 	}//?while(
  
 	RW_LOG_DEBUG(0,"[socketUdpAnsy] recvThread has been ended\r\n");

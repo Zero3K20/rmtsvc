@@ -1,6 +1,6 @@
 /*******************************************************************
    *	proxysvr.cp
-   *    DESCRIPTION:´úÀí·şÎñ¶ËÊµÏÖ
+   *    DESCRIPTION:proxy server implementation
    *
    *    AUTHOR:yyc
    *
@@ -26,64 +26,64 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 {
 	char buf[SOCKS4_MAX_PACKAGE_SIZE];
 	int iret,recvlen=0;
-	if(m_bProxyAuthentication) return; //socks4´úÀíĞ­Òé²»Ö§³ÖÈÏÖ¤,µ«´úÀí·şÎñÒªÇóÈÏÖ¤
+	if(m_bProxyAuthentication) return; //SOCKS4 proxy protocol does not support authentication, but the proxy service requires it
 
 	while( (iret=psock->Receive(buf+recvlen,SOCKS4_MAX_PACKAGE_SIZE-recvlen,PROXY_MAX_RESPTIMEOUT))>0 )
 	{
 		recvlen+=iret;
 		sock4req *psock4req=(sock4req *)buf;
 		if(recvlen>1 && psock4req->CD!=0x01 && psock4req->CD!=0x02) break;
-		if( recvlen<9 ) continue; //Êı¾İÎ´½ÓÊÕÍê
-		if((psock4req->IPAddr&0x00ffffff)==0) //socks4AÇëÇó
-		{//Ö§³Ösocks4AĞ­Òé [°æ±¾] [ÃüÁî] [¶Ë¿Ú] [0.0.0.X] [0] [hostdomain] [0]
-			if(recvlen<(buf[8]+9)) continue; //Êı¾İÎ´½ÓÊÕÍê
+		if( recvlen<9 ) continue; //data not fully received yet
+		if((psock4req->IPAddr&0x00ffffff)==0) //socks4Arequest
+		{//æ”¯æŒsocks4Aprotocol [version] [command] [port] [0.0.0.X] [0] [hostdomain] [0]
+			if(recvlen<(buf[8]+9)) continue; //data not fully received yet
 		}
-		//·ñÔò½ÓÊÕÁËÍêÕûSOCKS4µÄĞ­ÒéÊı¾İ,¿ªÊ¼Ğ­Òé´¦Àí
+		//otherwisereceiveäº†å®Œæ•´SOCKS4çš„protocoldata,startprotocolhandle
 		sock4ans ans; ans.CD =91; ans.VN =0;
 		ans.Port =0;ans.IPAddr =0;
 
-		char *hostip=NULL; int hostport=0; //ÒªÁ¬½ÓµÄÄ¿µÄ·şÎñipºÍ¶Ë¿Ú
+		char *hostip=NULL; int hostport=0; //è¦connectçš„ç›®çš„serviceipandport
 		if((psock4req->IPAddr&0x00ffffff)==0) hostip=(char *)psock4req+9; //socks4A
 		
 		socketProxy peer; peer.setParent(psock);
-		if(m_bCascade){ //ÉèÖÃÁË¶ş¼¶´úÀí
+		if(m_bCascade){ //setäº†secondary proxy
 			PROXYTYPE ptype=PROXY_SOCKS4;
-			if((m_casProxytype & PROXY_SOCKS4)==0) //¶ş¼¶´úÀí²»Ö§³ÖSOCKS4´úÀí
+			if((m_casProxytype & PROXY_SOCKS4)==0) //secondary proxynot supportedSOCKS4ä»£ç†
 			{
 				if(m_casProxytype & PROXY_HTTPS)
 					ptype=PROXY_HTTPS;
 				else if(m_casProxytype & PROXY_SOCKS5)
 					ptype=PROXY_SOCKS5;
 			}
-			std::pair<std::string,int> * p=GetCassvr(); //»ñÈ¡¶ş¼¶´úÀí·şÎñÉèÖÃ
+			std::pair<std::string,int> * p=GetCassvr(); //getsecondary proxy serviceset
 			if(m_casProxyAuthentication)
 				peer.setProxy(ptype,p->first.c_str(),p->second,m_casAccessAuth.first.c_str(),m_casAccessAuth.second.c_str());
 			else
 				peer.setProxy(ptype,p->first.c_str(),p->second,"","");
 		}//?if(m_bCascade)
-		if(psock4req->CD==1) //CONNECTÇëÇó
-		{//Á¬½ÓÖ¸¶¨µÄÔ¶³ÌÖ÷»ú,Èç¹û³É¹¦Ôò½¨Á¢Êı¾İ×ª·¢¶Ô
+		if(psock4req->CD==1) //CONNECTrequest
+		{//connectspecifiedçš„remoteä¸»æœº,if successåˆ™å»ºç«‹dataforwardå¯¹
 			hostport=ntohs(psock4req->Port);
 			
 //			RW_LOG_DEBUG("[ProxySvr] SOCKS4 - Connecting %s:%d ... \r\n",((hostip)?hostip:socketBase::IP2A(psock4req->IPAddr)),hostport);
 			
-			if(m_bCascade) //ÉèÖÃÁË¶ş¼¶´úÀí
-			{//Í¨¹ı¶ş¼¶´úÀíÁ¬½ÓÖ¸¶¨µÄÓ¦ÓÃ·şÎñ
+			if(m_bCascade) //setäº†secondary proxy
+			{//é€šè¿‡secondary proxyconnectspecifiedçš„application service
 				if(hostip==NULL){
 					strcpy(buf,socketBase::IP2A(psock4req->IPAddr));
 					hostip=buf; }
 				peer.Connect(hostip,hostport,PROXY_MAX_RESPTIMEOUT);
 			}else{
-				if(hostip) psock4req->IPAddr=socketBase::Host2IP(hostip); //ÓòÃû/IPµØÖ·½âÎö
+				if(hostip) psock4req->IPAddr=socketBase::Host2IP(hostip); //domain name/IPaddressparse
 				peer.SetRemoteInfo(psock4req->IPAddr,hostport);
 				if( psock4req->IPAddr!=INADDR_NONE) 
 					peer.socketTCP::Connect( NULL,0,PROXY_MAX_RESPTIMEOUT);
 			}
 			ans.CD=(peer.status()==SOCKS_CONNECTED)?90:92;
 		}//?if(psock4req->CD==1)
-		else if(psock4req->CD==2) //BINDÇëÇó
-		{//¿Í»§¶ËÇëÇóÔÚsocks ·şÎñ¶Ë½¨Á¢Ò»¸öÁÙÊ±ÕìÌı·şÎñ£¬µÈ´ıÖ¸¶¨hostipµÄÁ¬½Óµ½À´
-			if(m_bCascade) //ÉèÖÃÁË¶ş¼¶´úÀí
+		else if(psock4req->CD==2) //BINDrequest
+		{//clientrequestatsocks server-sideå»ºç«‹ä¸€ä¸ªtemporaryä¾¦å¬serviceï¼Œwaitingspecifiedhostipçš„connectåˆ°æ¥
+			if(m_bCascade) //setäº†secondary proxy
 			{
 				std::string svrip; int svrport=hostport;
 				if(hostip) svrip.assign(hostip); 
@@ -94,9 +94,9 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 					ans.Port =htons(svrport); ans.IPAddr =peer.getRemoteip();
 					psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
 					ans.Port =0;ans.IPAddr =0;
-					ans.CD=91; //µÈ´ı¶Ô·½Á¬½Ó£¬²¢·¢ËÍµÚ¶ş¸öÏìÓ¦
+					ans.CD=91; //waitingå¯¹æ–¹connectï¼Œå¹¶sendç¬¬äºŒä¸ªresponse
 					if(peer.WaitForBinded(PROXY_MAX_RESPTIMEOUT,false))
-						ans.CD=90; //Á¬½Ó³É¹¦
+						ans.CD=90; //connected successfully
 					else ans.CD=92;
 				}else ans.CD=92;
 			}else if( (iret=peer.ListenX(0,FALSE,NULL)) > 0)
@@ -105,18 +105,18 @@ void cProxysvr :: doSock4req(socketTCP *psock)
 				ans.Port =htons(iret); ans.IPAddr =0; //psock->getLocalip();
 				psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
 				ans.Port =0;ans.IPAddr =0;
-				ans.CD=91; //µÈ´ı¶Ô·½Á¬½Ó£¬²¢·¢ËÍµÚ¶ş¸öÏìÓ¦
+				ans.CD=91; //waitingå¯¹æ–¹connectï¼Œå¹¶sendç¬¬äºŒä¸ªresponse
 				if(peer.Accept(PROXY_MAX_RESPTIMEOUT,NULL)>0)
-					ans.CD=90; //Á¬½Ó³É¹¦
+					ans.CD=90; //connected successfully
 			}else ans.CD=92;
 		}//?else if(psock4req->CD==2)
 
 		psock->Send(8 /*sizeof(sock4ans)*/,(const char *)&ans,-1);
-		if(ans.CD==90) //SOCKS4ÃüÁî³É¹¦,´´½¨×ª·¢¶Ô
+		if(ans.CD==90) //SOCKS4commandsuccess,createforwardå¯¹
 			transData(psock,&peer,NULL,0);
 		else RW_LOG_PRINT(LOGLEVEL_WARN,"[ProxySvr] SOCKS4 failed - CD=%d, host:port=%s:%d\r\n",
 					psock4req->CD,((hostip)?hostip:peer.getRemoteIP()),hostport);
-		break;//Ìø³öÑ­»·
+		break;//è·³å‡ºå¾ªç¯
 	}//?while
 	return;
 }

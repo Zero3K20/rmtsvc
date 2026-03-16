@@ -1,6 +1,6 @@
 /*******************************************************************
    *	cCmdShell.h
-   *    DESCRIPTION:����̨�������������ض������
+   *    DESCRIPTION:console program input/output redirection object.
    *
    *    AUTHOR:yyc
    *

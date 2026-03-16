@@ -1,5 +1,5 @@
 /*******************************************************************
-   *	webAction_rview.cpp webÇëÇó´¦Àí - ×¢²á±íä¯ÀÀ
+   *	webAction_rview.cpp web request processing - registry browser
    *    DESCRIPTION:
    *
    *    AUTHOR:yyc
@@ -11,8 +11,8 @@
    *******************************************************************/
 #include "rmtsvc.h"
 
-//ÁĞ³ö±¾»úËùÓĞ·şÎñ
-//buffer - ·µ»ØµÄxmlÎÄµµ,¸ñÊ½:
+//list all services on local machine
+//buffer - returned xml document, format:
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<rekeys>
@@ -39,7 +39,7 @@
 
 bool regkeyList(cBuffer &buffer,const char *skey);
 bool regitemList(cBuffer &buffer,const char *skey);
-//listWhat -- Ö¸Ã÷ÁĞ¾ÙÊ²Ã´ÏîÄ¿ 1 : list subKey 2 : list dataItem
+//listWhat -- specifies what to enumerate: 1: list subKey, 2: list dataItem
 bool webServer :: httprsp_reglist(socketTCP *psock,httpResponse &httprsp,const char *skey,int listWhat)
 {
 	bool bret=false;
@@ -54,9 +54,9 @@ bool webServer :: httprsp_reglist(socketTCP *psock,httpResponse &httprsp,const c
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//ÉèÖÃMIMEÀàĞÍ£¬Ä¬ÈÏÎªHTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//ÉèÖÃÏìÓ¦ÄÚÈİ³¤¶È
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	if(!bret)
 		httprsp.send_rspH(psock,400,"Bad Request");
@@ -72,7 +72,7 @@ bool webServer::httprsp_regkey_del(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -104,7 +104,7 @@ bool webServer::httprsp_regkey_add(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL,hkSub=NULL;
@@ -137,7 +137,7 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -162,13 +162,13 @@ bool webServer::httprsp_regitem_del(socketTCP *psock,httpResponse &httprsp,const
 	}//?if(spath && spath[0]=='\\')
 	return httprsp_reglist(psock,httprsp,spath,2);
 }
-//½«¶ş½øÖÆ×Ö·û´®×ª»»Îª¶ş½øÖÆÊı×é£¬·µ»ØÊı×é´óĞ¡
+//å°†äºŒè¿›åˆ¶string conversionä¸ºäºŒè¿›åˆ¶arrayï¼Œreturnarraysize
 DWORD cvtBinaryString2Binary(char *strBinary)
 {
 	LPBYTE pbyte=(LPBYTE)strBinary;
 	char *p,*ptr=strBinary;
-	while(*ptr==' ') ptr++; //È¥µôÇ°µ¼¿Õ¸ñ
-	::strupr(ptr);//×ª»»Îª´óĞ´
+	while(*ptr==' ') ptr++; //remove leading spaces
+	::strupr(ptr);//convertä¸ºå¤§å†™
 	while(true)
 	{
 		p=strchr(ptr,' ');
@@ -176,7 +176,7 @@ DWORD cvtBinaryString2Binary(char *strBinary)
 		*pbyte++=(BYTE)cCoder::hex_atol(ptr);
 		if(p==NULL) break;
 		*p=' '; ptr=p+1;
-		while(*ptr==' ') ptr++; //È¥µôÇ°µ¼¿Õ¸ñ
+		while(*ptr==' ') ptr++; //remove leading spaces
 	}
 	return pbyte-(LPBYTE)strBinary;
 }
@@ -188,7 +188,7 @@ bool webServer::httprsp_regitem_add(socketTCP *psock,httpResponse &httprsp,const
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -217,7 +217,7 @@ bool webServer::httprsp_regitem_add(socketTCP *psock,httpResponse &httprsp,const
 			}//?if(strcmp(stype,"REG_BINARY")==0)
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//×ª»»Îª´óĞ´
+				::strupr((char *)svalue);//convertä¸ºå¤§å†™
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			} 
@@ -236,7 +236,7 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 	{
 		const char *sroot=spath+1;
 		const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(sroot,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -265,7 +265,7 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 			}
 			else if(strcmp(stype,"REG_DWORD")==0)
 			{
-				::strupr((char *)svalue);//×ª»»Îª´óĞ´
+				::strupr((char *)svalue);//convertä¸ºå¤§å†™
 				DWORD dw=(svalue[1]=='X')?cCoder::hex_atol(svalue+2):(DWORD)atol(svalue);
 				::RegSetValueEx(hKEY, sname, NULL,REG_DWORD, (LPBYTE)&dw,sizeof(DWORD));
 			}
@@ -295,7 +295,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 		lret=5;
 	}else if(skey[0]=='\\'){
 		skey++; const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(skey,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -335,14 +335,14 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 						if( (dwBufferSize+=80)<256 ) dwBufferSize=256;
 						if(buffer.Resize(buffer.size()+dwBufferSize)==NULL) break;
 					}
-					//»ñÈ¡´Ë¼ü£¬×Ó¼üµÄ¸öÊı start----------------------------------
+					//getæ­¤é”®ï¼Œå­é”®çš„ä¸ªæ•° start----------------------------------
 					dwSubKeys=0; HKEY hsubKey=NULL;
 					if(::RegOpenKeyEx(hKEY_ROOT, ((ptr_tmpbuf[0]=='\\')?(ptr_tmpbuf+1):ptr_tmpbuf), 0, KEY_READ|KEY_ENUMERATE_SUB_KEYS, &hsubKey)==ERROR_SUCCESS)
 					{
 						::RegQueryInfoKey(hsubKey,NULL,NULL,NULL,&dwSubKeys,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 						::RegCloseKey(hsubKey);
 					}
-					////»ñÈ¡´Ë¼ü£¬×Ó¼üµÄ¸öÊı end-----------------------------
+					////getæ­¤é”®ï¼Œå­é”®çš„ä¸ªæ•° end-----------------------------
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),
 						"<kitem><id>%d</id><subkeys>%c</subkeys><regkey>%s</regkey></kitem>",
 						++lret, ((dwSubKeys>0)?'+':' '), subkey_buffer);
@@ -356,7 +356,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 	
 	if(lret==0 && buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),
-					"<kitem><id></id><regkey>(none - Ã»ÓĞÊı¾İÏî)</regkey></kitem>");
+					"<kitem><id></id><regkey>(none - no dataé¡¹)</regkey></kitem>");
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regkeys>");
 	return (lret<0)?false:true;
@@ -379,7 +379,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 	if(skey && skey[0]=='\\')
 	{
 		skey++; const char *lpregpath=NULL;
-		//·ÖÀë³öHKEY_ROOTºÍRegPath
+		//extract HKEY_ROOT and RegPath
 		const char *ptr=strchr(skey,'\\');
 		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
 		HKEY hKEY_ROOT,hKEY=NULL;
@@ -421,14 +421,14 @@ bool regitemList(cBuffer &buffer,const char *skey)
 						"<rname><![CDATA[%s]]></rname>"
 						"<rdlen>%d</rdlen>",
 						++lret,STR_REG_TYPE[dwType],
-						((subname_buffer[0]==0)?"(Ä¬ÈÏ)":subname_buffer),
+						((subname_buffer[0]==0)?"(default)":subname_buffer),
 						dwValueBufferSize);
 					
 					if(dwType==REG_BINARY)
 					{
-						int i,j,lines=(dwValueBufferSize+15)/16; //¼ÆËã¹²¶àÉÙĞĞ
-						size_t count=0;//´òÓ¡×Ö·û¼ÆÊı
-						if(lines>10) lines=10; //Ö»ÏÔÊ¾10ĞĞµÄÊı¾İ
+						int i,j,lines=(dwValueBufferSize+15)/16; //countç®—å…±å¤šå°‘è¡Œ
+						size_t count=0;//æ‰“å°charactercounting
+						if(lines>10) lines=10; //åªæ˜¾ç¤º10è¡Œçš„data
 
 						if((int)buffer.Space()<(lines*50+20)){
 							if( buffer.Resize(buffer.size()+lines*50+30)==NULL ) break;
@@ -473,7 +473,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 							else
 								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%s]]></rdata>",subvalue_buffer);
 						}
-					} //·Ç¶ş½øÖÆÊı¾İ
+					} //éäºŒè¿›åˆ¶data
 					if(buffer.Space()<12) buffer.Resize(buffer.size()+12);
 					if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</vitem>");
 					dwNameBufferSize=dwMaxValueNameLen+1;
@@ -490,8 +490,8 @@ bool regitemList(cBuffer &buffer,const char *skey)
 	{
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str()) 
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(Ä¬ÈÏ)</rname>"
-						"<rdlen>0</rdlen><rdata>(Êı¾İÎ´ÉèÖÃ)</rdata></vitem>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vitem><id></id><rtype>REG_SZ</rtype><rname>(default)</rname>"
+						"<rdlen>0</rdlen><rdata>(dataæœªset)</rdata></vitem>");
 	}
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str()) buffer.len()+=sprintf(buffer.str()+buffer.len(),"</regitems>");

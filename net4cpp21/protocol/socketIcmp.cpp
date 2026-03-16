@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketIcmp.cpp
-   *    DESCRIPTION:ICMP socket 类的实现
+   *    DESCRIPTION:ICMP socket class implementation
    *
    *    AUTHOR:yyc
    *
@@ -32,8 +32,8 @@ inline void ConstructICMP(IcmpHeader &icmph)
 	return;
 }
 
-//发送Icmp Echo数据包
-//ipDest --- 要发送的目的主机IP
+//send ICMP Echo data packet
+//ipDest --- 瑕乻end鐨勭洰鐨勪富鏈篒P
 SOCKSRESULT socketIcmp :: sendIcmp_echo(unsigned long ipDest)
 {
 	IcmpHeader icmph;
@@ -50,7 +50,7 @@ SOCKSRESULT socketIcmp :: sendIcmp_echo(unsigned long ipDest)
 	return sendIcmpPackage(ipDest,icmph);
 }
 
-//发送Icmp Echo响应数据包
+//sendIcmp Echoresponsedatapacket
 SOCKSRESULT socketIcmp :: sendIcmp_reply(unsigned long ipDest,unsigned short usId, 
 										unsigned short usSeq,unsigned long ulData)
 {
@@ -68,7 +68,7 @@ SOCKSRESULT socketIcmp :: sendIcmp_reply(unsigned long ipDest,unsigned short usI
 	return sendIcmpPackage(ipDest,icmph);
 }
 
-//发送Icmp数据包
+//sendIcmpdatapacket
 SOCKSRESULT socketIcmp :: sendIcmpPackage(unsigned long ipDest,IcmpHeader &icmph)
 {
 	if(m_socktype!=SOCKS_RAW)

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	sntpclnt.h
-   *    DESCRIPTION:SNTP简单网络时钟同步协议客户端实现
+   *    DESCRIPTION:SNTP simple network time synchronization protocol client implementation
    *
    *	http://hi.baidu.com/yycblog/home
    *	net4cpp 2.1
@@ -71,7 +71,7 @@ bool CSNTPClient::GetServerTime(const char * szHostName, NtpServerResponse& resp
 		return false;
 	}
 	if(udp.checkSocket(m_dwTimeout*1000000L,SOCKS_OP_READ)!=1)
-	{//超时或错误
+	{//timeout or error
 		m_strLastError.assign("Unable to wait for reply from the SNTP server\n");
 		return false;
 	}
@@ -95,7 +95,7 @@ bool CSNTPClient::GetServerTime(const char * szHostName, NtpServerResponse& resp
 	return true;
 }
 
-//根据返回结果同步本地时钟
+//synchronize local clock based on returned result
 bool CSNTPClient::SynchroniseClock(NtpServerResponse& response)
 {
 //time difference was greater was 1 hour, not synchronizing clock\n???

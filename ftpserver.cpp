@@ -1,6 +1,6 @@
 /*******************************************************************
    *	ftpserver.h 
-   *    DESCRIPTION: FTP服务
+   *    DESCRIPTION: FTP service
    *
    *    AUTHOR:yyc
    *
@@ -13,7 +13,7 @@
 ftpsvrEx :: ftpsvrEx()
 {
 #ifdef _SURPPORT_OPENSSL_
-		setCacert(NULL,NULL,NULL,true); //默认加载内置的证书
+		setCacert(NULL,NULL,NULL,true); //load built-in certificate by default
 #endif
 	initSetting();
 }
@@ -31,29 +31,29 @@ void ftpsvrEx ::initSetting()
 	m_settings.tips="";
 }
 
-//启动服务
+//start service
 bool ftpsvrEx :: Start() 
 {
 	if(this->status()==SOCKS_LISTEN) return true;
-	//配置ftp服务的参数和帐号----start------------
+	//configure ftp service parameters and accounts----start------------
 #ifdef _SURPPORT_OPENSSL_
 	if(m_settings.ifSSLsvr) 
-		this->initSSL(true,NULL); //SSL加密FTP服务
+		this->initSSL(true,NULL); //SSL encrypted FTP service
 #endif
 	this->setHelloTip(m_settings.tips.c_str());
 	this->setDataPort(m_settings.dataportB,m_settings.dataportE);
-	this->maxConnection(m_settings.maxUsers); //最大连接用户数. 0:不限
-	this->delAccount((const char *)-1); //清空所有帐号信息
-	//配置ftp访问帐号信息
+	this->maxConnection(m_settings.maxUsers); //maximum number of connected users. 0: unlimited
+	this->delAccount((const char *)-1); //clear all account information
+	//configure FTP access account information
 	std::map<std::string,TFTPUser>::iterator it=m_userlist.begin();
 	for(;it!=m_userlist.end();it++)
 	{
 		TFTPUser &ftpuser=(*it).second;
 		if(ftpuser.forbid==0) modiUser(ftpuser);
 	}
-	//配置ftp服务的参数和帐号---- end ------------
+	//configure FTP service parameters and accounts ---- end ------------
 	const char *ip=(m_settings.bindip=="")?NULL:m_settings.bindip.c_str();
-	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许端口重用
+	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//if IP is bound, allow port reuse
 	SOCKSRESULT sr=Listen( m_settings.svrport ,bReuseAddr,ip);
 
 	return (sr>0)?true:false;
@@ -67,8 +67,8 @@ void ftpsvrEx :: Stop()
 #endif
 	return;
 }
-//删除指定的用户,返回0成功
-//返回1无效的帐号,返回2删除失败
+//delete the specified user, returns 0 on success
+//returns 1 for invalid account, returns 2 for delete failure
 int ftpsvrEx::deleUser(const char *ptr_user)
 {
 	std::map<std::string,TFTPUser>::iterator it=m_userlist.end();
@@ -78,7 +78,7 @@ int ftpsvrEx::deleUser(const char *ptr_user)
 	m_userlist.erase(it);
 	return 0;
 }
-//添加/修改用户
+//add/modify user
 bool ftpsvrEx::modiUser(TFTPUser &ftpuser)
 {
 	FTPACCOUNT *ptr_ftpaccount=this->getAccount(ftpuser.username.c_str());
@@ -96,7 +96,7 @@ bool ftpsvrEx::modiUser(TFTPUser &ftpuser)
 	ptr_ftpaccount->m_bitQX=0;
 	ptr_ftpaccount->lPswdMode(ftpuser.pswdmode);
 	ptr_ftpaccount->bDsphidefiles((ftpuser.disphidden!=0)?true:false);
-	ptr_ftpaccount->m_ipRules.addRules(NULL); //清空所有过滤规则
+	ptr_ftpaccount->m_ipRules.addRules(NULL); //clear all filter rules
 	ptr_ftpaccount->m_ipRules.addRules_new(RULETYPE_TCP,ftpuser.ipaccess,ftpuser.ipRules.c_str());
 
 	if(ftpuser.forbid!=0)
@@ -125,55 +125,55 @@ bool ftpsvrEx::modiUser(TFTPUser &ftpuser)
 void ftpsvrEx::onLogEvent(long eventID,cFtpSession &session)
 {
 	if((m_settings.logEvent & eventID)==0 || !RW_LOG_CHECK(LOGLEVEL_INFO) ) return;	
-	if(eventID==FTP_LOGEVENT_LOGIN ) //有用户登录
+	if(eventID==FTP_LOGEVENT_LOGIN ) //a user logged in
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[login]  ip=%s - %s login.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_LOGOUT) //有用户退出
+	else if(eventID==FTP_LOGEVENT_LOGOUT) //a user logged out
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[logout] ip=%s - %s logout.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_UPLOAD) //有用户上载文件
+	else if(eventID==FTP_LOGEVENT_UPLOAD) //a user uploaded a file
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[upload] ip=%s - %s upload %s.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str(),
 			session.m_filename.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_DWLOAD) //有用户下载文件
+	else if(eventID==FTP_LOGEVENT_DWLOAD) //a user downloaded a file
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[dwload] ip=%s - %s download %s.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str(),
 			session.m_filename.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_DELETE) //有用户删除文件
+	else if(eventID==FTP_LOGEVENT_DELETE) //a user deleted a file
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[delete] ip=%s - %s delete %s.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str(),
 			session.m_filename.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_RMD) //有用户删除目录
+	else if(eventID==FTP_LOGEVENT_RMD) //a user deleted a directory
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[deldir] ip=%s - %s delete %s.\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str(),
 			session.m_filename.c_str());
 	}
-	else if(eventID==FTP_LOGEVENT_SITE) //有用户执行SITE命令
+	else if(eventID==FTP_LOGEVENT_SITE) //a user executed a SITE command
 	{
-		RW_LOG_PRINTTIME(); //打印当前时间
+		RW_LOG_PRINTTIME(); //print current time
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[ SITE ] ip=%s - %s SITE %s,result=%d\r\n",
 			session.m_pcmdsock->getRemoteIP(),
 			session.m_paccount->m_username.c_str(),
@@ -191,12 +191,12 @@ bool webServer::httprsp_ftpsets(socketTCP *psock,httpRequest &httpreq,httpRespon
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"run")==0) //运行ftp服务
+	if(strcasecmp(ptr_cmd,"run")==0) //run FTP service
 		pftpsvr->Start();
 	else if(strcasecmp(ptr_cmd,"stop")==0)
 		pftpsvr->Stop();
 	else if(strcasecmp(ptr_cmd,"setting")==0) 
-	{//设置FTP服务参数
+	{//set FTP service parameters
 		const char *ptr=httpreq.Request("svrport");
 		if(ptr){ 
 			pftpsvr->m_settings.svrport=atoi(ptr);
@@ -241,10 +241,10 @@ bool webServer::httprsp_ftpsets(socketTCP *psock,httpRequest &httpreq,httpRespon
 		pftpsvr->saveIni();
 	}//?else if(strcasecmp(ptr_cmd,"setting")==0) 
 
-	//获取FTP服务的参数设置和状态----start---------------------------------------------
+	//get FTP service parameters and status----start---------------------------------------------
 	struct tm * ltime=NULL; time_t t;
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftp_status>");
-	if(pftpsvr->status()==SOCKS_LISTEN) //服务已运行
+	if(pftpsvr->status()==SOCKS_LISTEN) //service is running
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",pftpsvr->getLocalPort());
 #ifdef _SURPPORT_OPENSSL_
@@ -254,54 +254,54 @@ bool webServer::httprsp_ftpsets(socketTCP *psock,httpRequest &httpreq,httpRespon
 #endif
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>%d</connected>",pftpsvr->curConnection());
 		t=pftpsvr->getStartTime(); ltime=localtime(&t);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d年%02d月%02d日 %02d:%02d:%02d</starttime>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d-%02d-%02d %02d:%02d:%02d</starttime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	}
 	else
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>0</status>");
 	t=time(NULL); ltime=localtime(&t);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04d年%02d月%02d日 %02d:%02d:%02d</curtime>",
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<curtime>%04d-%02d-%02d %02d:%02d:%02d</curtime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrport>%d</svrport>",pftpsvr->m_settings.svrport);
-	//FTP服务类型  m_ifSSLsvr
+	//FTP service type  m_ifSSLsvr
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<svrtype>%d</svrtype>",pftpsvr->m_settings.ifSSLsvr);
-	//FTP服务是否自动启动
+	//whether FTP service starts automatically
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<autorun>%d</autorun>",pftpsvr->m_settings.autoStart);
-	//日志记录
+	//logging
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<logging>%d</logging>",pftpsvr->m_settings.logEvent);
-	//允许最大连接用户数
+	//maximum allowed connected users
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<maxconn>%d</maxconn>",pftpsvr->m_settings.maxUsers);
 	//PASV m_dataport_start
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<dataport>%d-%d</dataport>",
 							pftpsvr->m_settings.dataportB,pftpsvr->m_settings.dataportE);
-	//绑定本机IP
+	//bind local IP
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<bindip>%s</bindip><localip>",pftpsvr->m_settings.bindip.c_str());
-	std::vector<std::string> vec;//得到本机IP，返回得到本机IP的个数
+	std::vector<std::string> vec;//get local IP, returns count of local IPs obtained
 	long n=socketBase::getLocalHostIP(vec);
 	for(int i=0;i<n;i++) buffer.len()+=sprintf(buffer.str()+buffer.len(),"%s ",vec[i].c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</localip>");
-	//欢迎词信息
+	//welcome message
 	if(buffer.Space()<pftpsvr->m_settings.tips.length()) buffer.Resize(buffer.size()+pftpsvr->m_settings.tips.length());
 	if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<tips><![CDATA[%s]]></tips>",pftpsvr->m_settings.tips.c_str());
-	//获取FTP服务的参数设置和状态---- end ---------------------------------------------
+	//get FTP service parameters and status---- end ---------------------------------------------
 	
 	if(buffer.Space()<32) buffer.Resize(buffer.size()+32);
 	if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</ftp_status></xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//返回用户列表XML
+//return user list XML
 void listuser(cBuffer &buffer,std::map<std::string,TFTPUser> &userlist)
 {
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<userlist>");
@@ -323,22 +323,22 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 	cBuffer buffer(1024);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"list")==0) //列出所有FTP帐号
+	if(strcasecmp(ptr_cmd,"list")==0) //list all FTP accounts
 		listuser(buffer,pftpsvr->m_userlist);
 	else if(strcasecmp(ptr_cmd,"dele")==0)
 	{
 		const char *ptr_user=httpreq.Request("user");
 		int iret=pftpsvr->deleUser(ptr_user);
 		if(iret==1)
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>无效的帐号!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Invalid account!</retmsg>");
 		else if(iret==2)
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>暂时无法删除帐号%s!</retmsg>",ptr_user);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Unable to delete account %s at this time!</retmsg>",ptr_user);
 		else{
 			listuser(buffer,pftpsvr->m_userlist);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>删除帐号成功!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Account deleted successfully!</retmsg>");
 		}
 	}//?else if(strcasecmp(ptr_cmd,"dele")==0)
-	else if(strcasecmp(ptr_cmd,"save")==0) //添加或修改帐号
+	else if(strcasecmp(ptr_cmd,"save")==0) //add or modify account
 	{
 		const char *ptr,*ptr_user=httpreq.Request("account");
 		if(ptr_user && ptr_user[0]!=0)
@@ -346,9 +346,9 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 			std::map<std::string,TFTPUser>::iterator it=pftpsvr->m_userlist.end();
 			if(ptr_user) it=pftpsvr->m_userlist.find(ptr_user);
 			TFTPUser *ptr_ftpuser=NULL;
-			if(it!=pftpsvr->m_userlist.end()) //修改指定帐号的信息
+			if(it!=pftpsvr->m_userlist.end()) //modify information of the specified account
 				ptr_ftpuser=&(*it).second;
-			else{ //添加一个帐号
+			else{ //add an account
 				TFTPUser ftpuser; 
 				ftpuser.username.assign(ptr_user);
 				ftpuser.ipaccess =0;
@@ -378,8 +378,8 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 				else{
 					struct tm ltm; ::memset((void *)&ltm,0,sizeof(ltm));
 					::sscanf(ptr,"%d-%d-%d",&ltm.tm_year,&ltm.tm_mon,&ltm.tm_mday);
-					ltm.tm_year-=1900; //年份从1900开始计数
-					ltm.tm_mon-=1;//月份从0开始计数
+					ltm.tm_year-=1900; //year count starts from 1900
+					ltm.tm_mon-=1;//month count starts from 0
 					if(ltm.tm_year>100 && ltm.tm_year<200 && 
 							ltm.tm_mon>=0 && ltm.tm_mon<=11 && 
 							ltm.tm_mday>=1 && ltm.tm_mday<=31 )
@@ -438,11 +438,11 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 			}//?ptr=httpreq.Request("vpath");
 			pftpsvr->modiUser(*ptr_ftpuser);
 			listuser(buffer,pftpsvr->m_userlist);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>添加修改帐号成功!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Account added/modified successfully!</retmsg>");
 			pftpsvr->saveIni();
 		}//?if(ptr_user && ptr_user[0]!=0)
 		else
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>无效的帐号!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Invalid account!</retmsg>");
 	}//?else if(strcasecmp(ptr_cmd,"save")==0)
 	else if(strcasecmp(ptr_cmd,"info")==0)
 	{
@@ -496,7 +496,7 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"</userinfo>");
 		}//?if(it!=pftpsvr->m_userlist.end())
 		else
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>无效的帐号!</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Invalid account!</retmsg>");
 	}
 	
 	
@@ -505,16 +505,16 @@ bool webServer::httprsp_ftpusers(socketTCP *psock,httpRequest &httpreq,httpRespo
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//FTP服务配置的导入导出
+//FTP service configuration import/export
 bool webServer::httprsp_ftpini(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -523,7 +523,7 @@ bool webServer::httprsp_ftpini(socketTCP *psock,httpRequest &httpreq,httpRespons
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	if(strcasecmp(ptr_cmd,"out")==0) //导出FTP服务配置
+	if(strcasecmp(ptr_cmd,"out")==0) //export FTP service configuration
 	{
 		std::string strini;
 		pftpsvr->saveAsstring(strini);
@@ -531,16 +531,16 @@ bool webServer::httprsp_ftpini(socketTCP *psock,httpRequest &httpreq,httpRespons
 		if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<settings><![CDATA[%s]]></settings>",strini.c_str());
 	}
-	else if(strcasecmp(ptr_cmd,"in")==0) //导入FTP服务配置
+	else if(strcasecmp(ptr_cmd,"in")==0) //import FTP service configuration
 	{
 		const char *ptr=httpreq.Request("ini");
 		if(ptr){
 			pftpsvr->initSetting();
 			pftpsvr->m_userlist.clear();
 			pftpsvr->parseIni((char *)ptr,0);
-			pftpsvr->saveIni(); //保存配置参数
+			pftpsvr->saveIni(); //save configuration parameters
 		}//?if(ptr)
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>导入配置完成!</retmsg>");
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>Configuration imported successfully!</retmsg>");
 	}//?else if(strcasecmp(ptr_cmd,"in")==0)
 
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
@@ -548,9 +548,9 @@ bool webServer::httprsp_ftpini(socketTCP *psock,httpRequest &httpreq,httpRespons
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
 	
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//set response content length
 	httprsp.lContentLength(buffer.len());
 	httprsp.send_rspH(psock,200,"OK");
 	

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vIDCs.h
-   *    DESCRIPTION:vIDC服务类的定义
+   *    DESCRIPTION:vIDC service class definition
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -25,24 +25,24 @@ namespace net4cpp21
 		bool bAuthentication() { return m_bAuthentication; }
 		void bAuthentication(bool b) { m_bAuthentication=b; }
 		std::string &accessPswd() { return m_strPswd; }
-		bool DisConnect(long vidccID); //强制断开某个vidccc的连接
-		void setLogdatafile(long vidccID,bool b);//设置对某个vidcc映射的服务进行日志记录
+		bool DisConnect(long vidccID); //forcibly disconnect a vidcc connection
+		void setLogdatafile(long vidccID,bool b);//enable logging for the service mapped by a vidcc
 
 		void xml_list_vidcc(cBuffer &buffer);
 		void xml_info_vidcc(cBuffer &buffer,long vidccID);
 
 	protected:
-		void onConnect(socketTCP *psock);//有一个用户连接上来
-		void Destroy(); //对象释放前，销毁释放资源动作
+		void onConnect(socketTCP *psock);//a user has connected
+		void Destroy(); //destroy and free resources before object is released
 		vidccSession * docmd_helo(socketTCP *psock,const char *param);
 		vidccSession * AddPipeFromVidcSession(socketTCP *pipe,long vidccID);
 		bool DelPipeFromVidcSession(socketTCP *pipe,long vidccID);
 	private:
-		bool m_bAuthentication; //vIDCs是否需要验证
-		std::string m_strPswd; //vIDCs的验证密码
+		bool m_bAuthentication; //whether vIDCs requires authentication
+		std::string m_strPswd; //vIDCs authentication password
 		cMutex m_mutex;
 		//key - vidccID
-		std::map<long,vidccSession *> m_sessions; //当前已连接的vIDCc客户端集合
+		std::map<long,vidccSession *> m_sessions; //current宸瞔onnect鐨剉IDCcclientset
 	};
 //***********************************************************************************	
 	class vidcServer : public socketSvr,public vidcsvr
@@ -52,7 +52,7 @@ namespace net4cpp21
 		virtual ~vidcServer(){}
 		void Stop();
 	private:
-		//当有一个新的客户连接此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock)
 		{
 			vidcsvr::onConnect(psock);

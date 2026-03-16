@@ -1,11 +1,11 @@
 /*******************************************************************
-   *	webAction_fport.cpp web请求处理 - 枚举进程和端口的关联
+   *	webAction_fport.cpp web request processing - enumerate process and port associations
    *    DESCRIPTION:
    *
    *    AUTHOR:yyc
    *
-   *    原理通过调用Iphlpapi.dll中的未公开函数枚举关联
-   *    Iphlpapi.dll公开的函数中有GetTcpTable/GetUdpTable,但无法关联进程
+   *    approach: enumerate associations by calling undocumented functions in Iphlpapi.dll
+   *    Iphlpapi.dll public functions include GetTcpTable/GetUdpTable, but cannot associate with processes
    *	
    *******************************************************************/
 
@@ -14,17 +14,17 @@
 #include <Iprtrmib.h>
 
 BOOL portList(cBuffer &buffer);
-//buffer - 返回的xml文档,格式:
+//buffer - returned xml document, format:
 //<?xml version="1.0" encoding="gb2312" ?>
 //<xmlroot>
 //<fport>
-//<id>序号</id>
-//<pid>进程ID</pid>
-//<pname>进程名</pname>
-//<ptype>类型</ptype>
-//<laddr>本地地址</laddr>
-//<raddr>远程地址</raddr>
-//<status>状态</status>
+//<id>sequence number</id>
+//<pid>process ID</pid>
+//<pname>process name</pname>
+//<ptype>type</ptype>
+//<laddr>localaddress</laddr>
+//<raddr>remoteaddress</raddr>
+//<status>status</status>
 //</fport>
 //...
 //</xmlroot>
@@ -33,9 +33,9 @@ bool webServer::httprsp_fport(socketTCP *psock,httpResponse &httprsp)
 	cBuffer buffer(2048);
 	portList(buffer);
 	httprsp.NoCache();//CacheControl("No-cache");
-	//设置MIME类型，默认为HTML
+	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_XML);
-	//设置响应内容长度
+	//set response content length
 	httprsp.lContentLength(buffer.len()); 
 	httprsp.send_rspH(psock,200,"OK");
 	psock->Send(buffer.len(),buffer.str(),-1);
@@ -111,8 +111,8 @@ BOOL portList(cBuffer &buffer)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dll失败
-	//获取函数指针 // XP and later - 实际测试2k也能用
+	if(hModule==NULL) return FALSE; //鍔犺浇dllfailure
+	//getfunctionpointer // XP and later - 瀹為檯test2k涔熻兘鐢�
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
@@ -124,7 +124,7 @@ BOOL portList(cBuffer &buffer)
 	DWORD dwLastError,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
-	//枚举所有TCP
+	//enumallTCP
 	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -158,7 +158,7 @@ BOOL portList(cBuffer &buffer)
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 	
-	//枚举所有UDP
+	//enumallUDP
 	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -202,8 +202,8 @@ BOOL portList(string &strret)
 	PROCALLOCATEANDGETUDPEXTABLEFROMSTACK lpfnAllocateAndGetUdpExTableFromStack = NULL;
 
 	hModule=::LoadLibrary("iphlpapi.dll");
-	if(hModule==NULL) return FALSE; //加载dll失败
-	//获取函数指针 // XP and later - 实际测试2k也能用
+	if(hModule==NULL) return FALSE; //鍔犺浇dllfailure
+	//getfunctionpointer // XP and later - 瀹為檯test2k涔熻兘鐢�
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
 	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
@@ -215,7 +215,7 @@ BOOL portList(string &strret)
 	DWORD dwLastError,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
-	//枚举所有TCP
+	//enumallTCP
 	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{
@@ -240,7 +240,7 @@ BOOL portList(string &strret)
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 	
-	//枚举所有UDP
+	//enumallUDP
 	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
 	if (dwLastError == NO_ERROR)
 	{

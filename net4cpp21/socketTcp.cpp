@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketTcp.h
-   *    DESCRIPTION:TCP socket 类的定义
+   *    DESCRIPTION:TCP socket class definition
    *
    *    AUTHOR:yyc
    *
@@ -18,10 +18,10 @@
 using namespace std;
 using namespace net4cpp21;
 
-//TCP侦听，返回侦听服务端口
+//TCP listen; returns the listening service port
 SOCKSRESULT socketTcp::ListenX(int port,BOOL bReuseAddr,const char *bindIP)
 {
-	//创建一个TCP socket句柄
+	//Create a TCP socket handle
 	if( !create(SOCKS_TCP) ) return SOCKSERR_INVALID;
 	SOCKSRESULT sr=Bind(port,bReuseAddr,bindIP);
 	if(sr<=0){ Close(); return sr; }
@@ -37,7 +37,7 @@ SOCKSRESULT socketTcp::ListenX(int port,BOOL bReuseAddr,const char *bindIP)
 }
 SOCKSRESULT socketTcp::ListenX(int startport,int endport,BOOL bReuseAddr,const char *bindIP)
 {
-	//创建一个TCP socket句柄
+	//Create a TCP socket handle
 	if( !create(SOCKS_TCP) ) return SOCKSERR_INVALID;
 	SOCKSRESULT sr=Bind(startport,endport,bReuseAddr,bindIP);
 	if(sr<=0){ Close(); return sr; }
@@ -51,9 +51,9 @@ SOCKSRESULT socketTcp::ListenX(int startport,int endport,BOOL bReuseAddr,const c
 	m_sockstatus=SOCKS_LISTEN;
 	return sr;
 }
-//等待一个连接进来,返回当前连接的端口
-//如果psock==NULL,则关闭当前侦听服务，用本socket接受此连接
-//否则用指定的socketTcp接受此连接
+//Wait for an incoming connection; returns the current connection port
+//If psock==NULL, close the current listen service and accept the connection on this socket
+//Otherwise accept the connection on the specified socketTcp
 SOCKSRESULT socketTcp::Accept(time_t lWaitout,socketTcp *psock)
 {
 	if( m_sockstatus!=SOCKS_LISTEN ) return SOCKSERR_INVALID;
@@ -62,19 +62,19 @@ SOCKSRESULT socketTcp::Accept(time_t lWaitout,socketTcp *psock)
 	{
 		time_t t=time(NULL);
 		while( (fd=checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ))== 0 )
-		{//检查句柄是否可读
-			if( (time(NULL)-t)>lWaitout ) return SOCKSERR_TIMEOUT; //检查是否超时
+		{//Check if the handle is readable
+			if( (time(NULL)-t)>lWaitout ) return SOCKSERR_TIMEOUT; //Check if timeout has been reached
 		}//?while
 	}//?if(lWaitout>=0)
 	if(fd!=1)
 	{
 		if(fd==-1) m_errcode=SOCK_M_GETERROR;
-		return fd; //发生错误
+		return fd; //An error occurred
 	}
 
 	SOCKADDR_IN addr; int addrlen = sizeof(addr);
 	fd=::accept(m_sockfd, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
-	if(fd==-1) {m_errcode=SOCK_M_GETERROR; return SOCKSERR_ERROR;} //发生系统错误
+	if(fd==-1) {m_errcode=SOCK_M_GETERROR; return SOCKSERR_ERROR;} //System error occurred
 	if(psock)
 		psock->m_parent=this;
 	else psock=this;
@@ -84,31 +84,31 @@ SOCKSRESULT socketTcp::Accept(time_t lWaitout,socketTcp *psock)
 	psock->m_sockstatus=SOCKS_CONNECTED;
 	psock->m_sockflag |=SOCKS_TCP_IN;
 	memcpy((void *)&psock->m_remoteAddr,(const void *)&addr,sizeof(SOCKADDR_IN));
-	return psock->getSocketInfo();//获取socket绑定的本地ip和端口
+	return psock->getSocketInfo();//Get the local IP and port bound to this socket
 }
 
 SOCKSRESULT socketTcp::Connect(time_t lWaitout,int bindport,const char *bindip)
 {
 	if(m_remoteAddr.sin_addr.s_addr==INADDR_NONE) 
-		return SOCKSERR_HOST;//无效的主机IP
-	//创建一个TCP socket句柄
+		return SOCKSERR_HOST;//Invalid host IP
+	//Create a TCP socket handle
 	if( !create(SOCKS_TCP) ) return SOCKSERR_INVALID;	
-	//绑定指定的ip 端口
+	//Bind the specified IP and port
 	if(bindport>0 || (bindip!=NULL && bindip[0]!=0) ) 
 		if( Bind(bindport,SO_REUSEADDR,bindip)<=0) return SOCKSERR_BIND;
 	SOCKSRESULT sr=SOCKSERR_OK;
-	//连接指定的主机
-	if(lWaitout>=0) //设置了连接超时
+	//Connect to the specified host
+	if(lWaitout>=0) //Connection timeout has been configured
 	{
-		setNonblocking(true); //设置socket为非阻塞方式
+		setNonblocking(true); //Set socket to non-blocking mode
 		sr=::connect(m_sockfd,(struct sockaddr *) &m_remoteAddr, sizeof(m_remoteAddr));
-		//非阻塞模式一般不会返回0,而是返回有错误
+		//Non-blocking mode usually does not return 0; it returns an error instead
 		if(sr==SOCKSERR_OK || SOCK_M_GETERROR==WSAEWOULDBLOCK )
 		{
 			time_t t=time(NULL);
 			while( (sr=checkSocket(SCHECKTIMEOUT,SOCKS_OP_WRITE))== 0 )
-			{//检查句柄是否可写
-				if( (time(NULL)-t)>(unsigned long)lWaitout ) break; //检查是否超时
+			{//Check if the handle is writable
+				if( (time(NULL)-t)>(unsigned long)lWaitout ) break; //Check if timeout has been reached
 			}//?while
 			if(sr==0)
 				sr=SOCKSERR_TIMEOUT;
@@ -116,9 +116,9 @@ SOCKSRESULT socketTcp::Connect(time_t lWaitout,int bindport,const char *bindip)
 				sr=SOCKSERR_OK;	
 		}//?if(::connect(...
 		else sr=SOCKSERR_CONN;
-		setNonblocking(false);//恢复为阻塞方式
+		setNonblocking(false);//Restore to blocking mode
 	}//?if(lWaitout>=0)
-	else if(::connect(m_sockfd,(struct sockaddr *) &m_remoteAddr, sizeof(m_remoteAddr))!=0) //连接不成功
+	else if(::connect(m_sockfd,(struct sockaddr *) &m_remoteAddr, sizeof(m_remoteAddr))!=0) //Connection failed
 	{
 		RW_LOG_DEBUG("Failed to connect(), error=%d\r\n",SOCK_M_GETERROR);
 		sr=SOCKSERR_CONN;
@@ -183,7 +183,7 @@ socketSSL :: socketSSL():
 {
 	 m_bNotfile=true;
 	 m_bSSLverify=false;
-	 m_carootfile=""; //SSL 服务端验证客户端证书的根证书PEM文件
+	 m_carootfile=""; //Root CA PEM file for SSL server to verify client certificates
 	 m_crlfile="";
 }
 
@@ -232,9 +232,9 @@ socketSSL :: ~socketSSL()
 }
 
 
-//设置SSL的证书私钥密码
-//bNotfile -- 指示strCaCert&strCaKey指向的是证书文件名还是证书内容
-//如果bNotfile=true且strCaCert或strCaKey为空则用默认的证书和私钥
+//Set the SSL certificate private key password
+//bNotfile -- indicates whether strCaCert&strCaKey point to certificate file names or certificate content
+//If bNotfile=true and strCaCert or strCaKey is empty, default certificate and private key are used
 void socketSSL :: setCacert(const char *strCaCert,const char *strCaKey,const char *strCaKeypwd,
 							bool bNotfile,const char *strCaRootFile,const char *strCRLfile)
 {
@@ -258,7 +258,7 @@ void socketSSL :: setCacert(const char *strCaCert,const char *strCaKey,const cha
 		if(strCRLfile)	m_crlfile.assign(strCRLfile);
 		else m_crlfile="";
 	}
-	//如果carootfile!=""则要求进行SSL客户端验证
+	//If carootfile!="" then SSL client verification is required
 	if(m_carootfile!="") m_bSSLverify=true; else m_bSSLverify=false;
 	return;
 }
@@ -289,7 +289,7 @@ void socketSSL :: Close()
 	m_ssl=NULL; return;
 }
 
-//进行SSL协商
+//Perform SSL handshake/negotiation
 bool socketSSL :: SSL_Associate()
 {
 	if(m_sockstatus!=SOCKS_CONNECTED) return false;
@@ -305,8 +305,8 @@ bool socketSSL :: SSL_Associate()
 		}
 	}//?if(m_ssl==NULL)
 	SSL_set_fd (m_ssl, m_sockfd);
-	//SSL_CTX_set_timeout(m_ctx,1000); //默认为300ms
-	if(m_ssltype==SSL_INIT_CLNT) //客户SSL
+	//SSL_CTX_set_timeout(m_ctx,1000); //default is 300ms
+	if(m_ssltype==SSL_INIT_CLNT) //Client-side SSL
 	{
 		if(SSL_connect(m_ssl)!=-1)
 		{
@@ -378,7 +378,7 @@ inline size_t socketSSL :: v_write(const char *buf,size_t buflen)
 {
 	size_t len=0;
 	if(m_ssl)
-		len = SSL_write (m_ssl, buf, buflen); //错误返回-1
+		len = SSL_write (m_ssl, buf, buflen); //returns -1 on error
 	else
 		len=::send(m_sockfd,buf,buflen,MSG_NOSIGNAL);
 	return len;
@@ -387,18 +387,18 @@ inline size_t socketSSL :: v_read(char *buf,size_t buflen)
 {
 	size_t len=0;
 	if(m_ssl)
-		len=SSL_read (m_ssl, buf, buflen); //错误返回-1	
+		len=SSL_read (m_ssl, buf, buflen); //returns -1 on error	
 	else
 		len=::recv(m_sockfd,buf,buflen,MSG_NOSIGNAL);
 	return len;
 }
-//!!! SSL_peek查看SSL数据后会改变socket的可读标志，此时如果通过
-//select 判断socket句柄，将永远返回不可读
+//!!! SSL_peek modifies the socket readable flag after peeking; if checked via
+//select to inspect the socket handle, it will always appear unreadable
 inline size_t socketSSL :: v_peek(char *buf,size_t buflen)
 {
 	size_t len=0;
 	if(m_ssl)
-		len=SSL_peek (m_ssl, buf, buflen); //错误返回-1
+		len=SSL_peek (m_ssl, buf, buflen); //returns -1 on error
 	else
 		len=::recv(m_sockfd,buf,buflen,MSG_NOSIGNAL|MSG_PEEK);
 	return len;
@@ -411,30 +411,30 @@ void socketSSL::freeSSL()
 		SSL_CTX_free(m_ctx);
 	m_ctx=NULL;
 }
-//初始化SSL socket。bInitServer=true则初始化服务端SSL，否则初始化客户端SSL
+//Initialize SSL socket. bInitServer=true initializes server-side SSL; otherwise initializes client-side SSL
 static int passwdcb( char * buf, int size, int rwflag, void * userdata )
 {
 	strcpy( buf , (const char *)userdata );
 	return strlen( (const char *)userdata ); 
 }
-//证书验证回调，可在此回调中做其他处理...
+//Certificate verification callback; additional processing can be done here...
 static int verify_callback(int ok, X509_STORE_CTX *ctx)
 {
-	if(ok) //对于那些验证成功的证书进行CRL验证
+	if(ok) //Perform CRL verification for successfully verified certificates
 	{
 		X509 *ok_cert=X509_STORE_CTX_get_current_cert(ctx);
 	}
 	return ok;
 }
-//如果psock!=NULL则用psock的证书来初始化SSL服务端
+//If psock!=NULL, use psock's certificate to initialize the SSL server
 bool socketSSL::initSSL(bool bInitServer,socketSSL *psock)
 {
 	if(m_ctx!=NULL) return true;
 	m_ssltype=SSL_INIT_NONE;
-	SSL_load_error_strings();//为打印调试信息作准备
-						//如果调用了SSL_load_error_strings()后,便可以随时用ERR_print_errors_fp()来打印错误信息了
-	SSLeay_add_ssl_algorithms();//初始化
-	//采用什么协议(SSLv2/SSLv3/TLSv1)在此指定
+	SSL_load_error_strings();//Prepare for printing debug information
+						//After calling SSL_load_error_strings(), ERR_print_errors_fp() can be used at any time to print error messages
+	SSLeay_add_ssl_algorithms();//Initialize
+	//Specify the protocol to use (SSLv2/SSLv3/TLSv1) here
 	SSL_METHOD *meth=(bInitServer)?SSLv23_server_method(): //TLSv1_server_method();
 								   SSLv23_client_method(); //SSLv2_client_method();
 	if( (m_ctx = SSL_CTX_new (meth))==NULL ) return false;
@@ -443,42 +443,42 @@ bool socketSSL::initSSL(bool bInitServer,socketSSL *psock)
 	const char *strCakey=(psock!=NULL)?psock->m_cakey.c_str():this->m_cakey.c_str();
 	const char *strCakeypass=(psock!=NULL)?psock->m_cakeypass.c_str():this->m_cakeypass.c_str();
 	bool bNotfile =(psock!=NULL)?psock->m_bNotfile:this->m_bNotfile;
-	if(bInitServer && (strCacert==NULL || strCacert[0]==0) ){ //保护. 用默认的证书初始化服务端
+	if(bInitServer && (strCacert==NULL || strCacert[0]==0) ){ //Safety check: initialize server with default certificate
 		strCacert=default_cacert; strCakey=default_cakey;
 		strCakeypass=default_cakeypass; bNotfile=true;
 	}
 	
-	//初始化SSL加载证书(公钥)和私钥
-	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" 如果没有指定私钥的密码，则会出现要求用户输入密码的提示
+	//Initialize SSL: load certificate (public key) and private key
+	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
 		SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
 		SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass); 
 	}
 	
-	if(strCacert[0]!=0 && strCakey[0]!=0) //指定了证书和私钥
+	if(strCacert[0]!=0 && strCakey[0]!=0) //Certificate and private key are specified
 	{
-		if(strCakeypass[0]!=0){//strCakeypass!="" 如果没有指定私钥的密码，则会出现要求用户输入密码的提示
+		if(strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
 			SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
 			SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass);
 		}
-		int ret=(bNotfile)? //加载证书
+		int ret=(bNotfile)? //Load certificate
 			SSL_CTX_use_certificate_buf(m_ctx, strCacert, SSL_FILETYPE_PEM):
 			SSL_CTX_use_certificate_file(m_ctx, strCacert, SSL_FILETYPE_PEM);
 		if(!(ret>0)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 加载证书失败.\r\n");
+			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load certificate.\r\n");
 			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
 		}
-		ret=(bNotfile)? //加载私钥
+		ret=(bNotfile)? //Load private key
 			SSL_CTX_use_PrivateKey_buf(m_ctx, strCakey, SSL_FILETYPE_PEM):
 			SSL_CTX_use_PrivateKey_file(m_ctx, strCakey, SSL_FILETYPE_PEM);
 		if(!(ret>0)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 加载私钥失败.\r\n");
+			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load private key.\r\n");
 			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
 		}
 		if(!SSL_CTX_check_private_key(m_ctx)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 密钥证书不匹配.\r\n");
+			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Private key and certificate do not match.\r\n");
 			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
 		}
-	}//否则如果初始化的是服务端则必须指定服务端证书和私钥，前面已经加了保护因此不必要判断
+	}//Otherwise if initializing server-side, server cert and key must be specified; already guarded above
 //	else if(bInitServer){ SSL_CTX_free (m_ctx); m_ctx=NULL; return false; }
 	
 	if(!bInitServer){ m_ssltype=SSL_INIT_CLNT; return true;}
@@ -489,21 +489,21 @@ bool socketSSL::initSSL(bool bInitServer,socketSSL *psock)
 		SSL_CTX_set_verify_depth(m_ctx,1);
 		int mode=SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE|SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 		SSL_CTX_set_verify(m_ctx,mode,NULL); //verify_callback);
-		//当需要客户端验证的时候，服务器把CAfile里面的可信任CA证书发往客户端.
-		//如果不调用SSL_CTX_set_client_CA_list则客户端(IE)会列出所有安装的证书让用户选择
-		//否则仅仅列出那些由此CA验证的证书让用户选择
+		//When client verification is required, the server sends trusted CA certificates from CAfile to the client.
+		//If SSL_CTX_set_client_CA_list is not called, the client (IE) lists all installed certificates for the user
+		//Otherwise only certificates verified by this CA are listed
 		if(m_carootfile !="" )
 			SSL_CTX_set_client_CA_list(m_ctx,SSL_load_client_CA_file(m_carootfile.c_str()));
-		//为了从自己本身的程序中产生一个session_id，所以要给本程序设定一个session_id_context，
-		//否则程序从外部获取session_id_context来得到session_id，那很容易产生错误
-		//长度不能大于SSL_MAX_SSL_SESSION_ID_LENGTH
-		//如果不调用SSL_CTX_set_session_id_context则默认是不启动session机制的这样就导致每次连接都会进行
-		//证书验证以及握手，导致很慢(例如IE进行web访问)。此时可启用session机制，这样在第一次进行证书验证后
-		//客户端会保持一个session，以后连接不必每次都进行验证协商等
+		//To generate a session_id within the program itself, a session_id_context must be configured,
+		//otherwise the program obtains session_id_context externally which is error-prone
+		//Length must not exceed SSL_MAX_SSL_SESSION_ID_LENGTH
+		//If SSL_CTX_set_session_id_context is not called, session resumption is disabled by default, causing every connection to perform
+		//full certificate verification and handshake (slow for e.g. IE). Enabling sessions means after the first verification
+		//the client retains a session and subsequent connections skip repeated verification/handshake
 		static const unsigned char s_server_session_id_context[]="yyc1234";
 		SSL_CTX_set_session_id_context(m_ctx,s_server_session_id_context,sizeof(s_server_session_id_context));
 
-		if(m_crlfile!=""){ //加载CRL列表
+		if(m_crlfile!=""){ //Load CRL list
 			X509_STORE *store=SSL_CTX_get_cert_store(m_ctx);
 			X509_LOOKUP *lookup= X509_STORE_add_lookup(store, X509_LOOKUP_file());
 			int iret=X509_load_crl_file(lookup, m_crlfile.c_str(), X509_FILETYPE_PEM);
@@ -526,8 +526,8 @@ SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
 	{
 		psock->m_ssltype=SSL_INIT_NONE;
 		if((psock->m_ctx=this->m_ctx)==NULL)
-		{//有可能psock需要初始化SSL服务端，因此将父socketSSL的证书信息复制一份给
-		 //联入的psock,如果父socket已经初始化了SSL服务端则直接传递ctx对象
+		{//psock may need to initialize SSL server-side, so copy the parent socketSSL certificate info to
+		 //the accepted psock; if the parent socket already initialized SSL server-side, pass the ctx object directly
 			psock->m_cacert=this->m_cacert;
 			psock->m_cakey=this->m_cakey;
 			psock->m_cakeypass=this->m_cakeypass;
@@ -541,10 +541,10 @@ SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
 {
 	if(m_ctx!=NULL) return true;
 	m_ssltype=SSL_INIT_NONE;
-	SSL_load_error_strings();//为打印调试信息作准备
-						//如果调用了SSL_load_error_strings()后,便可以随时用ERR_print_errors_fp()来打印错误信息了
-	SSLeay_add_ssl_algorithms();//初始化
-	//采用什么协议(SSLv2/SSLv3/TLSv1)在此指定
+	SSL_load_error_strings();//Prepare for printing debug information
+						//After calling SSL_load_error_strings(), ERR_print_errors_fp() can be used at any time to print error messages
+	SSLeay_add_ssl_algorithms();//Initialize
+	//Specify the protocol to use (SSLv2/SSLv3/TLSv1) here
 	SSL_METHOD *meth=(bInitServer)?SSLv23_server_method(): //TLSv1_server_method();
 								   SSLv23_client_method(); //SSLv2_client_method();
 	if( (m_ctx = SSL_CTX_new (meth))==NULL ) return false;
@@ -555,15 +555,15 @@ SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
 	const char *strCakeypass=(psock!=NULL)?psock->m_cakeypass.c_str():this->m_cakeypass.c_str();
 	bool bNotfile =(psock!=NULL)?psock->m_bNotfile:this->m_bNotfile;
 
-	if(strCacert==NULL || strCacert[0]==0){ //保护. 用默认的证书初始化
+	if(strCacert==NULL || strCacert[0]==0){ //Safety check: initialize with default certificate
 		strCacert=default_cacert;
 		strCakey=default_cakey;
 		strCakeypass=default_cakeypass;
 		bNotfile=true;
 	} //yyc add 2006-11-23
 
-	//初始化SSL服务端，加载证书和私钥
-	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" 如果没有指定私钥的密码，则会出现要求用户输入密码的提示
+	//Initialize SSL server: load certificate and private key
+	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
 		SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
 		SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass); 
 	}
@@ -573,12 +573,12 @@ SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
 			SSL_CTX_use_certificate_file(m_ctx, strCacert, SSL_FILETYPE_PEM);
 
 	if(ret>0)
-	{//加载证书成功
+	{//Certificate loaded successfully
 		ret=(bNotfile)?
 			SSL_CTX_use_PrivateKey_buf(m_ctx, strCakey, SSL_FILETYPE_PEM):
 			SSL_CTX_use_PrivateKey_file(m_ctx, strCakey, SSL_FILETYPE_PEM);
 		if(ret>0)
-		{//加载私钥成功
+		{//Private key loaded successfully
 			if(SSL_CTX_check_private_key(m_ctx))
 			{
 //				SSL_CTX_load_verify_locations(m_ctx, "cacert.pem", NULL);
@@ -594,13 +594,13 @@ SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
 				return true;
 			}
 			else
-				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 密钥证书不匹配.\r\n");
-		}//?//加载私钥成功
+				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Private key and certificate do not match.\r\n");
+		}//?//Private key loaded successfully
 		else
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 加载私钥失败.\r\n");
-	}//加载证书成功
+			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load private key.\r\n");
+	}//Certificate loaded successfully
 	else
-		RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] 加载证书失败.\r\n");
+		RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load certificate.\r\n");
 	SSL_CTX_free (m_ctx); 
 	m_ctx=NULL; return false;
 }

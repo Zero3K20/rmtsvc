@@ -1,6 +1,6 @@
 /*******************************************************************
    *	ftpclnt.h
-   *    DESCRIPTION:FTP协议客户端声明
+   *    DESCRIPTION:FTP protocol client declaration
    *
    *    AUTHOR:yyc
    *
@@ -9,7 +9,7 @@
    *    DATE:2006-01-23
    *
    *	net4cpp 2.1
-   *	文件传输协议
+   *	File Transfer Protocol
    *******************************************************************/
 
 #ifndef __YY_FTP_CLIENT_H__
@@ -26,9 +26,9 @@ namespace net4cpp21
 		ftpClient(){}
 		virtual ~ftpClient(){}
 		void setTimeout(time_t s);
-		//设置访问ftp服务的帐号
+		//set the account for accessing the FTP service
 		void setFTPAuth(const char *strAccount,const char *strPwd);
-		//连接指定的ftp服务器
+		//connect to the specified FTP server
 		SOCKSRESULT ConnectSvr(const char *ftpsvr,int ftpport);
 		SOCKSRESULT ConnectSvr(const char *ftpurl);
 		SOCKSRESULT GetDatasock(const char *ftppath,socketTCP &datasock,bool bRetr);
@@ -52,9 +52,9 @@ namespace net4cpp21
 		bool sendCommand(int response_expected,char *buf,int buflen,int maxbuflen);
 
 	private:
-		std::string m_strAccount;//LOGIN验证的帐号和密码
+		std::string m_strAccount;//account and password for LOGIN authentication
 		std::string m_strPwd;
-		time_t m_lTimeout;//最大等待超时返回s
+		time_t m_lTimeout;//maximum wait timeout return in seconds
 		
 	};
 }//?namespace net4cpp21

@@ -7,7 +7,7 @@
 //
 // http://www.regexlab.com/deelx/
 //
-// Author:  ∑ ŸŒ∞ (sswater shi)
+// Author: sswater shi
 // sswater@gmail.com
 //
 // $Revision: 1.1.2.42 $

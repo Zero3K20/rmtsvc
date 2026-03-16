@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketRaw.cpp
-   *    DESCRIPTION:Raw socket 类的实现
+   *    DESCRIPTION:Raw socket class implementation
    *
    *    AUTHOR:yyc
    *
@@ -10,9 +10,9 @@
    *	
    *	net4cpp 2.1
    *******************************************************************/
-#ifdef WIN32 //windows系统平台
+#ifdef WIN32 //Windows platform
 /*
- * 必须在包含windows.h之前包含winsock2.h
+ * winsock2.h must be included before windows.h
  */
 	#include <winsock2.h>
 /*
@@ -23,19 +23,19 @@
  * mstcpip.h must be explicitly included after winsock2.h
  */
 	#include "mstcpip.h"
-#elif defined MAC //暂时不支持
+#elif defined MAC //Not yet supported
 	//....
-#else  //unix/linux平台
-	//仅仅在设置socket为混杂模式时用到此头文件
-	//SUN unix下在if.h文件中定义了结构 struct map,会和STL的map定义冲突
-	//但本程序并未用到struct map结构，因此用宏将其更改!!! 
+#else  //Unix/Linux platform
+	//This header is only needed when setting the socket to promiscuous mode
+	//On SUN Unix, if.h defines 'struct map' which conflicts with the STL map definition
+	//This program does not use struct map, so it is renamed via a macro!!! 
 	#define map unix_netmap
 	#include <net/if.h>
 	#undef map //map
-	//设置混杂模式时用到了SIOCSIFFLAGS的定义，linux和unix要包含不同的头文件
+	//SIOCSIFFLAGS is needed for promiscuous mode; Linux and Unix require different headers
 	#include <sys/ioctl.h>
-	//Sun OS下需包含sys/sockio.h头文件
-	//而linux下需包含sys/ioctl.h头文件
+	//On Sun OS, include sys/sockio.h
+	//On Linux, include sys/ioctl.h
 	#ifndef SIOCSIFFLAGS
 		    #include <sys/sockio.h>
 	#endif
@@ -52,35 +52,35 @@ socketRaw :: socketRaw()
 {
 	m_TTL=IP_DEF_TTL;
 	m_SourceAddress.assign(socketBase::getLocalHostIP());
-	//清0
+	//Zero out
 	memset((void *)&m_IpV4Header,0,sizeof(m_IpV4Header));
 	memset((void *)&m_ProtocolHeader,0,sizeof(m_ProtocolHeader));
 }
 
-//返回解码IPV4包成功后真正的用户数据大小
+//Returns the actual user data size after successfully decoding an IPv4 packet
 unsigned short socketRaw :: dataLen_ipv4()
 { 
 	switch(m_IpV4Header.Protocol)
 	{
-		case IPPROTO_TCP://获取TCP首部长度
+		case IPPROTO_TCP://Get TCP header length
 			{
-			//获取IP首部长度
+			//Get IP header length
 			char ipHeaderLen=m_IpV4Header.get_IpHeaderLen();
-			//获取TCP首部长度
+			//Get TCP header length
 			char tcpHeaderLen=(char)m_ProtocolHeader.m_TcpHeader.get_DataOffset();
 			return m_IpV4Header.TotalLength-(ipHeaderLen+tcpHeaderLen)*4;
 			}
 		case IPPROTO_UDP:
 			return m_ProtocolHeader.m_UdpHeader.Length-8;
 		default:
-			//获取IP首部长度
+			//Get IP header length
 			char ipHeaderLen=m_IpV4Header.get_IpHeaderLen();
 			return m_IpV4Header.TotalLength-ipHeaderLen*4;
 	}//?switch
 	return 0;
 }
-//解码IPV4协议包
-//tcp/IP网络协议规定了一种统一的网络字节顺序，这种顺序被规定为little-endian顺序。即低字节在前，高字节在后
+//Decode an IPv4 protocol packet
+//TCP/IP specifies a unified network byte order defined as big-endian: high byte first, low byte last
 char * socketRaw :: decode_ipv4(char *buf,int len)
 {
 	char *ptr=buf;
@@ -111,12 +111,12 @@ char * socketRaw :: decode_ipv4(char *buf,int len)
 		m_IpV4Header.DestinationAddress=*((unsigned long *)ptr); ptr+=4;
 		//m_IpV4Header.DestinationAddress=ntohl(m_IpV4Header.DestinationAddress);
 		
-		//获取IP首部长度
+		//Get IP header length
 		char ipHeaderLen=m_IpV4Header.get_IpHeaderLen();
 		if(len>=m_IpV4Header.TotalLength)
 		{
-			//判断接收数据长度是否大于=IP包长度
-			//获取下层协议的首地址
+			//Check if the received data length is >= the IP packet length
+			//Get the start address of the encapsulated protocol
 			ptr=buf+ipHeaderLen*4;
 			switch(m_IpV4Header.Protocol)
 			{
@@ -135,7 +135,7 @@ char * socketRaw :: decode_ipv4(char *buf,int len)
 					m_ProtocolHeader.m_TcpHeader.AcknowledgementNumber=ntohl(m_ProtocolHeader.m_TcpHeader.AcknowledgementNumber);
 					
 					m_ProtocolHeader.m_TcpHeader.th_flag_res_offset=*((unsigned short *)ptr); ptr+=2;
-					//yyc remove 不进行高低字节变换
+					//yyc remove: skip byte-order swap
 //					m_ProtocolHeader.m_TcpHeader.th_flag_res_offset=ntohs(m_ProtocolHeader.m_TcpHeader.th_flag_res_offset);
 					
 					m_ProtocolHeader.m_TcpHeader.Window=*((unsigned short *)ptr); ptr+=2;
@@ -147,9 +147,9 @@ char * socketRaw :: decode_ipv4(char *buf,int len)
 					m_ProtocolHeader.m_TcpHeader.UrgentPointer=*((unsigned short *)ptr); ptr+=2;
 					m_ProtocolHeader.m_TcpHeader.UrgentPointer=ntohs(m_ProtocolHeader.m_TcpHeader.UrgentPointer);
 					
-					//获取TCP首部长度
+					//Get TCP header length
 					char tcpHeaderLen=(char)m_ProtocolHeader.m_TcpHeader.get_DataOffset();
-					//获取TCP协议的数据首地址 ,用户数据长度=m_IpV4Header.TotalLength-(ipHeaderLen+tcpHeaderLen)*4
+					//Get start address of TCP payload; user data length = m_IpV4Header.TotalLength-(ipHeaderLen+tcpHeaderLen)*4
 					ptr=buf+ipHeaderLen*4+tcpHeaderLen*4;
 					return ptr;
 				}
@@ -168,21 +168,21 @@ char * socketRaw :: decode_ipv4(char *buf,int len)
 					m_ProtocolHeader.m_UdpHeader.Checksum=*((unsigned short *)ptr); ptr+=2;
 					m_ProtocolHeader.m_UdpHeader.Checksum=ntohs(m_ProtocolHeader.m_UdpHeader.Checksum);
 					
-					//获取UDP协议的数据首地址
-					//ptr=ptr+0; //用户数据长度=m_ProtocolHeader.m_UdpHeader.Length-8
+					//Get the start address of UDP payload
+					//ptr=ptr+0; //user data length = m_ProtocolHeader.m_UdpHeader.Length-8
 					return ptr;
 				}
 					break;
 				default:
-					return ptr; //其他协议则直接返回协议数据起始
+					return ptr; //For other protocols, return the start of the protocol data directly
 			}
 		}//?if(len>=m_IpV4Header.TotalLength)
 	}//?if(ptr!=NULL&&len>=IpV4_Min_Header_Length)
 	return NULL;
 }
-//将指定的用户数据编码为IPV4包字节流,返回编码后的字节流大小
-//data --- 用户数据指针, datalen --- 用户数据长度
-//encodebuf --- 存放编码后的ip包字节流，一般一个ip包的长度不应大于1500，因此用户只要分配一个4096大小的空间足够
+//Encode user data into an IPv4 packet byte stream; returns the encoded stream size
+//data --- pointer to user data; datalen --- user data length
+//encodebuf --- buffer for the encoded IP packet byte stream; typically 4096 bytes is sufficient (IP packets <= 1500 bytes)
 int socketRaw :: encode_ipv4(const char *data,int datalen,char *encodebuf)
 {
 	if(encodebuf==NULL) return 0;
@@ -206,18 +206,18 @@ int socketRaw :: encode_ipv4(const char *data,int datalen,char *encodebuf)
 	{
 		case IPPROTO_TCP:
 		{
-			char *pstart_tcp=ptr;//tcp首部起始指针
-			//将TCP首部长度设为5
+			char *pstart_tcp=ptr;//Pointer to the start of the TCP header
+			//Set TCP header length to 5 (32-bit words)
 			m_ProtocolHeader.m_TcpHeader.set_DataOffset(Tcp_Min_Header_Length/4);
 			
-			//填充伪首部（用于计算校验和，并不真正发送）
+			//Fill in pseudo-header (used for checksum calculation only, not actually sent)
 			*((unsigned int *)ptr)=htonl(m_IpV4Header.SourceAddress);
 			*((unsigned int *)(ptr+4))=htonl(m_IpV4Header.DestinationAddress);
 			*(ptr+8)=0;
-			*(ptr+9)=IPPROTO_TCP;//协议类型
-			*((unsigned short *)(ptr+10))=htons((m_ProtocolHeader.m_TcpHeader.th_flag_res_offset & 0x00f0)>>4);//TCP首部长度
+			*(ptr+9)=IPPROTO_TCP;//Protocol type
+			*((unsigned short *)(ptr+10))=htons((m_ProtocolHeader.m_TcpHeader.th_flag_res_offset & 0x00f0)>>4);//TCP header length
 			
-			ptr+=12;//伪首部12字节长
+			ptr+=12;//Pseudo-header is 12 bytes long
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_TcpHeader.SourcePort); ptr+=2;
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_TcpHeader.DestinationPort); ptr+=2;
 			
@@ -233,29 +233,29 @@ int socketRaw :: encode_ipv4(const char *data,int datalen,char *encodebuf)
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_TcpHeader.Checksum); ptr+=2;
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_TcpHeader.UrgentPointer); ptr+=2;
 			if(datalen>0)
-			{//填充数据
+			{//Fill in data
 				memcpy(ptr,data,datalen); ptr+=datalen; }
-			//生成TCP校验和
+			//Generate TCP checksum
 			m_ProtocolHeader.m_TcpHeader.Checksum=socketRaw::checksum((unsigned short *)pstart_tcp,ptr-pstart_tcp);
 			*((unsigned short *)(pstart_tcp+12+16))=htons(m_ProtocolHeader.m_TcpHeader.Checksum);
-			//去掉伪首部
+			//Remove pseudo-header
 			memmove((void *)pstart_tcp,(void *)(pstart_tcp+12),ptr-pstart_tcp-12);
-			m_IpV4Header.TotalLength=ptr-encodebuf-12;//去掉一个伪首部的长度12
+			m_IpV4Header.TotalLength=ptr-encodebuf-12;//subtract pseudo-header length of 12
 		}
 		break;
 		case IPPROTO_UDP:
 		{
 			char *pstart_udp=ptr;
-			//UDP长度
+			//UDP length
 			m_ProtocolHeader.m_UdpHeader.Length=datalen+8;
-			//填充伪首部（用于计算校验和，并不真正发送）
+			//Fill in pseudo-header (used for checksum calculation only, not actually sent)
 			*((unsigned int *)ptr)=htonl(m_IpV4Header.SourceAddress);
 			*((unsigned int *)(ptr+4))=htonl(m_IpV4Header.DestinationAddress);
 			*(ptr+8)=0;
-			*(ptr+9)=IPPROTO_UDP;//协议类型
-			*((unsigned short *)(ptr+10))=htons(m_ProtocolHeader.m_UdpHeader.Length);//UDP长度
+			*(ptr+9)=IPPROTO_UDP;//Protocol type
+			*((unsigned short *)(ptr+10))=htons(m_ProtocolHeader.m_UdpHeader.Length);//UDP length
 			
-			ptr+=12;//伪首部12字节长
+			ptr+=12;//Pseudo-header is 12 bytes long
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_UdpHeader.SourcePort); ptr+=2;
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_UdpHeader.DestinationPort); ptr+=2;
 			
@@ -263,26 +263,26 @@ int socketRaw :: encode_ipv4(const char *data,int datalen,char *encodebuf)
 			m_ProtocolHeader.m_UdpHeader.Checksum=0;
 			*((unsigned short *)ptr)=htons(m_ProtocolHeader.m_UdpHeader.Checksum); ptr+=2;
 			if(datalen>0)
-			{//填充数据
+			{//Fill in data
 				memcpy(ptr,data,datalen); ptr+=datalen; }
-			//生成UDP校验和
+			//Generate UDP checksum
 			m_ProtocolHeader.m_UdpHeader.Checksum=socketRaw::checksum((unsigned short *)pstart_udp,m_ProtocolHeader.m_UdpHeader.Length+12);
 			*((unsigned short *)(pstart_udp+12+6))=htons(m_ProtocolHeader.m_UdpHeader.Checksum); 
-			//去掉伪首部
+			//Remove pseudo-header
 			memmove((void *)pstart_udp,(void *)(pstart_udp+12),m_ProtocolHeader.m_UdpHeader.Length);
-			m_IpV4Header.TotalLength=ptr-encodebuf-12;//去掉一个伪首部的长度12
+			m_IpV4Header.TotalLength=ptr-encodebuf-12;//subtract pseudo-header length of 12
 		}
 		break;
 		default:
 			if(datalen>0)
-			{//填充数据
+			{//Fill in data
 				memcpy(ptr,data,datalen); ptr+=datalen; }
 			m_IpV4Header.TotalLength=ptr-encodebuf;
 		break;
 	}//?switch
 	if(m_IpV4Header.TotalLength>0){
 		*((unsigned short *)(encodebuf+2))=htons(m_IpV4Header.TotalLength);
-		//生成IP首部校验和
+		//Generate IP header checksum
 		m_IpV4Header.HeaderChecksum=socketRaw::checksum((unsigned short *)encodebuf,(m_IpV4Header.IHL_Version & 0x0f)*4);
 		*((unsigned short *)(encodebuf+10))=htons(m_IpV4Header.HeaderChecksum);
 		if(m_IpV4Header.Protocol==IPPROTO_TCP && datalen==0){
@@ -305,7 +305,7 @@ void socketRaw :: ConstructIPV4Header(unsigned char  ucProtocol,unsigned char  u
 	return;
 }
 
-//size --为字节的大小，而不是unsigned short个数
+//size -- size in bytes, not unsigned short count
 unsigned short socketRaw :: checksum(unsigned short *buffer, int size)
 {
 	unsigned long cksum=0;
@@ -314,7 +314,7 @@ unsigned short socketRaw :: checksum(unsigned short *buffer, int size)
 		cksum += *buffer++;
 		size -= sizeof(unsigned short);
 	}
-	if(size) //奇数个字节
+	if(size) //Odd number of bytes
 	{
 		cksum += *(unsigned char*)buffer;
 	}
@@ -322,13 +322,13 @@ unsigned short socketRaw :: checksum(unsigned short *buffer, int size)
 	cksum += (cksum >>16);
 	return (unsigned short)(~cksum);
 }
-//bindip==NULL 绑定所有IP，==""绑定本机第一个ip
-//否则绑定指定的ip
+//bindip==NULL binds all IPs; =="" binds the first local IP
+//Otherwise bind to the specified IP
 bool socketRaw :: create(int IPPROTO_type,const char *bindip)
 {
 	socketBase::create(SOCKS_RAW);
 	int af=m_localAddr.sin_family;
-	//linux 下只有root权限才能创建RAW_SOCKET
+	//On Linux, only root can create a RAW_SOCKET
 #ifndef WIN32   //You must be root user to create RAW_SOCKET
 	if(geteuid() != 0) return false;//return SOCKSERR_NOROOT;
 #endif
@@ -355,7 +355,7 @@ bool socketRaw :: create(int IPPROTO_type,const char *bindip)
 	else 
 		RW_LOG_DEBUG("Failed to create %d IPPROTO.\r\n",IPPROTO_type);
 	return false;
-/*  根据协议名称获取协议号
+/*  Get protocol number by protocol name
 	struct protoent *p = NULL; //yyc add 2005-08-24
 	if(protocol!=NULL && protocol[0]!=0)
 	{
@@ -366,26 +366,26 @@ bool socketRaw :: create(int IPPROTO_type,const char *bindip)
 */
 }
 
-//设置/清除指定fd的混杂模式
+//Set or clear promiscuous mode on the specified fd
 //b=true--set b=false---clear
-//成功返回SOCKSERR_OK(0)否则错误
-//!!如果设置混杂模式，则本socketRaw对象必须绑定一个IP
+//Returns SOCKSERR_OK(0) on success, otherwise an error code
+//!! If setting promiscuous mode, this socketRaw object must be bound to an IP
 SOCKSRESULT socketRaw :: Set_Promisc(bool b)
 {
 	if(m_socktype!=SOCKS_RAW) return SOCKSERR_INVALID;
 	
 	SOCKSRESULT sr=SOCKSERR_OK;
 #ifdef WIN32
-	//设置SOCK_RAW为SIO_RCVALL，以便接收所有的IP包		
+	//Set SOCK_RAW to SIO_RCVALL to receive all IP packets		
 	DWORD dwValue =(b)?RCVALL_ON:RCVALL_OFF;
 	sr=ioctlsocket(m_sockfd, SIO_RCVALL, &dwValue);
 #else
 	struct ifreq ifr;
-	strncpy(ifr.ifr_name,"",1);//设置要设置为混杂模式的网卡设备名称!!!!!!!
+	strncpy(ifr.ifr_name,"",1);//Set the network interface name to put into promiscuous mode!!!!!!!
 	sr=ioctlsocket(m_sockfd,SIOCGIFFLAGS,&ifr);
 	if(sr>=0)
 	{
-	//设为混杂模式
+	//Set to promiscuous mode
 		if(b)
 			ifr.ifr_flags |= IFF_PROMISC;
 		else

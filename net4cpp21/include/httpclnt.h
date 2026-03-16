@@ -1,6 +1,6 @@
 /*******************************************************************
    *	httpclnt.h
-   *    DESCRIPTION:HTTP协议客户端声明
+   *    DESCRIPTION:HTTP protocol client declaration
    *
    *    AUTHOR:yyc
    *
@@ -27,35 +27,35 @@ namespace net4cpp21
 	public:
 		httpClient(){}
 		virtual ~httpClient(){}
-		//添加http请求的其他相关数据
+		//add other related data to HTTP request
 		void add_reqHeader(const char *szname,const char *szvalue);
 		void add_reqCookie(const char *szname,const char *szvalue);
 		void add_reqPostdata(const char *szname,const char *szvalue);
 		void set_reqPostdata(const char *buf,long buflen);
-		//清除httpreq对象的http相关数据
+		//clear HTTP-related data from httpreq object
 		void cls_httpreq(bool ifKeepHeader=false) { m_httpreq.init_httpreq(ifKeepHeader); return; }
-		//发送http请求 lstartRange,lendRange告诉web服务请求文件的范围
-		//成功返回SOCKSERR_OK  //不等待响应返回
+		//send HTTP request; lstartRange and lendRange specify the requested file range
+		//returns SOCKSERR_OK on success // does not wait for response
 		SOCKSRESULT send_httpreq_headX(const char *strurl,long lTimeOut,long lstartRange,long lendRange);
 		SOCKSRESULT send_httpreq_head(const char *strurl,long lstartRange=0,long lendRange=-1)
-		{//发送http响应头，不等待返回
+		{//send HTTP response header, do not wait for return
 			return send_httpreq_headX(strurl,-1,lstartRange,lendRange);
 		}
-		//成功返回http响应码, <0发生错误 0:未知的响应码
+		//returns HTTP response code on success, <0 means error, 0 means unknown response code
 		SOCKSRESULT send_httpreq(const char *strurl,long lstartRange=0,long lendRange=-1);
 
 		httpResponse & Response() { return m_httprsp; }
 		long rspContentLen() { return m_httprsp.lContentLength(); }
-		//保存http响应为指定的文件(不包含http响应头)
-		//返回保存文件的大小，==0发生错误
+		//save HTTP response to specified file (not including HTTP response header)
+		//returns saved file size; ==0 means error occurred
 		unsigned long save_httpresp(const char *filename)
 		{
 			return m_httprsp.save_resp(this,filename);
 		}
 		
 	private:
-		httpRequest m_httpreq; //http请求解析对象
-		httpResponse m_httprsp; //http响应处理对象
+		httpRequest m_httpreq; //HTTP requestparseobject
+		httpResponse m_httprsp; //HTTP response handlingobject
 	};
 }//?namespace net4cpp21
 

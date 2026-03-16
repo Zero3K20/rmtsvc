@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vidcManager.h
-   *    DESCRIPTION:vIDC集合管理类
+   *    DESCRIPTION:vIDC collection management class
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -24,7 +24,7 @@ public:
 	~vidcManager();
 	void Destroy();
 	void mtcpl_Start();
-	//获取本机ip
+	//get local IP
 	void xml_list_localip(cBuffer &buffer);
 
 	void xml_list_mtcp(cBuffer &buffer);
@@ -39,12 +39,12 @@ public:
 	void xml_stop_mudp(cBuffer &buffer,const char *mapname);
 	void xml_dele_mudp(cBuffer &buffer,const char *mapname);
 
-	bool readIni(); //从注册表读配置
-	bool saveIni(); //往注册表写配置
+	bool readIni(); //read configuration from registry
+	bool saveIni(); //write configuration to registry
 	bool parseIni(char *pbuffer,long lsize);
 	bool parseCommand(const char *pstart);
 	bool saveAsstring(std::string &strini);
-	void initSetting(); //初始化所有配置
+	void initSetting(); //initialize all configurations
 	bool docmd_sslc(const char *strParam);
 	bool docmd_mtcpl(const char *strParam);
 	void docmd_mdhrsp(const char *strParam);
@@ -56,11 +56,11 @@ public:
 	void docmd_upnp(const char *strParam);
 	
 public:
-	vidcServerEx m_vidcsvr; //vidc服务
-	vidccSets m_vidccSets; //vidc客户端集合
+	vidcServerEx m_vidcsvr; //vidc service
+	vidccSets m_vidccSets; //vidcc client collection
 	upnp	m_upnp;
 private:
-	std::map<std::string,mportTCP *> m_tcpsets; //TCP服务映射集合
+	std::map<std::string,mportTCP *> m_tcpsets; //TCPservicemapset
 
 };
 

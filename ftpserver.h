@@ -1,6 +1,6 @@
 /*******************************************************************
    *	ftpserver.h 
-   *    DESCRIPTION: FTP服务
+   *    DESCRIPTION: FTP service
    *
    *    AUTHOR:yyc
    *
@@ -17,7 +17,7 @@
 using namespace std;
 using namespace net4cpp21;
 
-//ftp服务参数结构
+//FTP service parameter structure
 typedef struct _TFTPSetting
 {
 	bool autoStart;
@@ -28,29 +28,29 @@ typedef struct _TFTPSetting
 	int maxUsers;
 	int logEvent;
 	std::string bindip;
-	std::string tips; //欢迎词
+	std::string tips; //welcome message
 }TFTPSetting;
 
 typedef struct _TFTPUser
 {
-	std::string username;//帐号,帐号不区分大小写(帐号转换为小写)
-	std::string userpwd;//密码,如果密码==""则，无需密码验证
+	std::string username;//account name, case-insensitive (converted to lowercase)
+	std::string userpwd;//password, if password=="" then no password verification required
 	std::string userdesc;
-	unsigned long maxupratio;//最大上载速率 K/s,如果=0则不限
-	unsigned long maxdwratio;//最大下载速率 K/s,如果=0则不限
-	unsigned long maxupfilesize;//最大上载文件大小 KBytes ,0--不限
-	unsigned long maxdisksize;//限制最大磁盘使用空间 KBytes,0--不限
-	unsigned long curdisksize;//当前已使用磁盘空间 KBytes.
-	std::map<std::string,std::pair<std::string,long> > dirAccess;//目录访问权限,目录区分大小写
-			//first --- string : ftp的虚目录路径,最后以/结束，例如/ 或 /aa/，
-			//second --- pair : 此ftp虚目录对应的实际目录和目录的访问权限，实际目录必须为\结尾(win平台)
+	unsigned long maxupratio;//max upload rate K/s, 0 means unlimited
+	unsigned long maxdwratio;//max download rate K/s, 0 means unlimited
+	unsigned long maxupfilesize;//max upload file size in KBytes, 0 means unlimited
+	unsigned long maxdisksize;//maximum disk space limit in KBytes, 0 means unlimited
+	unsigned long curdisksize;//current used disk space in KBytes.
+	std::map<std::string,std::pair<std::string,long> > dirAccess;//directory access permissions; directory names are case-sensitive
+			//first --- string: FTP virtual directory path, ending with /, e.g. / or /aa/,
+			//second --- pair : 姝tp铏歞irectorycorresponding瀹為檯directoryanddirectory鐨勮闂畃ermissions锛屽疄闄卍irectory蹇呴』涓篭缁撳熬(winplatform)
 	long ipaccess;
-	std::string ipRules;//ip访问规则
-	long maxLoginusers;//限制此帐号的最大同时登录用户数,<=0则不限制 
-	time_t limitedTime;//限制此帐号只在某个日期之前有效，==0不限制
+	std::string ipRules;//IP access rules
+	long maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
+	time_t limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
 	long pswdmode;
-	long disphidden; //是否显示隐藏文件
-	long forbid; //是否禁用此帐号
+	long disphidden; //whether鏄剧ず闅愯棌file
+	long forbid; //whether绂佺敤姝ccount
 }TFTPUser;
 
 class ftpsvrEx : public ftpServer

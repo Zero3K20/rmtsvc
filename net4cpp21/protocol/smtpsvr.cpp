@@ -1,6 +1,6 @@
 /*******************************************************************
    *	smtpsvr.cpp
-   *    DESCRIPTION:smtpĞ­Òé·şÎñ¶ËÊµÏÖ
+   *    DESCRIPTION:SMTP protocol server implementation
    *
    *    AUTHOR:yyc
    *
@@ -9,7 +9,7 @@
    *    DATE:2005-11-20
    *
    *	net4cpp 2.1
-   *	¼òµ¥ÓÊ¼ş´«Êä·şÎñ(smtp)
+   *	Simple Mail Transfer Service (SMTP)
    *******************************************************************/
 
 #include "../include/sysconfig.h"
@@ -32,37 +32,37 @@ smtpServer :: smtpServer()
 
 smtpServer :: ~smtpServer()
 {
-//±¾·şÎñÃ»ÓĞÏß³Ì£¬Òò´ËÎŞĞè½øĞĞÏÂÃæµÄÎö¹¹Ç°´¦Àí
+//æœ¬serviceæ²¡æœ‰threadï¼Œthereforeæ— éœ€è¿›è¡Œä¸‹é¢çš„ææ„å‰handle
 //	Close();
 //	m_threadpool.join();
 }
 
 
-//µ±ÓĞÒ»¸öĞÂµÄ¿Í»§Á¬½Ó´Ë·şÎñ´¥·¢´Ëº¯Êı
+//triggered when a new client connects to this service
 void smtpServer :: onAccept(socketTCP *psock)
 {
 	RW_LOG_DEBUG("%s is connected\r\n",psock->getRemoteIP());
 	char buf[SMTP_MAX_PACKAGE_SIZE]; int buflen=0;
 	buflen=sprintf(buf,"220 SMTP Server[mailpost1.0] for ready\r\n");
 	psock->Send(buflen,buf,-1);
-//	Ä³Ğ©SMTP¿Í»§¶Ë²»Ö§³Ö¶àĞĞSMTP·şÎñÁ¬½ÓÓ¦´ğ
+//	someSMTPclientnot supportedå¤šè¡ŒSMTPserviceconnectåº”ç­”
 /*	buflen=sprintf(buf,"220-SMTP Server[mailpost1.0] for ready\r\n"
 					   "220-copyright @yyc 2006. http://yycnet.yeah.net\r\n"
 					   "%s",m_helloTip.c_str());
 	psock->Send(buflen,buf,-1);
-	//µ±Ç°·şÎñÆ÷ÔËĞĞ×´Ì¬
+	//current server running status
 	struct tm * ltime=localtime(&m_tmOpened);
-	buflen=sprintf(buf,"220-·şÎñÆ÷¿ªÊ¼ÔËĞĞµÄÊ±¼äÊÇ%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	buflen=sprintf(buf,"220-server start running time is %04d-%02d-%02d %02d:%02d:%02d\r\n",
 				(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 				ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	psock->Send(buflen,buf,-1);
 */	
 	cSmtpSession clientSession; 
-	clientSession.m_tmLogin=time(NULL); //ÓÃ»§Á¬½ÓÊ±¼ä
+	clientSession.m_tmLogin=time(NULL); //userconnecttime
 /*	ltime=localtime(&clientSession.m_tmLogin);
-	buflen=sprintf(buf,"220-Ä¿Ç°·şÎñÆ÷ËùÔÚµÄÊ±¼äÊÇ%04d-%02d-%02d %02d:%02d:%02d\r\n"
-					   "220-µ±Ç°µÇÂ½ÓÃ»§ÊıÁ¿ %d \r\n"
-					   "220-×î´óÔÊĞíÁ¬½ÓÓÃ»§Êı %d \r\n"
+	buflen=sprintf(buf,"220-ç›®å‰serveræ‰€atçš„timeyes%04d-%02d-%02d %02d:%02d:%02d\r\n"
+					   "220-currentç™»é™†usercount %d \r\n"
+					   "220-maximumå…è®¸connectuseræ•° %d \r\n"
 					   "220 SMTP Server for ready...\r\n",
 					   (1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 					   ltime->tm_hour, ltime->tm_min, ltime->tm_sec,
@@ -70,35 +70,35 @@ void smtpServer :: onAccept(socketTCP *psock)
 	psock->Send(buflen,buf,-1);
 */
 	if(this->m_authType==SMTPAUTH_NONE) clientSession.m_bAccess=true;
-	buflen=0; //Çå¿ÕÃüÁî½ÓÊÕ»º³å
+	buflen=0; //clear command receive buffer
 	while(psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-		if(iret<0) break; //Èç¹ûµÇÂ¼³¬Ê±Ôò¹Ø±ÕÁ¬½Ó
-		if(!clientSession.m_bAccess && //ÅĞ¶ÏÊÇ·ñµÇÂ¼³¬Ê±
+		if(iret<0) break; //iflogin timeoutåˆ™close connection
+		if(!clientSession.m_bAccess && //check whetherlogin timeout
 			(time(NULL)-clientSession.m_tmLogin)>SMTP_MAX_RESPTIMEOUT) break;
 		if(iret==0) continue;
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=psock->Receive(buf+buflen,SMTP_MAX_PACKAGE_SIZE-buflen-1,-1);
-		if(iret<0) break; //==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
 		buflen+=iret; buf[buflen]=0;
-		//½âÎösmtpÃüÁî
+		//parsesmtpcommand
 		const char *ptrCmd,*ptrBegin=buf;
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
-			*(char *)ptrCmd=0;//¿ªÊ¼½âÎöÃüÁî
-			if(ptrBegin[0]==0) goto NextCMD; //²»´¦Àí¿ÕĞĞÊı¾İ
+			*(char *)ptrCmd=0;//startparsecommand
+			if(ptrBegin[0]==0) goto NextCMD; //nothandlenullè¡Œdata
 		
 			parseCommand(clientSession,psock,ptrBegin);
 
-NextCMD:	//ÒÆ¶¯ptrBeginµ½ÏÂÒ»¸öÃüÁîÊı¾İÆğÊ¼
+NextCMD:	//ç§»åŠ¨ptrBeginåˆ°nextcommanddataèµ·å§‹
 			ptrBegin=ptrCmd+1; 
-			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //Ìø¹ı\r\n
+			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//Èç¹ûÓĞÎ´½ÓÊÕÍêµÄÃüÁîÔòÒÆ¶¯
+		//ifæœ‰æœªreceiveå®Œçš„commandåˆ™ç§»åŠ¨
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//Èç¹ûptrBegin-buf==0ËµÃ÷ÕâÊÇÒ»¸ö´íÎóÃüÁîÊı¾İ°ü
+		{//ifptrBegin-buf==0è¯´æ˜è¿™is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -109,7 +109,7 @@ NextCMD:	//ÒÆ¶¯ptrBeginµ½ÏÂÒ»¸öÃüÁîÊı¾İÆğÊ¼
 	return;
 }
 
-//Èç¹ûµ±Ç°Á¬½ÓÊı´óÓÚµ±Ç°Éè¶¨µÄ×î´óÁ¬½ÓÊıÔò´¥·¢´ËÊÂ¼ş
+//triggered when current connection count exceeds the configured maximum connections
 void smtpServer :: onTooMany(socketTCP *psock)
 {
 	char resp[]="220 access denied, Too many users.\r\n";
@@ -117,7 +117,7 @@ void smtpServer :: onTooMany(socketTCP *psock)
 	return;
 }
 
-//-------------------SMTP ÃüÁî½âÎö´¦Àí begin-----------------------------------
+//-------------------SMTP commandparsehandle begin-----------------------------------
 void smtpServer :: parseCommand(cSmtpSession &clientSession,socketTCP *psock,const char *ptrCommand)
 {
 	RW_LOG_DEBUG("[smtpsvr] c--->s:\r\n\t%s\r\n",ptrCommand);
@@ -160,10 +160,10 @@ inline void smtpServer :: resp_unknowed(socketTCP *psock)
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//×¢Òâsmtp·şÎñµÄ¶àĞĞÊı¾İµÄÏìÓ¦£¬Èç¹û²»ÊÇ×îºóÒ»ĞĞÔòÏìÓ¦ĞĞµÄÏìÓ¦ÂëºÍÃèÊöÖ®¼äÒªÓÃ-Á¬½Ó
+//æ³¨æ„smtpserviceçš„å¤šè¡Œdataçš„responseï¼Œifis notlastä¸€è¡Œåˆ™responseè¡Œçš„responseç anddescriptionä¹‹é—´è¦ç”¨-connect
 void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//È¥µôÃüÁî²ÎÊıµÄÇ°µ¼¿Õ¸ñ
+	//å»æ‰commandparameterçš„å‰å¯¼spaces
 	while(*strParam==' ') strParam++;
 	clientSession.m_ehlo.assign(strParam);
 	const char resp[]="250-PIPELINING\r\n"
@@ -177,16 +177,16 @@ void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//È¥µôÃüÁî²ÎÊıµÄÇ°µ¼¿Õ¸ñ
+	//å»æ‰commandparameterçš„å‰å¯¼spaces
 	while(*strParam==' ') strParam++;
 	int authType=SMTPAUTH_NONE;
 	if(strcasecmp(strParam,"LOGIN")==0)
 	{
 		authType=SMTPAUTH_LOGIN;
-		const char resp[]="334 VXNlcm5hbWU6\r\n"; //VXNlcm5hbWU6ÎªUsername:µÄbase64±àÂë
+		const char resp[]="334 VXNlcm5hbWU6\r\n"; //VXNlcm5hbWU6ä¸ºUsername:çš„base64 encoding
 		response(psock,resp,sizeof(resp)-1);
 	}
-	else if(strcasecmp(strParam,"PLAIN")==0) //Ã÷ÎÄ´«Êä
+	else if(strcasecmp(strParam,"PLAIN")==0) //æ˜æ–‡transfer
 	{
 		authType=SMTPAUTH_PLAIN;
 		const char resp[]="334 Username:\r\n";
@@ -195,24 +195,24 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	else if(strcasecmp(strParam,"8BITMIME")==0)
 	{
 		authType=SMTPAUTH_8BITMIME;
-		const char resp[]="334 Username%3A\r\n"; //Username%3AÎªUsername:µÄMime±àÂë
+		const char resp[]="334 Username%3A\r\n"; //Username%3Aä¸ºUsername:çš„Mimeencoding
 		response(psock,resp,sizeof(resp)-1);
 	}
 	else
 	{
-		const char resp[]="504-ÃüÁî²ÎÊı²»¿ÉÊµÏÖ\r\n"
+		const char resp[]="504-commandparameternotå¯implementation\r\n"
 						  "504 only Surpport LOGIN,8BITMIME\r\n";
 		response(psock,resp,sizeof(resp)-1);
 		psock->Close(); return;
 	}
-	//µÈ´ıÓÃ»§·¢ËÍÑéÖ¤ÕÊºÅºÍÃÜÂë
+	//waitingusersendauthenticationaccountandpassword
 	std::string strAccount,strPwd;
 	char buf[SMTP_MAX_PACKAGE_SIZE];
 	int iret=psock->Receive(buf,SMTP_MAX_PACKAGE_SIZE-1,SMTP_MAX_RESPTIMEOUT);
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strAccount.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//½øĞĞBase64½âÂë
+	{//è¿›è¡ŒBase64 decoding
 		iret=cCoder::base64_decode((char *)strAccount.c_str(),strAccount.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strAccount.assign(buf);
@@ -232,12 +232,12 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 		const char resp[]="334 Password:\r\n";
 		response(psock,resp,sizeof(resp)-1);
 	}
-	//»ñÈ¡ÃÜÂë
+	//getpassword
 	iret=psock->Receive(buf,SMTP_MAX_PACKAGE_SIZE-1,SMTP_MAX_RESPTIMEOUT);
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strPwd.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//½øĞĞBase64½âÂë
+	{//è¿›è¡ŒBase64 decoding
 		iret=cCoder::base64_decode((char *)strPwd.c_str(),strPwd.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strPwd.assign(buf);	
@@ -249,16 +249,16 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 		strPwd.assign(buf);	
 	}
 	
-	//ÑéÖ¤ÕÊºÅºÍÃÜÂë
+	//authenticationaccountandpassword
 	if(!onAccess(strAccount.c_str(),strPwd.c_str()))
 	{
 		const char resp[]="551 Authentication unsuccessful\r\n";
 		response(psock,resp,sizeof(resp)-1);
-		psock->Close(); //ÑéÖ¤Ê§°Ü
+		psock->Close(); //authentication failed
 	}
 	else
 	{
-		clientSession.m_bAccess=true; //ÑéÖ¤³É¹¦
+		clientSession.m_bAccess=true; //authentication succeeded
 		const char resp[]="235 Authentication successful\r\n";
 		response(psock,resp,sizeof(resp)-1);
 	}
@@ -267,7 +267,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//È¥µôÃüÁî²ÎÊıµÄÇ°µ¼¿Õ¸ñ
+	//å»æ‰commandparameterçš„å‰å¯¼spaces
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -284,7 +284,7 @@ void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,c
 
 void smtpServer :: docmd_rcptto(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//È¥µôÃüÁî²ÎÊıµÄÇ°µ¼¿Õ¸ñ
+	//å»æ‰commandparameterçš„å‰å¯¼spaces
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -304,9 +304,9 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 
 	const char resp[]="354 End data with <CR><LF>.<CR><LF>\r\n";
 	response(psock,resp,sizeof(resp)-1);
-	//ÏÂÃæ¿ªÊ¼½ÓÊÕĞÅÌåÊı¾İ,Ö±µ½ÊÕµ½<CR><LF>.<CR><LF>
+	//ä¸‹é¢startreceiveä¿¡ä½“data,ç›´åˆ°æ”¶åˆ°<CR><LF>.<CR><LF>
 	char buf[4096]; int buflen=0;
-	std::string emlfile;//Éú³ÉÁÙÊ±ÎÄ¼şÃû
+	std::string emlfile;//ç”Ÿæˆtemporaryfilename
 	time_t tNow=time(NULL);
 	srand( (unsigned)clock() );
 	struct tm * ltime=localtime(&tNow);
@@ -326,17 +326,17 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 				 "\t%s\r\n",clientSession.m_ehlo.c_str(),psock->getRemoteIP(),
 				 buf);
 
-	bool bRecvALL=false; //ĞÅÌåÊÇ·ñÕı³£ÊÕÍê
+	bool bRecvALL=false; //ä¿¡ä½“whetheræ­£å¸¸æ”¶å®Œ
 	while( psock->status()==SOCKS_CONNECTED )
 	{
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
-		//Èç¹û³¬¹ıSMTP_MAX_RESPTIMEOUTÈÔÃ»ÊÕµ½Êı¾İ¿ÉÈÏÎª¿Í»§¶ËÒì³£
+		//read data sent by client
+		//if exceedsSMTP_MAX_RESPTIMEOUTä»æ²¡æ”¶åˆ°dataå¯è®¤ä¸ºclientå¼‚å¸¸
 		buflen=psock->Receive(buf,4095,SMTP_MAX_RESPTIMEOUT);
 		if(buflen<0){
 			RW_LOG_PRINT(LOGLEVEL_WARN,"[smtpsvr] Failed to receive mail DATA,error=%d\r\n",buflen);
 			break; 
 		}
-		if(buflen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+		if(buflen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 		buf[buflen]=0;
 		if(buflen>=5 && strcmp(buf+buflen-5,"\r\n.\r\n")==0)
 		{ 
@@ -350,7 +350,7 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 	if(bRecvALL)
 	{
 		buflen=sprintf(buf,"%s",emlfile.c_str());
-		//½«À©Õ¹Ãû¸ÄÎªeml
+		//å°†æ‰©å±•åæ”¹ä¸ºeml
 		emlfile[buflen-3]='e';emlfile[buflen-2]='m';
 		emlfile[buflen-1]='l';emlfile[buflen]=0;
 		FILEIO::fileio_rename(buf,emlfile.c_str());

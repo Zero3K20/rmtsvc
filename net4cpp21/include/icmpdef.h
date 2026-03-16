@@ -1,6 +1,6 @@
 /*******************************************************************
    *	icmpdef.h
-   *    DESCRIPTION:定义icmp协议所用到的常量、结构以及enum的定义
+   *    DESCRIPTION:constants, structures and enum definitions for the ICMP protocol
    *				
    *    AUTHOR:yyc
    *
@@ -64,7 +64,7 @@
 
 #define ICMP_Information_SIZE 8
 
-typedef struct _IcmpHeader //定义ICMP首部
+typedef struct _IcmpHeader //define ICMP header
 {
 	unsigned char i_type;
 	unsigned char i_code;
@@ -72,8 +72,8 @@ typedef struct _IcmpHeader //定义ICMP首部
 	union
 	{
 		struct {unsigned char uc1,uc2,uc3,uc4;} sUC;
-		struct {unsigned short us_id,us_seq;} sUS; //id--识别号（一般用进程号作为识别号）
-												   //seq--报文序列号
+		struct {unsigned short us_id,us_seq;} sUS; //id -- identification number (typically the process ID)
+												   //seq -- packet sequence number
 		unsigned long sUL;
 	} sICMP;
 	// Not standard field in header, but reserved nonetheless
@@ -81,7 +81,7 @@ typedef struct _IcmpHeader //定义ICMP首部
 	unsigned long Receive_Timestamp;
     unsigned long Transmit_Timestamp;
 
-	//Icmp数据包解码
+	//ICMP data packet decoding
 	void decode(const char *ptrbuf,size_t buflen)
 	{
 		struct _IcmpHeader &icmph=*this;
@@ -107,7 +107,7 @@ typedef struct _IcmpHeader //定义ICMP首部
 		icmph.Transmit_Timestamp=ntohl(icmph.Transmit_Timestamp);
 		return;
 	}
-	//Icmp数据包编码
+	//ICMP data packet encoding
 	size_t encode(const char *data,size_t datalen,char *ptrbuf)
 	{
 		struct _IcmpHeader &icmph=*this;
@@ -128,7 +128,7 @@ typedef struct _IcmpHeader //定义ICMP首部
 			::memcpy(ptrbuf,data,datalen);
 			ptrbuf+=datalen;
 		}
-		//生成ICMP校验和
+		//generate ICMP checksum
 		icmph.Checksum=net4cpp21::socketRaw::checksum((unsigned short *)pstart_icmp,
 					ptrbuf-pstart_icmp);
 		*((unsigned short *)(pstart_icmp+2))=htons(icmph.Checksum); 

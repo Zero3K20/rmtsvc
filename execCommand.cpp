@@ -1,6 +1,6 @@
 /*******************************************************************
    *	execCommand.cpp 
-   *    DESCRIPTION:处理执行exec和kill命令
+   *    DESCRIPTION:handle exec and kill commands
    *
    *    AUTHOR:yyc
    *
@@ -20,9 +20,9 @@ inline bool isDigest(const char *str)
 	while(*str!=0){if(*str>='0' && *str<='9') str++; else return false; }
 	return true;
 }
-//杀死指定的进程
-//命令格式: 
-//	kill <pid/进程名>,<pid/进程名>,<pid/进程名>...
+//kill specified process
+//command format: 
+//	kill <pid/process_name>,<pid/process_name>,<pid/process_name>...
 BOOL docmd_kill(const char *processName)
 {
 	if(processName==NULL || processName[0]==0)
@@ -61,24 +61,24 @@ extern BOOL StartInteractiveClientProcess (
 	bool ifHide,
 	long lwaittimeout
 ) ;
-//启动指定的进程
-//命令格式: 
+//start specified process
+//command format: 
 //	exec [-hide] [-check <programname>] [-user <[Domain\]account:password>] [-wait <dwMilliseconds>] <full path program>
-//-hide  - 是否后台运行指定的程序
-//-check <programname> - 执行指定的程序前是否先检测<programname>是否已经运行，如果已运行则不执行指定的程序
-//-user <[Domain\]account:password> - 以指定得帐号启动程序，仅仅在程序以服务方式运行时有效。
-//			Domain域可以不指定，如果不指定则默认为本地帐号
-//-wait <dwMilliseconds> - 成功启动进程后是否等待进程结束==0，不等待,<0等待进程结束,>0 等待指定得毫秒
-//-shell //shell方式运行
-//<full path program>  - 指定要执行的程序
+//-hide  - whether to run the specified program in the background
+//-check <programname> - before running the specified program, check if <programname> is already running; if so, do not run it
+//-user <[Domain\]account:password> - start program with the specified account; only valid when program runs as a service.
+//			Domain can be omitted; if omitted, defaults to local account
+//-wait <dwMilliseconds> - after successfully starting the process, whether to wait: ==0 no wait, <0 wait until process ends, >0 wait specified milliseconds
+//-shell //run in shell mode
+//<full path program>  - specify the program to execute
 BOOL docmd_exec(const char *strParam)
 {
 	if(strParam==NULL || strParam[0]==0) return FALSE;
-	bool ifHide=false;//是否后台隐藏执行
+	bool ifHide=false;//whether to run hidden in the background
 	bool ifShell=false; //yyc add 2011-01-05
-	std::string strcheck="";//是否判断程序已经运行，如果已经运行则仅仅执行一次
+	std::string strcheck="";//whether to check if program is already running; if so, run only once
 	std::string strAccount="",strPwd="",strDomain;
-	long lwaittimeout=0;//是否等待进程结束
+	long lwaittimeout=0;//whether to wait for process to end
 	char *ptr=(char *)strParam;
 	while(ptr[0]=='-')
 	{
@@ -96,7 +96,7 @@ BOOL docmd_exec(const char *strParam)
 			else ptr+=7;
 		}
 		else if(strncmp(ptr,"-wait ",6)==0)
-		{//是否等待进程结束
+		{//whether to wait for process to end
 			char *pos=(*(ptr+6)=='-')?NULL:strchr(ptr+6,' ');
 			if(pos){
 				*pos=0; lwaittimeout=atol(ptr+6); *pos=' ';
@@ -105,13 +105,13 @@ BOOL docmd_exec(const char *strParam)
 			else ptr+=6;
 		}//?else if(strncmp(ptr,"-wait ",6)==0)
 		else if(strncmp(ptr,"-user ",6)==0)
-		{//以指定得用户运行，格式　-user domain\account:password
+		{//run with specified user, format: -user domain\account:password
 			char *pos=(*(ptr+6)=='-')?NULL:strchr(ptr+6,' ');
-			if(pos){//指定了帐号
+			if(pos){//account specified
 				*pos=0; std::string strUser;
 				strUser.assign(ptr+6); *pos=' ';
 				ptr=pos+1;
-				//解析出domain account password
+				//parse out domain, account, and password
 				const char *ptrBegin=strUser.c_str();
 				const char *pTmp=strchr(ptrBegin,'\\');
 				if(pTmp){
@@ -121,32 +121,32 @@ BOOL docmd_exec(const char *strParam)
 					ptrBegin=pTmp+1;
 				}
 				if( (pTmp=strchr(ptrBegin,':')) )
-				{//指定了帐号密码
+				{//account and password specified
 					*(char *)pTmp=0;
 					strAccount.assign(ptrBegin);
 					*(char *)pTmp=':';
 					strPwd.assign(pTmp+1);
 				}
-				else //仅仅指定了帐号，密码为""
+				else //only account specified, password is ""
 					strAccount.assign(ptrBegin);
-			}//?if(pos){//指定了帐号
+			}//?if(pos){//account specified
 			else ptr+=6;
 		}//?else if(strncmp(ptr,"-user ",6)==0)
 		else ptr++;
 	}//?while
 	if(strcheck!=""){
-		//是否判断程序已经运行,如果已经运行则不再执行
+		//check if program is already running; if so, do not execute again
 		DWORD pID=cInjectDll::GetPIDFromName(strcheck.c_str());
 		if(pID) return TRUE;
 	}
 	
-	if(ifShell){ //Shell方式打开指定的文件，不支持指定帐号运行
+	if(ifShell){ //open specified file in Shell mode; specifying account is not supported
 		unsigned long iret=(unsigned long)::ShellExecute(NULL,"open",
 			ptr,NULL,NULL,((ifHide)?SW_HIDE:SW_SHOW) );
 		return (iret>32)?TRUE:FALSE;
 	}//?if(ifShell) //yyc add 2011-01-05
 
-	if(strAccount!=""){ //用指定得帐号运行进程,必须是localsystem权限才行
+	if(strAccount!=""){ //run process with specified account; LocalSystem privilege is required
 		if(strDomain=="") strDomain.assign(".");
 		BOOL b=StartInteractiveClientProcess((char *)strAccount.c_str(),(char *)strDomain.c_str(),
 			(char *)strPwd.c_str(),ptr,ifHide,lwaittimeout);
@@ -159,7 +159,7 @@ BOOL docmd_exec(const char *strParam)
 //		else
 //			RW_LOG_PRINT(LOGLEVEL_WARN,"[EXEC] - failed to execute %s as user(%s\\%s)!\r\n",
 //			ptr,strDomain.c_str(),strAccount.c_str());
-	}//?if(strAccount!=""){ //用指定得帐号运行进程
+	}//?if(strAccount!=""){ //run process with specified account
 
 	STARTUPINFO si; PROCESS_INFORMATION pi;
 	memset((void *)&pi,0,sizeof(PROCESS_INFORMATION));
@@ -187,10 +187,10 @@ BOOL docmd_exec(const char *strParam)
 	return FALSE;
 }
 
-//执行指定的控制台程序或dos命令，获得输出
-//[in|out] strBuffer - [in] 指向要执行的控制台程序或dos命令
-//					 - [out] 返回执行的输出
-//iTimeout -- 命令执行超时时间s, -1不限
+//execute specified console program or DOS command and capture output
+//[in|out] strBuffer - [in] pointer to the console program or DOS command to execute
+//					 - [out] returns the execution output
+//iTimeout -- command execution timeout in seconds, -1 for unlimited
 BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 {
 	STARTUPINFO si; PROCESS_INFORMATION pi;
@@ -202,7 +202,7 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 	
 	char buffer[4096]; long buflen=0; BOOL bret=TRUE;
 	HANDLE hChildStdoutRd=NULL,hChildStdoutWr=NULL; 
-	//此时可设置标准输出指向一个特定的管道---------------------------
+	//standard output can be set to point to a specific pipe here---------------------------
 	SECURITY_ATTRIBUTES saAttr;
 	// Set the bInheritHandle flag so pipe handles are inherited.
 	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -223,7 +223,7 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 		{
 			::TerminateProcess(pi.hProcess,0);
 			throw "[CMD] - The time-out interval elapsed executing command.\r\n";
-		}else{ //读出管道中的数据
+		}else{ //read data from the pipe
 			unsigned long dw=0;
 			if( ::WriteFile(hChildStdoutWr, " ",1, &dw, NULL) )
 			{
@@ -247,7 +247,7 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 	if(hChildStdoutRd) ::CloseHandle(hChildStdoutRd);
 	return bret;
 }
-/* yyc remove 2009-03-26 测试飞信机器人时发现，原来的docmd_exec2buf频繁连续调用程序会崩溃
+/* yyc remove 2009-03-26 found when testing Fetion robot: the original docmd_exec2buf crashes when called frequently in succession
 BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 {
 	STARTUPINFO si; PROCESS_INFORMATION pi;
@@ -258,10 +258,10 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 	si.wShowWindow =(ifHide)?SW_HIDE:SW_NORMAL;
 	
 	HANDLE hChildStdoutRd=NULL,hChildStdoutWr=NULL;
-	//保存标准输出句柄
+	//save standard output handle
 	HANDLE hSaveStdout = ::GetStdHandle(STD_OUTPUT_HANDLE);
 	HANDLE hSaveStderr = ::GetStdHandle(STD_ERROR_HANDLE);
-//此时可设置标准输出指向一个特定的管道---------------------------
+//standard output can be set to point to a specific pipe here---------------------------
 	SECURITY_ATTRIBUTES saAttr;
 	// Set the bInheritHandle flag so pipe handles are inherited.
 	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -278,9 +278,9 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 	::SetStdHandle(STD_ERROR_HANDLE, hChildStdoutWr);
 	si.hStdOutput = hChildStdoutWr;
 	si.hStdError = hChildStdoutWr;
-//此时可设置标准输出指向一个特定的管道---------------------------
+//standard output can be set to point to a specific pipe here---------------------------
 	char buffer[4096]; 
-	if(strBuffer.length()>4095) strBuffer[4095]=0; //保护
+	if(strBuffer.length()>4095) strBuffer[4095]=0; //protection
 	sprintf(buffer,"%s",strBuffer.c_str());
 
 //	printf("%s\r\n",buffer);
@@ -299,7 +299,7 @@ BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout)
 			bret=FALSE;
 		}
 		else //?if(dwret!=WAIT_OBJECT_0)...else
-		{//读出管道中的数据
+		{//read data from the pipe
 			unsigned long dw=0;
 			if( ::WriteFile(hChildStdoutWr, " ",1, &dw, NULL) )
 			{

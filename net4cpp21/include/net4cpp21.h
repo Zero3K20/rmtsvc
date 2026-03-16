@@ -1,4 +1,4 @@
-//net42002.1头包含文件
+//net4cpp21 master include file
 
 #ifndef __NET4CPP_21_H__
 #define __NET4CPP_21_H__

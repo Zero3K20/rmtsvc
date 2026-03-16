@@ -1,6 +1,6 @@
 /*******************************************************************
    *	socketUdp.h
-   *    DESCRIPTION:UDP socket 类的定义
+   *    DESCRIPTION:UDP socket class definition
    *
    *    AUTHOR:yyc
    *
@@ -27,7 +27,7 @@ namespace net4cpp21
 
 	private:
 	};
-	//异步UDP socket
+	//Asynchronous UDP socket
 	class socketUdpAnsy : public socketUdp
 	{
 	public:
@@ -35,7 +35,7 @@ namespace net4cpp21
 		virtual ~socketUdpAnsy();
 		SOCKSRESULT Open(int port,bool bReuse=false,const char *bindIP=NULL);
 	protected:
-		//有数据到达
+		//Data has arrived
 		virtual void onData(){ return; }
 	private:
 		cThread m_thread;

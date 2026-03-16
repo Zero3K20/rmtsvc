@@ -1,6 +1,6 @@
 /*******************************************************************
    *	sntpdef.h
-   *    DESCRIPTION:定义SNTP协议所用到的常量、结构以及enum的定义
+   *    DESCRIPTION:constants, structures and enum definitions for the SNTP protocol
    *				
    *	http://hi.baidu.com/yycblog/home
    *	net4cpp 2.1
@@ -10,8 +10,8 @@
 #define __YY_SNTPDEF_H__
 
 
-#define SNTP_MAX_RESPTIMEOUT 10  //s 响应最大延时
-#define SNTP_SERVER_PORT	 123 //默认服务端口
+#define SNTP_MAX_RESPTIMEOUT 10  //s maximum response delay
+#define SNTP_SERVER_PORT	 123 //default service port
 
 //Representation of an NTP timestamp
 struct CNtpTimePacket

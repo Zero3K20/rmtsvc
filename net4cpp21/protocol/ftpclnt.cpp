@@ -1,6 +1,6 @@
 /*******************************************************************
    *	ftpclnt.cpp
-   *    DESCRIPTION:FTPĞ­Òé¿Í»§¶ËÊµÏÖ
+   *    DESCRIPTION:FTP protocol client implementation
    *
    *    AUTHOR:yyc
    *
@@ -9,7 +9,7 @@
    *    DATE:2006-01-23
    *
    *	net4cpp 2.1
-   *	ÎÄ¼ş´«ÊäĞ­Òé
+   *	File Transfer Protocol
    *******************************************************************/
 
 #include "../include/sysconfig.h"
@@ -23,7 +23,7 @@
 using namespace std;
 using namespace net4cpp21;
 
-#define RES_MAX_TIMEOUT 5 //5Ãë
+#define RES_MAX_TIMEOUT 5 //5 seconds
 
 void ftpClient::setTimeout(time_t s)
 {
@@ -32,14 +32,14 @@ void ftpClient::setTimeout(time_t s)
 	return;
 }
 
-//ÉèÖÃftp·şÎñµÄÕÊºÅ
+//set the FTP service account
 void ftpClient :: setFTPAuth(const char *strAccount,const char *strPwd)
 {
 	if(strAccount) m_strAccount.assign(strAccount);
 	if(strPwd) m_strPwd.assign(strPwd);
 	return;
 }
-//»ñÈ¡Êı¾İÁ¬½Ósocket
+//get data connection socket
 SOCKSRESULT ftpClient::GetDatasock(const char *ftppath,socketTCP &datasock,bool bRetr)
 {
 	char buf[FTP_MAX_COMMAND_SIZE];
@@ -56,9 +56,9 @@ SOCKSRESULT ftpClient::GetDatasock(const char *ftppath,socketTCP &datasock,bool 
 	return SOCKSERR_OK;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÏÂÔØÖ¸¶¨µÄÎÄ¼ş ³É¹¦·µ»ØSOCKSERR_OK
-// startPoint : ´ÓÖ¸¶¨µÄÎ»ÖÃ¿ªÊ¼ÏÂÔØ
-// lens       : ÏÂÔØÖ¸¶¨µÄ×Ö½Ú£¬==-1ÔòÏÂÔØÈ«²¿
+// functionåŠŸèƒ½ï¼šdownload the specified file returns SOCKSERR_OK on success
+// startPoint: start downloading from the specified position
+// lens: number of bytes to download, ==-1 means download all
 //****************************************
 SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long startPoint,long lsize)
 {
@@ -68,9 +68,9 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	{
 		buflen=sprintf(buf,"REST %d\r\n",startPoint);
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
-			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"¸ÃÕ¾µã²»Ö§³Ö¶ÏµãĞø´«\r\n");
+			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 	}//?if(startPoint>0 )
-	//ÅĞ¶ÏÒªÏÂÔØµÄÎÄ¼şÊÇ·ñ´æÔÚ
+	//åˆ¤æ–­è¦downloadçš„filewhetherexists
 	SOCKSRESULT sr=FileSize(ftppath);
 	if(sr<=0) return SOCKSERR_FTP_NOEXIST;
 	
@@ -79,7 +79,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	if(startPoint>0)
 		::fseek(fp,startPoint,SEEK_SET);
 	else ::fseek(fp,0,SEEK_SET);
-	socketProxy datasock; datasock.setProxy(*this); //ÉèÖÃ´úÀí
+	socketProxy datasock; datasock.setProxy(*this); //setä»£ç†
 	sr=GetDatasock(ftppath,datasock,true);
 	if( sr!=SOCKSERR_OK ){ ::fclose(fp); return sr; }
 
@@ -90,7 +90,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=datasock.Receive(recvbuf,4096,-1);
 		if(iret<0) break; else received+=iret;
 		::fwrite(recvbuf,sizeof(char),iret,fp);
@@ -100,9 +100,9 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,long 
 	return SOCKSERR_OK;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÉÏÔØÖ¸¶¨µÄÎÄ¼ş ³É¹¦·µ»ØSOCKSERR_OK
-// ftppath -- Ö¸¶¨ÒªÉÏ´«µÄÎ»ÖÃ£¬Èç¹û==NULL,ÔòÉÏ´«µ½µ±Ç°FTPÎ»ÖÃ£¬Ãû×ÖºÍfilenameÏàÍ¬
-// startPoint : ´ÓÖ¸¶¨µÄÎ»ÖÃ¿ªÊ¼ÉÏÔØ
+// functionåŠŸèƒ½ï¼šä¸Šè½½specifiedçš„file returns SOCKSERR_OK on success
+// ftppath -- specifies the upload destination; if ==NULL, upload to current FTP position with the same filename
+// startPoint: start uploading from the specified position
 //****************************************
 SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long startPoint)
 {
@@ -114,7 +114,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 	{
 		buflen=sprintf(buf,"REST %d\r\n",startPoint);
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
-			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"¸ÃÕ¾µã²»Ö§³Ö¶ÏµãĞø´«\r\n");
+			return SOCKSERR_FTP_REST; //RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 		else ::fseek(fp,startPoint,SEEK_SET);
 	}//?if(startPoint>0 )
 	if(ftppath==NULL)
@@ -122,7 +122,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 		const char *ptr=strrchr(filename,'\\');
 		if(ptr) ftppath=ptr+1; else ftppath=filename;
 	}
-	socketProxy datasock; datasock.setProxy(*this); //ÉèÖÃ´úÀí
+	socketProxy datasock; datasock.setProxy(*this); //setä»£ç†
 	SOCKSRESULT sr=GetDatasock(ftppath,datasock,false);
 	if( sr!=SOCKSERR_OK ){ ::fclose(fp); return sr; }
 	
@@ -131,7 +131,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 	{
 		int iret=::fread(readbuf,sizeof(char),4096,fp);
 		if( datasock.Send(iret,readbuf,-1)<0 ) break;
-		if(iret<4096) break; //ÎÄ¼şÒÑ¶ÁÍê
+		if(iret<4096) break; //fileå·²è¯»å®Œ
 		if(datasock.checkSocket(0,SOCKS_OP_READ)<0) break;
 	}//?while
 	::fclose(fp); datasock.Close();
@@ -140,11 +140,11 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£º»ñÈ¡Ö¸¶¨ÎÄ¼ş´óĞ¡£¬³É¹¦·µ»Ø>=0
+// function: get the specified file size, returns >=0 on success
 //****************************************
 SOCKSRESULT ftpClient :: FileSize(const char *ftppath)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=sprintf(buf,"SIZE %s\r\n",ftppath);
@@ -160,11 +160,11 @@ SOCKSRESULT ftpClient :: FileSize(const char *ftppath)
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£º×ªµ½Ö¸¶¨µÄÄ¿Â¼ ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šè½¬åˆ°specifiedçš„directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: CWD(const char *ftppath)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=sprintf(buf,"CWD %s\r\n",ftppath);
@@ -178,11 +178,11 @@ SOCKSRESULT ftpClient :: CWD(const char *ftppath)
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£º´´½¨Ö¸¶¨µÄÄ¿Â¼ ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šcreatespecifiedçš„directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: MKD(const char *ftppath)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=sprintf(buf,"MKD %s\r\n",ftppath);
@@ -198,11 +198,11 @@ SOCKSRESULT ftpClient :: MKD(const char *ftppath)
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÉ¾³ıÖ¸¶¨µÄÄ¿Â¼ ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šdeletespecifiedçš„directory returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: RMD(const char *ftppath)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=sprintf(buf,"RMD %s\r\n",ftppath);
@@ -220,11 +220,11 @@ SOCKSRESULT ftpClient :: RMD(const char *ftppath)
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÉ¾³ıÖ¸¶¨µÄÎÄ¼ş ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šdeletespecifiedçš„file returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: Delete(const char *ftppath)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=sprintf(buf,"RMD %s\r\n",ftppath);
@@ -241,17 +241,17 @@ SOCKSRESULT ftpClient :: Delete(const char *ftppath)
 	return SOCKSERR_OK;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£º»ñÈ¡ÎÄ¼şÁĞ±í ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šget file list returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: LIST(std::string &listbuf)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	return sendLIST(NULL,listbuf);
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÁ¬½Óftp·şÎñÆ÷ ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šconnectftpserver returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpsvr,int ftpport)
 {
@@ -260,25 +260,25 @@ SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpsvr,int ftpport)
 //		RW_LOG_DEBUG("[ftpclnt] Failed to connect FTP server(%s:%d),error=%d\r\n",
 //			ftpsvr,ftpport,sr);
 
-	//µÈ´ı½ÓÊÕ·şÎñÆ÷µÄÏìÓ¦
+	//waiting to receive server response
 	char buf[FTP_MAX_COMMAND_SIZE];
 	if(!sendCommand(220,buf,0,FTP_MAX_COMMAND_SIZE)) return SOCKSERR_FTP_RESP;
 	
-	//FTP·şÎñÆ÷½øĞĞÕÊºÅÑéÖ¤
+	//FTPserverè¿›è¡Œaccount authentication
 	sr=Auth_LOGIN();
 	if(sr!=SOCKSERR_OK) Close();
 	return sr;
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÁ¬½Óftp·şÎñÆ÷ ³É¹¦·µ»ØSOCKSERR_OK
-// ftpurl -- ftp://[ÕÊºÅ:ÃÜÂë@]Ö÷»ú[:¶Ë¿Ú/....
+// functionåŠŸèƒ½ï¼šconnectftpserver returns SOCKSERR_OK on success
+// ftpurl -- ftp://[account:password@]host[:port/....
 //****************************************
 SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpurl)
 {
 	if(strncasecmp(ftpurl,"ftp://",6)==0)
 		ftpurl+=6;
-	//´ÓftpurlÖĞ½âÎö³öÕÊºÅÃÜÂëºÍhost
+	//ä»ftpurlä¸­parsedaccount passwordandhost
 	const char *ptrUrlBegin=strchr(ftpurl,'/');
 	if(ptrUrlBegin) *(char *)ptrUrlBegin=0;
 	const char *ptemp,*ptr=strchr(ftpurl,'@');
@@ -307,22 +307,22 @@ SOCKSRESULT ftpClient :: ConnectSvr(const char *ftpurl)
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£º·şÎñÆ÷ÑéÖ¤ ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šserverauthentication returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient::Auth_LOGIN()
 {
-//	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+//	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 //		return SOCKSERR_CLOSED;
 	
 	char buf[FTP_MAX_COMMAND_SIZE]; 
-	//·¢ËÍ¾­ÓÃ»§ÕÊºÅ
+	//sendç»useraccount
 	int buflen=sprintf(buf,"USER %s\r\n",m_strAccount.c_str());
 	if(!sendCommand(331,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		return SOCKSERR_FTP_RESP;
-	//¸ù¾İ·şÎñÆ÷µÄ·µ»ØÅĞ¶ÏÊÇÆÕÍ¨ÃÜÂë´«Êä»¹ÊÇMD4/MD5ÃÜÂë¼ÓÃÜ´«Êä
+	//æ ¹æ®serverçš„returnåˆ¤æ–­yesæ™®é€špasswordtransferè¿˜yesMD4/MD5passwordencryptiontransfer
 	const char *ptr=strstr(buf,"otp-");
 	if(ptr==NULL)
-	{//·¢ËÍ¾­ÓÃ»§ÕÊºÅ
+	{//sendç»useraccount
 		buflen=sprintf(buf,"PASS %s\r\n",m_strPwd.c_str());
 	}
 #ifdef _SURPPORT_OPENSSL_
@@ -331,10 +331,10 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 		OTP otps; bool bMD5=(strncmp(ptr+4,"md5 ",4)==0);
 		int count=atoi(ptr+8);
 		const char *seed=NULL;
-		if( (seed=strchr(ptr+8,' ')) ) //ÕÒµ½ÖÖ×ÓµÄÆğÊ¼Î»ÖÃ
+		if( (seed=strchr(ptr+8,' ')) ) //find the starting position of the seed
 		{
-			seed++; //ÖÖ×ÓµÄÆğÊ¼Î»ÖÃ.
-			//¶¨Î»ÖÖ×Ó½áÊøÎ»ÖÃ
+			seed++; //ç§å­çš„èµ·å§‹position.
+			//å®šbitç§å­endposition
 			if( (ptr=strchr(seed,' ')) ) *(char *)ptr=0;
 		}
 		
@@ -342,28 +342,28 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 				   otps.md4(seed,m_strPwd.c_str(),count);
 		buflen=sprintf(buf,"PASS %s\r\n",ptr);
 	}
-	else return SOCKSERR_FTP_SURPPORT;//²»Ö§³ÖµÄ¼ÓÃÜ´«Êä
+	else return SOCKSERR_FTP_SURPPORT;//not supportedçš„encryptiontransfer
 #else
-	else return SOCKSERR_FTP_SURPPORT;//²»Ö§³ÖµÄ¼ÓÃÜ´«Êä
+	else return SOCKSERR_FTP_SURPPORT;//not supportedçš„encryptiontransfer
 #endif
 	
 	if(!sendCommand(230,buf,buflen,FTP_MAX_COMMAND_SIZE))
 	{
 		if(buf[0]==0) return SOCKSERR_FTP_RESP;
-		return SOCKSERR_FTP_AUTH; //ÈÏÖ¤Ê§°Ü
+		return SOCKSERR_FTP_AUTH; //authenticationfailure
 	}
 	return SOCKSERR_OK;
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£º·¢ËÍPASV»ñÈ¡Êı¾İ´«ÊäIPºÍ¶Ë¿Ú ³É¹¦·µ»ØÊı¾İ´«Êä¶Ë¿Ú>0
+// function: send PASV to get data transfer IP and port, returns data port (>0) on success
 //****************************************
 SOCKSRESULT ftpClient::sendPASV(char *buf,int MAXBUFSIZE)
 {
 	int buflen=sprintf(buf,"PASV\r\n");
 	if(!sendCommand(227,buf,buflen,MAXBUFSIZE))
 		return SOCKSERR_FTP_FAILED;
-	//»ñÈ¡ÒªÁ¬½ÓÊı¾İ´«ÊäÖ÷»úºÍ¶Ë¿Ú
+	//getè¦connectdatatransferä¸»æœºandport
 	int i=0,dataport=0; char *ptrIP;
 	char *ptr=(char *)strchr(buf,'(');
 	if(ptr){ 
@@ -391,7 +391,7 @@ SOCKSRESULT ftpClient::sendPASV(char *buf,int MAXBUFSIZE)
 	return dataport;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£º·¢ËÍLIST»ñÈ¡ÎÄ¼şÁĞ±í ³É¹¦·µ»ØSOCKSERR_OK
+// functionåŠŸèƒ½ï¼šsendLISTget file list returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 {
@@ -399,9 +399,9 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 	int buflen=sprintf(buf,"TYPE A\r\n");
 	sendCommand(200,buf,buflen,FTP_MAX_COMMAND_SIZE);
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
-	listbuf.assign(buf); //ÁÙÊ±±£´æÊı¾İ´«ÊäIP
+	listbuf.assign(buf); //temporarysavedatatransferIP
 	socketProxy datasock; 
-	datasock.setProxy(*this); //ÉèÖÃ´úÀí
+	datasock.setProxy(*this); //setä»£ç†
 	
 	SOCKSRESULT sr=datasock.Connect(listbuf.c_str(),dataport);
 	if(sr<0) return SOCKSERR_FTP_DATACONN;
@@ -414,14 +414,14 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 		return SOCKSERR_FTP_LIST;
 	
 	datasock.setParent(this->parent());
-	listbuf.assign("");//¿ªÊ¼»ñÈ¡Êı¾İ
+	listbuf.assign("");//startgetdata
 	while(datasock.status()==SOCKS_CONNECTED && 
 		  this->status()==SOCKS_CONNECTED  )
 	{
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=datasock.Receive(buf,FTP_MAX_COMMAND_SIZE-1,-1);
 		if(iret<0) break; else buf[iret]=0;
 		listbuf.append(buf);
@@ -432,10 +432,10 @@ SOCKSRESULT ftpClient::sendLIST(const char *listcmd,std::string &listbuf)
 }
 
 
-//·¢ËÍÃüÁî£¬²¢»ñÈ¡·şÎñÆ÷ÏìÓ¦
-//[in] response_expected --- ÆÚÍû·şÎñµÄÏìÓ¦Âë
-//[in] buf ·¢ËÍ»º³å£¬Í¬Ê±×÷Îª½ÓÊÕÏìÓ¦Êı¾İ»º³å
-//[in] buflen Òª·¢ËÍÊı¾İµÄ´óĞ¡£¬ maxbuflenÖ¸Ã÷buf»º³åµÄ´óĞ¡
+//send command and get server response
+//[in] response_expected --- expected service response code
+//[in] buf: send buffer, also used as receive response data buffer
+//[in] buflen: size of data to send; maxbuflen specifies the size of the buf buffer
 inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 									  ,int maxbuflen)
 {
@@ -444,7 +444,7 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 //		RW_LOG_DEBUG("[ftpclnt] c--->s:\r\n\t%s",buf);
 		if( this->Send(buflen,buf,-1)<=0 ){ buf[0]=0;  return false; }
 	}
-	//·¢ËÍ³É¹¦£¬µÈ´ı½ÓÊÕ·şÎñÆ÷ÏìÓ¦
+	//send success, waiting to receive server response
 	SOCKSRESULT sr=this->Receive(buf,maxbuflen-1,m_lTimeout);
 	if(sr<=0) {
 //		RW_LOG_DEBUG(0,"[ftpclnt] failed to receive responsed message.\r\n");
@@ -453,11 +453,11 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 //	RW_LOG_DEBUG("[ftpclnt] s--->c:\r\n\t%s",buf);
 	int responseCode=atoi(buf);
 
-	//Ò²Ğí»áÊÇ¶àĞĞÏìÓ¦,Èç¹û²»ÊÇ×îºóÒ»ĞĞÔòĞĞÏìÓ¦Í·Îª "DDD- ...\r\n"
-	//¶àĞĞÏìÓ¦µÄ×îºóÒ»ĞĞÎª "DDD ...\r\n"
+	//may have multiple response lines; if not the last line, the response header is "DDD- ...\r\n"
+	//the last line of a multi-line response is "DDD ...\r\n"
 	while(true)
 	{
-		bool bReceivedAll=(buf[sr-1]=='\n'); //ÓĞ¿ÉÄÜ½ÓÊÕÍê
+		bool bReceivedAll=(buf[sr-1]=='\n'); //possibly fully received
 		if(bReceivedAll)
 		{
 			buf[sr-1]=0;
@@ -475,13 +475,13 @@ inline bool ftpClient :: sendCommand(int response_expected,char *buf,int buflen
 
 /*
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÉÏÔØÖ¸¶¨µÄÎÄ¼ş ³É¹¦·µ»ØSOCKSERR_OK
-// ftppath -- Ö¸¶¨ÒªÉÏ´«µÄÎ»ÖÃ£¬Èç¹û==NULL,ÔòÉÏ´«µ½µ±Ç°FTPÎ»ÖÃ£¬Ãû×ÖºÍfilenameÏàÍ¬
-// startPoint : ´ÓÖ¸¶¨µÄÎ»ÖÃ¿ªÊ¼ÉÏÔØ
+// functionåŠŸèƒ½ï¼šä¸Šè½½specifiedçš„file returns SOCKSERR_OK on success
+// ftppath -- specifies the upload destination; if ==NULL, upload to current FTP position with the same filename
+// startPoint: start uploading from the specified position
 //****************************************
 SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long startPoint)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	FILE *fp=::fopen(filename,"rb");
 	if(fp==NULL) SOCKSERR_FTP_FILE;
@@ -492,7 +492,7 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 		buflen=sprintf(buf,"REST 0\r\n");
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		{
-			RW_LOG_DEBUG(0,"¸ÃÕ¾µã²»Ö§³Ö¶ÏµãĞø´«\r\n");
+			RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 			return SOCKSERR_FTP_REST;
 		}
 		::fseek(fp,startPoint,SEEK_SET);
@@ -508,14 +508,14 @@ SOCKSRESULT ftpClient :: StorFile(const char *ftppath,const char *filename,long 
 }
 
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÏÂÔØÖ¸¶¨µÄÎÄ¼ş ³É¹¦·µ»ØSOCKSERR_OK
-// startPoint : ´ÓÖ¸¶¨µÄÎ»ÖÃ¿ªÊ¼ÏÂÔØ
-// lens       : ÏÂÔØÖ¸¶¨µÄ×Ö½Ú£¬==-1ÔòÏÂÔØÈ«²¿
+// functionåŠŸèƒ½ï¼šdownload the specified file returns SOCKSERR_OK on success
+// startPoint: start downloading from the specified position
+// lens: number of bytes to download, ==-1 means download all
 //****************************************
 SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 								  long startPoint,long lens)
 {
-	if(this->status()!=SOCKS_CONNECTED) //±ØĞëÊ×ÏÈ´´½¨Á¬½Ó
+	if(this->status()!=SOCKS_CONNECTED) //å¿…é¡»firstcreateconnect
 		return SOCKSERR_CLOSED;
 	char buf[FTP_MAX_COMMAND_SIZE];
 	int buflen=0;
@@ -524,11 +524,11 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 		buflen=sprintf(buf,"REST 0\r\n");
 		if(!sendCommand(350,buf,buflen,FTP_MAX_COMMAND_SIZE))
 		{
-			RW_LOG_DEBUG(0,"¸ÃÕ¾µã²»Ö§³Ö¶ÏµãĞø´«\r\n");
+			RW_LOG_DEBUG(0,"this site does not support resume transfer\r\n");
 			return SOCKSERR_FTP_REST;
 		}
 	}//?if(startPoint>0 )
-	//ÅĞ¶ÏÒªÏÂÔØµÄÎÄ¼şÊÇ·ñ´æÔÚ
+	//åˆ¤æ–­è¦downloadçš„filewhetherexists
 	std::string listbuf;
 	SOCKSRESULT sr=sendLIST(ftppath,listbuf);
 	if(sr!=SOCKSERR_OK) return sr;
@@ -549,7 +549,7 @@ SOCKSRESULT ftpClient :: RetrFile(const char *ftppath,const char *savefile,
 	return sr;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÏÂÔØÖ¸¶¨µÄÎÄ¼ş£¬²¢±£´æ¡£
+// functionåŠŸèƒ½ï¼šdownload the specified fileï¼Œå¹¶saveã€‚
 //****************************************
 SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 {
@@ -559,7 +559,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
 	std::string datahost(buf);
 	socketProxy datasock; 
-	datasock.setProxy(*this); //ÉèÖÃ´úÀí
+	datasock.setProxy(*this); //setä»£ç†
 
 	SOCKSRESULT sr=datasock.Connect(datahost.c_str(),dataport);
 	if(sr<0){
@@ -580,7 +580,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 		int iret=datasock.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=datasock.Receive(buf,4096,-1);
 		if(iret<0) break;
 		if(receiveBytes>0)
@@ -599,7 +599,7 @@ SOCKSRESULT ftpClient::sendRETR(const char *retr,FILE *fp,long receiveBytes)
 	return SOCKSERR_OK;
 }
 //****************************************
-// º¯Êı¹¦ÄÜ£ºÉÏÔØÖ¸¶¨µÄÎÄ¼şµ½destfile¡£
+// function: upload the specified file to destfile.
 //****************************************
 SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 {
@@ -609,7 +609,7 @@ SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 	int dataport=sendPASV(buf,FTP_MAX_COMMAND_SIZE);
 	std::string datahost(buf);
 	socketProxy datasock; 
-	datasock.setProxy(*this); //ÉèÖÃ´úÀí
+	datasock.setProxy(*this); //setä»£ç†
 	
 	SOCKSRESULT sr=datasock.Connect(datahost.c_str(),dataport);
 	if(sr<0){
@@ -629,7 +629,7 @@ SOCKSRESULT ftpClient::sendSTOR(const char *destfile,FILE *fp)
 		int iret=::fread(buf,sizeof(char),4096,fp);
 		if(iret>0)
 			if( datasock.Send(iret,buf,-1)<0 ) break;
-		if(iret<4096) break; //ÎÄ¼şÒÑ¶ÁÍê
+		if(iret<4096) break; //fileå·²è¯»å®Œ
 		if(m_parent && m_parent->status()<=SOCKS_CLOSED) break;
 	}//?while
 	datasock.Close();

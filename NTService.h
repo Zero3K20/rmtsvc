@@ -46,7 +46,7 @@ private:
 protected:	// data members
 	LPCTSTR					m_lpServiceName;
 	LPCTSTR					m_lpDisplayName;
-	LPCTSTR					m_lpServiceDesc;//·þÎñÃèÊö
+	LPCTSTR					m_lpServiceDesc;//service description
 	DWORD					m_dwCheckPoint;
 	BOOL					m_bDebug;			// TRUE if -d was passed to the program
 	SERVICE_STATUS			m_ssStatus;			// current status of the service

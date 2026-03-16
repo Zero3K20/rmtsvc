@@ -1,6 +1,6 @@
 /*******************************************************************
    *	proxysvr.cp
-   *    DESCRIPTION:´úÀí·şÎñ¶ËÊµÏÖ
+   *    DESCRIPTION:proxy server implementation
    *
    *    AUTHOR:yyc
    *
@@ -25,12 +25,12 @@ cProxysvr :: cProxysvr()
 	m_proxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5;
 	m_bProxyAuthentication=false;
 
-	//¶ş¼¶´úÀíÏà¹Ø²ÎÊı
-	m_bCascade=false; //Ä¬ÈÏ²»Ö§³Ö¶ş¼¶´úÀí
+	//secondary proxy related parameters
+	m_bCascade=false; //defaultnot supportedsecondary proxy
 //	m_casProxysvr="";
 //	m_casProxyport=0; 
-	m_casProxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5; //¶ş¼¶´úÀíÖ§³ÖµÄÀàĞÍ
-	m_casProxyAuthentication=false; //¶ş¼¶´úÀíÊÇ·ñĞèÒªÑéÖ¤
+	m_casProxytype=PROXY_HTTPS|PROXY_SOCKS4|PROXY_SOCKS5; //secondary proxy supported types
+	m_casProxyAuthentication=false; //whether secondary proxy requires authentication
 	m_bLogdatafile=false;
 }
 
@@ -47,7 +47,7 @@ SOCKSRESULT cProxysvr :: delAccount(const char *struser)
 	return SOCKSERR_OK;
 }
 
-//»ñÈ¡ÕÊºÅĞÅÏ¢£¬·µ»ØÖ¸¶¨µÄÕÊºÅ¶ÔÏó
+//get account info, return the specified account object
 PROXYACCOUNT * cProxysvr :: getAccount(const char *struser)
 {
 	if(struser==NULL || struser[0]==0) return NULL;
@@ -57,7 +57,7 @@ PROXYACCOUNT * cProxysvr :: getAccount(const char *struser)
 	return NULL;
 }
 
-//Ìí¼ÓĞÂÕÊºÅĞÅÏ¢
+//add new account info
 PROXYACCOUNT * cProxysvr :: newAccount(const char *struser)
 {
 	if(struser==NULL || struser[0]==0) return NULL;
@@ -80,10 +80,10 @@ PROXYACCOUNT * cProxysvr :: newAccount(const char *struser)
 	return &(*it).second;
 }
 
-//ÉèÖÃ¶ş¼¶´úÀíÏà¹Ø²ÎÊı m_vecCassvr
+//set secondary proxy related parameters m_vecCassvr
 bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *user,const char *pswd)
 {
-	m_vecCassvr.clear(); //Çå¿Õ¶ş¼¶´úÀí
+	m_vecCassvr.clear(); //clearsecondary proxy
 	if(casHost && casHost[0]!=0)
 	{
 		const char *ptrEnd,*ptrBegin=casHost;
@@ -97,7 +97,7 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			int hostport=casPort;
 			if(ptr){ *(char *)ptr=0; hostport=atoi(ptr+1);}
 			if(hostport>0 && ptrBegin[0]!=0)
-			{ //¶ş¼¶´úÀí·şÎñµØÖ·ºÍ¶Ë¿ÚÓĞĞ§
+			{ //secondary proxy serviceaddressandportvalid
 				std::pair<std::string,int> p(ptrBegin,hostport);
 				m_vecCassvr.push_back(p);
 			}
@@ -108,9 +108,9 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			ptrBegin=ptrEnd+1;
 		}//?while
 	}//?if(casHost && casHost[0]!=0) 
-	m_bCascade=(m_vecCassvr.size()>0)?true:false; //Èç¹ûÉèÁËÔòÖ§³Ö¶ş¼¶´úÀí
+	m_bCascade=(m_vecCassvr.size()>0)?true:false; //ifè®¾äº†åˆ™æ”¯æŒsecondary proxy
 /*	if(casHost==NULL || casHost[0]==0 || casPort<=0)
-	{//²»Ö§³Ö¶ş¼¶´úÀí
+	{//not supportedsecondary proxy
 		m_bCascade=false;
 	}else{
 		m_bCascade=true;
@@ -133,8 +133,8 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 {
 	if(perrCode) *perrCode=SOCKSERR_PROXY_USER;
 	if(user==NULL || psock==NULL) return NULL;
-	while(*user==' ') user++;//É¾³ıÇ°µ¼¿Õ¸ñ
-	::_strlwr((char *)user);//½«ÕÊºÅ×ª»»ÎªĞ¡Ğ´
+	while(*user==' ') user++;//delete leading spaces
+	::_strlwr((char *)user);//convert account name to lowercase
 	std::map<std::string,PROXYACCOUNT>::iterator it=m_accounts.find(user);
 	if(it==m_accounts.end()) return NULL;
 	
@@ -142,11 +142,11 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	std::string strPwd;
 	if(pwd) strPwd.assign(pwd);
 	if(proa.m_userpwd!="" && proa.m_userpwd!=strPwd)
-		return NULL; //ÃÜÂë´íÎó //ÃÜÂëÉè³É¿ÕÔòÎŞĞèÃÜÂëÑéÖ¤
+		return NULL; //passworderror //passwordè®¾æˆnullåˆ™æ— éœ€password verification
 	
 	if(proa.m_limitedTime>0 && time(NULL)>proa.m_limitedTime ){
 		if(perrCode) *perrCode=SOCKSERR_PROXY_EXPIRED;
-		return NULL; //ÕÊºÅ¹ıÆÚ
+		return NULL; //accountè¿‡æœŸ
 	}
 	if(!proa.m_ipRules.check(psock->getRemoteip(),psock->getRemotePort(),RULETYPE_TCP) ){
 		if(perrCode) *perrCode=SOCKSERR_PROXY_DENY;
@@ -158,7 +158,7 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	}
 
 	if(perrCode) *perrCode=SOCKSERR_OK;
-	proa.m_loginusers++; //ÉèÖÃÊı¾İÍ¨µÀµÄÁ÷Á¿ÏŞÖÆ
+	proa.m_loginusers++; //setdataé€šé“çš„æµé‡é™åˆ¶
 	psock->setSpeedRatio(proa.m_maxratio*1024,proa.m_maxratio*1024);
 	return &proa;
 }
@@ -171,18 +171,18 @@ void cProxysvr::onConnect(socketTCP *psock)
 	iret=psock->Peek(&ctype,1,PROXY_MAX_RESPTIMEOUT);
 	if(iret<=0) return;
 	
-	//ÅĞ¶Ï´úÀí·şÎñµÄÀàĞÍ
-	if(ctype==0x04) //¿ÉÄÜÊÕµ½socks4´úÀíÇëÇó
+	//åˆ¤æ–­proxy serviceçš„type
+	if(ctype==0x04) //å¯èƒ½æ”¶åˆ°socks4proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS4)==0) return; //±¾´úÀí²»Ö§³Ösocks4´úÀíĞ­Òé
+		if((m_proxytype & PROXY_SOCKS4)==0) return; //æœ¬ä»£ç†not supportedSOCKS4 proxy protocol
 		doSock4req(psock);
 	}
-	else if(ctype==0x05) //¿ÉÄÜÊÕµ½socks5´úÀíÇëÇó
+	else if(ctype==0x05) //å¯èƒ½æ”¶åˆ°socks5proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS5)==0) return; //±¾´úÀí²»Ö§³Ösocks5´úÀíĞ­Òé
+		if((m_proxytype & PROXY_SOCKS5)==0) return; //æœ¬ä»£ç†not supportedsocks5ä»£ç†protocol
 		doSock5req(psock);
 	}
-	else if((m_proxytype & PROXY_HTTPS)!=0) //±¾´úÀíÖ§³ÖHTTPS´úÀíĞ­Òé
+	else if((m_proxytype & PROXY_HTTPS)!=0) //æœ¬ä»£ç†æ”¯æŒHTTPSä»£ç†protocol
 		doHttpsreq(psock);
 	return;
 }
@@ -194,15 +194,15 @@ typedef struct _TransThread_Param
 	cProxysvr *psvr;
 }TransThread_Param;
 
-//Êı¾İ×ª·¢
+//dataforward
 void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending_buf,long sending_size)
 {
 //	ASSERT(psock);
 //	ASSERT(peer);
 	char buf[SSENDBUFFERSIZE];
 	FILE *fp=NULL;
-	if(m_bLogdatafile){ //ÊÇ·ñ¼ÇÂ¼´úÀíÊı¾İ¼ÇÂ¼
-		char logfilename[256]; //¼ÇÂ¼ÈÕÖ¾ÎÄ¼şÃû
+	if(m_bLogdatafile){ //whether to log proxy data
+		char logfilename[256]; //log filename
 		int logfilenameLen=sprintf(logfilename,"%s(%d)-",psock->getRemoteIP(),psock->getRemotePort());
 		logfilenameLen+=sprintf(logfilename+logfilenameLen,"%s(%d).log",peer->getRemoteIP(),peer->getRemotePort());
 		logfilename[logfilenameLen]=0;
@@ -215,12 +215,12 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 		}
 	}//?if(m_bLogdatafile)
 
-	onData((char *)1,0,psock,peer); //ÓÃÓÚ·ÖÎö´¦ÀíÊı¾İ£¬¿ªÊ¼Ò»¸öÁ¬½Ó
-	if(sending_buf && sending_size>0)//´ı·¢ËÍµÄÊı¾İ
+	onData((char *)1,0,psock,peer); //ç”¨äºåˆ†æhandledataï¼Œstartä¸€ä¸ªconnect
+	if(sending_buf && sending_size>0)//pending sendçš„data
 	{
 		onData((char*)sending_buf,sending_size,psock,peer);
 		peer->Send(sending_size,sending_buf,-1);
-///#ifdef PROXYDATA_LOG //ÊÇ·ñ¼ÇÂ¼´úÀíÊı¾İ¼ÇÂ¼
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 		if(fp){
 			::fwrite("\r\nC ---> S\r\n",1,12,fp);
 			::fwrite(sending_buf,1,sending_size,fp);
@@ -239,11 +239,11 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 			int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret<0) break; 
 			if(iret==0) continue;
-			//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+			//read data sent by client
 			iret=psock->Receive(buf,SSENDBUFFERSIZE,-1);
-			if(iret<0) break; //==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+			if(iret<0) break; //==0 means received data exceeded the limit
 			if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-///#ifdef PROXYDATA_LOG //ÊÇ·ñ¼ÇÂ¼´úÀíÊı¾İ¼ÇÂ¼
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 			if(fp){
 				::fwrite("\r\nC ---> S\r\n",1,12,fp);
 				::fwrite(buf,1,iret,fp);
@@ -253,15 +253,15 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 			iret=peer->Send(iret,buf,-1);
 			if(iret<0) break;
 		}//?while
-		peer->Close(); //µÈ´ı×ª·¢Ïß³Ì½áÊø
+		peer->Close(); //waitingforwardthread end
 		while(peer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-		onData(NULL,0,peer,psock); //ÓÃÓÚÍ¨ÖªĞ­Òé·ÖÎö´òÓ¡³ÌĞòÁ¬½ÓÒÑ¾­¹Ø±Õ£¬¿ÉÊÍ·ÅÏà¹Ø×ÊÔ´
+		onData(NULL,0,peer,psock); //ç”¨äºnotificationprotocolåˆ†ææ‰“å°ç¨‹åºconnectå·²ç»closeï¼Œå¯releaseç›¸å…³resource
 	}else{//?if(onTransferTask
 		peer->Close(); peer->setParent(NULL);
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
 	}
 
-///#ifdef PROXYDATA_LOG //ÊÇ·ñ¼ÇÂ¼´úÀíÊı¾İ¼ÇÂ¼
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 	if(fp){
 		::fwrite("\r\n***Proxy End*** \r\n",1,20,fp);
 		::fclose(fp);
@@ -270,7 +270,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 	return;
 }
 
-//×ª·¢Ïß³Ì
+//forwardthread
 void cProxysvr :: transThread(void *pthreadParam)
 {	
 //	std::pair<socketTCP *,FILE *> &p=*(std::pair<socketTCP *,FILE *> *)pthreadParam;
@@ -285,17 +285,17 @@ void cProxysvr :: transThread(void *pthreadParam)
 	socketTCP *ppeer=(socketTCP *)psock->parent();
 	if(ppeer==NULL) return;
 
-	char buf[SSENDBUFFERSIZE]; //¿ªÊ¼×ª·¢
+	char buf[SSENDBUFFERSIZE]; //startforward
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; 
 		if(iret==0) continue;
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=psock->Receive(buf,SSENDBUFFERSIZE,-1);
-		if(iret<0) break; //==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-///#ifdef PROXYDATA_LOG //ÊÇ·ñ¼ÇÂ¼´úÀíÊı¾İ¼ÇÂ¼
+///#ifdef PROXYDATA_LOG //whether to log proxy data
 			if(fp){
 				::fwrite("\r\nS ---> C\r\n",1,12,fp);
 				::fwrite(buf,1,iret,fp);
@@ -307,7 +307,7 @@ void cProxysvr :: transThread(void *pthreadParam)
 	}//?while
 	
 	ppeer->Close(); 
-	psock->setParent(NULL); //ÓÃÓÚonAcceptÏß³ÌÅĞ¶Ï×ª·¢Ïß³ÌÊÇ·ñ½áÊø
+	psock->setParent(NULL); //used by onAccept thread to check whether forward thread has ended
 	return;
 }
 

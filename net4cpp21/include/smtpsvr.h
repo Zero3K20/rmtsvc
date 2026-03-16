@@ -1,6 +1,6 @@
 /*******************************************************************
    *	smtpsvr.h
-   *    DESCRIPTION:smtp协议服务端声明
+   *    DESCRIPTION:SMTP protocol server declaration
    *
    *    AUTHOR:yyc
    *
@@ -9,7 +9,7 @@
    *    DATE:2005-11-20
    *
    *	net4cpp 2.1
-   *	简单邮件传输服务(smtp)
+   *	Simple Mail Transfer Service (SMTP)
    *******************************************************************/
 
 #ifndef __YY_SMTP_SERVER_H__
@@ -26,18 +26,18 @@ namespace net4cpp21
 		class cSmtpSession
 		{
 		public:
-			bool m_bAccess; //此客户session是否通过了验证
-			time_t m_tmLogin;//登录时间
+			bool m_bAccess; //whether this client session has passed authentication
+			time_t m_tmLogin;//login time
 			std::string m_ehlo;
-			std::string m_fromemail;//邮件发送者
-			std::vector<std::string> m_recp;//邮件接收者
+			std::string m_fromemail;//email sender
+			std::vector<std::string> m_recp;//email recipient
 			cSmtpSession():m_bAccess(false){}
 			~cSmtpSession(){}
 		};
 	public:
 		smtpServer();
 		virtual ~smtpServer();
-		//设置接收邮件的路径
+		//set path for receiving email
 		const char * setRecvPath(const char *recvpath)
 		{
 			if(recvpath)
@@ -57,9 +57,9 @@ namespace net4cpp21
 			return;
 		}
 	private:
-		//当有一个新的客户连接此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock);
-		//如果当前连接数大于当前设定的最大连接数则触发此事件
+		//triggered when current connection count exceeds the configured maximum connections
 		virtual void onTooMany(socketTCP *psock);
 
 		void parseCommand(cSmtpSession &clientSession,socketTCP *psock,const char *ptrCommand);
@@ -72,8 +72,8 @@ namespace net4cpp21
 		void resp_unknowed(socketTCP *psock);
 		void resp_OK(socketTCP *psock);
 	private:
-		SMTPAUTH_TYPE m_authType;//SMTP服务是否要求验证
-		std::string m_receivedpath;//接收邮件存放路径，以\结尾
+		SMTPAUTH_TYPE m_authType;//SMTPservicewhether瑕佹眰authentication
+		std::string m_receivedpath;//receive閭欢瀛樻斁path锛屼互\缁撳熬
 		std::string m_helloTip;
 	};
 }//?namespace net4cpp21

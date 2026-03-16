@@ -1,6 +1,6 @@
 /*******************************************************************
    *	sniffer.cpp
-   *    DESCRIPTION:sniffer类实现(混杂模式)
+   *    DESCRIPTION:sniffer class implementation(promiscuous mode)
    *
    *    AUTHOR:yyc
    *
@@ -28,7 +28,7 @@ sniffer :: ~sniffer()
 
 void sniffer::Close()
 {
-	Set_Promisc(false); //先关闭混杂模式
+	Set_Promisc(false); //鍏坈losepromiscuous mode
 	socketRaw::Close();
 	return;
 }
@@ -42,7 +42,7 @@ SOCKSRESULT sniffer :: sniff(const char *bindip)
 			return SOCKSERR_INVALID;
 		}
 	}
-	//设置混杂模式
+	//setpromiscuous mode
 	SOCKSRESULT sr=Set_Promisc(true);
 	if(sr==SOCKSERR_OK){
 		if(m_thread.start((THREAD_CALLBACK *)&sniffer::sniffThread,(void *)this))
@@ -54,7 +54,7 @@ SOCKSRESULT sniffer :: sniff(const char *bindip)
 	Close(); return sr;
 }
 
-//打开ip记录文件并模拟sniff
+//open IP log file and simulate sniff
 bool sniffer :: openLogfile(const char *logfile)
 {
 	if(logfile==NULL || logfile[0]==0) return false;
@@ -75,7 +75,7 @@ bool sniffer :: openLogfile(const char *logfile)
 	return false;
 }
 
-//有数据到达,如果返回假则停止sniff
+//data has arrived,ifreturnfalse鍒檚topsniff
 void sniffer :: onData(char *dataptr)
 {
 	if( !RW_LOG_CHECK(LOGLEVEL_DEBUG) ) return;
@@ -124,8 +124,8 @@ void sniffer :: onData(char *dataptr)
 	}
 	return;
 }
-//数据接收线程
-#define SNIFF_CHECKTIMEOUT 50000 //us,select的超时时间 50ms
+//datareceivethread
+#define SNIFF_CHECKTIMEOUT 50000 //us, select timeout 50ms
 void sniffer :: sniffThread(sniffer *psniffer)
 {
 	if(psniffer==NULL) return;
@@ -148,11 +148,11 @@ void sniffer :: sniffThread(sniffer *psniffer)
 	while(psniffer->status()==SOCKS_OPENED)
 	{
 		ret=psniffer->checkSocket(SNIFF_CHECKTIMEOUT,SOCKS_OP_READ);
-		if(ret<0) break; //此socket发生错误
+		if(ret<0) break; //姝ocket鍙戠敓error
 		if(ret==0) continue;
-		//有数据到达
+		//data has arrived
 		ret=psniffer->Receive(buf,IP_MAX_PACKAGE_SIZE,-1);
-		if(ret<0) break; //发生错误
+		if(ret<0) break; //鍙戠敓error
 		if(ret==0) continue;
 		if( (dataptr=psniffer->decode_ipv4(buf,ret)) )
 		{

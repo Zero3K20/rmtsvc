@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vidcManager.h
-   *    DESCRIPTION:vIDC集合管理类
+   *    DESCRIPTION:vIDC collection management class
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -30,13 +30,13 @@ extern std::string g_strKeyPswd;
 extern std::string g_strCaCert;
 extern std::string g_strCaCRL;
 
-//保存本地端口映射的额外参数信息的结构
+//structure for saving extra parameter info for local port mapping
 typedef struct _TMapParam
 {
 	bool bAutorun;
 	long ipaccess;
-	std::string ipRules;//ip访问规则 
-	//-ssl 服务客户端验证证书
+	std::string ipRules;//IP access rules 
+	//-ssl service client authentication certificate
 	std::string clicert;
 	std::string clikey;
 	std::string clikeypswd;
@@ -53,25 +53,25 @@ public:
 	virtual ~vidcServerEx(){}
 	SOCKSRESULT Start()
 	{
-		//设置vIDCs的SSL证书信息，远程映射的服务需要证书信息，将从此对象获取
-		//因此vIDCs服务无法启用SSL加密，如果启用了必将根据证书设置情况要么是需要证书验证的
-		//要么是无需证书验证的，程序将不能动态决定
+		//set vIDCs SSL certificate info; remote-mapped services need certificate info obtained from this object
+		//therefore the vIDCs service cannot enable SSL encryption; if enabled, it will either require certificate authentication
+		//or not require certificate authentication, and the program cannot decide dynamically
 #ifdef _SURPPORT_OPENSSL_
 		this->setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false
 					,g_strCaCert.c_str(),g_strCaCRL.c_str());
 #endif
 		
-		//设置IP过滤规则
+		//setIP filter rules
 		this->rules().addRules_new(RULETYPE_TCP,m_ipaccess,m_ipRules.c_str());
 		const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
-		BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许端口重用
+		BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//缁戝畾浜咺P鍒欏厑璁竝ort閲嶇敤
 		return this->Listen(m_svrport,bReuseAddr,ip);
 	}
 	
 	int m_svrport;
 	std::string m_bindip;
 	bool m_autorun;
-	long m_ipaccess;   //访问本代理服务的IP过滤规则
+	long m_ipaccess;   //璁块棶鏈琾roxy service IP filtering瑙勫垯
 	std::string m_ipRules;
 };
 

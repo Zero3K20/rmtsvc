@@ -83,8 +83,8 @@ std::string CXMLFile::GetStringC(const char* cstrBaseKeyName, const char* cstrVa
 	std::string strDummy;
 	GetNodeValue(cstrBaseKeyName, cstrValueName, cstrDefaultValue, strValue, 
 		NULL, NULL, strDummy);
-	//´Óxml½âÎö³öÀ´µÄ×Ö·û´®½«\rÈ¥µôÁË£¬Ö»ÓĞ\n.¶øÏòmsn·¢ËÍÏûÏ¢ÊÇ\n²»»»ĞĞ£¬Òò´Ë
-	//yyc add ½«\n×ª»»Îª\r 2006-02-27
+	//strings parsed from XML have \r removed, only \n remains; MSN messages with only \n don't break lines, therefore
+	//yyc add: convert \n to \r, 2006-02-27
 	char *ptr=(char *)strValue.c_str();
 	while(*ptr){ if(*ptr=='\n') *ptr='\r'; ptr++; }
 	return strValue;
@@ -234,7 +234,7 @@ long CXMLFile::SetNodeValue(const char* cstrBaseKeyName, const char* cstrValueNa
 	return lRetVal;
 }
 
-// xmlfile.DeleteSetting("Settings/who","");É¾³ı¸Ã¼ü¼°ÆäËùÓĞ×Ó¼ü
+// xmlfile.DeleteSetting("Settings/who",""); delete this key and all its subkeys
 // delete a key or chain of keys
 long CXMLFile::DeleteSetting(const char* cstrBaseKeyName, const char* cstrValueName)
 {
@@ -330,7 +330,7 @@ long CXMLFile::GetKeysValue(const char* cstrBaseKeyName, std::map<std::string, s
 std::map<std::string, std::string> mp;
 	std::map<std::string, std::string>::const_iterator iter;
 	std::string strmsg;
-	xmlfile.GetKeysValue("xmlRoot/Î÷°²/¿Õ¾ü¹¤³Ì´óÑ§/Ñ§Éú/ÈëÑ§ĞÂÉú", mp);
+	xmlfile.GetKeysValue("xmlRoot/è¥¿å®‰/nullå†›å·¥ç¨‹å¤§å­¦/å­¦ç”Ÿ/å…¥å­¦æ–°ç”Ÿ", mp);
 	for(iter=mp.begin(); iter!=mp.end(); ++iter)
 	{
 		strmsg+=" ("+iter->first+", "+ iter->second+") \n";
@@ -468,7 +468,7 @@ static bool FileExist(const char* pszFileName)
 	
 	return (bExist);
 }
-//»ñÈ¡×°ÔØxml´íÎó
+//getè£…è½½xmlerror
 std::string CXMLFile::loadError()
 {
 	std::string strError;
@@ -499,7 +499,7 @@ std::string CXMLFile::loadError()
 	return strError;
 }
 
-//×°ÔØxml×Ö·ûÁ÷ //yyc add
+//è£…è½½xmlcharacteræµ //yyc add
 bool CXMLFile::loadXML(const char *xmlBuffer, const char* root_name)
 {
 	if(xmlBuffer==NULL || XmlDocPtr != NULL)
@@ -581,7 +581,7 @@ bool CXMLFile::load(const char* filename, const char* root_name)
 			pIParseError->get_reason(&bstr);
 			//std::string cstrMessage=(char *)_bstr_t(bstr, true);
 
-			MessageBox( NULL, (char *)_bstr_t(bstr, true), "´íÎóÌáÊ¾",
+			MessageBox( NULL, (char *)_bstr_t(bstr, true), "erroræç¤º",
 				MB_OK|MB_ICONERROR);
 
 			if (bstr) { SysFreeString(bstr); bstr = NULL; }	

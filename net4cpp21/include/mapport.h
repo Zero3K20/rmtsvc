@@ -1,6 +1,6 @@
 /*******************************************************************
    *	mapport.h
-   *    DESCRIPTION:端口映射服务
+   *    DESCRIPTION:port mapping service
    *
    *    AUTHOR:yyc
    *
@@ -25,21 +25,21 @@ namespace net4cpp21
 	public:
 		mapServer();
 		virtual ~mapServer();
-		//设置映射的应用服务
+		//set the application service to map
 		bool mapped(const char *appsvr,int appport,int apptype);
 
 	protected:
-		//连接映射应用服务
+		//connect to the mapped application service
 		socketTCP * connect_mapped(std::pair<std::string,int>* &p);
 
-		//当有一个新的客户连接此服务触发此函数
+		//triggered when a new client connects to this service
 		virtual void onAccept(socketTCP *psock);
-		//收到转发数据，用于数据分析处理
+		//received forwarded data, used for data analysis handling
 		virtual void onData(char *buf,long len,socketTCP *from,socketTCP *to)
 		{ return; }
 	private:
 		static void transThread(socketTCP *psock);
-		//被映射的应用服务
+		//mapped application service
 		std::vector<std::pair<std::string,int> > m_mappedApp;
 	};
 }//?namespace net4cpp21

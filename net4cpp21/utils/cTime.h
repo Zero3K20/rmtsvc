@@ -1,11 +1,11 @@
 /*******************************************************************
    *	cTime.h
-   *    DESCRIPTION:和MFC中CTime类似的日期时间类
+   *    DESCRIPTION:datetime class similar to CTime in MFC
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
    *
-   *    HISTORY: 改自 CGoodTime类
+   *    HISTORY: adapted from CGoodTime class
    *
    *    DATE:2005-08-22
    *	net4cpp 2.1
@@ -38,8 +38,8 @@ namespace net4cpp21
 		const cTime& operator=(const cTime& timeSrc);
 		const cTime& operator=(tm t);
 
-		struct tm* CvtGmtTm(); //本地时间转换为GMT时间
-		struct tm* CvtLocTm(); //GMT时间转换为本地时间
+		struct tm* CvtGmtTm(); //localtimeconvert涓篏MTtime
+		struct tm* CvtLocTm(); //GMTtimeconvert涓簂ocaltime
 		tm GetTime() const;
 		int GetYear() const;
 		int GetMonth() const;       // month of year (1 = Jan)

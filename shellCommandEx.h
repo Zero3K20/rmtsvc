@@ -1,6 +1,6 @@
 /*******************************************************************
    *	shellCommandEx.h 
-   *    DESCRIPTION: CMD Shell扩展命令处理
+   *    DESCRIPTION: CMD Shell extended command processing
    *
    *    AUTHOR:yyc
    *
@@ -9,16 +9,16 @@
    *	
    *******************************************************************/
 
-extern std::string g_savepath; //上载文件默认保存路径
-//执行指定的控制台程序或dos命令，获得输出
-extern BOOL docmd_kill(const char *processName); //杀死指定的进程 //execCommand.cpp
-extern BOOL docmd_exec(const char *strParam); //启动指定的进程   //execCommand.cpp
+extern std::string g_savepath; //default save path for uploaded files
+//execute specified console program or DOS command and get output
+extern BOOL docmd_kill(const char *processName); //kill specified process //execCommand.cpp
+extern BOOL docmd_exec(const char *strParam); //start specified process   //execCommand.cpp
 extern BOOL docmd_exec2buf(std::string &strBuffer,bool ifHide,int iTimeout=-1); //execCommand.cpp
 extern BOOL portList(std::string &strRet); //webAction_fport.cpp
 
 BOOL doCommandEx(const char *strCmd,const char *strParam,std::string &strRet);
 BOOL setSavePath(const char *spath,std::string &strRet);
-BOOL SetCmdPath(const char *spath,std::string &strRet); //设置cmd.exe的路径
+BOOL SetCmdPath(const char *spath,std::string &strRet); //set the path to cmd.exe
 BOOL sysStatus(std::string &strRet);
 BOOL listProcess(const char *filter,std::string &strRet);
 BOOL updateRV(const char *strParam,std::string &strRet);

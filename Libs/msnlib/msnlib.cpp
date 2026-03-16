@@ -1,6 +1,6 @@
 /*******************************************************************
    *	msnlib.cpp
-   *    DESCRIPTION:msnĞ­Òé´¦ÀíÀàÊµÏÖ
+   *    DESCRIPTION:MSN protocol handler class implementation
    *
    *    AUTHOR:yyc
    *
@@ -22,7 +22,7 @@ msnMessager :: msnMessager()
 {
 	m_msgID=0;
 	m_Connectivity='N';
-	m_curAccount.m_clientID=0x4000d024;//0x4000d034 //Èç¹ûÓĞÉãÏñÍ·ÓÃºóÃæµÄclientID
+	m_curAccount.m_clientID=0x4000d024;//0x4000d034 //use the latter clientID if a camera is present
 
 	m_fontName="MS Sans Serif";
 	m_encodeFontname=m_fontName;
@@ -43,7 +43,7 @@ void msnMessager :: clear()
 	for(;it_cond!=m_conds.end();it_cond++)
 		(*it_cond).second->active(); 
 	m_mutex.unlock();
-	m_threadpool.join();//µÈ´ıËùÓĞÏß³Ì½áÊø
+	m_threadpool.join();//wait for all threads to end
 	
 	std::map<std::string, cContactor *>::iterator it_contact=m_contacts.begin();
 	for(;it_contact!=m_contacts.end();it_contact++) 
@@ -54,7 +54,7 @@ void msnMessager :: clear()
 
 void msnMessager :: signout()
 {
-	//¹Ø±ÕºÍNSµÄÃüÁîÁ¬½Ó
+	//close the command connection to NS
 	m_curAccount.m_chatSock.Send(5,"OUT\r\n",-1);
 	m_curAccount.m_chatSock.Close();
 
@@ -69,21 +69,21 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 	}
 
 	socketProxy &m_nsSocket=m_curAccount.m_chatSock;
-	m_lasterrorcode=SOCKSERR_MSN_SIGNIN; //ÒÑ¾­µÇÂ¼
-	if(m_nsSocket.status()!=SOCKS_CLOSED) return true;//ÒÑ¾­µÇÂ¼
+	m_lasterrorcode=SOCKSERR_MSN_SIGNIN; //already logged in
+	if(m_nsSocket.status()!=SOCKS_CLOSED) return true;//already logged in
 	
 	clear();
-	string strMsnNS; int iMsnNSport=0;//»ñÈ¡NS·şÎñÆ÷µÄµØÖ·
-	string hashkey;//»ñÈ¡httpsµÄhashkey
+	string strMsnNS; int iMsnNSport=0;//get NS server address
+	string hashkey;//get HTTPS hash key
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,0,"[msnlib] connecting messenger.hotmail.com:1863,please waiting...\r\n");
-	//Á¬½ÓMSNÅÉÇ²·şÎñÆ÷
+	//connectMSNæ´¾é£server
 	if( !connectSvr(m_nsSocket,MSN_SERVER_HOST,MSN_SERVER_PORT) ) 
 	{
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[msnlib] failed to connect DS(%s:%d) %s.\r\n",
 			MSN_SERVER_HOST,MSN_SERVER_PORT,
 			(m_nsSocket.proxyType()!=PROXY_NONE)?"by proxy":"");
 		m_lasterrorcode= SOCKSERR_MSN_DSCONN; 
-		goto EXIT1; //²»ÄÜÁ¬½ÓDS·şÎñÆ÷
+		goto EXIT1; //cannotconnectDSserver
 	}
 	m_lasterrorcode= SOCKSERR_MSN_RESP;
 	if(!sendcmd_VER()) goto EXIT1;
@@ -91,13 +91,13 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 	m_lasterrorcode=sendcmd_USR(strAccount,strMsnNS,iMsnNSport);
 	if(m_lasterrorcode!=MSN_ERR_OK) goto EXIT1;
 
-	if( !connectSvr(m_nsSocket,strMsnNS.c_str(),iMsnNSport) ) //Á¬½ÓÍ¨Öª·şÎñÆ÷
+	if( !connectSvr(m_nsSocket,strMsnNS.c_str(),iMsnNSport) ) //connectnotificationserver
 	{
 		RW_LOG_PRINT(LOGLEVEL_INFO,"[msnlib] failed to connect NS(%s:%d) %s.\r\n",
 			strMsnNS.c_str(),iMsnNSport,
 			(m_nsSocket.proxyType()!=PROXY_NONE)?"by proxy":"");
 		m_lasterrorcode= SOCKSERR_MSN_NSCONN; 
-		goto EXIT1;//²»ÄÜÁ¬½ÓNS·şÎñÆ÷
+		goto EXIT1;//cannotconnectNSserver
 	}
 	m_lasterrorcode= SOCKSERR_MSN_RESP;
 	if(!sendcmd_VER()) goto EXIT1;
@@ -109,7 +109,7 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 	}
 	m_lasterrorcode=passport_auth(hashkey,strAccount,strPwd);
 	if(m_lasterrorcode!=MSN_ERR_OK)
-	{//»ùÓÚhttpsµÄpassport ÑéÖ¤ ³É¹¦·µ»ØÑéÖ¤Âë
+	{//åŸºäºhttpsçš„passport authentication successreturnauthenticationç 
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,0,"[msnlib] failed to get passport.\r\n");
 		goto EXIT1;
 	}
@@ -120,7 +120,7 @@ bool msnMessager :: signin(const char *strAccount,const char *strPwd)
 		m_lasterrorcode=SOCKSERR_THREAD; 
 		goto EXIT1;
 	}
-	//·¢ËÍSYNÃüÁî»ñÈ¡ºÃÓÑÁĞ±í
+	//sendSYNcommandgetå¥½å‹list
 	m_nsSocket.Send("SYN %d 0 0\r\n",msgID());
 	m_curAccount.m_email.assign(strAccount);
 	m_lasterrorcode=MSN_ERR_OK;
@@ -129,7 +129,7 @@ EXIT1:
 	return (m_lasterrorcode==MSN_ERR_OK);
 }
 
-//ÉèÖÃÁÄÌì×ÖÌå
+//set chat font
 bool msnMessager :: setChatFont(const char *fontName,const char *fontEF,long fontColor)
 {
 	m_lasterrorcode=MSN_ERR_OK;
@@ -142,7 +142,7 @@ bool msnMessager :: setChatFont(const char *fontName,const char *fontEF,long fon
 		{	
 			m_fontName.assign(fontName);
 			m_encodeFontname=m_fontName;
-			//¶Ô×ÖÌåÃû³Æ½øĞĞutf8ºÍmime±àÂë
+			//å¯¹font nameè¿›è¡Œutf8andmimeencoding
 			char buf[256]; 
 			int iret=cCoder::utf8_encode(m_encodeFontname.c_str(),
 				m_encodeFontname.length(),buf);
@@ -163,7 +163,7 @@ bool msnMessager :: setChatFont(const char *fontName,const char *fontEF,long fon
 	return true;
 }
 
-//·¢ËÍPRPÃüÁî¸Ä±äêÇ³Æ
+//sendPRPcommandæ”¹å˜æ˜µç§°
 bool msnMessager :: changeNickW(const wchar_t *nickW,int nicklen)
 {
 	if(nickW==NULL || nickW[0]==0) return false;
@@ -172,7 +172,7 @@ bool msnMessager :: changeNickW(const wchar_t *nickW,int nicklen)
 	char *utf8nick=new char[utf8nicklen];
 	if(utf8nick==NULL) return false;
 	nicklen=cCoder::utf8_encodeW(nickW,nicklen,utf8nick);
-	//½øĞĞMIME±àÂë
+	//è¿›è¡ŒMIME encoding
 	char *pbuf=new char[cCoder::MimeEncodeSize(nicklen)+32];
 	if(pbuf==NULL){ delete[] utf8nick; return false; }
 	nicklen=cCoder::mime_encodeEx(utf8nick,nicklen,pbuf+30);
@@ -195,10 +195,10 @@ bool msnMessager :: changeNick(const char *nick)
 	int nicklen=strlen(nick);
 	wchar_t *nickW=new wchar_t[nicklen+1];
 	if(nickW==NULL) return false;
-	//½«µ¥×Ö½Ú±àÂë×ª»»ÎªunicodeË«×Ö½Ú±àÂë
+	//å°†å•byteencodingconvertä¸ºunicodeåŒbyteencoding
 #ifdef WIN32
 	nicklen=MultiByteToWideChar(CP_ACP,0,nick,nicklen,nickW,nicklen);
-#else //´íÎóµÃ×ª»»£¬×ª»»µÃ×Ö·û¼¯²»¶Ô(ËäÈ»ÊÇË«×Ö½ÚÂë£¬µ«²»ÊÇunicodeÂë)
+#else //errorå¾—convertï¼Œconvertå¾—characteré›†notå¯¹(althoughyesåŒbyteç ï¼Œä½†is notunicodeç )
 	nicklen=swprintf(nickW,L"%S",nick);
 #endif
 	
@@ -206,7 +206,7 @@ bool msnMessager :: changeNick(const char *nick)
 	delete[] nickW; return b;
 }
 
-//×èÈûÄ³¸öÕÊºÅ£¬½«ÕÊºÅ´ÓALÖĞrem£¬Ìí¼Óµ½BLÖĞ
+//block an account; remove it from AL and add to BL
 bool msnMessager :: blockEmail(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -216,14 +216,14 @@ bool msnMessager :: blockEmail(const char *email)
 	if(it==m_contacts.end()) return false;
 	cContactor *pcon=(*it).second; if(pcon==NULL) return false;
 	m_lasterrorcode=MSN_ERR_OK;
-	if( (pcon->m_flags & 0x2) )  //Ã»ÓĞ´ÓALÖĞremÁË
+	if( (pcon->m_flags & 0x2) )  //æ²¡æœ‰ä»ALä¸­remäº†
 		sendcmd_REM(email,"AL");
 	
-	if( (pcon->m_flags & 0x4)==0 )// »¹Ã»ÓĞÌí¼Óµ½BLÖĞ
+	if( (pcon->m_flags & 0x4)==0 )// è¿˜æ²¡æœ‰addåˆ°BLä¸­
 		sendcmd_ADC(email,"BL");
 	return true;
 }
-//È¡ÏûÄ³¸öÕÊºÅµÄ×èÈû
+//cancela certainaccountçš„blocked
 bool msnMessager :: unblockEmail(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -233,14 +233,14 @@ bool msnMessager :: unblockEmail(const char *email)
 	if(it==m_contacts.end()) return false;
 	cContactor *pcon=(*it).second; if(pcon==NULL) return false;
 	m_lasterrorcode=MSN_ERR_OK;
-	if( (pcon->m_flags & 0x4) )// »¹Ã»ÓĞ´ÓBLÖĞremÁË
+	if( (pcon->m_flags & 0x4) )// è¿˜æ²¡æœ‰ä»BLä¸­remäº†
 		sendcmd_REM(email,"BL");
 
-	if( (pcon->m_flags & 0x2)==0 ) // »¹Ã»ÓĞÌí¼Óµ½ALÖĞ
+	if( (pcon->m_flags & 0x2)==0 ) // è¿˜æ²¡æœ‰addåˆ°ALä¸­
 		sendcmd_ADC(email,"AL");
 	return true;
 }
-//É¾³ıÄ³¸öÕÊºÅ£¬ifBlock--ÊÇ·ñ×èÖ¹´ËÕÊºÅ
+//delete an account; Block--whether to also block this account
 bool msnMessager :: remEmail(const char *email,bool ifBlock)
 {
 	m_lasterrorcode=SOCKSERR_MSN_EMAIL;
@@ -257,9 +257,9 @@ bool msnMessager :: remEmail(const char *email,bool ifBlock)
 }
 
 
-//Ìí¼ÓÁªÏµÈË 
-//Èç¹ûwaittimeout£½0Ôò²»µÈ´ı·şÎñÆ÷µÄ·µ»Ø
-//>0µÈ´ıÖ¸¶¨µÄÊ±¼ä·ñÔòµÈ´ıMSN_MAX_TIMEOUT
+//add contact 
+//if waittimeout=0, do not wait for server response
+//>0 wait for the specified time, otherwise wait MSN_MAX_TIMEOUT
 bool msnMessager :: addEmail(const char *email,long waittimeout)
 {
 	m_lasterrorcode=SOCKSERR_MSN_STATUS;
@@ -281,15 +281,15 @@ bool msnMessager :: addEmail(const char *email,long waittimeout)
 		if(!b) return false;
 	}
 	m_lasterrorcode=MSN_ERR_OK;
-	if( (pcon->m_flags & 0x4) ) // »¹Ã»ÓĞ´ÓBLÖĞremÁË
+	if( (pcon->m_flags & 0x4) ) // è¿˜æ²¡æœ‰ä»BLä¸­remäº†
 		sendcmd_REM(email,"BL");
 
-	if( (pcon->m_flags & 0x2)==0 ) // »¹Ã»ÓĞÌí¼Óµ½ALÖĞ
+	if( (pcon->m_flags & 0x2)==0 ) // è¿˜æ²¡æœ‰addåˆ°ALä¸­
 		sendcmd_ADC(email,"AL");
 	return true;
 }
 
-//ÑûÇëÄ³ÈË½øÈëÒ»¸öÁÄÌì»á»°
+//invite someone into a chat session
 bool msnMessager :: inviteChat(HCHATSESSION hchat,const char *email)
 {
 	if(email==NULL) return false;
@@ -303,14 +303,14 @@ bool msnMessager :: inviteChat(HCHATSESSION hchat,const char *email)
 	if( pcon->m_chatSock.Send(iret,buf,-1)<=0 ) return false;
 	if((iret=pcon->m_chatSock.Receive(buf,255,MSN_MAX_RESPTIMEOUT))<=0) 
 		return false;
-	buf[iret]=0; //·µ»ØÊı¾İ¸ñÊ½ CAL 161 RINGING 312825
+	buf[iret]=0; //returndataformat CAL 161 RINGING 312825
 	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnlib] <--- %s",buf);
 	return (strncmp(buf,"CAL ",4)==0)?true:false;
 }
 
 HCHATSESSION msnMessager :: createChat(cContactor *pcon)
 {
-	//²é¿´ÊÇ·ñºÍÕâ¸öÓÃ»§ÒÑ¾­´ò¿ªÁËÒ»¸öÁÄÌì»á»°£¬Èç¹ûÊÇÖ±½Ó·µ»ØÁÄÌì»á»°µÄ¾ä±ú
+	//æŸ¥çœ‹whetherandè¿™ä¸ªuserå·²ç»openäº†ä¸€ä¸ªchatä¼šè¯ï¼Œifyesç›´æ¥returnchatä¼šè¯çš„handle
 	if(pcon->m_chatSock.status()==SOCKS_CONNECTED) return (HCHATSESSION)pcon;
 	if( sendcmd_XFR(pcon->m_chatSock,pcon->m_email.c_str()) )
 	{
@@ -324,8 +324,8 @@ HCHATSESSION msnMessager :: createChat(cContactor *pcon)
 	pcon->m_chatSock.Close(); return 0;
 }
 
-//ÏòÄ³¸öÓÃ»§·¢ÆğÒ»¸öÁÄÌì,³É¹¦·µ»ØHCHATSESSION£¬·ñÔò·µ»Ø0
-//ÄÜ·¢ÆğÁÄÌìµÄÓÃ»§±ØĞëÊÇÓĞĞ§µÄÓÃ»§×´Ì¬²»ÄÜÊÇFLN£¬ÇÒÔÚÎÒµÄÁªÏµÈËFL¶ÓÁĞÖĞ
+//initiate a chat with a user; returns HCHATSESSION on success, 0 otherwise
+//the user being chatted with must have a valid status (not FLN) and be in my Forward List
 HCHATSESSION msnMessager :: createChat(const char *email)
 {
 	m_lasterrorcode=SOCKSERR_MSN_SIGNIN;
@@ -340,7 +340,7 @@ HCHATSESSION msnMessager :: createChat(const char *email)
 	if((pcon->m_flags &0x01)==0) return 0;
 	if(pcon->m_status=="FLN") return 0;
 	m_lasterrorcode=MSN_ERR_OK;
-	//²é¿´ÊÇ·ñºÍÕâ¸öÓÃ»§ÒÑ¾­´ò¿ªÁËÒ»¸öÁÄÌì»á»°£¬Èç¹ûÊÇÖ±½Ó·µ»ØÁÄÌì»á»°µÄ¾ä±ú
+	//æŸ¥çœ‹whetherandè¿™ä¸ªuserå·²ç»openäº†ä¸€ä¸ªchatä¼šè¯ï¼Œifyesç›´æ¥returnchatä¼šè¯çš„handle
 	if(pcon->m_chatSock.status()==SOCKS_CONNECTED) return (HCHATSESSION)pcon;
 	if( sendcmd_XFR(pcon->m_chatSock,email) )
 	{
@@ -353,7 +353,7 @@ HCHATSESSION msnMessager :: createChat(const char *email)
 	} else m_lasterrorcode=SOCKSERR_MSN_XFR;
 	pcon->m_chatSock.Close(); return 0;
 }
-//½áÊøºÍÄ³¸öÁªÏµÈËµÄÁÄÌì
+//endanda certaincontactçš„chat
 void msnMessager :: destroyChat(HCHATSESSION hchat)
 {
 	if(hchat==0) return;
@@ -364,7 +364,7 @@ void msnMessager :: destroyChat(HCHATSESSION hchat)
 	}
 	return;
 }
-//»Ø¸´ÁÄÌìÄÚÈİ
+//å›å¤chatå†…å®¹
 bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,const wchar_t *strMsg,const wchar_t *dspname)
 {
 	m_lasterrorcode=SOCKSERR_MSN_NULL;
@@ -372,7 +372,7 @@ bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,const wchar_t *strMsg,const 
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!=NULL)
 	{
-		char msgHeader[512]; //±£Áô56×Ö½ÚµÄ¿Õ¼äÓÃÓÚĞ´ÈëMSGÃüÁîÍ·
+		char msgHeader[512]; //ä¿ç•™56byteçš„spaceç”¨äºwriteMSGcommandå¤´
 		int headerlen=encodeChatMsgHeadW(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsgW(pcon,msgHeader,headerlen,strMsg,0);
 	}
@@ -386,14 +386,14 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,const char *strMsg,const char
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!=NULL)
 	{
-		char msgHeader[512]; //±£Áô56×Ö½ÚµÄ¿Õ¼äÓÃÓÚĞ´ÈëMSGÃüÁîÍ·
+		char msgHeader[512]; //ä¿ç•™56byteçš„spaceç”¨äºwriteMSGcommandå¤´
 		int headerlen=encodeChatMsgHead(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsg(pcon,msgHeader,headerlen,strMsg,0);
 	}
 	else
 		return sendcmd_SS_Typing(pcon,NULL);
 }
-//»Ø¸´ÁÄÌìÄÚÈİ
+//å›å¤chatå†…å®¹
 bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,std::wstring &strMsg,const wchar_t *dspname)
 {
 	m_lasterrorcode=SOCKSERR_MSN_NULL;
@@ -401,7 +401,7 @@ bool msnMessager :: sendChatMsgW(HCHATSESSION hchat,std::wstring &strMsg,const w
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg[0]!=0)
 	{
-		char msgHeader[512]; //±£Áô56×Ö½ÚµÄ¿Õ¼äÓÃÓÚĞ´ÈëMSGÃüÁîÍ·
+		char msgHeader[512]; //ä¿ç•™56byteçš„spaceç”¨äºwriteMSGcommandå¤´
 		int headerlen=encodeChatMsgHeadW(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsgW(pcon,msgHeader,headerlen
 				,strMsg.c_str(),strMsg.length());
@@ -416,7 +416,7 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,std::string &strMsg,const cha
 	cContactor *pcon=(cContactor *)hchat;
 	if(strMsg!="")
 	{
-		char msgHeader[512]; //±£Áô56×Ö½ÚµÄ¿Õ¼äÓÃÓÚĞ´ÈëMSGÃüÁîÍ·
+		char msgHeader[512]; //ä¿ç•™56byteçš„spaceç”¨äºwriteMSGcommandå¤´
 		int headerlen=encodeChatMsgHead(msgHeader+56,512-57,NULL,dspname);
 		return sendcmd_SS_chatMsg(pcon,msgHeader,headerlen
 				,strMsg.c_str(),strMsg.length());
@@ -424,8 +424,8 @@ bool msnMessager :: sendChatMsg(HCHATSESSION hchat,std::string &strMsg,const cha
 	else
 		return sendcmd_SS_Typing(pcon,NULL);
 }
-//ÉèÖÃ/È¡Ïû±¾ÕÊºÅµÄÍ·Ïñ
-//imagefile --- gif/png¸ñÊ½µÄÍ¼ÏñÎÄ¼ş
+//set/cancel this account's avatar
+//imagefile --- gif/pngformatçš„imagefile
 //MSNObject was introduced into MSNP9 as a way of identifying Backgrounds, Emoticons or User Display Pictures. It was part of the MSNC1 specification. 
 //A MSNObject is always in the following format: 
 //<msnobj Creator="buddy1@hotmail.com" Size="24539" Type="3" Location="TFR2C.tmp" Friendly="AAA=" SHA1D="trC8SlFx2sWQxZMIBAWSEnXc8oQ=" SHA1C="U32o6bosZzluJq82eAtMpx5dIEI="/>
@@ -442,7 +442,7 @@ SHA1C - This field contains all previous fields hashed with SHA1 encoded in Base
 bool msnMessager :: setPhoto(const char *imagefile)
 {
 	if(imagefile==NULL || imagefile[0]==0) 
-	{//È¡Ïû±¾ÕÊºÅµÄÍ·Ïñ
+	{//cancelæœ¬accountçš„avatar
 		m_curAccount.m_strMsnObj="";
 		m_photofile="";
 	}
@@ -461,14 +461,14 @@ bool msnMessager :: setPhoto(const char *imagefile)
 		sprintf(buf,"<msnobj Creator=\"%s\" Size=\"%d\" Type=\"3\" Location=\"TFR133.dat\" Friendly=\"AAA=\" SHA1D=\"%s\" SHA1C=\"%s\"/>",
 				m_curAccount.m_email.c_str(),filesize,strSHA1D.c_str(),strSHA1C.c_str());
 		
-		m_curAccount.m_strMsnObj.assign(buf);//½øĞĞMIME±àÂë
+		m_curAccount.m_strMsnObj.assign(buf);//è¿›è¡ŒMIME encoding
 		int len=cCoder::mime_encode(m_curAccount.m_strMsnObj.c_str(),m_curAccount.m_strMsnObj.length(),buf);
 		buf[len]=0; m_curAccount.m_strMsnObj.assign(buf);
 		m_photofile.assign(imagefile);
 	}
 	return sendcmd_CHG(m_curAccount.m_status.c_str());
 }
-//»ñÈ¡Ä³¸öÁªÏµÈËµÄÍ·Ïñ
+//get a contact's avatar
 bool msnMessager :: getPhoto(const char *email,const char *filename)
 {
 	::_strlwr((char *)email);

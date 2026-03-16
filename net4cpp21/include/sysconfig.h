@@ -2,7 +2,7 @@
 #ifndef __YY_SYSCONFIG_H__
 #define __YY_SYSCONFIG_H__
 
-#ifdef WIN32 //windowsϵͳƽ̨
+#ifdef WIN32 //Windows system platform
 	#pragma warning(disable:4786)
 	#pragma warning(disable:4503)
 	#ifndef _CRT_SECURE_NO_WARNINGS
@@ -14,8 +14,8 @@
 	#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
 	#endif
-	#include <windows.h> //����windows��ͷ�ļ�
-	#define	MSG_NOSIGNAL    0  //windows��û�д˶���
+	#include <windows.h> //include Windows header files
+	#define	MSG_NOSIGNAL    0  //this definition does not exist on Windows
 	
 	#define strcasecmpW _wcsicmp
 	#define strncasecmpW _wcsnicmp
@@ -37,10 +37,10 @@
 	#define strprintf sprintf
 	#define fileopen fopen
 	#endif
-#elif defined MAC //��ʱ��֧��
+#elif defined MAC //temporarily not supported
 	typedef unsigned short WCHAR;
 	//...
-#else  //unix/linuxƽ̨
+#else  //unix/linux platform
 	//Sun unix��û�ж���˳�����linux����/usr/include/bits/socket.h�ж����д˳���
 	//EPIPE  The local end has been shut down on a connection oriented socket.  
 	//In this case the  process  will  also receive a SIGPIPE unless MSG_NOSIGNAL is set.

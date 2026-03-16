@@ -1,6 +1,6 @@
 /*******************************************************************
    *	NS_parsecmd.cpp
-   *    DESCRIPTION:´¦Àí´ÓNS·şÎñÆ÷ÊÕµ½µÄÃüÁî
+   *    DESCRIPTION:handle commands received from the NS server
    *
    *    AUTHOR:yyc
    *
@@ -19,16 +19,16 @@ using namespace std;
 using namespace net4cpp21;
 int splitstring(const char *str,char delm,std::vector<std::string> &vec,int maxSplit=0);
 
-//µ±ÄãµÇÂ¼³É¹¦ºóNS·şÎñÆ÷»á·¢ËÍÈçÏÂÏûÏ¢
-// SBS 0 null\r\n     --- ²»ÖªºÎÒâ
-//MSG Hotmail Hotmail 514 ---±¾ÕÊºÅµÇÂ¼ĞÅÏ¢,¼ûMSGÏûÏ¢´¦ÀíËµÃ÷
-// GTC A.   --- ²»ÖªºÎÒâ
-// BLP AL.  --- Ö¸Ê¾µ±Ä³¸öÁªÏµÈË¼ÓÁËÄãÖ®ºó£¬Èç¹ûÄã»¹Ã»ÓĞ¼ÓËû£¬ÔòÄ¬ÈÏÊÇAL£¬¼´ºÃÏñËû¿ÉÒÔaccessÄã
-// PRP MFN yyc:). --- ±¾ÕÊºÅµÄêÇ³Æ
-// PRP HSB 1.  --- ±¾ÕÊºÅÓĞMSN Space¿Õ¼ä
-// PRP MBE N.  --- Ã»ÓĞ°ó¶¨ÒÆ¶¯ÏûÏ¢µÄ¹¦ÄÜ
-// PRP WWE 0.  --- ²»ÖªºÎÒâ
-//½ÓÏÂÀ´ÊÇLSG LSTµÈÏûÏ¢
+//after successful login, the NS server sends the following messages
+// SBS 0 null\r\n     --- meaning unknown
+//MSG Hotmail Hotmail 514 ---this account's login info; see MSG message handling notes
+// GTC A.   --- meaning unknown
+// BLP AL.  --- indicates that when a contact adds you, if you haven't added them back, the default is AL, meaning they can access you
+// PRP MFN yyc:). --- this account's nickname
+// PRP HSB 1.  --- this account has an MSN Space
+// PRP MBE N.  --- mobile messaging not bound
+// PRP WWE 0.  --- meaning unknown
+//followed by LSG, LST and other messages
 
 /*MSG Hotmail Hotmail 514
 MIME-Version: 1.0
@@ -63,16 +63,16 @@ ABCHMigrated: 1
 4 - User is under 13
 5 - User is between the ages of 13 and 18 (or is 13 exactly)
 */
-int contact_counts=0;//ÁªÏµÈË¸öÊı ½ÓÊÕÍêËÑÓĞÁªÏµÈËĞÅÏ¢ºó¿É·¢ËÍÉÏÏß×´Ì¬
-std::string last_contact_email=""; //×îºóÒ»´ÎÊÕµ½LSTµÄÁªÏµÈËemail
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî
+int contact_counts=0;//number of contacts; can send online status after receiving all contact info
+std::string last_contact_email=""; //email of the last contact received via LST
+//command sent by NS server
 unsigned long msnMessager :: nscmd_sbs(socketTCP *psock,const char *pcmd)
 {
 	return 0;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî Profile Messages MSNP8¼°ÒÔºó°æ±¾
+//command sent by NS server - Profile Messages, MSNP8 and later versions
 //In all known cases, immediately after sending the final USR, the NS will send a profile message. This is a message with a Content-Type of text/x-msmsgsprofile. This message has a large header with lots of fields, and no body. 
-//´ÓNSµÄMSG HotmailĞÅÏ¢ÖĞ½âÎö±¾¿Í»§¶ËµÄIPµØÖ·£¬ÒÔ±ãÖªµÀ±¾¿Í»§¶ËÊÇ·ñÊÇÍ¨¹ıNAT»ò´úÀí³öÈ¥µÄ
+//parse the client's IP address from the NS MSG Hotmail info to determine if the client is behind NAT or proxy
 unsigned long msnMessager :: nscmd_msg(socketTCP *psock,const char *pcmd)
 {
 	if(last_contact_email==""){
@@ -85,19 +85,19 @@ unsigned long msnMessager :: nscmd_msg(socketTCP *psock,const char *pcmd)
 			*(char *)ptr1='\r';
 		}//?if(ptr)
 	}
-//	else //ºóĞøµÄÏûÏ¢Ò²»áÓĞMSGÏûÏ¢³öÏÖ£¬ÀıÈçÍ¨ÖªÓÃ»§×´Ì¬Ê±
+//	else //subsequent messages may also include MSG messages, e.g. when notifying user status
 // ILN 10 NLN tanhuijian@hotmail.com tanago....\r\n
 //UBX tanhuijian@hotmail.com 68\r\n
-//<Data><PSM>é›¨å­£å†æ¥äº?/PSM><CurrentMedia></CurrentMedia></Data>
+//<Data><PSM>ï¿½ï½…å•€é‰ãƒ¤ï¿½?/PSM><CurrentMedia></CurrentMedia></Data>
 //MSG Hotmail Hotmail 290\r\n
 //MIME-Version: 1.0\r\n
 //Content-Type: text/x-msmsgsinitialmdatanotification; charset=UTF-8\r\n...
 	return 0;
 }
-//NS·şÎñÆ÷¶ÔSYNÃüÁîµÄÏìÓ¦
-//¸ñÊ½ SYN trID Time1 Time2 listnumbers groupnumbers
-//ÀıÈç: SYN 8 1 0 0 0
-//ÀıÈç: SYN 8 2005-06-24T02:53:13.8170000-07:00 2005-06-19T19:39:19.9730000-07:00 107 4
+//NS server response to the SYN command
+//format SYN trID Time1 Time2 listnumbers groupnumbers
+//ä¾‹å¦‚: SYN 8 1 0 0 0
+//ä¾‹å¦‚: SYN 8 2005-06-24T02:53:13.8170000-07:00 2005-06-19T19:39:19.9730000-07:00 107 4
 unsigned long msnMessager :: nscmd_syn(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
@@ -105,7 +105,7 @@ unsigned long msnMessager :: nscmd_syn(socketTCP *psock,const char *pcmd)
 	int group_counts=0;
 	contact_counts=0; 
 	last_contact_email="";
-	if(iret>=6){//µÃµ½×ÜµÄÁªÏµÈË¸öÊıºÍ×é¸öÊı
+	if(iret>=6){//get total number of contacts and groups
 		contact_counts=atoi(v[4].c_str());
 		group_counts=atoi(v[5].c_str());
 		onSYN(contact_counts,group_counts);
@@ -113,7 +113,7 @@ unsigned long msnMessager :: nscmd_syn(socketTCP *psock,const char *pcmd)
 	}
 	return (unsigned long)atol(v[1].c_str());
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî  MSNP11 Challenge
+//command sent by NS server - MSNP11 Challenge
 //MSN Messenger 7.0.0813 uses: 
 char *szClientID="PROD0101{0RM?UBW";  
 char *szClientCode="CFHUR$52U_{VIX5T"; 
@@ -126,18 +126,18 @@ unsigned long msnMessager :: nscmd_chl(socketTCP *psock,const char *pcmd)
 	psock->Send("QRY %d %s 32\r\n%s",msgID(),szClientID,v[2].c_str());
 	return 0;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî. ÊÕµ½ÁªÏµÈË×éĞÅÏ¢
-//¸ñÊ½:LSG ×éÃû ×éID  //×éÃû¿ÉÄÜmime±àÂë+utf8±àÂë
-//ÀıÈç:LSG åŒäº‹ 582cbb4e-8695-4028-8b72-5b947bbb543d
+//command sent by NS server: received contact group info
+//format:LSG ç»„å ç»„ID  //group name may be MIME-encoded + UTF-8 encoded
+//ä¾‹å¦‚:LSG éšå±¼ç°¨ 582cbb4e-8695-4028-8b72-5b947bbb543d
 unsigned long msnMessager :: nscmd_lsg(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
 	int iret=splitstring(pcmd,' ',v);
 	if(iret<3) return 0;
-	//ÏÈ¶Ô×éÃû½øĞĞmime½âÂë
+	//first MIME-decode the group name
 	iret=cCoder::mime_decode(v[1].c_str(),v[1].length(),(char *)v[1].c_str());
 	v[1][iret]=0; 
-	//È»ºó½øĞĞutf8½âÂë
+	//then UTF-8 decode
 	wchar_t *gnameW=new wchar_t[iret+1];
 	if(gnameW==NULL) return 0;
 	iret=cCoder::utf8_decodeW(v[1].c_str(),iret,gnameW);
@@ -146,19 +146,19 @@ unsigned long msnMessager :: nscmd_lsg(socketTCP *psock,const char *pcmd)
 
 	delete[] gnameW; return 0;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî. ÊÕµ½ÁªÏµÈËĞÅÏ¢
-//¸ñÊ½ LST N=email [F=nick] [C=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx] ±êÊ¶ [×éID]\r\n
-//nick --- utf8±àÂë £¬mime±àÂë
+//command sent by NS server: received contact info
+//format LST N=email [F=nick] [C=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx] identifier [ç»„ID]\r\n
+//nick --- UTF-8 encoded, MIME encoded
 //the C= hex string is a GUID (globally unique identifier) that is used to identify the contact in the ADC and REM commands.
-//×éID --- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.¿ÉÄÜÁ¥Êô¶à¸ö×é£¬¸÷¸ö×éIDÖ®¼äÒÔ,·Ö¸î
-//±êÊ¶ the principle is a part of, in the same format as MSNP8 - bitwise number where 1=Forward, 2=Allow, 4=Block ,8=Reverse. composed of:FL: 1 AL: 2 BL: 4 RL: 8
-//		FL --- ËµÃû´ËÁªÏµÈËÔÚ±¾ÕÊºÅµÄÁªÏµÈËÁĞ±íÖĞ
-//		AL --- ±¾ÕÊºÅÔÊĞí´ËÁªÏµÈË¿´µ½
-//		BL --- ±¾ÕÊºÅ×èÖ¹ÁËÕâ¸öÁªÏµÈË
-//		RL --- ËµÃ÷±¾ÕÊºÅÔÚÕâ¸öÁªÏµÈËµÄÁĞ±íÖĞ.
+//group ID --- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. May belong to multiple groups, IDs separated by commas
+//identifier the principle is a part of, in the same format as MSNP8 - bitwise number where 1=Forward, 2=Allow, 4=Block ,8=Reverse. composed of:FL: 1 AL: 2 BL: 4 RL: 8
+//		FL --- indicates this contact is in this account's contact list
+//		AL --- this account allows this contact to see it
+//		BL --- this account has blocked this contact
+//		RL --- indicates this account is in this contact's list.
 //If the contact is not in a group then the last parameter is omitted. When in more than one, comes as comma-separated values (x...-xxxx-...x,x...-xxxx-...x,...). 
 //If the contact is not part of the Forward list at all, then the parameters F= and C= are omitted too, leaving only a N= and lists value. 
-//·¶Àı:
+//èŒƒä¾‹:
 //LST N=jackhuo@hotmail.com F=:[%20Jackhuo%20(li) C=78da23a8-d5dc-483d-aabf-098fc487880d 11 45aaff9a-5ffd-408d-a12a-ce3c522fd327
 unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 {
@@ -171,10 +171,10 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 	RW_LOG_DEBUG("[msnlib] <-- LST N=%s, contact_counts=%d\r\n",pcon->m_email.c_str(),contact_counts);
 	for(int i=2; i<iret;i++){
 		if(v[i][0]=='F' && v[i][1]=='=')
-		{//ÏÈ¶Ônick½øĞĞmime½âÂë
+		{//first MIME-decode the nickname
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[i].c_str(),v[i].length(),(char *)v[i].c_str());
-			//È»ºó½øĞĞutf8½âÂë
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[i].c_str(),len,nickW);
 				pcon->m_nick.assign(nickW+2);
@@ -189,14 +189,14 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 			pcon->m_uid.assign(v[i].c_str()+2);
 //	printf(" C=%s",pcon->m_uid.c_str());
 		}
-		else if(ifFlags) //ÏÈ³öÏÖµÄÎª±êÖ¾
+		else if(ifFlags) //å…ˆå‡ºç°çš„ä¸ºflag
 		{
 			pcon->m_flags=atoi(v[i].c_str());
 			ifFlags=false;
 //	printf(" %s",v[i].c_str());
 		}
 		else
-		{//¿ÉÄÜÁ¥Êô¶à¸ö×é£¬¸÷¸ö×éIDÖ®¼äÒÔ,·Ö¸î
+		{//may belong to multiple groups, group IDs separated by commas
 			const char *ptr=strchr(v[i].c_str(),',');
 			if(ptr==NULL)
 				pcon->m_gid=v[i];
@@ -210,19 +210,19 @@ unsigned long msnMessager :: nscmd_lst(socketTCP *psock,const char *pcmd)
 	}//?for(...
 //	printf("\r\n");
 	onLST(pcon->m_email.c_str(),pcon->m_nick.c_str(),pcon->m_flags);
-	if(--contact_counts==0){//ÊÕÍêËùÓĞÁªÏµÈËĞÅÏ¢
+	if(--contact_counts==0){//finished receiving all contact info
 		onSIGN();
 	}else if(contact_counts<0) contact_counts=0;
 	return 0;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî
-//¸ñÊ½: BPR [PHH|PHW|PHM|HSB|MOB] [tel:<µç»°>] <ÆäËû>
-//BPR PHH tel:86%2068036142 0  //ÁªÏµÈËµÄ¼ÒÍ¥µç»° ºóÃæµÄÊı×Ö²»ÖªºÎÒâ
-//BPR PHW tel:86%2065188989 0  //ÁªÏµÈËµÄ°ì¹«µç»° ºóÃæµÄÊı×Ö²»ÖªºÎÒâ
-//BPR PHM tel:86%2013301338823 0 //ÁªÏµÈËµÄÒÆ¶¯µç»° ºóÃæµÄÊı×Ö²»ÖªºÎÒâ
-//BPR MOB Y //Ö¸Ê¾´ËÈË¿É½ÓÊÕÒÆ¶¯ÏûÏ¢
+//command sent by NS server
+//format: BPR [PHH|PHW|PHM|HSB|MOB] [tel:<phone>] <other>
+//BPR PHH tel:86%2068036142 0  //contact's home phone; trailing number meaning unknown
+//BPR PHW tel:86%2065188989 0  //contact's work phone; trailing number meaning unknown
+//BPR PHM tel:86%2013301338823 0 //contact's mobile phone; trailing number meaning unknown
+//BPR MOB Y //indicates this person can receive mobile messages
 //BPR HSB 1 //It is used to indicate that the principle has an updated MSN Space blog. 
-//BPR×ÜÊÇÉè¶¨×î½ü½ÓÊÕµÄLSTµÄÁªÏµÈËµÄÊôĞÔ
+//BPR always sets the attribute of the most recently received LST contact
 //This command is sent by the notification server immediately after it sends a LST command while synchronising. It contains no way of identifying the principle that it refers to, so you must assume that it is for the most recently sent LST. 
 //New in MSNP11 is the HSB setting. Other values are PHM (Phone Mobile), PHW (Phone Work), PHH (Phone Home) and MOB (Mobile). 
 unsigned long msnMessager :: nscmd_bpr(socketTCP *psock,const char *pcmd)
@@ -247,7 +247,7 @@ unsigned long msnMessager :: nscmd_bpr(socketTCP *psock,const char *pcmd)
 }
 
 //Setting your display name is now done (since MSNP10) with the PRP command:
-//ÀıÈç£ºPRP 9 MFN My%20New%20Name\r\n
+//ä¾‹å¦‚ï¼šPRP 9 MFN My%20New%20Name\r\n
 //As usual the 9 is the TrID, MFN probably stands for "My Friendly Name", and your new display name must, as always, be urlencoded. This new method obsoletes the REA command.
 //PRP was already used to modify phone numbers too, with this syntax:
 //PRP <TrID> <Kind> <Url-Encoded Phone Number>
@@ -265,11 +265,11 @@ unsigned long msnMessager :: nscmd_prp(socketTCP *psock,const char *pcmd)
 	int iret=splitstring(pcmd,' ',v);
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<3) return trID;
-	if(trID==0){//·¢¹ıÀ´µÄÊÇ±¾ÕÊºÅµÄPRPĞÅÏ¢
+	if(trID==0){//received this account's PRP info
 		if(v[1]=="MFN"){
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[2].c_str(),v[2].length(),(char *)v[2].c_str());
-			//È»ºó½øĞĞutf8½âÂë
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[2].c_str(),len,nickW);
 				m_curAccount.m_nick.assign(nickW);
@@ -286,10 +286,10 @@ unsigned long msnMessager :: nscmd_prp(socketTCP *psock,const char *pcmd)
 	}
 	return trID;
 }
-//NS·şÎñÆ÷¶ÔCHGÃüÁîµÄÏìÓ¦
-//ILN ±¾¿Í»§¶ËÉÏÏßºó£¬NS·şÎñÆ÷·¢ËÍµÄÁªÏµÈË×´Ì¬
-//¸ñÊ½ ILN TrID status email nick clientID...
-//·¶Àı ILN 9 NLN yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
+//NS server response to the CHG command
+//ILN: after this client goes online, the NS server sends contact status
+//format ILN TrID status email nick clientID...
+//èŒƒä¾‹ ILN 9 NLN yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
 unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
@@ -304,7 +304,7 @@ unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
 	if(iret>=5){//nick
 		int len; wchar_t *nickW=NULL;
 		len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-		//È»ºó½øĞĞutf8½âÂë
+		//then UTF-8 decode
 		if( (nickW=new wchar_t[len+1]) ){
 			cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 			pcon->m_nick.assign(nickW);
@@ -316,14 +316,14 @@ unsigned long msnMessager :: nscmd_iln(socketTCP *psock,const char *pcmd)
 	if(iret>=6) pcon->m_clientID=(unsigned long)atol(v[5].c_str());
 	if(iret>=7) pcon->m_strMsnObj=v[6].c_str();
 
-	if(pcon->m_status!="FLN") onLine((HCHATSESSION)pcon,last_contact_email.c_str()); //Ä³¸öÓÃ»§ÉÏÏß
+	if(pcon->m_status!="FLN") onLine((HCHATSESSION)pcon,last_contact_email.c_str()); //a user came online
 	onNLN((HCHATSESSION)pcon,last_contact_email.c_str(),(0x80000000 | 0x0f) );
 	return trID;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî. ºÃÓÑ¸Ä±ä/Ää³Æ×´Ì¬
-//NLN µ±ÁªÏµÈË×´Ì¬¸Ä±ä»òÃû³Æ¸Ä±äºó·¢ËÍµÄÏûÏ¢
-//¸ñÊ½ NLN status email nick clientID...
-//·¶Àı NLN BSY yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
+//command sent by NS server: friend status change / nickname change
+//NLN: message sent when a contact's status or name changes
+//format NLN status email nick clientID...
+//èŒƒä¾‹ NLN BSY yycnet@hotmail.com yyc:) 805306420 %3Cmsnobj%20Creator%3D%22yycnet%40hotmail.com%22%20Size%3D%2216316%22%20Type%3D%223%22%20Location%3D%22TFRB.tmp%22%20Friendly%3D%22AAA%3D%22%20SHA1D%3D%22CWKlKODMVbRMwdc1yYpgQN4%2BsAA%3D%22%20SHA1C%3D%22JCt3eGOZWUAWssdVjOmn0ZPd0nQ%3D%22%2F%3E
 unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
@@ -339,17 +339,17 @@ unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 		bOnline=(pcon->m_status=="FLN");
 		pcon->m_status=v[1]; flags|=1;
 		
-	} //×´Ì¬¸Ä±ä
+	} //status changed
 	if(iret>=4){//nick
 		int len; wchar_t *nickW=NULL;
 		len=cCoder::mime_decode(v[3].c_str(),v[3].length(),(char *)v[3].c_str());
-		//È»ºó½øĞĞutf8½âÂë
+		//then UTF-8 decode
 		if( (nickW=new wchar_t[len+1]) ){
 			cCoder::utf8_decodeW(v[3].c_str(),len,nickW);
-			if(wcscmp(pcon->m_nick.c_str(),nickW)!=0) //êÇ³Æ¸Ä±ä
+			if(wcscmp(pcon->m_nick.c_str(),nickW)!=0) //nickname changed
 			{
 				pcon->m_nick.assign(nickW);
-				flags|=2; //êÇ³Æ¸Ä±ä
+				flags|=2; //nickname changed
 				wchar2chars(pcon->m_nick.c_str(),(char *)v[3].c_str(),v[3].length());
 				pcon->m_nick_char.assign(v[3].c_str());
 			}delete[] nickW;
@@ -362,15 +362,15 @@ unsigned long msnMessager :: nscmd_nln(socketTCP *psock,const char *pcmd)
 	}
 	if(iret>=6 && pcon->m_strMsnObj!=v[5]){
 		pcon->m_strMsnObj=v[5];
-		flags|=8;//Í·Ïñ¸Ä±ä
+		flags|=8;//avatar changed
 	}
-	if(bOnline) onLine((HCHATSESSION)pcon,v[2].c_str()); //Ä³¸öÓÃ»§ÉÏÏß
+	if(bOnline) onLine((HCHATSESSION)pcon,v[2].c_str()); //a user came online
 	onNLN((HCHATSESSION)pcon,v[2].c_str(),flags);
 	return 0;
 }
-//ºÃÓÑÀëÏß //FLN yycnet@hotmail.com
-//Èç¹ûÄ³¸öÁªÏµÈË×èÖ¹ÁËÄã£¬ÄãÒ²»áÊÕµ½¶Ô·½ÏÂÏßµÄÏûÏ¢
-//µ±¶Ô·½È¡Ïû×èÖ¹Ê±Äã½«»áÊÕµ½Ò»¸öNLNÏûÏ¢
+//friend went offline //FLN yycnet@hotmail.com
+//ifa certaincontacté˜»æ­¢äº†ä½ ï¼Œä½ ä¹Ÿä¼šæ”¶åˆ°å¯¹æ–¹ä¸‹çº¿çš„message
+//whenå¯¹æ–¹cancelé˜»æ­¢æ—¶ä½ å°†ä¼šæ”¶åˆ°ä¸€ä¸ªNLNmessage
 unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 {
 	std::vector<std::string> v;
@@ -381,12 +381,12 @@ unsigned long msnMessager :: nscmd_fln(socketTCP *psock,const char *pcmd)
 	if(it==m_contacts.end()) return 0;
 	cContactor *pcon=(*it).second; if(pcon==NULL) return 0;
 	pcon->m_status="FLN"; pcon->m_chatSock.Close();
-	offLine((HCHATSESSION)pcon,v[1].c_str()); //Ä³¸öÓÃ»§ÏÂÏß
+	offLine((HCHATSESSION)pcon,v[1].c_str()); //a user went offline
 	return 0;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî»òREMÃüÁîµÄÏìÓ¦
-//¸ñÊ½ REM 0 RL email
-//·¶Àı REM 0 RL yycnet@hotmail.com
+//command sent by NS serverorREMcommandçš„response
+//format REM 0 RL email
+//èŒƒä¾‹ REM 0 RL yycnet@hotmail.com
 //	   REM 207 FL 7bae0ef9-575b-42d5-b13d-61ebd3e69ab8
 unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 {
@@ -395,9 +395,9 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<4) return trID;
 	cContactor *pcon=NULL;
-	if(trID && v[2]=="FL") //´Ó±¾µØÉ¾³ıÁªÏµÈËµÄÏìÓ¦
+	if(trID && v[2]=="FL") //ä»localdeletecontactçš„response
 	{
-		const char *ptr=strchr(v[3].c_str(),'@'); //ÅĞ¶ÏÊÇÓÊ¼ş»¹ÊÇuid
+		const char *ptr=strchr(v[3].c_str(),'@'); //check whether it is email or UID
 		std::map<std::string, cContactor *>::iterator it1;
 		if(ptr)
 		{
@@ -427,12 +427,12 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	else if(v[2]=="RL")
 	{
 		pcon->m_flags &=0xfffffff7;
-		if(trID==0) //NS·şÎñÆ÷·¢ËÍ¹ıÀ´µÄÄ³¸öÓÃ»§É¾³ıÁË±¾ÕÊºÅµÄÏûÏ¢
+		if(trID==0) //NSserversendè¿‡æ¥çš„a certainuserdeleteäº†æœ¬accountçš„message
 		{
 			iret=onREM((HCHATSESSION)pcon,v[3].c_str());
-			if( (iret & 1) )//É¾³ı´ËÕÊºÅ
+			if( (iret & 1) )//deleteæ­¤account
 				remEmail(v[3].c_str(),false);
-			if( (iret & 2) ) //×èÖ¹´ËÕÊºÅ
+			if( (iret & 2) ) //é˜»æ­¢æ­¤account
 				blockEmail(v[3].c_str());
 		}		
 	}//?else if(v[2]=="RL")
@@ -442,8 +442,8 @@ unsigned long msnMessager :: nscmd_rem(socketTCP *psock,const char *pcmd)
 	}
 	return trID;
 }
-//NS·şÎñÆ÷·¢ËÍµÄÃüÁî»òADCÃüÁîµÄÏìÓ¦
-//Ä³¸öÓÃ»§Ìí¼ÓÁËÄã»òADCÃüÁîµÄNSÏìÓ¦·µ»Ø
+//command sent by NS serverorADCcommandçš„response
+//a certainuseraddäº†ä½ orADCcommandçš„NSresponsereturn
 //ADC 0 RL N=yycnet@hotmail.com F=yyc:)
 //ADC 196 FL N=yycnet@163.com F=yycnet@163.com C=7bae0ef9-575b-42d5-b13d-61ebd3e69ab8
 unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
@@ -453,7 +453,7 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 	unsigned long trID=(unsigned long)atol(v[1].c_str());
 	if(iret<4) return trID; 
 	const char *strEmail=::_strlwr((char *)v[3].c_str()+2);
-	if(trID){//ADCÃüÁîµÄNSÏìÓ¦·µ»Ø
+	if(trID){//ADCcommandçš„NSresponsereturn
 		std::map<std::string, cContactor *>::iterator it=m_contacts.find(strEmail);
 		if(it==m_contacts.end()) return trID; 
 		cContactor *pcon=(*it).second; if(pcon==NULL) return trID; 
@@ -463,7 +463,7 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 			{
 				int len; wchar_t *nickW=NULL;
 				len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-				//È»ºó½øĞĞutf8½âÂë
+				//then UTF-8 decode
 				if( (nickW=new wchar_t[len+1]) ){
 					cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 					pcon->m_nick.assign(nickW+2);
@@ -483,15 +483,15 @@ unsigned long msnMessager :: nscmd_adc(socketTCP *psock,const char *pcmd)
 			pcon->m_flags |=0x8;
 		onADD((HCHATSESSION)pcon,strEmail);
 	}//?if(trID)
-	else{ //·şÎñÆ÷·¢ËÍµÄÄ³¸öÁªÏµÈËÌí¼ÓÁË±¾ÕÊºÅµÄÏûÏ¢
+	else{ //serversendçš„a certaincontactaddäº†æœ¬accountçš„message
 		if(v[2]!="RL") return trID; 
 		cContactor *pcon=_newContact(strEmail,NULL);
 		if(pcon==NULL) return trID; pcon->m_flags |=0x08;
 		if(iret>=5 && v[4][0]=='F' && v[4][1]=='=')
-		{//ÏÈ¶Ônick½øĞĞmime½âÂë
+		{//first MIME-decode the nickname
 			int len; wchar_t *nickW=NULL;
 			len=cCoder::mime_decode(v[4].c_str(),v[4].length(),(char *)v[4].c_str());
-			//È»ºó½øĞĞutf8½âÂë
+			//then UTF-8 decode
 			if( (nickW=new wchar_t[len+1]) ){
 				cCoder::utf8_decodeW(v[4].c_str(),len,nickW);
 				pcon->m_nick.assign(nickW+2);
@@ -510,8 +510,8 @@ unsigned long msnMessager :: nscmd_ubx(socketTCP *psock,const char *email,const 
 	return 0;
 }
 
-//´ÓNSÊÕµ½ÁÄÌìÇëÇóÃüÁî
-//¸ñÊ½£ºRNG 178257 207.46.108.53:1863 CKI 1090569642.21212 yycnet@hotmail.com yyc:)
+//ä»NSæ”¶åˆ°chatrequestcommand
+//formatï¼šRNG 178257 207.46.108.53:1863 CKI 1090569642.21212 yycnet@hotmail.com yyc:)
 //RNG 17485110 207.46.108.87:1863 CKI 1090571470.9784 yycnet@hotmail.com yyc:)
 unsigned long msnMessager :: nscmd_rng(socketTCP *psock,const char *pcmd)
 {

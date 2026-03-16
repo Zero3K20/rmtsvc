@@ -1,12 +1,12 @@
 /*******************************************************************
    *	Buffer.h
-   *    DESCRIPTION:循环buffer缓冲 和 buffer缓冲
+   *    DESCRIPTION:Circular buffer and linear buffer
    *
    *    AUTHOR:yyc
    *
    *    http://hi.baidu.com/yycblog/home
    *
-   *    DATE:2005-08－19
+   *    DATE:2005-08-19
    *	net4cpp 2.1
    *******************************************************************/
    
@@ -20,9 +20,9 @@ namespace net4cpp21
 	public:
 		explicit cLoopBuffer(size_t size);
 		~cLoopBuffer();
-		//追加写入l字节到缓冲区中
+		//Append l bytes to the buffer
 		bool Write(const char *p,size_t l);
-		//读取l字节到dest缓冲区中
+		//Read l bytes into the dest buffer
 		bool Read(char *dest,size_t l);
 		/** skip l bytes from buffer */
 		bool Remove(size_t l);
@@ -40,12 +40,12 @@ namespace net4cpp21
 		unsigned long ByteCounter() { return m_count; }
 
 private:
-	char *buf; //缓冲区
-	size_t m_max;//缓冲区大小
-	size_t m_q; //缓冲区数据大小
-	size_t m_b; //缓冲区数据读的起始位置
-	size_t m_t; //缓冲区数据写的起始位置
-	unsigned long m_count; //缓冲区中总的写入数据大小
+	char *buf; //Buffer
+	size_t m_max;//Buffer capacity
+	size_t m_q; //Data size in buffer
+	size_t m_b; //Read start position in buffer
+	size_t m_t; //Write start position in buffer
+	unsigned long m_count; //Total bytes written to buffer
 	};
 
 	class cBuffer
@@ -60,13 +60,13 @@ private:
 		size_t &len() { return m_len;}
 		char & operator [] (size_t pos);
 		size_t size() { return m_max; }
-		size_t Space() { return m_max - m_len; } //剩余空间
+		size_t Space() { return m_max - m_len; } //Remaining space
 		char * Resize(size_t size);
 		
 	private:
-		char *m_buf; //缓冲区
-		size_t m_max;//缓冲区大小
-		size_t m_len; //缓冲区数据大小
+		char *m_buf; //Buffer
+		size_t m_max;//Buffer capacity
+		size_t m_len; //Data size in buffer
 	};
 }//?namespace net4cpp21
 

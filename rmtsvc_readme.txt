@@ -1,43 +1,46 @@
 Rmtsvc 2.5.x
-基于web的集FTP服务、代理服务、端口映射等一体远程控制工具。
+A web-based remote control tool integrating FTP service, proxy service, port mapping, and more.
 
 
-【RmtSvc前生今世】
+[History of RmtSvc]
 
-2000年左右用过一款远控软件remoteAnywhere，那是第一次使用也是我第一次见到基于web方式的远控，非常让我吃惊，原来IE还可以做这些事。 
+Around the year 2000, I used a remote control software called remoteAnywhere. That was the first time I used, and the first time I had seen, a web-based remote control tool. It was very impressive - I had no idea a browser could do all of that.
 
-01年的时候在一家网络公司，主要写ASP方面的应用，当时用ASP写了一个基于IE的仿windows资源管理器操作风格的文件远程操作的程序WebE即web资源浏览器。
-02年到了一家做电信的公司，做linux下的网络程序的设计开发，积累封装了一套比较简单可靠的linux/windows通用的网络库net4cpp1.0（因为当时linux下有个log4cpp的用于记录输出程序日志的类库，所以就起名net4cpp:) ）.
-02年开始基于net4cpp11.0 写了rmtsvc的第一个原始版本remoteCtrol 1.0，仅仅可以通过IE进行远程桌面控制.
-03年增加了远程文件，telnet，ftp等等功能并正式更名为rmtsvc2.3.x，此后两年不断的进行优化更新增加了MSN，集成了vIDC等功能一直持续到2.4.7这个版本。
-06年rmtsvc进行了完全重构，发布了2.5.x版本，
-2007年底发布2.5.2 ，07年后rmtsvc一直没有再进行更新改进，一方面工作的琐事多了，另一方面人也懒了，不愿意写东西了，没有了激情，动力。
-rmtsvc应该是国内第一款完全意义的BS架构的远控软件，虽然它有很多的不足但它的优势也很明显，它可以很方便的支持移动设备，譬如我们的智能手机，ipad等，只要能上网的设备就能远程控制，而我们要做的仅仅是更改一下前端的web页面一边支持更多的浏览器而已。
-与其放在手里烂掉不如开源让更多的人参与，把这个软件做的更好。
+In 2001, while working at a network company mainly writing ASP applications, I created a web-based file management program called WebE (Web Explorer) using ASP, which mimicked the Windows Explorer interface for remote file operations through a browser.
 
+In 2002, at a telecom company doing network application design and development on Linux, I accumulated and encapsulated a simple and reliable Linux/Windows cross-platform network library: net4cpp1.0 (since there was a log4cpp library on Linux for logging, I named mine net4cpp :)).
 
+In 2002, based on net4cpp1.0, I wrote the first prototype version of rmtsvc, called remoteCtrol 1.0, which only supported remote desktop control through a browser.
 
+In 2003, remote file, telnet, ftp, and other features were added, and the software was officially renamed rmtsvc2.3.x. Over the next two years it was continuously optimized and updated, adding MSN integration and the vIDC module, continuing up to version 2.4.7.
 
-【目录说明】
-net4cpp21  基础网络lib库，rmtsvc的网络部分是基于此类库开发，包含了基础网络的封装以及常用协议的封装以及服务，譬如http，ftp，dns，smtp，proxy等
-libs       rmtsvc编译所需要的lib库文件，以及其它lib库的源代码，譬如msn(版本比较老，只支持到msnp13即msn7.x版本）
-           bin为所有编译所需要的lib库文件存放地（除了openssl的lib库）
-libs\vidc  vidc库源代码
-bin	  rmtsvc可执行文件目录
-bin\html  rmtsvc web前端展现控制 静态web页面，web页面通过JS访问rmtsvc服务解析处理xml数据进行展现。
+In 2006, rmtsvc was completely rewritten and version 2.5.x was released.
+At the end of 2007, version 2.5.2 was released. After 2007, rmtsvc was no longer updated or improved - partly due to the increasing demands of work, and partly due to a loss of motivation and passion for writing code.
 
-【编译说明】
-本工程用vc6 编译测试过没有任何问题。其它版本没有测试过。
-用vc6编译时请在编译环境中增加net4cpp21下的OPENSSL的头文件和lib文件路径
-vc6菜单-->tools--->options--->Directories 增加inlude包含路径
-<rmtsvc路径>\net4cpp21\OPENSSL
-library包含路径
-<rmtsvc路径>\net4cpp21\OPENSSL\LIB
+rmtsvc is arguably the first fully browser/server (B/S) architecture remote control software in China. Although it has many shortcomings, its advantages are clear: it can easily support mobile devices such as smartphones and iPads - any internet-connected device can be used for remote control. To support more browsers, only the front-end web pages need to be modified.
+
+Rather than let it rot away unused, open-sourcing it allows more people to participate and improve it.
 
 
+[Directory Description]
+net4cpp21  - Core network library; the networking portion of rmtsvc is developed based on this library. It includes wrappers for basic networking as well as common protocols and services such as HTTP, FTP, DNS, SMTP, proxy, etc.
+libs       - Library files required to compile rmtsvc, as well as source code for other libraries (e.g., MSN - fairly old, only supports up to MSNP13 / MSN 7.x).
+             The bin subdirectory contains all compiled lib files needed for building (except for the OpenSSL lib files).
+libs\vidc  - vidc library source code
+bin        - rmtsvc executable directory
+bin\html   - rmtsvc web front-end static pages; web pages access rmtsvc services via JS to parse and render XML data.
+
+[Build Instructions]
+This project has been compiled and tested with VC6 without any issues. Other versions have not been tested.
+When compiling with VC6, add the OpenSSL header file and lib file paths under net4cpp21 to the build environment:
+VC6 menu --> Tools --> Options --> Directories
+Add include path:
+<rmtsvc path>\net4cpp21\OPENSSL
+Add library path:
+<rmtsvc path>\net4cpp21\OPENSSL\LIB
 
 
-net4cpp21 网络类关系图
+net4cpp21 Network Class Hierarchy
 ***********************socket*****************************
 
                      socketBase

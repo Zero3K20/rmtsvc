@@ -1,6 +1,6 @@
 /*******************************************************************
    *	SS_parsecmd.cpp
-   *    DESCRIPTION:´¦Àí´ÓSS·şÎñÆ÷ÊÕµ½µÄÃüÁî
+   *    DESCRIPTION:handle commands received from the SS server
    *
    *    AUTHOR:yyc
    *
@@ -18,15 +18,15 @@
 using namespace std;
 using namespace net4cpp21;
 
-//´ÓSSÊÕµ½¼ÓÈëÁÄÌì»á»°ĞÅÏ¢
-//¸ñÊ½ºÍHTTP requestĞ­ÒéÀàËÆ£¬\r\n\r\n·Ö¸îÏûÏ¢Í·ºÍÏûÏ¢Ìå
-//ÀıÈç:
+//received join chat session information from SS
+//format is similar to HTTP request protocol, \r\n\r\n separates header and body
+//ä¾‹å¦‚:
 // MSG yycnet@hotmail.com yyc:) 91\r\n
 // MIME-Version: 1.0\r\n
 // Content-Type: text/x-msmsgscontrol\r\n
 // TypingUser: yycnet@hotmail.com\r\n
 // \r\n
-//»ò
+//or
 // MSG yycnet@hotmail.com yyc:) 139\r\n
 // MIME-Version: 1.0\r\n
 // Content-Type: text/plain; charset=UTF-8\r\n
@@ -34,21 +34,21 @@ using namespace net4cpp21;
 // \r\n
 // gdgdfggdgdgfd
 
-//email --- ·¢ËÍ´ËmsgÏûÏ¢µÄÁªÏµÈË
+//email --- contact who sent this message
 unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,char *pcmd,int cmdlen)
 {
-	char *pBodyData=NULL;//ÏûÏ¢Ìå
-	int bodyDataLen=0; //ÏûÏ¢Ìå³¤¶È
-	const char *ptr_ContentType=NULL;//ÏûÏ¢ÌåÀàĞÍ
-	char *ptr_fmtFonts=NULL; //ÁÄÌì×ÖÌå¸ñÊ½
-	char *ptr_p4Context=NULL;//ÁÄÌìÈËÏÔÊ¾Ãû³Æ
-	const char *ptr_TypingUser=NULL;//ÕıÊäÈëµÄÓÃ»§email
-	const char *ptr_P2pDest=NULL;//Ö¸ÏòP2P-DestÄÚÈİ
+	char *pBodyData=NULL;//message body
+	int bodyDataLen=0; //message bodylength
+	const char *ptr_ContentType=NULL;//message bodytype
+	char *ptr_fmtFonts=NULL; //chat font format
+	char *ptr_p4Context=NULL;//chat participant display name
+	const char *ptr_TypingUser=NULL;//email of user currently typing
+	const char *ptr_P2pDest=NULL;//pointer to P2P-Dest content
 	
-	const char *ptr_MSNProxy=NULL; //ÎªMSN´úÀí¹¦ÄÜ×Ô¶¨ÒåµÄ±êÇ©
+	const char *ptr_MSNProxy=NULL; //custom tag defined for MSN proxy function
 
 //	RW_LOG_PRINT(LOGLEVEL_DEBUG,"MSG len=%d, %s.\r\n",cmdlen,pcmd);
-	//¿ªÊ¼½âÎöÏûÏ¢Í·-----------start-------------------------
+	//start parsing message header-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=pcmd;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -71,8 +71,8 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 				ptr_MSNProxy=tmpptr+2;
 #endif
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		int i=1; while(*(ptr+i)=='\r' || *(ptr+i)=='\n') i++; //Ìø¹ı\r\n
-		if(i>2){ //Åöµ½ÁËÁ½¸ö\r\n£¬ÏÂÃæµÄÄÚÈİÎªÏûÏ¢Ìå¡£ÏûÏ¢ÌåµÄÄÚÈİÓÉContentType¾ö¶¨
+		int i=1; while(*(ptr+i)=='\r' || *(ptr+i)=='\n') i++; //skip \r\n
+		if(i>2){ //ç¢°åˆ°äº†ä¸¤ä¸ª\r\nï¼Œä¸‹é¢çš„å†…å®¹ä¸ºmessage bodyã€‚message bodyçš„å†…å®¹ç”±ContentTypeå†³å®š
 			pBodyData=ptr+i;
 			bodyDataLen=cmdlen-(pBodyData-pcmd);
 			break; 
@@ -80,16 +80,16 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 		pStart=ptr+i;
 	}//?while(...
 	if(ptr_ContentType==NULL) return 0;
-	//½âÎöÏûÏ¢Í·½áÊø----------- end -------------------------
+	//parse message header end----------- end -------------------------
 
-	//¸ù¾İContentType´¦ÀíÏûÏ¢
+	//handle message based on ContentType
 	if(strcmp(ptr_ContentType,"text/x-msmsgscontrol")==0)
-	{//ÊÕµ½Ò»¸öÊäÈë¿ØÖÆÏûÏ¢,TypingUser:Ö¸Ã÷Ä³¸öÓÃ»§ÕıÔÚÊäÈëÁÄÌìĞÅÏ¢
+	{//received a typing notification message; TypingUser specifies a user who is currently typing
 		onChatSession((HCHATSESSION)pcon,MSN_CHATSESSION_TYPING,ptr_TypingUser,0);
 	}//?if(strcmp(ptr_ContentType,"text/x-msmsgscontrol")==0)
 
 	else if(strncmp(ptr_ContentType,"text/plain",10)==0)
-	{//ÊÕµ½Ò»¸öÁÄÌìÏûÏ¢
+	{//received a chat message
 		if(pBodyData==NULL) return 0;
 #ifdef __SURPPORT_MSNPROXY__
 		if(ptr_MSNProxy)
@@ -111,16 +111,16 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 	}//?else if(strncmp(ptr_ContentType,"text/plain",10)==0)
 
 	else if(strncmp(ptr_ContentType,"text/x-msmsgsinvite",10)==0)
-	{//msnc0Ğ­ÒéÏûÏ¢.ÎÄ¼ş´«Êä²ÉÓÃmsnftp¡£msnp10ÒÔºóÓÃmsnc1Ğ­Òé
-	//netmeeting,ÒôÆµÁÄÌìÒÔ¼°msnftp¶¼ÊÇÊ¹ÓÃµÄmsnc0Ğ­Òé¡£yyc comment 2005-07-21
+	{//msnc0 protocol message. File transfer uses msnftp. msnp10+ uses msnc1 protocol
+	//netmeeting, voice/audio chat and msnftp all use msnc0 protocol. yyc comment 2005-07-21
 		msnc0_parse(pcon,msg_email,pBodyData); //,bodyDataLen
 	}//?else if(strncmp(ptr_ContentType,"text/x-msmsgsinvite",10)==0)
 
 	else if(strcmp(ptr_ContentType,"application/x-msnmsgrp2p")==0)
-	{//msnc1Ğ­Òé - msnp2pÏûÏ¢. ÍøÂçÉãÏñÍ·¹¦ÄÜÒÔ¼°msnp9ÒÔºóµÄÎÄ¼ş/Í·Ïñ´«Êä¶¼ÊÇÊ¹ÓÃ´ËĞ­Òé
-		//msnp2pÏûÏ¢ÓÉÈı²¿·Ö×é³É 48×Ö½ÚµÄBinary stuff + option Data + 4×Ö½ÚµÄfooter,¼ûmsnc1Ğ­ÒéËµÃ÷
+	{//msnc1 protocol - msnp2p message. Network camera functionality and file/avatar transfer in msnp9+ all use this protocol
+		//msnp2p message consists of 3 parts: 48-byte Binary stuff + optional Data + 4-byte footer, see msnc1 protocol notes
 		unsigned char *pheader=(unsigned char *)pBodyData;  
-		unsigned long lfooter;//×îºóËÄ¸ö×Ö½ÚÎªfooter,in Big Endian order
+		unsigned long lfooter;//last 4 bytes are the footer, in Big Endian order
 		*((char *)&lfooter)=*(pBodyData+bodyDataLen-1);
 		*((char *)&lfooter+1)=*(pBodyData+bodyDataLen-2);
 		*((char *)&lfooter+2)=*(pBodyData+bodyDataLen-3);
@@ -130,27 +130,27 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 	}//?else if(strcmp(ptr_ContentType,"application/x-msnmsgrp2p")==0)
 
 //	else if(strcmp(ptr_ContentType,"text/x-msnmsgr-datacast")==0)
-//	{//¶Ô·½·¢ËÍÒ»¸ö´«Çé¶¯Âş
-/*	¸ñÊ½ MIME-Version: 1.0\r\n
+//	{//å¯¹æ–¹sendä¸€ä¸ªä¼ æƒ…emoticon
+/*	format MIME-Version: 1.0\r\n
 		 Content-Type: text/x-msnmsgr-datacast\r\n                    
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n      //Î¨Ò»±êÊ¶Ò»¸ö¶¯ÂşÏûÏ¢ID
-		 Chunks: 3\r\n                                               //±íÊ¾´Ë¶¯ÂşÊı¾İÒª¾­¹ı¼¸¸öMSG¿é·¢ËÍÍê£¬´Ë´¦Îª3¿é¡£Ê£ÏÂÃ¿¸öMSG¿éµÄMessage-IDºÍ´ËMSGµÄMessage-IDÏàÍ¬
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n      //unique ID for an emoticon message
+		 Chunks: 3\r\n                                               //indicates how many MSG blocks are needed to send this emoticon data (here 3). Remaining MSG block IDs match this MSG's ID
 		 \r\n
-		 ID: 2\r\n													//ID=2±íÃ÷´Ë´¦ÎªÒ»¸ö´«Çé¶¯Âş,Èç¹ûµÈÓÚ1ÔòÊÇÒ»¸öÉÁÆÁÕğ¶¯
+		 ID: 2\r\n													//ID=2 means this is an emoticon; if ID=1 it's a screen flash/vibration
 		 Data: <msnobj Creator="yycnet@hotmail.com" Size="23427" Type="8"...
 */
-/*	Èç¹ûÒ»¿éÎŞ·¨´«ËÍÍê£¬ÏÂÃæ¿éµÄÄÚÈİÈçÏÂ
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //±íÊ¾´Ë¿éÎªÄÇ¸ö¶¯ÂşÏûÏ¢µÄºóĞø¿é
-		 Chunk: 1												   //±íÊ¾´Ë¿éÎªÄÇ¸ö¶¯ÂşÏûÏ¢µÄºóĞøµÄµÚ¼¸¿é£¬¹²Chunks-1¿é
+/*	if a block cannot be fully transferred, the content of the following block is:
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //indicates this block is a continuation of that emoticon message
+		 Chunk: 1												   //indicates which continuation block this is (total Chunks-1 blocks)
 		 \r\n
-		 <ºóĞøÊı¾İ>...
+		 <continuation data>...
 
-		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //±íÊ¾´Ë¿éÎªÄÇ¸ö¶¯ÂşÏûÏ¢µÄºóĞø¿é
-		 Chunk: 2												   //±íÊ¾´Ë¿éÎªÄÇ¸ö¶¯ÂşÏûÏ¢µÄºóĞøµÄµÚ¼¸¿é£¬¹²Chunks-1¿é
+		 Message-ID: {E1255EF3-88D3-4270-A9AB-294686282F41}\r\n    //indicates this block is a continuation of that emoticon message
+		 Chunk: 2												   //indicates which continuation block this is (total Chunks-1 blocks)
 		 \r\n
-		 <ºóĞøÊı¾İ>...
+		 <continuation data>...
 */
-/*	ÉÁÆÁÕğ¶¯ÏûÏ¢
+/*	screen flash/vibration message
 		  MIME-Version: 1.0\r\n
 		  Content-Type: text/x-msnmsgr-datacast\r\n
 		  \r\n
@@ -162,55 +162,55 @@ unsigned long msnMessager :: sscmd_msg(cContactor *pcon,const char *msg_email,ch
 }
 
 /*
-//Í·Ïñ»ñÈ¡Á÷³Ì
+//avatar download flow
 Sender                  SS                Recver
- <-------  ·¢ËÍ»ñÈ¡Í·ÏñÑûÇë --------
+ <-------  send get avatar invitation --------
   ---------Acknowledged Message----->
-  -------   ·¢ËÍÍ¬ÒâÏìÓ¦ 200 OK ---->
+  -------   send agree response 200 OK ---->
   <--------Acknowledged Message------
-  ------- ·¢ËÍ×¼±¸·¢ËÍÊı¾İÏûÏ¢ ----->
-  <--------Acknowledged Message------             //·¢ËÍ¶Ë½ÓÊÕµ½½ÓÊÕ¶ËµÄ·¢ËÍ×¼±¸Ó¦´ğºó²ÅÄÜ¿ªÊ¼·¢ËÍÊı¾İ
-  ------- ·¢ËÍÊı¾İ  ---------------->              field6 20 00 00 00
-  <--------Acknowledged Message------              //µ±ËùÓĞÊı¾İ½ÓÊÕÍê±Ïºó·¢ËÍÒ»¸öACKÏûÏ¢
+  ------- send ready to send data message ---->
+  <--------Acknowledged Message------             //sender must receive receiver's ready response before sending data
+  ------- senddata  ---------------->              field6 20 00 00 00
+  <--------Acknowledged Message------              //send an ACK message when all data is received
   <-------   Bye message ------------
   ---------Acknowledged Message----->			  //And finally if the Bye message is received by the SC and everything is fine, 
 												  //it can send an Acknowledged Message back to the RC
 
-  //BYEÏûÏ¢×ÜÊÇÓÉRC(½ÓÊÕÕß/±»ÑûÇëÕß)·¢ËÍ
+  //BYE message is always sent by RC (receiver/invitee)
   //the RC must send a Bye Message to the SC to say that the session can be closed.
 
-ÎÄ¼ş»ñÈ¡Á÷³Ì
+file download flow
 sender                                   Recver
-  ------- ·¢ËÍÎÄ¼ş´«ÊäÑûÇë ---------->
+  ------- send file transfer invitation ---------->
   <--------Acknowledged Message-------
-  <------ Í¬Òâ½ÓÊÕ 200 OK-------------
+  <------ agree to receive 200 OK-------------
   ----------Acknowledged Message----->
   - invite(Direct-Connect handshake)->  ---				//Content-Type: application/x-msnmsgr-transreqbody
-										  |  ´Ë²½Öè¿ÉÓĞ¿ÉÎŞ
+										  |  æ­¤æ­¥éª¤å¯æœ‰å¯æ— 
   <--- ... ...Handshake end.. ...--->   ---
-  ------ ·¢ËÍÎÄ¼şÊı¾İ --------------->              field 30 00 00 01
-  <--------Acknowledged Message-------              //µ±ËùÓĞÊı¾İ½ÓÊÕÍê±Ïºó·¢ËÍÒ»¸öACKÏûÏ¢
-  -------   Bye message ------------->				//·¢ËÍ¶Ë»á»ØËÍÒ»¸öByeÏûÏ¢
-  --------- has sended bye ---------->              //filed6 40 00 000 00 ºÍGot byeÍ¬Ñù½á¹¹
+  ------ sendfiledata --------------->              field 30 00 00 01
+  <--------Acknowledged Message-------              //send an ACK message when all data is received
+  -------   Bye message ------------->				//sendç«¯ä¼šå›é€ä¸€ä¸ªByemessage
+  --------- has sent bye ---------->              //filed6 40 00 000 00 has same structure as Got bye
   <-------- has got bye --------------				//filed6 40 00 000 00
   
 */
 
-//´¦Àímsnc1Ğ­Òé - ½âÎömsnp2p²¿·Ö
+//handlemsnc1protocol - parsemsnp2ppartial
 void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned char *pBinarystuff,
 								char *ptrmsg,unsigned long lfooter)
-{ //ÏÈ½âÎö48×Ö½ÚBinary stuff
+{ //first parse 48-byte Binary stuff
 	//The first field is a DWORD and is the SessionID, which is zero when the Clients are negotiating about the session
 	long sessionID=*((long *)pBinarystuff);
 	//The second field is a DWORD and is the Identifier which identifies the message, the first message you receive from the other Client is the BaseIndentifier, 
 	//the other messages contains this Identifier +1 or -2 or something like that, the BaseIdentifier is random generated. The Identifier can be in range from 4 to a max of 4294967295, I think.
 	unsigned long messageID=*((unsigned long *)(pBinarystuff+4));
-	unsigned long dataOffset=*((unsigned long *)(pBinarystuff+8));//Õâ¸öÓòÓ¦¸Ã8×Ö½Ú³¤
-	unsigned long totalSize=*((unsigned long *)(pBinarystuff+16));//Õâ¸öÓòÓ¦¸Ã8×Ö½Ú³¤
+	unsigned long dataOffset=*((unsigned long *)(pBinarystuff+8));//this field should be 8 bytes long
+	unsigned long totalSize=*((unsigned long *)(pBinarystuff+16));//this field should be 8 bytes long
 	unsigned long dataMessageSize=*((unsigned long *)(pBinarystuff+24));
 	//The sixth field is a DWORD and is the Flag field, it's 0x0 when no flags are specified, 
 	//0x2 if it's an reply to a received message, 0x8 if there is an error on the binary level, 
-	//0x20 when the data is for User Display Images or Emoticons, 0x40 --- sended bye»òÕßgot bye
+	//0x20 when the data is for User Display Images or Emoticons, 0x40 --- sent bye or got bye
 	//0x01000030 if it's the data of a file.
 	unsigned long dwFlags=*((unsigned long *)(pBinarystuff+28));
 	//The seventh field is a DWORD and is an important field, if the SessionID field is zero and the data doesn't contain the SessionID then this field contains the Identifier of the previous received message, 
@@ -221,13 +221,13 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 //		sessionID,messageID,dataMessageSize,dataOffset,totalSize,dwFlags,field7,lfooter);
 //	if(lfooter==0) RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc1] msg=%s.\r\n",ptrmsg);
 
-	//ÕÕĞ­ÒéÉÏËµÃ÷£¬Èç¹ûlfooter=0x00 ---Ğ­ÉÌ¹ı³Ì 0x01 --- for User Display Images and Emoticons, 0x02 --- for File Transfers
+	//as per protocol: if lfooter=0x00 --- negotiation phase; 0x01 --- for User Display Images and Emoticons; 0x02 --- for File Transfers
 	
-	//Ö»ÓĞ "got bye"ÏûÏ¢ºÍACKÓ¦´ğÏûÏ¢ µÄdataMessageSize=0
-	if(dwFlags==0x02) return; //ÊÕµ½Ò»¸öÓ¦´ğÏûÏ¢.ºöÂÔ£¬²»×öÈÎºÎ´¦Àí
-	if(dataMessageSize==0) return; //ÊÕµ½Ò»¸ö0³¤¶ÈÏûÏ¢£¬²»×öÈÎºÎ´¦Àí¡£Æ©ÈçGOT/SENDED_BYEÏûÏ¢¡£
+	//only 'got bye' messages and ACK messages have dataMessageSize=0
+	if(dwFlags==0x02) return; //received an ACK message. Ignore; no handling needed
+	if(dataMessageSize==0) return; //received a 0-length message; no handling needed. E.g. GOT/SENDED_BYE message.
 	
-	if(lfooter!=0) //´¦ÓÚ´«Êä»á»°×´Ì¬£¬´ËÊ±sessionID²»Îª0
+	if(lfooter!=0) //in a transfer session state; sessionID is not 0
 	{
 		if(sessionID==0) return; //{ printf("aaaaErr: lfooter=%d, sessionID==0\r\n",lfooter);	return; }
 		std::map<long,cMsnc1 *>::iterator it=pcon->m_msnc1Maps.find(sessionID);
@@ -236,32 +236,32 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		
 		if(lfooter==MSNINVITE_TYPE_PICTURE) //0x01) //User Display Images and Emoticons
 		{
-			if(dwFlags==0) //×¼±¸¿ªÊ¼·¢ËÍDisplay Images and EmoticonsÊı¾İ£¬×¢Òâ½ÓÊÕ
-			{//´ò¿ªÎÄ¼ş×¼±¸Ğ´
+			if(dwFlags==0) //preparing to send Display Images and Emoticons data; note receiving
+			{//open file for writing
 				pmsnc1->beginWrite();
-				pmsnc1->sendmsg_ACK(pBinarystuff); //»ØÓ¦ACKÏûÏ¢
+				pmsnc1->sendmsg_ACK(pBinarystuff); //respond with ACK message
 				return;
 			}
-			else if(dwFlags==0x20) //Display Images and EmoticonsÊı¾İ
+			else if(dwFlags==0x20) //Display Images and Emoticonsdata
 			{
 				pmsnc1->writeFile(ptrmsg,dataMessageSize);
-				if((dataMessageSize+dataOffset)<totalSize) return;//Êı¾İÎ´½ÓÊÕÍê±Ï
+				if((dataMessageSize+dataOffset)<totalSize) return;//data not fully received yet
 			}//?else if(dwFlags==0x20)
 		}//?if(lfooter==0x01)
 		else if(lfooter==MSNINVITE_TYPE_FILE) //0x02//for File Transfers
 		{
-			if(dwFlags==0x01000030) //ÎÄ¼şÊı¾İ°ü
-			{//´ËÏûÏ¢°üº¬µØÊÇÎÄ¼ş´«ÊäÊı¾İ.totalSizeÊÇÎÄ¼ş´óĞ¡
+			if(dwFlags==0x01000030) //filedatapacket
+			{//this message contains file transfer data; totalSize is the file size
 				pmsnc1->writeFile(ptrmsg,dataMessageSize);
-				if((dataMessageSize+dataOffset)<totalSize) return;//Êı¾İÎ´½ÓÊÕÍê±Ï
-			}//?if(dwFlags==0x01000030) //ÎÄ¼şÊı¾İ°ü
+				if((dataMessageSize+dataOffset)<totalSize) return;//data not fully received yet
+			}//?if(dwFlags==0x01000030) //filedatapacket
 		}//?else if(lfooter==0x02)
 /*		else if(lfooter==MSNINVITE_TYPE_ROBOT)
-		{//ptrmsg¸ñÊ½:
+		{//ptrmsgformat:
 			return;
 		} */
-		pmsnc1->endWrite();//Ğ´ÎÄ¼ş½áÊø
-		pmsnc1->sendmsg_ACK(pBinarystuff); //»ØÓ¦ACKÏûÏ¢
+		pmsnc1->endWrite();//finished writing file
+		pmsnc1->sendmsg_ACK(pBinarystuff); //respond with ACK message
 
 		//yyc add 2006-05-19
 		onInvite((HCHATSESSION)pcon,pmsnc1->inviteType(),MSNINVITE_CMD_COMPLETED,pmsnc1);
@@ -278,8 +278,8 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 	if(sessionID!=0) return;//{ printf("aaaaErr: lfooter=0, sessionID==0x%x\r\n",sessionID);	return; }
 
 	//------------------------------------------------------------------------------------------
-	//----------------------------´¦ÀíÏûÏ¢------------------------------------------------------
-	//±£Ö¤½ÓÊÜÍêÕûµØÏûÏ¢£¬½âÎöµÄ×ÜÊÇÒ»ÌõÍêÕûµÃÏûÏ¢
+	//----------------------------handlemessage------------------------------------------------------
+	//ensure the complete message is received; total parsed is one complete message
 	if(dataOffset!=0)
 	{
 		if(pcon->m_buffer.size()<totalSize) return;
@@ -290,7 +290,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		dataOffset=0; dataMessageSize=totalSize;
 	}
 	else if(dataMessageSize<totalSize)
-	{//ÏûÏ¢Î´½ÓÊÜÍê
+	{//message not fully received
 		if(pcon->m_buffer.size()<totalSize){
 			pcon->m_buffer.Resize(0);
 			pcon->m_buffer.Resize(totalSize);
@@ -302,13 +302,13 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		return;
 	}//?else if(dataMessageSize<totalSize)
 	
-	const char *ptr_CallID=NULL;//Ö¸ÏòCall-ID
-	const char *ptr_ContentType=NULL;//Ö¸ÏòContent-Type
+	const char *ptr_CallID=NULL;//pointer toCall-ID
+	const char *ptr_ContentType=NULL;//pointer toContent-Type
 	const char *ptr_Context=NULL; int ptr_Context_len=0;
-	const char *ptr_SessionID=NULL;//Ö¸Ïò SessionID
+	const char *ptr_SessionID=NULL;//pointer to SessionID
 	const char *ptr_AppID=NULL;
 	const char *ptr_branch=NULL;
-	//¿ªÊ¼½âÎöÏûÏ¢-----------start-------------------------
+	//startparsemessage-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=ptrmsg;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -330,7 +330,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 			}
 			else if(strcmp(pStart,"Context")==0)
 			{
-				ptr_Context=tmpptr+2; //ContextÊÇ¾­¹ıbase64±àÂëµØÒª½âÂë
+				ptr_Context=tmpptr+2; //Context is base64 encoded and needs decoding
 				ptr_Context_len=strlen(ptr_Context);
 				ptr_Context_len=cCoder::base64_decode((char *)ptr_Context,ptr_Context_len,(char *)ptr_Context);
 				*((char *)ptr_Context+ptr_Context_len)=0;
@@ -338,16 +338,16 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 //				for(int ii=0;ii<ptr_Context_len;ii++){	printf("0x%x ",*((unsigned char *)ptr_Context+ii)); if(((ii+1)%16)==0) printf("\r\n");} 
 			}
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //Ìø¹ı\r\n
+		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //skip \r\n
 	}//?while(...
-	//½âÎöÏûÏ¢½áÊø----------- end -------------------------
+	//parsemessageend----------- end -------------------------
 	if(ptr_ContentType==NULL) return;//{ printf("aaaaErr: ptr_ContentType=NULL.\r\n");	return; }
 	if(ptr_CallID==NULL) return;//{ printf("aaaaErr: sessionID==0 && ptr_CallID==NULL.\r\n");	return; }
 
 	cMsnc1 *pmsnc1=NULL;
 	std::map<std::string,cMsncx *>::iterator it=pcon->m_msncxMaps.find(ptr_CallID);
 	if(it!=pcon->m_msncxMaps.end()) pmsnc1=(cMsnc1 *)(*it).second;
-	if(pmsnc1) pmsnc1->sendmsg_ACK(pBinarystuff); //»ØÓ¦ACKÏûÏ¢
+	if(pmsnc1) pmsnc1->sendmsg_ACK(pBinarystuff); //respond with ACK message
 	if(strncmp(ptrmsg,"BYE ",4)==0)
 	{
 		if(pmsnc1==NULL) return;
@@ -365,7 +365,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 		int respcode=atoi(ptrmsg+11);
 		sessionID=atol(pmsnc1->m_sessionID.c_str());
 		RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc1] Received response of x-msnmsgrp2p,respcode=%d\r\n",respcode);
-		if(respcode==200){ //³É¹¦½ÓÊÕÏìÓ¦
+		if(respcode==200){ //successreceive response
 			pcon->m_msnc1Maps[sessionID]=pmsnc1;
 			onInvite((HCHATSESSION)pcon,pmsnc1->inviteType(),MSNINVITE_CMD_ACCEPT,pmsnc1);
 			if(pmsnc1->inviteType()==MSNINVITE_TYPE_FILE)
@@ -389,31 +389,31 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 			if(ptr_SessionID) pmsnc1->m_sessionID.assign(ptr_SessionID);
 			if(ptr_branch) pmsnc1->m_branch.assign(ptr_branch);
 			pmsnc1->m_callID.assign(ptr_CallID);
-			pmsnc1->sendmsg_ACK(pBinarystuff); //»ØÓ¦ACKÏûÏ¢
-			if(inviteTypeID==MSNINVITE_TYPE_PICTURE) //Ä³¸öÓÃ»§·¢ËÍÇëÇó»ñÈ¡±¾ÕÊºÅµÄÍ·Ïñ
+			pmsnc1->sendmsg_ACK(pBinarystuff); //respond with ACK message
+			if(inviteTypeID==MSNINVITE_TYPE_PICTURE) //a user sent a request to get this account's avatar
 				pmsnc1->m_offsetIdentifier-=3;
 			
-			//½âÎöptr_ContextµÄÄÚÈİ
-			long filesize=0;//´«ËÍÎÄ¼ş´óĞ¡
+			//parse the content of ptr_Context
+			long filesize=0;//file transfer size
 			if(inviteTypeID==MSNINVITE_TYPE_FILE)
-			{//ÎÄ¼ş´«ÊäÇëÇó£¬½âÎöÒª´«ÊäµÄÎÄ¼şÃûºÍÎÄ¼ş´óĞ¡£¬¼ûcmsnc1::sendFileº¯Êı
+			{//file transfer request; parse filename and file size to transfer, see cmsnc1::sendFile function
 				filesize=*((long *)(ptr_Context+8));
-				//ÎÄ¼şÃûÊÇunicode±àÂë
+				//filename is unicode-encoded
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context+20),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
-				//ÉèÖÃÎÄ¼şÃûºÍ´óĞ¡£¬ÒÔ±ãonInviteÊÂ¼ş¿ÉÒÔÍ¨¹ımsncx¶ÔÏó»ñÈ¡ÎÄ¼şÃûºÍ´óĞ¡£¬¾ö¶¨ÊÇ·ñ½ÓÊÕ
+				//set filename and size so onInvite event can get them via msncx object to decide whether to receive
 				pmsnc1->filename().assign(ptr_Context);
 				pmsnc1->filesize(filesize);
 			}
 /*			else if(inviteTypeID==MSNINVITE_TYPE_CAM)
-			{//contextµÄÄÚÈİÊÇunicode±àÂëµÄUID×Ö·û´®¸ñÊ½ÀàËÆÓÚ{4BD96FC0-AB17-4425-A14A-439185962DC8}
+			{//context content is a unicode-encoded UID string in format similar to {4BD96FC0-AB17-4425-A14A-439185962DC8}
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
 			}//?else if(inviteTypeID==INVITE_TYPE_CAM)
-			else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //»úÆ÷ÈËÑûÇë
-			{//contextµÄÄÚÈİÊÇunicode±àÂëµÄ<ÑûÇëÀàĞÍ>;1;<»úÆ÷ÈËÃû³Æ>
+			else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //robot invitation
+			{//context content is unicode-encoded: <invitation type>;1;<bot name>
 				int len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,
 					(unsigned short *)(ptr_Context),-1,(char *)ptr_Context,ptr_Context_len,NULL,NULL);
 				*((char *)ptr_Context+len)=0;
@@ -424,23 +424,23 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 									MSNINVITE_CMD_INVITE,pmsnc1);
 			if(bAccept)
 			{
-				pmsnc1->sendmsg_ACCEPT();//½ÓÊÜÇëÇó
+				pmsnc1->sendmsg_ACCEPT();//accept request
 				bool bValid=false;
 				if(inviteTypeID==MSNINVITE_TYPE_PICTURE)
-				{//×¼±¸·¢ËÍ±¾ÕÊºÅµÄÍ·ÏñÊı¾İ,contextµÄÄÚÈİÊÇÃ»¾­¹ımime±àÂëµÄmsnobj¶ÔÏó×Ö·û´®
+				{//preparing to send this account's avatar data; context content is an unencoded msnobj object string
 					if( (bValid=pmsnc1->sendPicture(m_photofile.c_str())) )
 						m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc1::sendThread,(void *)pmsnc1,THREADLIVETIME);
 				}
 				else if(inviteTypeID==MSNINVITE_TYPE_FILE)
-				{	//¶Ô·½¿ÉÄÜ½øĞĞDirect-Connect handshake
-					//ÄÇÑù»áÏÈ·¢ËÍÒ»¸öcontent-type==application/x-msnmsgr-transreqbodyµÄinvite
+				{	//the other party may be performing a Direct-Connect handshake
+					//they will first send an invite with content-type==application/x-msnmsgr-transreqbody
 					if( (bValid=pmsnc1->beginWrite(ptr_Context,filesize)) )
 					{
 						sessionID=atol(pmsnc1->m_sessionID.c_str());
 						pcon->m_msnc1Maps[sessionID]=pmsnc1;
 					}
 				}//?else if(inviteTypeID==INVITE_TYPE_FILE)
-/*				else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //»úÆ÷ÈËÑûÇë
+/*				else if(inviteTypeID==MSNINVITE_TYPE_ROBOT) //robot invitation
 				{
 					RW_LOG_PRINT(LOGLEVEL_INFO,"[msnc1] Robot invite,context=%s\r\n",ptr_Context);
 				} */
@@ -449,7 +449,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 				if(bValid){ pcon->m_msncxMaps[ptr_CallID]=pmsnc1; pmsnc1=NULL; }
 			}//?if(bAccept)
 			else
-				pmsnc1->sendmsg_REJECT();//¾Ü¾øÇëÇó
+				pmsnc1->sendmsg_REJECT();//reject request
 			delete pmsnc1; return;
 		}//?f(strcmp(ptr_ContentType,...
 		else
@@ -457,7 +457,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 			if(pmsnc1==NULL) return;//{ printf("aaaaErr: pmsnc1==NULL.\r\n");	return; }
 /*			if(strcmp(ptr_ContentType,"application/x-msnmsgr-transreqbody")==0)
 			{//Direct-Connect handshake INVITE
-				//²»Ö§³ÖÖ±½ÓÁ¬½Ó
+				//direct connect not supported
 			}
 			else if(strcmp(ptr_ContentType,"application/x-msnmsgr-transrespbody")==0)
 			{
@@ -469,7 +469,7 @@ void msnMessager :: msnc1_parse(cContactor *pcon,const char *msg_email,unsigned 
 	return;
 }
 
-//½âÎömsnc0ÏûÏ¢Ğ­Òé
+//parsemsnc0messageprotocol
 /*
 MSG yycnet@hotmail.com yyc:) 29\r\n
 MSG len=293, MIME-Version: 1.0\r\n
@@ -483,12 +483,12 @@ Invitation-Cookie: 25402056\r\n
 Session-ID: {C4E9035F-CCEB-40F0-8F17-135FB734073B}\r\n
 \r\n\r\n
 */
-/*   ÒôÆµÁÄÌì
+/*   voice/audio chat
 MSG yycnet@hotmail.com yyc:) 491\r\n
 MSG len=491, MIME-Version: 1.0\r\n
 Content-Type: text/x-msmsgsinvite; charset=UTF-8\r\n
 \r\n
-Application-Name: éŸ³é¢‘å¯¹è¯\r\n
+Application-Name: é—ŠæŠ½ï¿½æˆï¿½ç¡…ç˜½\r\n
 Application-GUID: {02D3C01F-BF30-4825-A83A-DE7AF41648AA}\r\n
 Session-Protocol: SM1\r\n
 Context-Data: Requested:SIP_A,;Capabilities:SIP_A,;\r\n
@@ -508,27 +508,27 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 {
 	std::map<std::string,cMsncx *> &msncxMaps=pcon->m_msncxMaps;
 
-	const char *ptr_InviteCommand=NULL;//Ö¸ÏòInvitation-Command
-	const char *ptr_InviteCookie=NULL;//Ö¸ÏòInvitation-Cookie
-	const char *ptr_ApplicationName=NULL;//Ö¸ÏòApplication-Name ÑûÇëÀàĞÍÃèÊö
-	const char *ptr_ApplicationGUID=NULL;//Ö¸ÏòApplication-GUID ÑûÇëÀàĞÍµÄUID
+	const char *ptr_InviteCommand=NULL;//pointer toInvitation-Command
+	const char *ptr_InviteCookie=NULL;//pointer toInvitation-Cookie
+	const char *ptr_ApplicationName=NULL;//pointer to Application-Name invitation type description
+	const char *ptr_ApplicationGUID=NULL;//pointer to Application-GUID invitation type UID
 	
-	const char *ptr_Connectivity=NULL;//Ö¸ÏòConnectivity ÑûÇë·¢ÆğÕßÊÇ·ñÊÇÖ±½ÓÁ¬½Ó£¬¼´²»ÔÚ·À»ğÇ½ºóÃæ
-	const char *ptr_ApplicationFile=NULL;//Ö¸ÏòApplication-File ÎÄ¼ş´«ÊäµÄÎÄ¼şÃû
-	const char *ptr_ApplicationFileSize=NULL;//Ö¸ÏòApplication-FileSize ÎÄ¼ş´«ÊäµÄ´óĞ¡
+	const char *ptr_Connectivity=NULL;//pointer to Connectivity: whether the inviter can connect directly, i.e. not behind a firewall
+	const char *ptr_ApplicationFile=NULL;//pointer toApplication-File file transferçš„filename
+	const char *ptr_ApplicationFileSize=NULL;//pointer toApplication-FileSize file transferçš„size
 
-	//½ÓÊÜÑûÇë£¬Êı¾İÁ¬½ÓµÄIPºÍ¶Ë¿Ú
-	const char *ptr_IPAddress=NULL;//Ö¸ÏòIP-Address
-	const char *ptr_Port=NULL;//Ö¸ÏòPort
-	const char *ptr_IPAddress_Internal=NULL;//Ö¸ÏòIP-Address
-	const char *ptr_PortX=NULL;//Ö¸ÏòPort
+	//acceptinvitationï¼Œdataconnectçš„IPandport
+	const char *ptr_IPAddress=NULL;//pointer toIP-Address
+	const char *ptr_Port=NULL;//pointer toPort
+	const char *ptr_IPAddress_Internal=NULL;//pointer toIP-Address
+	const char *ptr_PortX=NULL;//pointer toPort
 
-	const char *ptr_AuthCookie=NULL;//Ö¸ÏòAuthCookie
-	//¾Ü¾øÑûÇë
-	const char *ptr_CancelCode=NULL; //Ö¸ÏòCancel-Code£¬¾Ü¾øµÄÔ­Òò
+	const char *ptr_AuthCookie=NULL;//pointer toAuthCookie
+	//rejectinvitation
+	const char *ptr_CancelCode=NULL; //pointer toCancel-Codeï¼Œrejectçš„åŸå› 
 	
 //	RW_LOG_PRINT(LOGLEVEL_DEBUG,"[msnc0] %s.\r\n",ptrmsg);
-	//¿ªÊ¼½âÎöÏûÏ¢-----------start-------------------------
+	//startparsemessage-----------start-------------------------
 	char *tmpptr,*ptr,*pStart=ptrmsg;
 	while( (ptr=strchr(pStart,'\r')) )
 	{
@@ -563,22 +563,22 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 			else if(strcmp(pStart,"Connectivity")==0)
 				ptr_Connectivity=tmpptr+2;
 		}//?if( (tmpptr=strchr(pStart,':')) )
-		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //Ìø¹ı\r\n
+		pStart=ptr+1; while(*pStart=='\r' || *pStart=='\n') pStart++; //skip \r\n
 	}//?while(...
-	//½âÎöÏûÏ¢½áÊø----------- end -------------------------
+	//parsemessageend----------- end -------------------------
 	if(ptr_InviteCommand==NULL) return;
 	if(ptr_InviteCookie==NULL) return;
 
 	if(strcmp(ptr_InviteCommand,"INVITE")==0)
-	{//ÑûÇëÇëÇó
-		if(ptr_ApplicationGUID==NULL) return;//GUID´ú±íÑûÇëµÄÀàĞÍ
+	{//invitationrequest
+		if(ptr_ApplicationGUID==NULL) return;//GUIDä»£è¡¨invitationçš„type
 		int inviteType=MSNINVITE_TYPE_UNKNOW;
 		if(strcmp(ptr_ApplicationGUID,"{5D3E02AB-6190-11d3-BBBB-00C04F795683}")==0)
 			inviteType=MSNINVITE_TYPE_FILE;
 		else if(strcmp(ptr_ApplicationGUID,"{44BBA842-CC51-11CF-AAFA-00AA00B6015C}")==0)
 			inviteType=MSNINVITE_TYPE_NETMEET;
 		else if(strcmp(ptr_ApplicationGUID,"{2175E8D4-7CAA-49DD-A520-C2786E891F6F}")==0)
-			inviteType=MSNINVITE_TYPE_AUDIO;//ÒôÆµÁÄÌì
+			inviteType=MSNINVITE_TYPE_AUDIO;//voice/audio chat
 		if(inviteType==MSNINVITE_TYPE_UNKNOW){
 			RW_LOG_PRINT(LOGLEVEL_INFO,"[msnc0] unknowed invite,GUID=%s.\r\n",ptr_ApplicationGUID); 
 			return;
@@ -587,10 +587,10 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		if(pmsnc0==NULL) return;//{ printf("aaaaErr: new pmsnc0==NULL.\r\n");	return; }
 		
 		long filesize=0; std::string filename;
-		if(inviteType==MSNINVITE_TYPE_FILE) //ÎÄ¼ş´«ÊäÇëÇó
+		if(inviteType==MSNINVITE_TYPE_FILE) //file transferrequest
 		{
 			filesize=(ptr_ApplicationFileSize)?atol(ptr_ApplicationFileSize):0;
-			if(ptr_ApplicationFile){//½øĞĞutf8½âÂë
+			if(ptr_ApplicationFile){//è¿›è¡Œutf8decoding
 				int len=cCoder::utf8_decode(ptr_ApplicationFile,strlen(ptr_ApplicationFile),(char *)ptr_ApplicationFile);
 				*((char *)ptr_ApplicationFile+len)=0; filename.assign(ptr_ApplicationFile);
 			}
@@ -602,14 +602,14 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 			pmsnc0->sendmsg_ACCEPT(bListen);
 			pmsnc0->beginWrite(filename.c_str(),filesize);
 			//yyc add 2006-05-19 begin
-			if( bListen && //Æô¶¯ÕìÌı£¬µÈ´ı¶Ô·½Á¬½Ó
+			if( bListen && //startä¾¦å¬ï¼Œwaitingå¯¹æ–¹connect
 			    m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0 )
 				pmsnc0=NULL;
 			else { msncxMaps[ptr_InviteCookie]=pmsnc0; pmsnc0=NULL; }
 			//yyc add 2006-05-19 end
 			//yyc remove 2006-05-19 begin 
 //			msncxMaps[ptr_InviteCookie]=pmsnc0; pmsnc0=NULL;
-//			if(bListen) //Æô¶¯ÕìÌı£¬µÈ´ı¶Ô·½Á¬½Ó
+//			if(bListen) //startä¾¦å¬ï¼Œwaitingå¯¹æ–¹connect
 //				m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)
 			//yyc remove 2006-05-19 end
 		}//?if(bAccept)
@@ -617,7 +617,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		delete pmsnc0; return;
 	}//?if(strcmp(ptr_InviteCommand,"INVITE")==0)
 	else if(strcmp(ptr_InviteCommand,"ACCEPT")==0)
-	{//È·ÈÏ½ÓÊÕµÄÓ¦´ğ
+	{//confirmreceiveçš„åº”ç­”
 		std::map<std::string,cMsncx *>::iterator it=msncxMaps.find(ptr_InviteCookie);
 		if(it==msncxMaps.end()) return;
 		cMsnc0 *pmsnc0=(cMsnc0 *)(*it).second;
@@ -626,16 +626,16 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		if( (ptr_IPAddress_Internal || ptr_IPAddress) && ptr_Port )
 		{
 			const char *iphost=(ptr_IPAddress_Internal)?ptr_IPAddress_Internal:ptr_IPAddress;
-			//ÉèÖÃÒªÁ¬½ÓµÄ¶Ô·½Êı¾İ´«ÊäÕìÌı·şÎñ£¬ÓÃÏß³ÌÒì²½Á¬½Ó
+			//setè¦connectçš„å¯¹æ–¹datatransferä¾¦å¬serviceï¼Œç”¨threadasyncconnect
 			pmsnc0->setHostinfo(iphost,atoi(ptr_Port),ptr_AuthCookie);
 			bValid=(m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0);
 		}//?if(ptr_IPAddress && ptr_Port )
-		else if(pmsnc0->bSender() && m_Connectivity=='Y') //Èç¹ûÎÒÊÇÑûÇëÕß£¬ÇÒ¶Ô·½µÄÏìÓ¦Ã»ÓĞµØÖ·ĞÅÏ¢
-		{//±¾ÕÊºÅ¿ªÕìÌı·şÎñ¶Ë¿Ú£¬½øĞĞÊı¾İ´«Êä
-			pmsnc0->sendmsg_ACCEPT(true);//Æô¶¯Ò»¸öÕìÌı£¬µÈ´ı¶Ô·½Á¬½Ó
+		else if(pmsnc0->bSender() && m_Connectivity=='Y') //if I am the inviter and the other party's response has no address info
+		{//æœ¬accountå¼€ä¾¦å¬serviceportï¼Œè¿›è¡Œdatatransfer
+			pmsnc0->sendmsg_ACCEPT(true);//startä¸€ä¸ªä¾¦å¬ï¼Œwaitingå¯¹æ–¹connect
 			bValid=(m_threadpool.addTask((THREAD_CALLBACK *)&cMsnc0::msnc0Thread,(void *)pmsnc0,THREADLIVETIME)!=0);
 		}
-		if(!bValid){//·¢Éú´íÎó
+		if(!bValid){//å‘ç”Ÿerror
 			pmsnc0->sendmsg_REJECT("FAIL");
 			msncxMaps.erase(it); delete pmsnc0;
 		}//?if(!bValid)
@@ -645,7 +645,7 @@ void msnMessager :: msnc0_parse(cContactor *pcon,const char *msg_email,char *ptr
 		//yyc add 2006-05-19 end
 	}//?else if(strcmp(ptr_InviteCommand,"ACCEPT")==0)
 	else if(strcmp(ptr_InviteCommand,"CANCEL")==0)
-	{//ÓÃ»§¾Ü¾øÁËÇëÇó
+	{//userrejectäº†request
 		std::map<std::string,cMsncx *>::iterator it=msncxMaps.find(ptr_InviteCookie);
 		if(it==msncxMaps.end()) return;
 		cMsnc0 *pmsnc0=(cMsnc0 *)(*it).second;

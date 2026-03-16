@@ -1,0 +1,80 @@
+How to Perform Secure Remote Access/Control and SSL VPN
+rmtsvc 2.5.2 build20070110 and later versions support the features described in this document.
+
+Reading this document requires a basic understanding of SSL; basic SSL concepts will not be covered here :)
+rmtsvc is a web-based remote access/control management tool that allows you to manage and control remote hosts or services on those hosts directly through a browser.
+Since access is web-based, anyone could potentially access it through a browser, which raises security concerns.
+Below is a brief description of potential security issues and how rmtsvc addresses them.
+
+Q: Unauthorized access
+A: rmtsvc supports multi-account permission configuration; only authorized users can access rmtsvc. When setting account passwords, avoid using simple passwords.
+
+Q: How to prevent brute-force attacks on account passwords
+A: rmtsvc login page uses a numeric CAPTCHA that is randomly generated each time the page is refreshed, preventing brute-force attacks.
+
+Q: How to prevent network eavesdropping on account passwords and other sensitive information
+A: rmtsvc supports SSL; data is transmitted in encrypted form to prevent eavesdropping. The SSL functionality of rmtsvc is described in detail below.
+
+The rmtsvc ini configuration supports an ssls command, which is used to configure SSL certificate and CRL information. Detailed command usage is described later.
+
+Q: How to enable SSL-encrypted access to rmtsvc
+Set the ssl_enabled parameter in the webs ini configuration command to "true", for example: webs port=7779 ssl_enabled=true
+This enables SSL encryption for rmtsvc. Users must access it via the following URL in their browser: https://host:port
+Notice the difference from normal access - the URL uses https.
+
+Once SSL encryption is enabled, all interactive data between rmtsvc and the browser is transmitted using SSL encryption, preventing anyone from eavesdropping on the data.
+When accessing via browser, the browser will show a page indicating the site certificate is not trusted and asking whether to continue; select Continue.
+Through this page you can also view the site certificate, which is rmtsvc built-in.
+
+Q: How to use your own certificate instead of the built-in rmtsvc certificate
+rmtsvc has a built-in self-signed certificate, but you can also create your own certificate. See the certificate creation guide document for the process.
+Once the certificate is created, add the ssls configuration command to the configuration file, for example:
+ssls mycert=server.pem mykey=server.key keypwd=12345
+
+With the above configuration you can prevent network eavesdropping on your interactive data, greatly improving the security of rmtsvc access.
+However, there is still an issue: only the data exchange is encrypted, but anyone can still access your rmtsvc because client certificate authenticity is not verified.
+
+Q: How to verify client certificates and restrict access to only users with certificates issued by you
+A: Enable SSL client certificate verification by configuring ssl_verify=true in the webs command.
+If client verification is enabled, the ssls command must also configure the caroot=<CA root certificate> parameter.
+If the CA root certificate is not configured, ssl_verify=true will have no effect.
+caroot --- Enter your CA root certificate, i.e., the root certificate used for making certificates. See Step 1 of the certificate creation guide.
+Configuration example: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem
+Following the certificate creation guide, create a batch of client certificates, convert them to pkcs12 format, and distribute them to authorized users.
+Users open their browser, install the certificate. Installation process:
+Open browser -> Tools -> Internet Options -> Content -> Certificates -> Import
+Then follow the wizard prompts, select the .p12 certificate file, and accept all other defaults to complete the client certificate installation.
+Then open the browser and access rmtsvc. If the user has multiple certificates installed, the browser will prompt to select a certificate; choose one.
+
+However, another issue arises: if someone has a certificate you issued but later the certificate was stolen, or you no longer want them to have access, what can you do?
+
+Q: How to revoke a certificate
+A: Following the certificate creation guide, revoke a certificate to generate a list.crl file.
+Configure the cacrl=<CA revoked certificate list> parameter in the ssl command to enable CRL; this parameter specifies the file listing all revoked certificates.
+To enable CRL, the certificate verification parameter and CA root certificate parameter must also be configured.
+Configuration example: ssls mycert=server.pem mykey=server.key keypwd=12345 caroot=cacert.pem cacrl=list.crl
+If a user attempts to access with the revoked certificate, the browser will display "The security certificate for this site has been revoked" and access will be denied.
+
+================================================================================================
+
+rmtsvc can not only provide secure access control; the built-in vidc also has this capability, which can convert any mapped service into an SSL-encrypted service for secure access control.
+For example, using vidc to map an intranet web application (such as an OA office service) to the public internet so that remote employees can access it exposes a security issue, since intranet service passwords
+are often simple. This can be addressed by converting the mapping to an SSL-encrypted service while enabling SSL verification for authorized access, ensuring the security of intranet application services.
+From this you should understand that this is essentially how SSL VPN works.
+
+How to use vidc to build an SSL VPN for secure access to intranet services:
+Use vidc local port mapping or remote port mapping to expose the intranet application on a machine with a public IP address.
+Specify the mapping to be converted to an SSL-encrypted service, then enable SSL client certificate verification.
+Any user accessing the application service must then have a certificate issued by you. See the certificate creation guide above for how to create and manage certificates.
+
+===================================================================================================
+
+Set SSL certificate and CRL information
+Command format:
+	ssls [mycert=<user SSL certificate file>] [mykey=<user certificate private key file>] [keypwd=<user private key password>] [caroot=<CA root certificate>] [cacrl=<CA revoked certificate list>]
+The supported certificate file format is PEM format.
+
+The certificate information configured by this ssls command will apply to all SSL-enabled services started by rmtsvc & vidc, whether it is the rmtsvc management service or a vidc-mapped service.
+Therefore you only need to create one server certificate.
+
+Certificate creation tools can be downloaded from my website: http://yycnet.yeah.net

@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vIDCc.h
-   *    DESCRIPTION:vIDC客户类的定义
+   *    DESCRIPTION:vIDC client class definition
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -17,23 +17,23 @@
 
 namespace net4cpp21
 {
-	//vidcc客户端类
+	//vidcc client class
 	class vidcClient : public socketProxy
 	{
 	public:
 		explicit vidcClient(const char *strname,const char *strdesc);
 		virtual ~vidcClient();
 		VIDCSINFO &vidcsinfo() { return m_vidcsinfo; }
-		void Destroy(); //销毁并释放资源
-		//连接指定的vIDCs服务
+		void Destroy(); //destroy and free resources
+		//connect to the specified vIDCs service
 		SOCKSRESULT ConnectSvr();
-		void DisConnSvr(); //断开和vIDCs的连接
+		void DisConnSvr(); //disconnect from vIDCs
 		bool mapinfoDel(const char *mapname);
 		mapInfo * mapinfoGet(const char *mapname,bool bCreate);
 		
-		//成功返回SOCKSERR_OK
-		int Mapped(const char *mapname,mapInfo *pinfo); //映射指定的服务
-		int Unmap(const char *mapname,mapInfo *pinfo); //取消映射指定的服务
+		//returns SOCKSERR_OK on success
+		int Mapped(const char *mapname,mapInfo *pinfo); //map the specified service
+		int Unmap(const char *mapname,mapInfo *pinfo); //cancelmap the specified service
 
 		void xml_list_mapped(cBuffer &buffer,VIDC_MAPTYPE maptype);
 		void str_list_mapped(const char *vname,std::string &strini);
@@ -43,14 +43,14 @@ namespace net4cpp21
 		static void onPipeThread(vidcClient *pvidcc);
 		static void onCommandThread(vidcClient *pvidcc);
 	private:
-		std::map<std::string,mapInfo *> m_mapsets; //映射集合
-		time_t m_lTimeout;//最大等待超时返回s
-		std::string m_strName; //本vidcc的名称
+		std::map<std::string,mapInfo *> m_mapsets; //mapset
+		time_t m_lTimeout;//maximum wait timeout return in seconds
+		std::string m_strName; //鏈瑅idcc鐨刵ame
 		std::string m_strDesc;
 		VIDCSINFO m_vidcsinfo;
-		cThreadPool m_threadpool;//服务线程池
+		cThreadPool m_threadpool;//servicethread pool
 
-		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //保存最近一次从vIDCs的命令返回
+		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //save鏈�杩戜竴娆′粠vIDCs鐨刢ommandreturn
 	};
 	
 	class vidccSets
@@ -68,9 +68,9 @@ namespace net4cpp21
 		void str_list_vidcc(std::string &strini);
 	private:
 		cMutex m_mutex;
-		//每个vidcClient对应连接一个vIDCs
+		//eachvidcClient瀵瑰簲connect涓�涓獀IDCs
 		std::map<std::string,vidcClient *> m_vidccs;
-		std::string m_strName; //vidcc的名称
+		std::string m_strName; //vidcc鐨刵ame
 		std::string m_strDesc;
 	};
 

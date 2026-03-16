@@ -1,6 +1,6 @@
 /*******************************************************************
    *	mportdef.h
-   *    DESCRIPTION:定义端口映射所用到的常量、结构以及enum的定义
+   *    DESCRIPTION:constants, structures and enum definitions for port mapping
    *				
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -15,9 +15,9 @@
 #define MAX_CONNECT_TIMEOUT 15
 #define MAX_RECVREQ_TIMEOUT 10
  
-typedef enum //端口映射类型定义
+typedef enum //port mapping type definitions
 {
-	MPORTTYPE_UNKNOW=0,//未知
+	MPORTTYPE_UNKNOW=0,//unknown
 	MPORTTYPE_UDP,
 	MPORTTYPE_TCP,
 	MPORTTYPE_WWW,
@@ -26,16 +26,16 @@ typedef enum //端口映射类型定义
 
 typedef enum
 {
-	TCPSVR_TCPSVR=0, //不进行服务转换
-	TCPSVR_SSLSVR,   //将普通TCP服务转换为SSL加密服务
-	SSLSVR_TCPSVR    //将SSL加密服务转换为普通TCP服务
+	TCPSVR_TCPSVR=0, //no service conversion
+	TCPSVR_SSLSVR,   //convert plain TCP service to SSL-encrypted service
+	SSLSVR_TCPSVR    //convert SSL-encrypted service to plain TCP service
 }SSLTYPE;
 
 typedef enum 
 {
-	VIDC_MAPTYPE_TCP=0,		//TCP映射
-	VIDC_MAPTYPE_UDP,		//UDP映射
-	VIDC_MAPTYPE_PROXY		//内网代理映射
+	VIDC_MAPTYPE_TCP=0,		//TCP mapping
+	VIDC_MAPTYPE_UDP,		//UDPmap
+	VIDC_MAPTYPE_PROXY		//鍐呯綉浠ｇ悊map
 }VIDC_MAPTYPE;
 
 

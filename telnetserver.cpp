@@ -1,6 +1,6 @@
 /*******************************************************************
    *	telnetserver.h 
-   *    DESCRIPTION: Telnet·şÎñ
+   *    DESCRIPTION: Telnet service
    *
    *    AUTHOR:yyc
    *
@@ -29,22 +29,22 @@ private:
 
 void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 {
-	//ÅĞ¶ÏÊÇ·ñ½«Êä³ö¶¨Ïòµ½ÎÄ¼ş
+	//check if output is redirected to file
 	const char *ptr_outfile=strchr(strCommand,'>');
 	if(ptr_outfile){ *(char *)ptr_outfile++=0;
-		while(*ptr_outfile==' ') ptr_outfile++; //È¥µôÇ°µ¼¿Õ¸ñ
+		while(*ptr_outfile==' ') ptr_outfile++; //remove leading spaces
 	}
 
-	int cmdlen=strlen(strCommand); //È¥µôÎ²²¿¿Õ¸ñ
+	int cmdlen=strlen(strCommand); //remove trailing spaces
 	while(cmdlen>0 && *(strCommand+cmdlen-1)==' ') cmdlen--;
 	if(cmdlen<=0) return; else *((char *)strCommand+cmdlen)=0;
-//----------  À©Õ¹¿ØÖÆÃüÁî start------------------------------
+//----------  extended control commands start------------------------------
 	BOOL bRet=FALSE; std::string strOutput;
 	const char *strCmd=strCommand;
 	const char *strParam=strchr(strCommand,' ');
 	if(strParam) { *(char *)strParam=0; strParam++; }
 
-	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //Éı¼¶»òÏÂÔØ
+	if(strcasecmp(strCmd,"update")==0 || strcasecmp(strCmd,"down")==0) //upgrade or download
 	{
 		if(strParam==NULL) return;
 		bool bUpdate=(strcasecmp(strCmd,"update")==0);
@@ -54,7 +54,7 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 		else if(strncasecmp(strurl,"https://",8)==0) iType=1;
 		else if(strncasecmp(strurl,"ftp://",6)==0) iType=2;
 		std::string strSaveas;
-		if(iType>0){//ÏÂÔØÖ¸¶¨µÄÎÄ¼ş
+		if(iType>0){//download the specified file
 			clsOutput_sock sout(psock);
 			const char *ptr=strchr(strurl,' ');
 			if( ptr ){ *(char *)ptr=0; ptr+=1;
@@ -62,17 +62,17 @@ void cTelnetEx :: onCommand(const char *strCommand,socketTCP *psock)
 			}
 			if(strSaveas==""){ if( (ptr=strrchr(strurl,'/')) ) strSaveas.assign(ptr+1); }
 			if(strSaveas[0]!='\\' && strSaveas[1]!=':') strSaveas.insert(0,g_savepath);
-			if(bUpdate) strSaveas.append(".upd"); //·ÀÖ¹ÏÂÔØµÄÎÄ¼şºÍÒªÉı¼¶µÄ³ÌĞòÖØÃû
+			if(bUpdate) strSaveas.append(".upd"); //é˜²æ­¢downloadçš„fileandè¦å‡çº§çš„ç¨‹åºé‡å
 			bRet=(iType==2)?downfile_ftp(strurl,strSaveas.c_str(),sout):downfile_http(strurl,strSaveas.c_str(),sout);
 			strurl=(bRet)?strSaveas.c_str():NULL;
 		}else if(!bUpdate) strOutput.append("Failed , wrong URLs.\r\n");
-		//Éı¼¶rmtsvc
+		//å‡çº§rmtsvc
 		if(bUpdate)  bRet=updateRV(strurl,strOutput);
-	}else if(strcasecmp(strCmd,"telnet")==0) //¿ªÆôtelnet
+	}else if(strcasecmp(strCmd,"telnet")==0) //å¼€å¯telnet
 		bRet=FALSE;
-	else //Ö´ĞĞÀ©Õ¹ÃüÁî
+	else //æ‰§è¡Œæ‰©å±•command
 		bRet=doCommandEx(strCmd,strParam,strOutput);
-//----------  À©Õ¹¿ØÖÆÃüÁî  end ------------------------------
+//----------  æ‰©å±•æ§åˆ¶command  end ------------------------------
 	
 	if(bRet)
 	{
@@ -101,13 +101,13 @@ telServerEx :: ~telServerEx()
 	 Stop(); m_threadpool.join();
 }
 
-//Æô¶¯·şÎñ
+//start service
 bool telServerEx :: Start() 
 {
-	if(m_svrport==0) return true; //²»Æô¶¯·şÎñ
+	if(m_svrport==0) return true; //notstart service
 	
 	const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
-	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//°ó¶¨ÁËIPÔòÔÊĞí¶Ë¿ÚÖØÓÃ
+	BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//ç»‘å®šäº†IPåˆ™å…è®¸porté‡ç”¨
 	SOCKSRESULT sr=Listen( ((m_svrport<0)?0:m_svrport) ,bReuseAddr,ip);
 	return (sr>0)?true:false;
 }
@@ -136,12 +136,12 @@ SOCKSRESULT telServerEx :: revConnect(const char *host,int port,time_t lWaitout)
 	return sr;
 }
 
-//ÉèÖÃtelnet·şÎñµÄÏà¹ØĞÅÏ¢
-//ÃüÁî¸ñÊ½: 
-//	telnet [port=<·şÎñ¶Ë¿Ú>] [bindip=<±¾·şÎñ°ó¶¨µÄ±¾»úIP>]  [account=<·ÃÎÊÕÊºÅ:ÃÜÂë>] 
-//port=<·şÎñ¶Ë¿Ú>    : ÉèÖÃ·şÎñ¶Ë¿Ú£¬Èç¹û²»ÉèÖÃÔòÄ¬ÈÏÎª0.ÉèÖÃÎª0Ôò²»Æô¶¯web·şÎñ <0ÔòËæ¼´·ÖÅä¶Ë¿Ú
-//bindip=<±¾·şÎñ°ó¶¨µÄ±¾»úIP> : ÉèÖÃ±¾·şÎñ°ó¶¨µÄ±¾»úIP£¬Èç¹û²»ÉèÖÃÔòÄ¬ÈÏ°ó¶¨±¾»úËùÓĞIP
-//account=<·ÃÎÊÕÊºÅ:ÃÜÂë>
+//settelnet serviceçš„ç›¸å…³info
+//command format: 
+//	telnet [port=<serviceport>] [bindip=<æœ¬serviceç»‘å®šçš„local machineIP>]  [account=<è®¿é—®account:password>] 
+//port=<serviceport>    : setserviceportï¼Œif not setåˆ™defaultä¸º0.setä¸º0åˆ™do not start web service <0åˆ™éšå³åˆ†é…port
+//bindip=<local machine IP for this service> : set the local machine IP to bind, default binds all IPs if not specified
+//account=<è®¿é—®account:password>
 void telServerEx :: docmd_sets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -149,11 +149,11 @@ void telServerEx :: docmd_sets(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 
 	if( (it=maps.find("port"))!=maps.end())
-	{//ÉèÖÃ·şÎñµÄ¶Ë¿Ú
+	{//set service port
 		m_svrport=atoi((*it).second.c_str());
 	}
 	if( (it=maps.find("bindip"))!=maps.end())
-	{//ÉèÖÃ·şÎñ°ó¶¨IP
+	{//set service binding IP
 		m_bindip=(*it).second;
 	}
 	
@@ -164,16 +164,16 @@ void telServerEx :: docmd_sets(const char *strParam)
 			*(char *)ptr=0;
 			setTelAccount((*it).second.c_str(),ptr+1);
 			*(char *)ptr=':';
-		}else setTelAccount(NULL,NULL); //ÎŞĞèÕÊºÅÃÜÂë
+		}else setTelAccount(NULL,NULL); //æ— éœ€account password
 	}
 	
 	return;
 }
-//ÉèÖÃ·şÎñµÄip¹ıÂË¹æÔò»òÕë¶ÔÄ³¸öÕÊºÅµÄIP¹ıÂË¹æÔò
-//ÃüÁî¸ñÊ½:
+//setserviceçš„ipè¿‡æ»¤è§„åˆ™oré’ˆå¯¹a certainaccountçš„IP filter rules
+//command format:
 //	iprules [access=0|1] ipaddr="<IP>,<IP>,..."
-//access=0|1     : ¶Ô·ûºÏÏÂÁĞIPÌõ¼şµÄÊÇ¾Ü¾ø»¹ÊÇ·ÅĞĞ
-//ÀıÈç:
+//access=0|1     : whether to deny or allow IPs matching the following conditions
+//ä¾‹å¦‚:
 // iprules access=0 ipaddr="192.168.0.*,192.168.1.10"
 void telServerEx :: docmd_iprules(const char *strParam)
 {

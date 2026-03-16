@@ -1,6 +1,6 @@
 /*******************************************************************
 *	msnc1.cpp
-*    DESCRIPTION:msnc1Ğ­Òé´¦ÀíÀàµÄÊµÏÖ¡£
+*    DESCRIPTION:msnc1 protocol handler class implementation.
 *				
 *    AUTHOR:yyc
 *
@@ -19,18 +19,18 @@
 using namespace std;
 using namespace net4cpp21;
 
-//MSNC1Ğ­ÒéÓÉ  MSNC1Ğ­ÒéÍ· + MSNP2PĞ­Òé¹¹³É
-//MSNP2PĞ­ÒéÓÉ 48×Ö½Úbinary stuff + MSNSLPĞ­Òé¹¹³É
-/* //MSNC1Ğ­Òé¸ñÊ½
-MSNC1Ğ­ÒéÍ·			--------------|
-48×Ö½Úbinary stuff  ---|          |
+//MSNC1 protocol consists of MSNC1 header + MSNP2P protocol
+//MSNP2P protocol consists of 48-byte binary stuff + MSNSLP protocol
+/* //MSNC1 protocol format
+MSNC1 header			--------------|
+48bytebinary stuff  ---|          |
 Optional Data       ---| msnp2p   | msnc1
-4×Ö½ÚµÄfooter       ---|          |
+4byteçš„footer       ---|          |
 */ //				--------------|
 
-//MSNC1Ğ­ÒéÍ· ¸ñÊ½ÈçÏÂ
-// MSG yycnet@hotmail.com yyc:) 91  //½ÓÊÕÊ±µÄÆğÊ¼ĞĞ
-// MSG <trID> D <content-length>    //·¢ËÍÊ±µÄÆğÊ¼ĞĞ
+//MSNC1 protocolå¤´ formatå¦‚ä¸‹
+// MSG yycnet@hotmail.com yyc:) 91  //starting line when receiving
+// MSG <trID> D <content-length>    //starting line when sending
 //MIME-Version: 1.0\r\n
 //Content-Type: application/x-msnmsgrp2p\r\n
 //P2P-Dest: <dest-email>\r\n
@@ -42,12 +42,12 @@ Optional Data       ---| msnp2p   | msnc1
 //but it has some binary stuff in it. The message has a 48-byte binary header in Little Endian order, 
 //then optional plain text(MSNSLP) data and after that a 4-byte binary footer which is in Big Endian order.
 
-//48×Ö½Úbinary stuff½á¹¹ËµÃ÷ÈçÏÂ
+//48-byte binary stuff structure description:
 //The 48-byte binary header consists of 6 DWORDs and 3 QWORDS, which are all in Little Endian order, where a DWORD is 32-bit unsigned integer. The first field is a DWORD and is the SessionID, which is zero when the Clients are negotiating about the session. 
 //The second field is a DWORD and is the Identifier which identifies the message, the first message you receive from the other Client is the BaseIndentifier, the other messages contains this Identifier +1 or -2 or something like that, the BaseIdentifier is random generated. The Identifier can be in range from 4 to a max of 4294967295, I think. 
 //The third field is a QWORD and is the Offset which is only being used if the data which is being sent is larger then 1202 bytes. For example: if you have some data which has a length 1496 bytes, then the first P2P Message contains an Offset field of 0 and the second contains an Offset of 1202 if the length of the data in the first message is 1202 bytes. 
 //The fourth field is a QDWORD and represents the total size of the data which is being sended, if this message contains no data then the field should be the length of the data of the previous received message and the Flag field should be 0x2 then. 
-//The fifth field is a DWORD and is the length of the data which is being transferred in this message. (²»°üÀ¨48×Ö½Úbinary stuffºÍ4×Ö½ÚµÄfooter)
+//The fifth field is a DWORD and is the length of the data which is being transferred in this message. (notpacketæ‹¬48bytebinary stuffand4byteçš„footer)
 //The sixth field is a DWORD and is the Flag field, it's 0x0 when no flags are specified, 0x2 if it's an reply to a received message, 0x8 if there is an error on the binary level, 0x20 when the data is for User Display Images or Emoticons, 0x01000030 if it's the data of a file. 
 //The seventh field is a DWORD and is an important field, if the SessionID field is zero and the data doesn't contain the SessionID then this field contains the Identifier of the previous received message, most of the time the Flag field is 0x2 then. If the data contains the SessionID or if the SessionID field is non-zero then this field is just some random generated number. 
 //The eigth field is a DWORD and is also important, because if it met the conditions explained with DWORD nine, then this field contains Field 9 of the previous received message. 
@@ -63,7 +63,7 @@ Optional Data       ---| msnp2p   | msnc1
 //and for Games it's specified by the Start Menu code.
 
 
-/* //MSNSLPĞ­Òé
+/* //MSNSLP protocol
 start-Line
 message-header
 CRLF
@@ -71,7 +71,7 @@ CRLF
 */
 /* //MSNSLP start-Line
 Method SPACE MSNMSGR:buddy@mail.com SPACE MSNSLP-Version CRLF
-»ò
+or
 MSNSLP-version SPACE Status-Code SPACE Reason-Phrase CRLF
 */
 //Methods
@@ -101,14 +101,14 @@ cMsnc1 :: ~cMsnc1()
 	m_cond.active();
 }
 
-//»ñÈ¡Ä³¸öÁªÏµÈËµÄÍ·Ïñ¡£ 
+//get a contact's avatarã€‚ 
 bool cMsnc1 :: getPicture(const char *saveas)
 {
 	if(saveas==NULL || saveas[0]==0) return false;
-	//´ÓmsnobjectÖĞ»ñÈ¡Í·ÏñµÄÎÄ¼şÃûºÍ´óĞ¡
+	//ä»msnobjectä¸­getavatarçš„filenameandsize
 	char msnobj_buf[512]; 
 	int msnobj_len=sprintf(msnobj_buf,"%d",rand()+0x11111111);
-	msnobj_buf[msnobj_len]=0; m_sessionID.assign(msnobj_buf);//Éú³ÉsessionID
+	msnobj_buf[msnobj_len]=0; m_sessionID.assign(msnobj_buf);//ç”ŸæˆsessionID
 	msnobj_len=cCoder::mime_decode(m_pcontact->m_strMsnObj.c_str(),m_pcontact->m_strMsnObj.length(),msnobj_buf);
 	msnobj_buf[msnobj_len]=0;
 	const char *ptr=strstr(msnobj_buf,"Size=\"");
@@ -118,7 +118,7 @@ bool cMsnc1 :: getPicture(const char *saveas)
 	m_inviteType=MSNINVITE_TYPE_PICTURE;
 	return sendmsg_INVITE(msnobj_buf,msnobj_len);	
 }
-//·¢ËÍ±¾ÁªÏµÈËµÄÍ·Ïñ£¬filename --- ±¾ÁªÏµÈËµÄÍ·ÏñÎÄ¼ş
+//sendæœ¬contactçš„avatarï¼Œfilename --- æœ¬contactçš„avatarfile
 bool cMsnc1 :: sendPicture(const char *filename)
 {
 	if(filename==NULL || filename[0]==0 ) return false;
@@ -137,7 +137,7 @@ bool cMsnc1 :: sendPicture(const char *filename)
 	m_inviteType=MSNINVITE_TYPE_PICTURE;
 	return true;
 }
-//·¢ËÍÖ¸¶¨ÎÄ¼ş
+//sendspecifiedfile
 bool cMsnc1 :: sendFile(const char *filename)
 {
 	if(filename==NULL || filename[0]==0 ) return false;
@@ -157,8 +157,8 @@ bool cMsnc1 :: sendFile(const char *filename)
 
 	char context_buf[638]; 
 	int context_len=sprintf(context_buf,"%d",rand()+0x11111111);
-	context_buf[context_len]=0; m_sessionID.assign(context_buf);//Éú³ÉsessionID
-	//Éú³ÉcontextÄÚÈİ
+	context_buf[context_len]=0; m_sessionID.assign(context_buf);//ç”ŸæˆsessionID
+	//ç”Ÿæˆcontextå†…å®¹
 	memset((void *)context_buf,0,638);
 	context_buf[0]=0x7e; context_buf[1]=2; context_buf[4]=3; context_buf[16]=1;
 	*((unsigned char *)context_buf+570)=0xff;
@@ -170,18 +170,18 @@ bool cMsnc1 :: sendFile(const char *filename)
 	return sendmsg_INVITE(context_buf,638);
 }
 /*
-//·¢ËÍÒ»¸ö»úÆ÷ÈËÑûÇë
+//sendä¸€ä¸ªrobot invitation
 bool cMsnc1 :: sendRobotInvite(const char *robotname)
 {
 	m_bSender=true;
 	m_inviteType=MSNINVITE_TYPE_ROBOT;
-	//Éú³ÉcontextÄÚÈİ
+	//ç”Ÿæˆcontextå†…å®¹
 	char context_buf[256]; int context_len;
 	if(robotname==NULL || robotname[0]==0 || strlen(robotname)>64)
 		 context_len=sprintf(context_buf,"%d;1;robot",MSNINVITE_TYPE_ROBOT);
 	else context_len=sprintf(context_buf,"%d;1;%s",MSNINVITE_TYPE_ROBOT,robotname);
 	context_buf[context_len]=0;
-	unsigned short contextW_buf[256];//½«µ¥×Ö½Ú±àÂë×ª»»ÎªunicodeË«×Ö½Ú±àÂë
+	unsigned short contextW_buf[256];//å°†å•byteencodingconvertä¸ºunicodeåŒbyteencoding
 	int contextW_len=MultiByteToWideChar(CP_ACP,0,context_buf,context_len,contextW_buf,255);
 	return sendmsg_INVITE((const char *)contextW_buf,contextW_len*sizeof(unsigned short));
 }
@@ -194,7 +194,7 @@ bool cMsnc1 :: sendRobotInvite(const char *robotname)
 //The "Acknowledged Unique Identifier" field contains the Unique Identifier (eigth field) of the message to which this is an Acknowledgement. 
 //The "Acknowledged Data Size" field contains the value from the "Message Length" of the Acknowledged message. 
 //The rest of the fields is always zero, except the Session Identifier field and the Identifier field of the message. Those are determined by the client. 
-//pheader Ö¸Ïò½ÓÊÕMSGµÄ header
+//pheader pointer toreceiveMSGçš„ header
 bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 {
 	char binary_stuff[48+4]; 
@@ -203,7 +203,7 @@ bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 	//sessionID
 	memcpy((void *)binary_stuff,(const void *)pheader,4);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//total size
@@ -217,7 +217,7 @@ bool cMsnc1 :: sendmsg_ACK(unsigned char *pheader)
 	//ack data size
 	memcpy((void *)(binary_stuff+40),(const void *)(pheader+16),8);
 
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+2]=*( ((char *)&lfooter)+1 );
@@ -234,13 +234,13 @@ bool cMsnc1 :: sendmsg_Got_BYE()
 	long lTmp=atol(m_sessionID.c_str());
 	memcpy((void *)binary_stuff,(const void *)&lTmp,4); //sessionID
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//flag
 	binary_stuff[28]=(char)0x40;
 
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+2]=*( ((char *)&lfooter)+1 );
@@ -256,7 +256,7 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 	const char *fromEmail=m_pmsnmessager->thisEmail();
 
 	int contentLength=sprintf(binary_stuff,"SessionID: %s\r\n\r\n",m_sessionID.c_str());
-	binary_stuff[contentLength]=0; contentLength++; //ÄÚÈİ×îºó²¹Ò»¸ö'\0'
+	binary_stuff[contentLength]=0; contentLength++; //append a '\0' at end of content
 
 	int len=sprintf(pmsnslp,"MSNSLP/1.0 200 OK\r\nTo: <msnmsgr:%s>\r\nFrom: <msnmsgr:%s>\r\n"
 						"Via: MSNSLP/1.0/TLP ;branch=%s\r\nCSeq: 1\r\nCall-ID: %s\r\n"
@@ -266,12 +266,12 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 						,m_branch.c_str(),m_callID.c_str(),
 						contentLength,binary_stuff);
 	
-	pmsnslp[len]=0; len++;//°üº¬Content×îºóµÄ'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -279,7 +279,7 @@ bool cMsnc1 :: sendmsg_ACCEPT()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -295,7 +295,7 @@ bool cMsnc1 :: sendmsg_REJECT()
 	const char *fromEmail=m_pmsnmessager->thisEmail();
 
 	int contentLength=sprintf(binary_stuff,"SessionID: %s\r\n\r\n",m_sessionID.c_str());
-	binary_stuff[contentLength]=0; contentLength++; //ÄÚÈİ×îºó²¹Ò»¸ö'\0'
+	binary_stuff[contentLength]=0; contentLength++; //append a '\0' at end of content
 
 	int len=sprintf(pmsnslp,"MSNSLP/1.0 603 Decline\r\nTo: <msnmsgr:%s>\r\nFrom: <msnmsgr:%s>\r\n"
 						"Via: MSNSLP/1.0/TLP ;branch=%s\r\nCSeq: 1\r\nCall-ID: %s\r\n"
@@ -305,12 +305,12 @@ bool cMsnc1 :: sendmsg_REJECT()
 						,m_branch.c_str(),m_callID.c_str(),
 						contentLength,binary_stuff);
 	
-	pmsnslp[len]=0; len++;//°üº¬Content×îºóµÄ'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -318,7 +318,7 @@ bool cMsnc1 :: sendmsg_REJECT()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -346,7 +346,7 @@ bool cMsnc1 :: sendmsg_ERROR()
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -354,7 +354,7 @@ bool cMsnc1 :: sendmsg_ERROR()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -376,12 +376,12 @@ bool cMsnc1 :: sendmsg_BYE()
 						,toEmail,toEmail,fromEmail
 						,m_branch.c_str(),m_callID.c_str());
 	
-	pmsnslp[len]=0; len++;//°üº¬Content×îºóµÄ'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -389,7 +389,7 @@ bool cMsnc1 :: sendmsg_BYE()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -414,7 +414,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	memcpy((void *)(binary_stuff),(const void *)&sessionID,4);
 
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -422,7 +422,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	//message size
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -431,7 +431,7 @@ unsigned long cMsnc1 :: sendmsg_READY2TRANS()
 	return sendMSNC1(binary_stuff,52+len);
 }
 
-//Ìí¼ÓMSNC1Ğ­ÒéÍ·£¬È»ºó·¢ËÍMSNC1ÏûÏ¢
+//addMSNC1 protocolå¤´ï¼ŒthensendMSNC1message
 //Splitting Messages
 //When the content of the message between de binary header and footer is larger then 1202 characters 
 //(or 1352 in case of a Direct Connection), you should split the data in seperate parts and add a message header, 
@@ -453,19 +453,19 @@ unsigned long  cMsnc1 :: sendMSNC1(const char *ptr_msnp2p,long p2p_length)
 		memmove(buf+(32-iret),buf,iret); 
 		return (m_pcontact->m_chatSock.Send(datalen+iret,buf+(32-iret),-1)>0)?trID:0;
 	}
-	//split ÏûÏ¢
+	//split message
 	const char *ptr_Binarystuff=ptr_msnp2p;
 	const char *ptr_msnslp=ptr_msnp2p+48;
 	long offset=0;
 	unsigned long lfooter=*((unsigned long *)(ptr_msnp2p+p2p_length-4));
-	//Èç¹ûlength_msnslp>1202Òª½øĞĞsplit
+	//iflength_msnslp>1202è¦è¿›è¡Œsplit
 	while(length_msnslp>0)
 	{
 		long datalen=(length_msnslp>1202)?1202:length_msnslp;
 		length_msnslp-=datalen;
 		::memcpy(buf+32+msnc1_headerlen,ptr_Binarystuff,48);
 		const char *pHeader=buf+32+msnc1_headerlen; 
-		//ĞŞÕıbinary ÖĞµÄoffset£¬dataMessageSize
+		//ä¿®æ­£binary ä¸­çš„offsetï¼ŒdataMessageSize
 		*((unsigned long *)(pHeader+8))=offset;
 		*((unsigned long *)(pHeader+24))=datalen;
 		::memcpy(buf+32+msnc1_headerlen+48,ptr_msnslp,datalen);
@@ -490,7 +490,7 @@ char *INVITE_GUID[]={
 					"{A4268EEC-FEC5-49E5-95C3-F126696BDBF6}", //Display picture
 					"{5D3E02AB-6190-11D3-BBBB-00C04F795683}", //FILE trans
 					"",
-					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //ÍøÂçÉãÏñÍ·
+					"{4BD96FC0-AB17-4425-A14A-439185962DC8}"  //networkcamera
 					};
 //char *INVITE_ROBOT_GUID="{6A13AF9C-5308-4F35-923A-67E8DDA40C2F}"; //MSNINVITE_TYPE_ROBOT
 bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
@@ -501,7 +501,7 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 	const char *toEmail=m_pcontact->m_email.c_str();
 	const char *fromEmail=m_pmsnmessager->thisEmail();
 
-	//ÏÈ½«strcontext½øĞĞbase64±àÂë
+	//å…ˆå°†strcontextè¿›è¡Œbase64 encoding
 	unsigned int oldLineWidth=cCoder::m_LineWidth;
 	cCoder::m_LineWidth=1024;
 	int len=cCoder::base64_encode((char *)strcontext,contextLen,pmsnslp);
@@ -516,10 +516,10 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 							"Context: %s\r\n\r\n",INVITE_GUID[m_inviteType-1],
 							m_sessionID.c_str(),m_inviteType,pmsnslp);
 						
-	contextBuf[contextLen]=0; contextLen++; //°üº¬Content×îºóµÄ'\0'
+	contextBuf[contextLen]=0; contextLen++; //includes the trailing '\0' of Content
 	cCoder::m_LineWidth=oldLineWidth;
 
-	//Éú³Ébranch IDºÍ call ID
+	//ç”Ÿæˆbranch IDand call ID
 	if(m_branch==""){
 		len=createUID(pmsnslp); 
 		pmsnslp[len]=0; m_branch.assign(pmsnslp);
@@ -537,12 +537,12 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 						,toEmail,toEmail,fromEmail
 						,m_branch.c_str(),m_callID.c_str()
 						,contextLen,contextBuf);
-	pmsnslp[len]=0; len++;//°üº¬Content×îºóµÄ'\0'
+	pmsnslp[len]=0; len++;//includes the trailing '\0' of Content
 	
 	unsigned long lfooter=0;
 	::memset((void *)binary_stuff,0,48);
 	long Identifier=m_BaseIdentifier+m_offsetIdentifier++;
-	if(m_offsetIdentifier==0) m_offsetIdentifier++;//Ìø¹ı0
+	if(m_offsetIdentifier==0) m_offsetIdentifier++;//skip0
 	//MessageID
 	memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 	//totalSize
@@ -551,7 +551,7 @@ bool cMsnc1 :: sendmsg_INVITE(const char *strcontext,int contextLen)
 	memcpy((void *)(binary_stuff+24),(const void *)&len,4);
 	memcpy((void *)(binary_stuff+32),(const void *)&m_BaseIdentifier,4);
 
-	//ÉèÖÃlfooter,in Big Endian order 
+	//setlfooter,in Big Endian order 
 	binary_stuff[48+len]=*( ((char *)&lfooter)+3 );
 	binary_stuff[48+len+1]=*( ((char *)&lfooter)+2 );
 	binary_stuff[48+len+2]=*( ((char *)&lfooter)+1 );
@@ -578,8 +578,8 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		long sessionID=atol(pmsnc1->m_sessionID.c_str());//sessionID
 		memcpy((void *)(binary_stuff),(const void *)&sessionID,4);
 		long Identifier=pmsnc1->m_BaseIdentifier+pmsnc1->m_offsetIdentifier++;
-		if(pmsnc1->m_offsetIdentifier==0) pmsnc1->m_offsetIdentifier++;//Ìø¹ı0
-		//MessageID ,Êı¾İ´«ÊäÆÚ¼ämessageID±£³Ö²»±ä
+		if(pmsnc1->m_offsetIdentifier==0) pmsnc1->m_offsetIdentifier++;//skip0
+		//MessageID ,datatransferæœŸé—´messageIDä¿æŒnotå˜
 		memcpy((void *)(binary_stuff+4),(const void *)&Identifier,4);
 		memcpy((void *)(binary_stuff+16),(const void *)&pmsnc1->m_filesize,4);
 
@@ -593,9 +593,9 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 		else if(pmsnc1->m_inviteType==MSNINVITE_TYPE_PICTURE)
 		{
 			binary_stuff[28]=0x20;
-			//send the data preparation message,·¢ËÍ×¼±¸¿ªÊ¼·¢ËÍÍ·ÏñÊı¾İÏûÏ¢
+			//send the data preparation message,sendå‡†å¤‡startsendavatardatamessage
 			unsigned long trID=pmsnc1->sendmsg_READY2TRANS();
-			//·¢ËÍ×¼±¸·¢ËÍÍ·ÏñÏûÏ¢ºóÒªµÈ´ı¶Ô·½µÄÓ¦´ğ²ÅÄÜ·¢ËÍÍ·ÏñÊı¾İ£¬ÕâÀïµÈ´ı·şÎñÓ¦´ğ¾Í¿ÉÒÔ.
+			//sendå‡†å¤‡sendavatarmessageåè¦waitingå¯¹æ–¹çš„åº”ç­”æ‰èƒ½sendavatardataï¼Œè¿™é‡Œwaitingserviceåº”ç­”å°±å¯ä»¥.
 			conds[trID]=&pmsnc1->m_cond; pmsnc1->m_cond.wait(5);//MSN_MAX_TIMEOUT);
 			pmsnc1->m_pmsnmessager->eraseCond(trID); 
 		}
@@ -610,7 +610,7 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 			//message size
 			memcpy((void *)(binary_stuff+24),(const void *)&readLen,4);
 			offset+=readLen;
-			//ÉèÖÃlfooter,in Big Endian order 
+			//setlfooter,in Big Endian order 
 			binary_stuff[48+readLen]=*( ((char *)&lfooter)+3 );
 			binary_stuff[48+readLen+1]=*( ((char *)&lfooter)+2 );
 			binary_stuff[48+readLen+2]=*( ((char *)&lfooter)+1 );
@@ -621,7 +621,7 @@ void cMsnc1 :: sendThread(cMsnc1 *pmsnc1)
 				pmsnc1->m_pmsnmessager->eraseCond(trID); 
 			}else break;
 //-------------------------------------------------------------------
-			if(readLen<1200) break; //ÎÄ¼ş¶ÁÈ¡Íê±Ï
+			if(readLen<1200) break; //filereadå®Œæ¯•
 		}//?while
 		if(pmsnc1->m_inviteType==MSNINVITE_TYPE_FILE) pmsnc1->sendmsg_BYE();
 		if(pmsnc1->m_fp){ ::fclose(pmsnc1->m_fp); pmsnc1->m_fp=NULL; }
@@ -663,14 +663,14 @@ bool cMsncx:: beginWrite(const char *filename,long filesize)
 	return beginWrite();
 }
 
-/* ÎÄ¼ş´«Êä
+/* file transfer
 First, the Sending Client (SC) need to send the Receiving Client (RC) an Invitation to start a session. 
 The Identifier field of that Invitation should contain a generated BaseIdentifier, 
 the Identifier field of the following messages should be calculated from that BaseIdentifier. 
-Ê×ÏÈSCĞèÒªÏòRC·¢ËÍÒ»¸ö¿ªÊ¼ÑûÇëµÄSessionÇëÇó(INVITE message),ÏûÏ¢Í·µÄmsgidÓòÊÇÒ»¸ö×Ô¶¯²úÉúµÄBaseIdentifier
-½ÓÏÂÀ´·¢ËÍµÄÏûÏ¢Í·µÄmsgidÓòµÄÖµÓÉBaseIdentifier¼ÆËã³öÀ´¡£
+firstSCéœ€è¦å‘RCsendä¸€ä¸ªstartinvitationçš„Sessionrequest(INVITE message),messageå¤´çš„msgidåŸŸis aautoäº§ç”Ÿçš„BaseIdentifier
+æ¥ä¸‹æ¥sendçš„messageå¤´çš„msgidåŸŸçš„å€¼ç”±BaseIdentifiercountç®—å‡ºæ¥ã€‚
 The Identifier fields of the next messages sent by the RC should be BaseIdentifier + 1, BaseIdentifier + 2 and so on.
-RC·¢ËÍµÄÏÂÒ»¸öÏûÏ¢Í·µÄmsgidÓòµÄÖµÓ¦ÊÇBaseIdentifier + 1, BaseIdentifier + 2µÈµÈ
+RCsendçš„nextmessageå¤´çš„msgidåŸŸçš„å€¼åº”yesBaseIdentifier + 1, BaseIdentifier + 2ç­‰ç­‰
 The SC should on its turn send messages with BaseIdentifier + 1, BaseIdentifier + 2 and so on as values for the Identifier field. 
 The only thing which is different here is that both Identifier fields will always be BaseIdentifier + a number.
 */
@@ -678,11 +678,11 @@ The only thing which is different here is that both Identifier fields will alway
 //display picture 
 EUF-GUID: {A4268EEC-FEC5-49E5-95C3-F126696BDBF6}
 AppID: 1
-context==msnobj¶ÔÏó
+context==msnobjobject
 //file
 EUF-GUID: {5D3E02AB-6190-11D3-BBBB-00C04F795683}
 AppID: 2
-context: base64±àÂë 8~12×Ö½ÚÎªÎÄ¼ş´óĞ¡ 20×Ö½Ú¿ªÊ¼ÎªÎÄ¼şÃû(unicode±àÂë)
+context: base64 encoding 8~12byteä¸ºfile size 20bytestartä¸ºfilename(unicodeencoding)
 //video cam
 EUF-GUID: {4BD96FC0-AB17-4425-A14A-439185962DC8}
 AppID: 4
@@ -690,7 +690,7 @@ context:
 */
 
 //example
-/* invite sessionÇëÇó
+/* invite sessionrequest
 INVITE MSNMSGR:yycnet@163.com MSNSLP/1.0
 To: <msnmsgr:yycnet@163.com>
 From: <msnmsgr:yycnet@hotmail.com>
@@ -715,7 +715,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAAAAAAA
 */
-/* //ÇëÇóÎÄ¼ş´«Êä
+/* //request file transfer
 INVITE MSNMSGR:rmtsvc8@hotmail.com MSNSLP/1.0
 To: <msnmsgr:rmtsvc8@hotmail.com>
 From: <msnmsgr:yycnet@hotmail.com>
@@ -748,7 +748,7 @@ Conn-Type: IP-Restrict-NAT
 UPnPNat: false
 ICF: false
 Hashed-Nonce: {3279AB80-FEB7-894A-88B8-78478A9E297E}*/
-/* //invite session ½áÊø
+/* //invite session end
 BYE MSNMSGR:yycnet@163.com MSNSLP/1.0
 To: <msnmsgr:yycnet@163.com>
 From: <msnmsgr:yycnet@hotmail.com>

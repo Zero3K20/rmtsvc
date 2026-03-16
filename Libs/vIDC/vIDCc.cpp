@@ -1,6 +1,6 @@
 /*******************************************************************
    *	vIDCc.h
-   *    DESCRIPTION:vIDC¿Í»§ÀàµÄ¶¨Òå
+   *    DESCRIPTION:vIDC client class definition
    *
    *    AUTHOR:yyc
    *	http://hi.baidu.com/yycblog/home
@@ -29,7 +29,7 @@ vidcClient :: vidcClient(const char *strname,const char *strdesc) : socketProxy(
 vidcClient :: ~vidcClient()
 {
 	if(this->status()!=SOCKS_CLOSED) this->Close();
-	m_threadpool.join();//²»ÔÚCloseÊ±µÈ´ıÏß³Ì½áÊø£¬·ÀÖ¹ÔÚ»Øµ÷ÖĞµ÷ÓÃClose
+	m_threadpool.join();//do not wait for thread to end in Close, to prevent calling Close within a callback
 }
 
 void vidcClient :: Destroy()
@@ -65,13 +65,13 @@ SOCKSRESULT vidcClient :: ConnectSvr()
 					  m_vidcsinfo.m_vidcsPswd.c_str(),VIDCC_VERSION,m_strDesc.c_str());
 	if(sendCommand(200,m_szLastResponse,buflen))
 	{
-		//vIDCs·µ»ØµÄ¸ñÊ½Îª 200 <vidccID> <vidcs_ver> <ÃèÊö>
+		//format returned by vIDCs is: 200 <vidccID> <vidcs_ver> <description>
 		m_vidcsinfo.m_vidccID=atoi(m_szLastResponse+4);
 		if( (ptr=strchr(m_szLastResponse+4,' ')) ) m_vidcsinfo.m_vidcsVer=atoi(ptr+1);
-		buflen=sprintf(m_szLastResponse,"ADDR \r\n"); //»ñÈ¡vIDCs·şÎñÆ÷µÄIPµØÖ·ÁĞ±í
+		buflen=sprintf(m_szLastResponse,"ADDR \r\n"); //get the IP address list of the vIDCs server
 		if(sendCommand(200,m_szLastResponse,buflen))
 			m_vidcsinfo.m_vidcsIPList.assign(m_szLastResponse+4);
-		//×Ô¶¯Ó³ÉäÖ¸¶¨µÄÓ³Éä·şÎñ
+		//automatically map the specified mapping service
 		std::map<std::string,mapInfo *>::iterator it=m_mapsets.begin();
 		for(;it!=m_mapsets.end();it++)
 		{
@@ -87,14 +87,14 @@ SOCKSRESULT vidcClient :: ConnectSvr()
 	this->Close(); return sr;
 }
 
-//É¾³ıÖ¸¶¨µÄÓ³Éä·şÎñ
+//delete the specified mapping service
 bool vidcClient :: mapinfoDel(const char *mapname)
 {
 	std::map<std::string,mapInfo *>::iterator it=m_mapsets.find(mapname);
 	if(it==m_mapsets.end()) return false;
 	mapInfo *pinfo=(*it).second;
 	m_mapsets.erase(it);
-	Unmap(mapname,pinfo); //ÏÈ·¢ËÍubindÃüÁî
+	Unmap(mapname,pinfo); //first send the ubind command
 	delete pinfo; return true;
 }
 
@@ -111,7 +111,7 @@ mapInfo * vidcClient :: mapinfoGet(const char *mapname,bool bCreate)
 long getFilesize(const char *file)
 {
 	if(file==NULL || file[0]==0) return 0;
-	//½«Ò»¸öÏà¶ÔÂ·¾¶Ãû×ª»»ÎªÒ»¸ö¾ø¶ÔÂ·¾¶Ãû
+	//å°†ä¸€ä¸ªç›¸å¯¹pathåconvertä¸ºä¸€ä¸ªç»å¯¹pathå
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0;
@@ -128,7 +128,7 @@ long readFile(const char *file,char *readbuf,long readsize)
 {
 	if(readsize<=0) return 0;
 	if(file==NULL || file[0]==0) return 0;
-	//½«Ò»¸öÏà¶ÔÂ·¾¶Ãû×ª»»ÎªÒ»¸ö¾ø¶ÔÂ·¾¶Ãû
+	//å°†ä¸€ä¸ªç›¸å¯¹pathåconvertä¸ºä¸€ä¸ªç»å¯¹pathå
 	char buf[MAX_PATH];
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0;
@@ -141,17 +141,17 @@ long readFile(const char *file,char *readbuf,long readsize)
 	::fclose(fp); return l;
 }
 
-//³É¹¦·µ»Ø>0
-int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
+//successreturn>0
+int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //map the specified service
 {
 //	if(pinfo==NULL || mapname==NULL) return SOCKSERR_PARAM;
 	if(this->status()!=SOCKS_CONNECTED) return SOCKSERR_CLOSED;
-//	BIND type=[TCP|UDP] name=<XXX> appsvr=<ÒªÓ³ÉäµÄÓ¦ÓÃ·şÎñ> mport=<Ó³Éä¶Ë¿Ú>[+|-ssl] [bindip=<±¾·şÎñ°ó¶¨µÄ±¾»úIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<ÃèÊö>]
-//	BIND type=PROXY name=<XXX> mport=<Ó³Éä¶Ë¿Ú> [bindip=<±¾·şÎñ°ó¶¨µÄ±¾»úIP>] [appdesc=<ÃèÊö>]
+//	BIND type=[TCP|UDP] name=<XXX> appsvr=<è¦mapped application service> mport=<map port>[+|-ssl] [bindip=<æœ¬serviceç»‘å®šçš„local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [appdesc=<description>]
+//	BIND type=PROXY name=<XXX> mport=<map port> [bindip=<æœ¬serviceç»‘å®šçš„local machineIP>] [appdesc=<description>]
 	int rspcode,buflen;
 	if(pinfo->m_mapType==VIDC_MAPTYPE_PROXY)
 	{
-		buflen=sprintf(m_szLastResponse,"BIND type=PROXY name=%s mport=%d-%d bindip=%s maxconn=%d maxratio=%d appdesc=\"ÄÚÍø´úÀí\"\r\n",
+		buflen=sprintf(m_szLastResponse,"BIND type=PROXY name=%s mport=%d-%d bindip=%s maxconn=%d maxratio=%d appdesc=\"å†…ç½‘ä»£ç†\"\r\n",
 					   mapname,pinfo->m_mportBegin,pinfo->m_mportEnd,pinfo->m_bindLocalIP,pinfo->m_maxconn,pinfo->m_maxratio);
 	}else{
 		buflen=sprintf(m_szLastResponse,"BIND type=%s name=%s appsvr=%s mport=%d-%d%s sslverify=%d bindip=%s maxconn=%d maxratio=%d apptype=%s appdesc=\"%s\"\r\n",
@@ -163,7 +163,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
 					  ((pinfo->m_apptype==MPORTTYPE_FTP)?"FTP":((pinfo->m_apptype==MPORTTYPE_WWW)?"WWW":((pinfo->m_apptype==MPORTTYPE_TCP)?"TCP":"UNK" ) ) ),
 					  pinfo->m_appdesc.c_str() );
 	}
-	//vIDCs·µ»ØµÄ¸ñÊ½Îª 200 <Ó³Éä¶Ë¿Ú> <ÃèÊö>
+	//vIDCsreturnçš„formatä¸º 200 <map port> <description>
 	if(sendCommand(200,m_szLastResponse,buflen))
 	{
 		if( (rspcode=atoi(m_szLastResponse+4))>0 ) pinfo->m_mappedPort=rspcode;
@@ -174,7 +174,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
 						   mapname,pinfo->m_ipaccess,pinfo->m_ipRules.c_str());
 			sendCommand(200,m_szLastResponse,buflen);
 		}
-		//·¢ËÍ¿Í»§¶ËÖ¤Êé
+		//sendclientcertificate
 		if(pinfo->m_ssltype==SSLSVR_TCPSVR && pinfo->m_clicert!="")
 		{
 			long certlen=getFilesize(pinfo->m_clicert.c_str());
@@ -196,7 +196,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
 				delete[] sbuf;
 			}//?if(sbuf)
 		}//?if(pinfo->m_ssltype==SSLSVR_TCPSVR && pinfo->m_clicert!="")
-		int i;//·¢ËÍĞŞ¸ÄHTTPÇëÇóÍ·ºÍÏìÓ¦Í·¹æÔò
+		int i;//sendmodifyHTTPrequestå¤´andresponseå¤´è§„åˆ™
 		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(m_szLastResponse,"HRSP name=%s %s\r\n",mapname,pinfo->m_hrspRegCond[i].c_str());
@@ -207,7 +207,7 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
 			buflen=sprintf(m_szLastResponse,"HREQ name=%s %s\r\n",mapname,pinfo->m_hreqRegCond[i].c_str());
 			sendCommand(200,m_szLastResponse,buflen);
 		}//?for(i=0;
-		return pinfo->m_mappedPort; //·µ»ØÓ³ÉäµÄ¶Ë¿Ú
+		return pinfo->m_mappedPort; //returnmapçš„port
 	}else rspcode=atoi(m_szLastResponse);
 	if(rspcode==501) return SOCKSERR_VIDC_NAME;
 	else if(rspcode==502) return SOCKSERR_VIDC_MEMO;
@@ -216,13 +216,13 @@ int vidcClient :: Mapped(const char *mapname,mapInfo *pinfo) //Ó³ÉäÖ¸¶¨µÄ·şÎñ
 	return SOCKSERR_VIDC_RESP;
 }
 
-int vidcClient :: Unmap(const char *mapname,mapInfo *pinfo) //È¡ÏûÓ³ÉäÖ¸¶¨µÄ·şÎñ
+int vidcClient :: Unmap(const char *mapname,mapInfo *pinfo) //cancelmap the specified service
 {
 //	if(pinfo==NULL) return SOCKSERR_PARAM;
 	if(this->status()!=SOCKS_CONNECTED) return SOCKSERR_CLOSED;
 	
 	pinfo->m_mappedPort=0; pinfo->m_mappedSSLv=false;
-	//¸ñÊ½: UBND <SP> <Ó³ÉäÃû³Æ> <CRLF>
+	//format: UBND <SP> <mapname> <CRLF>
 	int buflen=sprintf(m_szLastResponse,"UBND %s\r\n",mapname);
 	if(sendCommand(200,m_szLastResponse,buflen))
 		return SOCKSERR_OK;
@@ -274,7 +274,7 @@ void vidcClient :: str_list_mapped(const char *vname,std::string &strini)
 		buflen=sprintf(buf,"iprules type=mtcpr vname=%s name=%s access=%d ipaddr=%s\r\n",
 			vname,(*it).first.c_str(),pinfo->m_ipaccess,pinfo->m_ipRules.c_str());
 		strini.append(buf,buflen);
-		int i;//·¢ËÍĞŞ¸ÄHTTPÇëÇóÍ·ºÍÏìÓ¦Í·¹æÔò
+		int i;//sendmodifyHTTPrequestå¤´andresponseå¤´è§„åˆ™
 		for(i=0;i<(int)pinfo->m_hrspRegCond.size();i++)
 		{
 			buflen=sprintf(buf,"mdhrsp vname=%s name=%s %s\r\n",vname,
@@ -312,14 +312,14 @@ void vidcClient :: xml_list_mapped(cBuffer &buffer,VIDC_MAPTYPE maptype)
 	return;
 }
 
-//-------------------vIDC client ÃüÁî½âÎö´¦Àí begin-----------------------------------
+//-------------------vIDC client commandparsehandle begin-----------------------------------
 void vidcClient :: parseCommand(const char *ptrCommand)
 {
 	RW_LOG_DEBUG("[vidcc] s--->c:\r\n\t%s\r\n",ptrCommand);
 	
-	if(strncmp(ptrCommand,"PIPE ",5)==0) //vIDCsÇëÇóÒ»¸ö¹ÜµÀ
+	if(strncmp(ptrCommand,"PIPE ",5)==0) //vIDCsrequestä¸€ä¸ªç®¡é“
 		m_threadpool.addTask((THREAD_CALLBACK *)&onPipeThread,(void *)this,0);
-	else if(atoi(ptrCommand)>0) //vIDCsµÄÃüÁî·µ»ØÏûÏ¢
+	else if(atoi(ptrCommand)>0) //vIDCsçš„commandreturnmessage
 		strcpy(m_szLastResponse,ptrCommand);
 	return;
 }
@@ -342,28 +342,28 @@ void vidcClient :: onCommandThread(vidcClient *pvidcc)
 				tLastSended=time(NULL);
 			}else continue;
 		}
-		//¶Á¿Í»§¶Ë·¢ËÍµÄÊı¾İ
+		//read data sent by client
 		iret=pvidcc->Receive(buf+buflen,VIDC_MAX_COMMAND_SIZE-buflen-1,-1);
-		if(iret<0) break; //==0±íÃ÷½ÓÊÕÊı¾İÁ÷Á¿³¬¹ıÏŞÖÆ
+		if(iret<0) break; //==0 means received data exceeded the limit
 		if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-		tLastReceived=time(NULL); //×îºóÒ»´Î½ÓÊÕµ½Êı¾İÊ±¼ä
+		tLastReceived=time(NULL); //lastä¸€æ¬¡receiveåˆ°datatime
 		buflen+=iret; buf[buflen]=0;
-		//½âÎövidcÃüÁî
+		//parsevidccommand
 		const char *ptrCmd,*ptrBegin=buf;
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
-			*(char *)ptrCmd=0;//¿ªÊ¼½âÎöÃüÁî
-			if(ptrBegin[0]==0) goto NextCMD; //²»´¦Àí¿ÕĞĞÊı¾İ
+			*(char *)ptrCmd=0;//startparsecommand
+			if(ptrBegin[0]==0) goto NextCMD; //nothandlenullè¡Œdata
 		
 			pvidcc->parseCommand(ptrBegin);
 
-NextCMD:	//ÒÆ¶¯ptrBeginµ½ÏÂÒ»¸öÃüÁîÊı¾İÆğÊ¼
+NextCMD:	//ç§»åŠ¨ptrBeginåˆ°nextcommanddataèµ·å§‹
 			ptrBegin=ptrCmd+1; 
-			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //Ìø¹ı\r\n
+			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//Èç¹ûÓĞÎ´½ÓÊÕÍêµÄÃüÁîÔòÒÆ¶¯
+		//ifæœ‰æœªreceiveå®Œçš„commandåˆ™ç§»åŠ¨
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//Èç¹ûptrBegin-buf==0ËµÃ÷ÕâÊÇÒ»¸ö´íÎóÃüÁîÊı¾İ°ü
+		{//ifptrBegin-buf==0è¯´æ˜è¿™is aerrorcommanddatapacket
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -378,13 +378,13 @@ public:
 	virtual ~cProxysvrEx(){}
 	void doProxyReq(socketTCP *psock){ cProxysvr::onConnect(psock); }
 protected:
-	//´´½¨×ª·¢¶ÔÈÎÎñÏß³Ì
+	//create forward-to task thread
 	virtual bool onTransferTask(THREAD_CALLBACK *pfunc,void *pargs)
 	{
 		return (m_pthreadpool && m_pthreadpool->addTask(pfunc,pargs,THREADLIVETIME)!=0);
 	}
 private:
-	cThreadPool *m_pthreadpool;//·şÎñÏß³Ì³Ø
+	cThreadPool *m_pthreadpool;//servicethread pool
 };
 
 void vidcClient :: onPipeThread(vidcClient *pvidcc)
@@ -392,7 +392,7 @@ void vidcClient :: onPipeThread(vidcClient *pvidcc)
 	if(pvidcc==NULL) return;
 	socketProxy *pipe=new socketProxy;
 	if(pipe==NULL) return;
-	pipe->setProxy(*pvidcc); //ÉèÖÃ´úÀíºÍvidccµÄ´úÀíÒ»ÖÂ
+	pipe->setProxy(*pvidcc); //setä»£ç†andvidccçš„ä»£ç†ä¸€è‡´
 	pipe->setParent(pvidcc);
 	pipe->Connect(pvidcc->m_vidcsinfo.m_vidcsHost.c_str(),pvidcc->m_vidcsinfo.m_vidcsPort,-1);
 
@@ -404,21 +404,21 @@ void vidcClient :: onPipeThread(vidcClient *pvidcc)
 		int iret=pipe->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 		if(iret<0) break; else if(iret==0) continue;
 		cProxysvrEx proxysvr(&pvidcc->m_threadpool);
-		proxysvr.doProxyReq(pipe); //·ñÔòÓĞÊı¾İ
-		break; //¹ÜµÀÏß³Ì½áÊø
+		proxysvr.doProxyReq(pipe); //otherwiseæœ‰data
+		break; //ç®¡é“thread end
 	}//?while
 	delete pipe; return;
 }
-//·¢ËÍÃüÁî£¬²¢»ñÈ¡·şÎñÆ÷ÏìÓ¦
+//send command and get server response
 inline bool vidcClient :: sendCommand(int response_expected,const char *buf,int buflen)
 {
 	RW_LOG_DEBUG("[vidcc] c--->s:\r\n\t%s",buf);
 	char c=buf[0];
 	if( this->Send(buflen,buf,-1)<=0 ) return false;
-	//·¢ËÍ³É¹¦£¬µÈ´ı½ÓÊÕ·şÎñÆ÷ÏìÓ¦,·şÎñÆ÷µÄÏìÓ¦´æ´¢ÔÚm_szLastResponse»º³åÖĞ
+	//send success, waiting to receive server response,serverçš„responseå­˜å‚¨atm_szLastResponsebufferä¸­
 	time_t tStart=time(NULL);
 	while(m_szLastResponse[0]==c){
-		if((time(NULL)-tStart)>m_lTimeout) break; //³¬Ê±
+		if((time(NULL)-tStart)>m_lTimeout) break; //timeout
 		cUtils::usleep(SCHECKTIMEOUT);
 	}//?while
 	int responseCode=atoi(m_szLastResponse);
@@ -452,7 +452,7 @@ void vidccSets :: Destroy()
 	m_vidccs.clear();
 	m_mutex.unlock();
 }
-//×Ô¶¯ÖØÁ¬¼ì²â
+//autoé‡è¿æ£€æµ‹
 void vidccSets :: autoConnect()
 {
 	m_mutex.lock();
@@ -464,7 +464,7 @@ void vidccSets :: autoConnect()
 		{
 			SOCKSRESULT sr=pvidcc->ConnectSvr();
 			if(sr==SOCKSERR_VIDC_VER || sr==SOCKSERR_VIDC_PSWD)
-				pvidcc->vidcsinfo().m_bAutoConn=false; //ÏÂ´Î²»ÔÚ³¢ÊÔÖØÁ¬
+				pvidcc->vidcsinfo().m_bAutoConn=false; //ä¸‹æ¬¡notatå°è¯•é‡è¿
 		}
 	}
 	m_mutex.unlock();
@@ -527,7 +527,7 @@ bool vidccSets :: xml_info_vidcc(cBuffer &buffer,const char *vname,VIDC_MAPTYPE 
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>1</connected>");
 		time_t t=pvidcc->getStartTime(); struct tm *ltime=localtime(&t);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04dÄê%02dÔÂ%02dÈÕ %02d:%02d:%02d</starttime>",
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<starttime>%04d-%02d-%02d %02d:%02d:%02d</starttime>",
 			(1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday,ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 	}
 	else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<connected>0</connected>");
@@ -580,7 +580,7 @@ void vidccSets :: str_list_vidcc(std::string &strini)
 						(*it).first.c_str(),vinfo.m_vidcsHost.c_str(),vinfo.m_vidcsPort,
 						vinfo.m_vidcsPswd.c_str(),((vinfo.m_bAutoConn)?1:0) );
 		strini.append(buf,buflen);
-		//¶Ë¿ÚÓ³ÉäĞÅÏ¢
+		//port mappinginfo
 		pvidcc->str_list_mapped((*it).first.c_str(),strini);
 	}
 	m_mutex.unlock();
