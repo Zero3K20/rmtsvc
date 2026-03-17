@@ -304,11 +304,13 @@ SOCKSRESULT httpResponse::send_rspH(socketTCP *psock,int respcode,const char *re
 		for(;it!=m_httprsp_SETCOOKIE.end();it++){
 			TNew_Cookie &newCookie=(*it).second;
 			if(newCookie.cookie_expires!="")
-			outbuf.len()+=sprintf(outbuf.str()+outbuf.len(),"Set-Cookie: %s=%s; expires=%s; path=%s\r\n",
-				newCookie.cookie_name.c_str(),newCookie.cookie_value.c_str(),newCookie.cookie_expires.c_str(),newCookie.cookie_path.c_str());
+			outbuf.len()+=sprintf(outbuf.str()+outbuf.len(),"Set-Cookie: %s=%s; expires=%s; path=%s%s\r\n",
+				newCookie.cookie_name.c_str(),newCookie.cookie_value.c_str(),newCookie.cookie_expires.c_str(),newCookie.cookie_path.c_str(),
+				newCookie.cookie_httponly?"; HttpOnly":"");
 			else
-			outbuf.len()+=sprintf(outbuf.str()+outbuf.len(),"Set-Cookie: %s=%s; path=%s\r\n",
-				newCookie.cookie_name.c_str(),newCookie.cookie_value.c_str(),newCookie.cookie_path.c_str());
+			outbuf.len()+=sprintf(outbuf.str()+outbuf.len(),"Set-Cookie: %s=%s; path=%s%s\r\n",
+				newCookie.cookie_name.c_str(),newCookie.cookie_value.c_str(),newCookie.cookie_path.c_str(),
+				newCookie.cookie_httponly?"; HttpOnly":"");
 		}//?for(;
 	}
 
