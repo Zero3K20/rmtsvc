@@ -16,7 +16,9 @@ var tmp=document.getElementById("rname").value;
 param=param+"&rname="+tmp.replace(/&/g,"%26");
 tmp=document.getElementById("rdata").value;
 param=param+"&rdata="+tmp.replace(/&/g,"%26");
-if(window.opener && window.opener._addItemCallback)
+if(window._addItemCallback)
+	window._addItemCallback(param);
+else if(window.opener && window.opener._addItemCallback)
 	window.opener._addItemCallback(param);
 window.close();
 

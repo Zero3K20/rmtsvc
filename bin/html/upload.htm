@@ -41,7 +41,9 @@
 				if(!window.confirm("File uploaded successfully. Upload another file?"))
 				{
 					// notify opener if available, then close
-					if(window.opener && window.opener._refreshCallback)
+					if(window._refreshCallback)
+						window._refreshCallback();
+					else if(window.opener && window.opener._refreshCallback)
 						window.opener._refreshCallback();
 					window.close();
 				}
