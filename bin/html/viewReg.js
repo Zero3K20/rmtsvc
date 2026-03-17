@@ -102,6 +102,7 @@ function renderRegitems()
 			tr.setAttribute("data-idx",String(idx));
 			tr.id="fItems";
 			tr.style.cursor="pointer";
+			tr.style.height="18px";
 			tr.onmousemove=function(){this.style.background="#e5e5e5";};
 			tr.onmouseout=function(){this.style.background="#ffffff";};
 			tr.onclick=function(){regItemClick(tr);};
