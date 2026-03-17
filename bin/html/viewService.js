@@ -1,20 +1,108 @@
 var curSname="";
 var svrQX=true;
 var ACCESS_SERVICE_ALL=0x0030;
+var slistData=[];
+var xmlSlist=null;
+var slistSortCol="";
+var slistSortAsc=true;
+
+function getNodeText(el, tag) {
+	var n=el.getElementsByTagName(tag);
+	if(n.length>0) return (n[0].textContent!==undefined?n[0].textContent:n[0].text)||"";
+	return "";
+}
+
+function escHtml(s) {
+	var d=document.createElement("div");
+	d.appendChild(document.createTextNode(String(s)));
+	return d.innerHTML;
+}
 
 function window_onload()
 {
-	if(!oPopup) createpopup(); 
+	if(!oPopup) createpopup();
 	var qx=parent.frmLeft.userQX;
 	if((qx & ACCESS_SERVICE_ALL)==ACCESS_SERVICE_ALL)
 		svrQX=false;
+	loadSlist("");
+}
+
+function loadSlist(query)
+{
+	showPopup(250, 200, 150, 20);
+	if(!xmlSlist) {
+		if(window.ActiveXObject) xmlSlist=new ActiveXObject("Microsoft.XMLHTTP");
+		else xmlSlist=new XMLHttpRequest();
+	}
+	xmlSlist.abort();
+	var url="/slist"+(query?"?"+query:"");
+	xmlSlist.open("GET", url, true);
+	xmlSlist.onreadystatechange=function() {
+		if(xmlSlist.readyState==4) {
+			if(xmlSlist.status==200) {
+				var xmlobj=xmlSlist.responseXML;
+				slistData=[];
+				var svcs=xmlobj.getElementsByTagName("service");
+				for(var i=0;i<svcs.length;i++) {
+					var s=svcs[i];
+					slistData.push({
+						id:getNodeText(s,"id"),
+						status:getNodeText(s,"status"),
+						rtype:getNodeText(s,"rtype"),
+						stype:getNodeText(s,"stype"),
+						sname:getNodeText(s,"sname"),
+						sdisp:getNodeText(s,"sdisp"),
+						sdesc:getNodeText(s,"sdesc"),
+						spath:getNodeText(s,"spath")
+					});
+				}
+				renderSlist();
+			}
+			hidePopup();
+		}
+	};
+	xmlSlist.send(null);
+}
+
+function makeCell(content, align) {
+	var td=document.createElement("td");
+	if(align) td.align=align;
+	td.innerHTML=content;
+	return td;
+}
+
+function renderSlist()
+{
+	var tbody=document.getElementById("slistTbody");
+	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	for(var i=0;i<slistData.length;i++) {
+		(function(idx) {
+			var d=slistData[idx];
+			var tr=document.createElement("tr");
+			tr.setAttribute("data-idx",String(idx));
+			tr.style.cursor="pointer";
+			tr.onmousemove=function(){this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onclick=function(){serviceClick(this);};
+			tr.appendChild(makeCell(escHtml(d.id),"center"));
+			tr.appendChild(makeCell(escHtml(d.status),"center"));
+			tr.appendChild(makeCell(escHtml(d.rtype),"center"));
+			tr.appendChild(makeCell(escHtml(d.stype),"center"));
+			tr.appendChild(makeCell(escHtml(d.sname),""));
+			tr.appendChild(makeCell(escHtml(d.sdisp),""));
+			tr.appendChild(makeCell(escHtml(d.sdesc),""));
+			tr.appendChild(makeCell(escHtml(d.spath),""));
+			tbody.appendChild(tr);
+		})(i);
+	}
 }
 
 function serviceClick(tblElement)
 {
-	var row=tblElement.rowIndex;
-	slistXML.recordset.absoluteposition=row;
-	stat=slistXML.recordset("status");
+	var idx=parseInt(tblElement.getAttribute("data-idx"));
+	if(isNaN(idx)||idx<0||idx>=slistData.length) return;
+	var d=slistData[idx];
+	var stat=d.status;
 	if(stat=="Running")
 	{
 		document.getElementById("btnStart").disabled=true;
@@ -23,14 +111,14 @@ function serviceClick(tblElement)
 		document.getElementById("btnStart").disabled=svrQX;
 		document.getElementById("btnStop").disabled=true;
 	}
-	runtype=slistXML.recordset("rtype");
-	if(runtype=="Auto")
+	var runtype=d.rtype.toLowerCase();
+	if(runtype=="auto")
 	{
 		document.getElementById("btnAuto").disabled=true;
 		document.getElementById("btnManual").disabled=svrQX;
 		document.getElementById("btnForbid").disabled=svrQX;
 	}
-	else if(runtype=="Manual")
+	else if(runtype=="manual")
 	{
 		document.getElementById("btnManual").disabled=true;
 		document.getElementById("btnAuto").disabled=svrQX;
@@ -39,33 +127,29 @@ function serviceClick(tblElement)
 	else // Disabled
 	{
 		document.getElementById("btnManual").disabled=svrQX;
-	document.getElementById("btnAuto").disabled=svrQX;
-	document.getElementById("btnForbid").disabled=true;
+		document.getElementById("btnAuto").disabled=svrQX;
+		document.getElementById("btnForbid").disabled=true;
 		document.getElementById("btnStart").disabled=true;
 	}
-	curSname=slistXML.recordset("sname");
+	curSname=d.sname;
 	document.getElementById("lblService").innerText="Service : "+curSname;
 }
 
-//----------------sort func--------------------------
-function sort(xmlObj, xslObj, sortByColName) 
-{ 
-try {
-var xmlData=document.getElementById(xmlObj) && document.getElementById(xmlObj).XMLDocument;
-var xslData=document.getElementById(xslObj) && document.getElementById(xslObj).XMLDocument;
-if(!xmlData || !xslData) return;
-var nodes=xslData.documentElement.selectSingleNode("xsl:for-each"); 
-var s=nodes.selectSingleNode("@order-by").value;
-if(s.substr(1)==sortByColName)
+function doServiceCmd(cmd)
 {
-	if(s.charAt(0)=="+")
-		s="-"+sortByColName;
-	else s="+"+sortByColName;
+	if(curSname=="") return;
+	loadSlist("cmd="+cmd+"&sname="+encodeURIComponent(curSname));
 }
-else
-	s="+"+sortByColName;
-nodes.selectSingleNode("@order-by").value=s;
 
-xmlData.documentElement.transformNodeToObject(xslData.documentElement,xmlData); 
-} catch(e) {} 
-} 
+function sortSlist(colName)
+{
+	if(slistSortCol==colName) slistSortAsc=!slistSortAsc;
+	else { slistSortCol=colName; slistSortAsc=true; }
+	slistData.sort(function(a,b) {
+		var av=a[colName], bv=b[colName];
+		if(av<bv) return slistSortAsc?-1:1;
+		if(av>bv) return slistSortAsc?1:-1;
+		return 0;
+	});
+	renderSlist();
+}

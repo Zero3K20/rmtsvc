@@ -29,10 +29,10 @@ click it to stop or resume refresh" >&nbsp;
 <td>
 &nbsp;<b>Process List</b>&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="Kill" onclick="javascript:pkill();">
+ onmouseover='javascript:this.className="btnUP";' value="Kill" onclick="javascript:terminateProcess();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:plistXML.src='/plist';">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:loadPlist();">
  &nbsp;&nbsp;<span id="lblProcess" name="lblProcess"></span>
 </td>
 <td>
@@ -49,84 +49,37 @@ click it to stop or resume refresh" >&nbsp;
 <tr>
 <td valign=top>
  <div style="height:100%;width:100%;overflow:auto;" >
- <xml id="plistXML" src="plist" onreadystatechange="javascript:showPopup(250, 200, 150, 20);" ondatasetcomplete="javascript:hidePopup();"></xml>
- <table id=tblProcess name=tblProcess datasrc="#plistXML" width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
+ <table id=tblProcess name=tblProcess width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','pid');"> <u>PID</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','ppid');"> <u>Parent PID</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','priority');"> <u>Priority</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('plistXML','plistStyle','threads');"> <u>Threads</u> </th>
- <th style="cursor:hand" onclick="sort('plistXML','plistStyle','pname');"> <u>Process Name</u> </th>
- </tr><THEAD>
- <TBODY>
- <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 
-  onclick="javascript:processClick(this);" style="cursor:hand;">
- <td align=center ><span datafld="id" ></span></td>
- <td align=center ><span datafld="pid" ></span></td>
- <td align=center ><span datafld="ppid" ></span></td>
- <td align=center ><span datafld="priority" ></span></td>
- <td align=center ><span datafld="threads" ></span></td>
- <td><span datafld="pname" ></span></td>
- </tr>
- <TBODY></table>
+ <th width=50px style="cursor:pointer" onclick="sortPlist('pid');"> <u>PID</u> </th>
+ <th width=50px style="cursor:pointer" onclick="sortPlist('ppid');"> <u>Parent PID</u> </th>
+ <th width=50px style="cursor:pointer" onclick="sortPlist('priority');"> <u>Priority</u> </th>
+ <th width=50px style="cursor:pointer" onclick="sortPlist('threads');"> <u>Threads</u> </th>
+ <th style="cursor:pointer" onclick="sortPlist('pname');"> <u>Process Name</u> </th>
+ </tr></THEAD>
+ <TBODY id="plistTbody"></TBODY>
+ </table>
  </div>
 </td>
 <td valign=top >
  <div style="height:100%;width:100%;overflow:auto;" >
- <xml id="mlistXML" onreadystatechange="javascript:showPopup(250, 200, 150, 20);" ondatasetcomplete="javascript:hidePopup();"></xml>
- <table id=tblModule name=tblModule datasrc="#mlistXML" width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
+ <table id=tblModule name=tblModule width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=80px style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mbase');"> <u>Base Address</u> </th>
+ <th width=80px style="cursor:pointer" onclick="sortMlist('mbase');"> <u>Base Address</u> </th>
  <th width=80px> Load Count </th>
- <th style="cursor:hand" onclick="sort('mlistXML','mlistStyle','mname');"> <u>Module Name</u> </th>
- </tr><THEAD>
- <TBODY>
- <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 
-  onclick="javascript:moduleClick(this);" style="cursor:hand;">
- <td align=center ><span datafld="id" ></span></td>
- <td align=center ><span datafld="mbase" ></span></td>
- <td align=center ><span datafld="usage" ></span></td>
- <td><span datafld="mname" ></span></td>
- </tr>
- <TBODY></table>
+ <th style="cursor:pointer" onclick="sortMlist('mname');"> <u>Module Name</u> </th>
+ </tr></THEAD>
+ <TBODY id="mlistTbody"></TBODY>
+ </table>
  </div>
 </td>
 </tr>
 
 </table>
-
-<xml id="plistStyle"> 
-<xmlroot> 
-<xsl:for-each select="process" order-by="+pid" xmlns:xsl="http://www.w3.org/TR/WD-xsl"> 
-<process> 
-<id><xsl:value-of select="id"/></id>
-<pid><xsl:value-of select="pid"/></pid> 
-<ppid><xsl:value-of select="ppid"/></ppid> 
-<priority><xsl:value-of select="priority"/></priority> 
-<threads><xsl:value-of select="threads"/></threads> 
-<pname><xsl:value-of select="pname"/></pname> 
-</process> 
-</xsl:for-each> 
-</xmlroot> 
-</xml> 
-
-<xml id="mlistStyle"> 
-<xmlroot> 
-<xsl:for-each select="module" order-by="" xmlns:xsl="http://www.w3.org/TR/WD-xsl"> 
-<module> 
-<id><xsl:value-of select="id"/></id>
-<mbase><xsl:value-of select="mbase"/></mbase> 
-<usage><xsl:value-of select="usage"/></usage> 
-<hmdl><xsl:value-of select="hmdl"/></hmdl>
-<mname><xsl:value-of select="mname"/></mname> 
-</module> 
-</xsl:for-each> 
-</xmlroot> 
-</xml> 
 
 </BODY>
 </HTML>

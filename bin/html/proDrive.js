@@ -34,12 +34,11 @@ var sdri="";
 function window_onload()
 {
 	var qx=0;
-	sdri=window.dialogArguments;
-	var p=sdri.indexOf(',');
-	if(p!=-1)
-	{
-		qx=sdri.substr(0,p);
-		sdri=sdri.substr(p+1);
+	var params=window.location.search.substring(1).split("&");
+	for(var i=0;i<params.length;i++) {
+		var kv=params[i].split("=");
+		if(kv[0]=="qx") qx=parseInt(kv[1])||0;
+		if(kv[0]=="path") sdri=decodeURIComponent(kv[1]||"");
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();

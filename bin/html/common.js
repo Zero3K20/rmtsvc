@@ -47,39 +47,39 @@ function createXMLHttpRequest() {
 
 function createpopup()
 {
-	if(strUserAgent.indexOf("MSIE")!=-1)
-	{// IE only
-	oPopup = window.createPopup();
-	var oPopBody = oPopup.document.body;
-    	oPopBody.style.backgroundColor = "lightyellow";
-    	oPopBody.style.border = "solid black 1px";
-    	oPopBody.innerHTML = "&nbsp;&nbsp;Processing... ";
-	}
+	var div = document.createElement("div");
+	div.id = "_progressPopup";
+	div.style.cssText = "display:none;position:fixed;left:250px;top:200px;background:lightyellow;border:1px solid black;padding:2px 8px;z-index:9999;";
+	div.innerHTML = "&nbsp;&nbsp;Processing... ";
+	document.body.appendChild(div);
+	oPopup = div;
 }
 var ista=0;
 function moviePopup()
 {
-	var oPopBody = oPopup.document.body;
+	if(!oPopup) return;
 	if(ista==0)
 	{
-		oPopBody.innerHTML = "&nbsp;&nbsp;Processing../ ";
+		oPopup.innerHTML = "&nbsp;&nbsp;Processing../ ";
 		ista=1;
 	}
 	else if(ista==1)
 	{
-		oPopBody.innerHTML = "&nbsp;&nbsp;Processing..- ";
+		oPopup.innerHTML = "&nbsp;&nbsp;Processing..- ";
 		ista=2;
 	}
 	else if(ista==2)
 	{
-		oPopBody.innerHTML = "&nbsp;&nbsp;Processing..\\ ";
+		oPopup.innerHTML = "&nbsp;&nbsp;Processing..\\ ";
 		ista=0;
 	}
 }
 function showPopup(lx,ty,w,h)
 {
 	if(!oPopup) return;
-	oPopup.show(lx, ty, w, h, document.body);
+	oPopup.style.left = lx + "px";
+	oPopup.style.top = ty + "px";
+	oPopup.style.display = "block";
 	timerID_popup=window.setInterval(moviePopup,500);
 }
 
@@ -87,8 +87,7 @@ function hidePopup()
 {
 	if(!oPopup) return;
 	if(timerID_popup!=0) window.clearInterval(timerID_popup);
-	if(oPopup.isOpen) oPopup.hide();
-	var oPopBody = oPopup.document.body;
-	oPopBody.innerHTML = "&nbsp;&nbsp;Processing... ";
+	oPopup.style.display = "none";
+	oPopup.innerHTML = "&nbsp;&nbsp;Processing... ";
 	ista=0;
 }

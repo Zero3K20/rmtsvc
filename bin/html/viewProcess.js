@@ -1,33 +1,175 @@
 var autoRefresh=1000; // Auto-refresh interval in ms
-var imgLoaded=true; 
+var imgLoaded=true;
 
 var curPid=0;
 var curPname="";
 var curHmdl=0;
 var loadcount=0;
+var plistData=[];
+var mlistData=[];
+var xmlPlist=null;
+var xmlMlist=null;
+var plistSortCol="pid";
+var plistSortAsc=true;
+var mlistSortCol="";
+var mlistSortAsc=true;
 
-function processRequest() 
+function getNodeText(el, tag) {
+	var n=el.getElementsByTagName(tag);
+	if(n.length>0) return (n[0].textContent!==undefined?n[0].textContent:n[0].text)||"";
+	return "";
+}
+
+function escHtml(s) {
+	var d=document.createElement("div");
+	d.appendChild(document.createTextNode(String(s)));
+	return d.innerHTML;
+}
+
+function processRequest()
 {
 	if (xmlHttp.readyState == 4) { // Check object state
 		if (xmlHttp.status == 200) { // Data returned successfully, start processing
 			var xmlobj = xmlHttp.responseXML;
 			var nodes=xmlobj.getElementsByTagName("pcname");
-			document.getElementById("lblName").innerText=nodes[0].firstChild.data;
+			if(nodes.length>0) document.getElementById("lblName").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("OS");
-			document.getElementById("lblOS").innerText=nodes[0].firstChild.data;
+			if(nodes.length>0) document.getElementById("lblOS").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("CPU");
-			document.getElementById("lblCPU").innerText=nodes[0].firstChild.data;
+			if(nodes.length>0) document.getElementById("lblCPU").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("status");
-			document.getElementById("lblSta").innerText=nodes[0].firstChild.data;
+			if(nodes.length>0) document.getElementById("lblSta").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("account");
-			document.getElementById("lblAccount").innerText=nodes[0].firstChild.data;
+			if(nodes.length>0) document.getElementById("lblAccount").innerText=nodes[0].firstChild.data;
 			nodes=xmlobj.getElementsByTagName("pid");
-			document.getElementById("lblProcess").innerText="pid:"+nodes[0].firstChild.data;
-			curPid=nodes[0].firstChild.data;
-			mlistXML.src="/mlist?pid="+curPid;
-			
-            } else alert("Request error");
-        }
+			if(nodes.length>0) {
+				curPid=nodes[0].firstChild.data;
+				document.getElementById("lblProcess").innerText="pid:"+curPid;
+				loadMlist(curPid);
+			}
+		} else alert("Request error");
+	}
+}
+
+function loadPlist()
+{
+	showPopup(250, 200, 150, 20);
+	if(!xmlPlist) {
+		if(window.ActiveXObject) xmlPlist=new ActiveXObject("Microsoft.XMLHTTP");
+		else xmlPlist=new XMLHttpRequest();
+	}
+	xmlPlist.abort();
+	xmlPlist.open("GET", "/plist", true);
+	xmlPlist.onreadystatechange=function() {
+		if(xmlPlist.readyState==4) {
+			if(xmlPlist.status==200) {
+				var xmlobj=xmlPlist.responseXML;
+				plistData=[];
+				var procs=xmlobj.getElementsByTagName("process");
+				for(var i=0;i<procs.length;i++) {
+					var p=procs[i];
+					plistData.push({
+						id:getNodeText(p,"id"),
+						pid:getNodeText(p,"pid"),
+						ppid:getNodeText(p,"ppid"),
+						priority:getNodeText(p,"priority"),
+						threads:getNodeText(p,"threads"),
+						pname:getNodeText(p,"pname")
+					});
+				}
+				renderPlist();
+			}
+			hidePopup();
+		}
+	};
+	xmlPlist.send(null);
+}
+
+function makeCell(content, align) {
+	var td=document.createElement("td");
+	if(align) td.align=align;
+	td.innerHTML=content;
+	return td;
+}
+
+function renderPlist()
+{
+	var tbody=document.getElementById("plistTbody");
+	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	for(var i=0;i<plistData.length;i++) {
+		(function(idx) {
+			var d=plistData[idx];
+			var tr=document.createElement("tr");
+			tr.setAttribute("data-idx",String(idx));
+			tr.style.cursor="pointer";
+			tr.onmousemove=function(){this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onclick=function(){processClick(this);};
+			tr.appendChild(makeCell(escHtml(d.id),"center"));
+			tr.appendChild(makeCell(escHtml(d.pid),"center"));
+			tr.appendChild(makeCell(escHtml(d.ppid),"center"));
+			tr.appendChild(makeCell(escHtml(d.priority),"center"));
+			tr.appendChild(makeCell(escHtml(d.threads),"center"));
+			tr.appendChild(makeCell(escHtml(d.pname),""));
+			tbody.appendChild(tr);
+		})(i);
+	}
+}
+
+function loadMlist(pid)
+{
+	if(!pid) return;
+	showPopup(250, 200, 150, 20);
+	if(!xmlMlist) {
+		if(window.ActiveXObject) xmlMlist=new ActiveXObject("Microsoft.XMLHTTP");
+		else xmlMlist=new XMLHttpRequest();
+	}
+	xmlMlist.abort();
+	xmlMlist.open("GET", "/mlist?pid="+pid, true);
+	xmlMlist.onreadystatechange=function() {
+		if(xmlMlist.readyState==4) {
+			if(xmlMlist.status==200) {
+				var xmlobj=xmlMlist.responseXML;
+				mlistData=[];
+				var mods=xmlobj.getElementsByTagName("module");
+				for(var i=0;i<mods.length;i++) {
+					var m=mods[i];
+					mlistData.push({
+						id:getNodeText(m,"id"),
+						mbase:getNodeText(m,"mbase"),
+						usage:getNodeText(m,"usage"),
+						hmdl:getNodeText(m,"hmdl"),
+						mname:getNodeText(m,"mname")
+					});
+				}
+				renderMlist();
+			}
+			hidePopup();
+		}
+	};
+	xmlMlist.send(null);
+}
+
+function renderMlist()
+{
+	var tbody=document.getElementById("mlistTbody");
+	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	for(var i=0;i<mlistData.length;i++) {
+		(function(idx) {
+			var d=mlistData[idx];
+			var tr=document.createElement("tr");
+			tr.setAttribute("data-idx",String(idx));
+			tr.style.cursor="pointer";
+			tr.onmousemove=function(){this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onclick=function(){moduleClick(this);};
+			tr.appendChild(makeCell(escHtml(d.id),"center"));
+			tr.appendChild(makeCell(escHtml(d.mbase),"center"));
+			tr.appendChild(makeCell(escHtml(d.usage),"center"));
+			tr.appendChild(makeCell(escHtml(d.mname),""));
+			tbody.appendChild(tr);
+		})(i);
+	}
 }
 
 function loadImg()
@@ -62,39 +204,41 @@ function window_onload()
 	if(!xmlHttp) createXMLHttpRequest();
 	xmlHttp.open("GET", "/sysinfo", true);
 	xmlHttp.onreadystatechange = processRequest;
-    	xmlHttp.send(null);
-    	loadImg();
+	xmlHttp.send(null);
+	loadImg();
+	loadPlist();
 }
 
 function processClick(tblElement)
 {
-	var row=tblElement.rowIndex;
-	plistXML.recordset.absoluteposition=row;
-	curPid=plistXML.recordset("pid");
-	curPname=plistXML.recordset("pname");
+	var idx=parseInt(tblElement.getAttribute("data-idx"));
+	if(isNaN(idx)||idx<0||idx>=plistData.length) return;
+	curPid=plistData[idx].pid;
+	curPname=plistData[idx].pname;
 	document.getElementById("lblProcess").innerText="pid:"+curPid+" - "+curPname;
-	mlistXML.src="/mlist?pid="+plistXML.recordset("pid");
+	loadMlist(curPid);
 }
 
 function moduleClick(tblElement)
 {
-	var row=tblElement.rowIndex;
-	mlistXML.recordset.absoluteposition=row;
-	curHmdl=mlistXML.recordset("hmdl");
-	loadcount=mlistXML.recordset("usage");
-	document.getElementById("lblModule").innerText=mlistXML.recordset("mname");
+	var idx=parseInt(tblElement.getAttribute("data-idx"));
+	if(isNaN(idx)||idx<0||idx>=mlistData.length) return;
+	curHmdl=mlistData[idx].hmdl;
+	loadcount=mlistData[idx].usage;
+	document.getElementById("lblModule").innerText=mlistData[idx].mname;
 }
-// Kill the currently selected process
-function pkill()
+
+// Terminate the currently selected process
+function terminateProcess()
 {
-	if(curPname!="" && confirm("Are you sure you want to kill process "+curPname) )
+	if(curPname!="" && confirm("Are you sure you want to terminate process "+curPname) )
 	{
 		xmlHttp.open("GET", "/pkill?pid="+curPid, false);
-    		xmlHttp.send(null);
-    		if(xmlHttp.responseText=="true")
-    			plistXML.src='/plist';
-    		else alert(xmlHttp.responseText);
-    	}
+		xmlHttp.send(null);
+		if(xmlHttp.responseText=="true")
+			loadPlist();
+		else alert(xmlHttp.responseText);
+	}
 }
 
 function deattach()
@@ -105,42 +249,47 @@ function deattach()
 	else if( confirm("Are you sure you want to unload this DLL?") )
 	{
 		xmlHttp.open("GET", "/mdattach?pid="+curPid+"&hmdl="+curHmdl+"&count="+loadcount, false);
-    		xmlHttp.send(null);
-    		mlistXML.src="/mlist?pid="+curPid;
+		xmlHttp.send(null);
+		loadMlist(curPid);
 	}
 }
 
 function proFile()
 {
 	var qx=parent.frmLeft.userQX;
-	var fpath=mlistXML.recordset("mname");
+	var fpath=document.getElementById("lblModule").innerText;
 	if(fpath=="")
 		alert("Please select a file to view properties!");
 	else
 	{
-		window.showModalDialog("proFile.htm",qx+","+fpath,"dialogHeight: 350px;dialogWidth: 400px;center: yes;resizable: no;scroll: no;status: no");
+		window.open("proFile.htm?qx="+qx+"&path="+encodeURIComponent(fpath),"_blank","height=350,width=400,resizable=no,scrollbars=no,status=no");
 	}
 }
 
-//----------------sort func--------------------------
-function sort(xmlObj, xslObj, sortByColName) 
-{ 
-try {
-var xmlData=document.getElementById(xmlObj) && document.getElementById(xmlObj).XMLDocument;
-var xslData=document.getElementById(xslObj) && document.getElementById(xslObj).XMLDocument;
-if(!xmlData || !xslData) return;
-var nodes=xslData.documentElement.selectSingleNode("xsl:for-each"); 
-var s=nodes.selectSingleNode("@order-by").value;
-if(s.substr(1)==sortByColName)
+function sortPlist(colName)
 {
-	if(s.charAt(0)=="+")
-		s="-"+sortByColName;
-	else s="+"+sortByColName;
+	if(plistSortCol==colName) plistSortAsc=!plistSortAsc;
+	else { plistSortCol=colName; plistSortAsc=true; }
+	plistData.sort(function(a,b) {
+		var av=a[colName], bv=b[colName];
+		if(!isNaN(parseFloat(av)-parseFloat(bv))) { av=parseFloat(av); bv=parseFloat(bv); }
+		if(av<bv) return plistSortAsc?-1:1;
+		if(av>bv) return plistSortAsc?1:-1;
+		return 0;
+	});
+	renderPlist();
 }
-else
-	s="+"+sortByColName;
-nodes.selectSingleNode("@order-by").value=s;
 
-xmlData.documentElement.transformNodeToObject(xslData.documentElement,xmlData); 
-} catch(e) {} 
-} 
+function sortMlist(colName)
+{
+	if(mlistSortCol==colName) mlistSortAsc=!mlistSortAsc;
+	else { mlistSortCol=colName; mlistSortAsc=true; }
+	mlistData.sort(function(a,b) {
+		var av=a[colName], bv=b[colName];
+		if(!isNaN(parseFloat(av)-parseFloat(bv))) { av=parseFloat(av); bv=parseFloat(bv); }
+		if(av<bv) return mlistSortAsc?-1:1;
+		if(av>bv) return mlistSortAsc?1:-1;
+		return 0;
+	});
+	renderMlist();
+}

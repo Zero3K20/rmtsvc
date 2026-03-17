@@ -7,11 +7,12 @@
 <!--
 	var xmlRatio=null;
 	var autoRefresh=0;
-	function processRatio() 
+	var destpath="";
+	function processRatio()
 	{
-		if (xmlRatio.readyState == 4) { // Check object state
-			if (xmlRatio.status == 200) 
-			{ // Data returned successfully, start processing
+		if (xmlRatio.readyState == 4) {
+			if (xmlRatio.status == 200)
+			{
 				var xmlobj = xmlRatio.responseXML;
 				var node_ratio=xmlobj.getElementsByTagName("ratio");
 				var node_rbyte=xmlobj.getElementsByTagName("rbyte");
@@ -20,88 +21,77 @@
 				document.getElementById("lblRatio").innerText="Upload Progress: "+(node_ratio.item(0).textContent || node_ratio.item(0).text)+"  Upload Speed: "+(node_speed.item(0).textContent || node_speed.item(0).text);
 				document.getElementById("lblBytes").innerText="Uploaded Bytes: "+(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  Total Bytes: "+(node_abyte.item(0).textContent || node_abyte.item(0).text);
 				if(autoRefresh>0) window.setTimeout("get_upratio()",autoRefresh);
-            		}
-        	}
+			}
+		}
 	}
 	function get_upratio()
 	{
-    		if(!xmlRatio) return;
-    		xmlRatio.open("GET", "/get_upratio", true);
+		if(!xmlRatio) return;
+		xmlRatio.open("GET", "/get_upratio", true);
 		xmlRatio.onreadystatechange = processRatio;
-    		xmlRatio.send( null);
+		xmlRatio.send( null);
 	}
-	
-	function processRequest() 
+
+	function processRequest()
 	{
-		if (xmlHttp.readyState == 4) { // Check object state
+		if (xmlHttp.readyState == 4) {
 			autoRefresh=0;
-			if (xmlHttp.status == 200) 
-			{ // Data returned successfully, start processing
+			if (xmlHttp.status == 200)
+			{
 				if(!window.confirm("File uploaded successfully. Upload another file?"))
 				{
-					window.returnValue=1;
+					// notify opener if available, then close
+					if(window.opener && window.opener._refreshCallback)
+						window.opener._refreshCallback();
 					window.close();
 				}
-            		}
-            		else alert("Upload failed, status="+xmlHttp.status)
-        	}
+			}
+			else alert("Upload failed, status="+xmlHttp.status);
+		}
 	}
+
 	function window_onload()
 	{
 		if(!oPopup) createpopup();
 		if(!xmlHttp) createXMLHttpRequest();
-		var spath=window.dialogArguments;
-		document.getElementById("destpath").value=spath;
-		
+		// get destination path from URL parameter
+		var params=window.location.search.substring(1).split("&");
+		for(var i=0;i<params.length;i++) {
+			var kv=params[i].split("=");
+			if(kv[0]=="path") destpath=decodeURIComponent(kv[1]||"");
+		}
+		document.getElementById("destpath").value=destpath;
+
 		if (window.ActiveXObject) {
-        		xmlRatio = new ActiveXObject("Microsoft.XMLHTTP");
-    		} 
-    		else if (window.XMLHttpRequest) {
-        		xmlRatio = new XMLHttpRequest();
-    		}
+			xmlRatio = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+		else if (window.XMLHttpRequest) {
+			xmlRatio = new XMLHttpRequest();
+		}
 	}
-	
-	// Upload function
+
+	// Upload function using HTML5 File API
 	function sendfile()
 	{
-		var ado_stream=false;
-		try
-		{
-		ado_stream = new ActiveXObject("ADODB.Stream"); 
-		if(!ado_stream) throw "error";
-		}
-		catch(e)
-		{
-			alert("Cannot create ADODB.Stream object. Your registry may have it disabled!");
+		var destpathVal=document.form1.destpath.value;
+		var fileInput=document.form1.sourcefile;
+		if(!fileInput.files || fileInput.files.length==0) {
+			alert("Please select a file to upload!");
 			return;
 		}
-		
-		var destpath=document.form1.destpath.value;
-		var sourcefile=document.form1.sourcefile.value;
-		var filename=sourcefile.substr(sourcefile.lastIndexOf("\\")+1);
-		
-		xmlHttp.open("POST", "/upload?path="+destpath+"&name="+filename, true);
-		xmlHttp.setRequestHeader("Content-Type","text/xml");
+		var file=fileInput.files[0];
+		var filename=file.name;
+
+		xmlHttp.open("POST", "/upload?path="+encodeURIComponent(destpathVal)+"&name="+encodeURIComponent(filename), true);
+		xmlHttp.setRequestHeader("Content-Type","application/octet-stream");
 		xmlHttp.onreadystatechange = processRequest;
-		ado_stream.Type = 1; // 1=adTypeBinary 
-		ado_stream.Open(); 
-		try
-		{
-		ado_stream.LoadFromFile(sourcefile);
-		}
-		catch(e)
-		{
-			alert("Current IE security settings prevent domain data resource access.\r\nPlease enable or allow this option!");
-			return;
-		}
-		
+
 		autoRefresh=1000;
 		window.setTimeout("get_upratio()",autoRefresh);
-		
-		xmlHttp.send( ado_stream.Read(-1) );
-		ado_stream.Close();
+
+		xmlHttp.send( file );
 	}
-	
+
 	function window_onunload()
 	{
 		xmlHttp.abort();
@@ -110,7 +100,7 @@
 </SCRIPT>
 </HEAD>
 <body bgColor=silver onload="window_onload()" onunload="window_onunload()" style="overflow:hidden;">
-<form name="form1" name="form1"  method="post" >
+<form name="form1" method="post" >
   &nbsp;<label id=lblRatio name=lblRatio></label><br>
   &nbsp;<label id=lblBytes name=lblBytes></label><br>
   &nbsp;Destination Path:<br>&nbsp;

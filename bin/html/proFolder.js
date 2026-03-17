@@ -38,13 +38,12 @@ function processRequest()
 var spath="";
 function window_onload()
 {
-	spath=window.dialogArguments;
 	var qx=0;
-	var p=spath.indexOf(',');
-	if(p!=-1)
-	{
-		qx=spath.substr(0,p);
-		spath=spath.substr(p+1);
+	var params=window.location.search.substring(1).split("&");
+	for(var i=0;i<params.length;i++) {
+		var kv=params[i].split("=");
+		if(kv[0]=="qx") qx=parseInt(kv[1])||0;
+		if(kv[0]=="path") spath=decodeURIComponent(kv[1]||"");
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();

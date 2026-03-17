@@ -16,7 +16,8 @@ var tmp=document.getElementById("rname").value;
 param=param+"&rname="+tmp.replace(/&/g,"%26");
 tmp=document.getElementById("rdata").value;
 param=param+"&rdata="+tmp.replace(/&/g,"%26");
-window.returnValue=param;
+if(window.opener && window.opener._addItemCallback)
+	window.opener._addItemCallback(param);
 window.close();
 
 }
@@ -43,10 +44,10 @@ Value Name:<input type=text value="" name=rname id=rname>
 </td></tr>
 <tr height=25px><td align=center>
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-&nbsp;&nbsp;<A href="" onclick="javascript:addregitem();">OK</A>&nbsp;&nbsp;</span>
+&nbsp;&nbsp;<A href="" onclick="javascript:addregitem();return false;">OK</A>&nbsp;&nbsp;</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
 <span style="height:20px;width:55px;" class="btnOff" onmouseout='javascript:this.className="btnOff";' onmouseover='javascript:this.className="btnUP";'>
-&nbsp;&nbsp;<A href="" onclick="javascript:window.event.returnValue=false;window.returnValue='';window.close();" >Cancel</A>&nbsp;&nbsp;</span>
+&nbsp;&nbsp;<A href="" onclick="javascript:window.close();return false;" >Cancel</A>&nbsp;&nbsp;</span>
 </td></tr>
 </table>
 
