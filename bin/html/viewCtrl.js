@@ -49,6 +49,32 @@ y=Math.round(y * img.naturalHeight / img.clientHeight);
 return {x:x, y:y};
 }
 
+// --- Cursor sync ---
+// Fetch the current server cursor shape and apply it to the screen image element.
+// The /getCursor endpoint returns JSON {"cursor":"text"} with a CSS cursor name.
+function fetchCursor()
+{
+var xhr;
+if(window.XMLHttpRequest) xhr=new XMLHttpRequest();
+else if(window.ActiveXObject) xhr=new ActiveXObject("Microsoft.XMLHTTP");
+if(!xhr) return;
+xhr.open("GET","/getCursor",true);
+xhr.onreadystatechange=function(){
+if(xhr.readyState===4 && xhr.status===200)
+{
+try{
+var data=JSON.parse(xhr.responseText);
+if(data && data.cursor)
+{
+var img=document.getElementById("screenimage");
+if(img) img.style.cursor=data.cursor;
+}
+}catch(e){}
+}
+};
+xhr.send();
+}
+
 function msPosition(e) 
 { 
 var o=window.document.getElementById("divScreen");
@@ -65,6 +91,9 @@ function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("txtHide").focus();
+// Poll server cursor shape every 200 ms so the client cursor stays in sync
+fetchCursor();
+window.setInterval(fetchCursor, 200);
 }
 
 function processRequest() 

@@ -84,8 +84,36 @@ var coords=scaleToScreen(x1,y1);
   w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
 }
 
+// --- Cursor sync ---
+// Fetch the current server cursor shape and apply it to the screen image element.
+// The /getCursor endpoint returns JSON {"cursor":"text"} with a CSS cursor name.
+function fetchCursor()
+{
+var xhr;
+if(window.XMLHttpRequest) xhr=new XMLHttpRequest();
+else if(window.ActiveXObject) xhr=new ActiveXObject("Microsoft.XMLHTTP");
+if(!xhr) return;
+xhr.open("GET","/getCursor",true);
+xhr.onreadystatechange=function(){
+if(xhr.readyState===4 && xhr.status===200)
+{
+try{
+var data=JSON.parse(xhr.responseText);
+if(data && data.cursor)
+{
+var img=document.getElementById("screenimage");
+if(img) img.style.cursor=data.cursor;
+}
+}catch(e){}
+}
+};
+xhr.send();
+}
+
 function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
-return;
+// Poll server cursor shape every 200 ms so the displayed cursor matches the server
+fetchCursor();
+window.setInterval(fetchCursor, 200);
 }

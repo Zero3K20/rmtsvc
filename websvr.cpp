@@ -184,6 +184,11 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			httprsp_capStream(psock,httprsp,session);
 			return true;
 		}
+		else if(strcasecmp(httpreq.url().c_str(),"/getCursor")==0)
+		{
+			httprsp_getCursor(psock,httprsp);
+			return true;
+		}
 		else if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)==RMTSVC_ACCESS_SCREEN_ALL)
 		{//if the user has full control permission
 			if(strcasecmp(httpreq.url().c_str(),"/capAudio")==0)

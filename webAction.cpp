@@ -446,6 +446,59 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 	return true;
 }
 
+// Returns the current server cursor shape as a JSON CSS cursor name string.
+// Uses the same thread-attachment technique as capDesktop to retrieve the active cursor.
+bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
+{
+	POINT ptCursor;
+	::GetCursorPos(&ptCursor);
+	HWND hw = ::WindowFromPoint(ptCursor);
+	if(hw == NULL) hw = ::GetDesktopWindow();
+	DWORD hdl = ::GetWindowThreadProcessId(hw, NULL);
+	::AttachThreadInput(::GetCurrentThreadId(), hdl, TRUE);
+	HCURSOR hCursor = ::GetCursor();
+	::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
+
+	// Map Windows system cursor handles to CSS cursor names
+	static const struct { LPTSTR id; const char *css; } cursorMap[] = {
+		{ IDC_IBEAM,       "text"        },
+		{ IDC_WAIT,        "wait"        },
+		{ IDC_CROSS,       "crosshair"   },
+		{ IDC_SIZENWSE,    "nwse-resize" },
+		{ IDC_SIZENESW,    "nesw-resize" },
+		{ IDC_SIZEWE,      "ew-resize"   },
+		{ IDC_SIZENS,      "ns-resize"   },
+		{ IDC_SIZEALL,     "move"        },
+		{ IDC_NO,          "not-allowed" },
+		{ IDC_HAND,        "pointer"     },
+		{ IDC_APPSTARTING, "progress"    },
+		{ IDC_HELP,        "help"        },
+		{ NULL,            NULL          }
+	};
+	const char *cssCursor = "default";
+	if(hCursor)
+	{
+		for(int i = 0; cursorMap[i].id != NULL; i++)
+		{
+			if(::LoadCursor(NULL, cursorMap[i].id) == hCursor)
+			{
+				cssCursor = cursorMap[i].css;
+				break;
+			}
+		}
+	}
+
+	char json[64];
+	int jlen = sprintf(json, "{\"cursor\":\"%s\"}", cssCursor);
+
+	httprsp.NoCache();
+	httprsp.set_mimetype(MIMETYPE_TEXT);
+	httprsp.lContentLength(jlen);
+	httprsp.send_rspH(psock, 200, "OK");
+	psock->Send(jlen, json, -1);
+	return true;
+}
+
 DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &lpbits);
 bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
