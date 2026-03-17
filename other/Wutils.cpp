@@ -281,8 +281,11 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		int screenTop    = GetSystemMetrics(SM_YVIRTUALSCREEN);
 		int screenWidth  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 		int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		LONG nx = (screenWidth  > 0) ? (LONG)((double)(x - screenLeft) * 65535.0 / screenWidth  + 0.5) : 0;
-		LONG ny = (screenHeight > 0) ? (LONG)((double)(y - screenTop)  * 65535.0 / screenHeight + 0.5) : 0;
+		// Clamp input coordinates to the virtual-screen rectangle before normalising.
+		int cx = x < screenLeft ? screenLeft : (x >= screenLeft + screenWidth  ? screenLeft + screenWidth  - 1 : x);
+		int cy = y < screenTop  ? screenTop  : (y >= screenTop  + screenHeight ? screenTop  + screenHeight - 1 : y);
+		LONG nx = (screenWidth  > 0) ? (LONG)((double)(cx - screenLeft) * 65535.0 / screenWidth  + 0.5) : 0;
+		LONG ny = (screenHeight > 0) ? (LONG)((double)(cy - screenTop)  * 65535.0 / screenHeight + 0.5) : 0;
 		Mouse_Event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_MOVE,
 		            (DWORD)nx, (DWORD)ny, 0);
 	}

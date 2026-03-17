@@ -1000,7 +1000,7 @@ static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
 			// (case-insensitive, precise to avoid matching non-loopback devices)
 			if (nameContainsCI(caps.szPname, "Stereo Mix")  ||
 			    nameContainsCI(caps.szPname, "What U Hear") ||
-			    nameContainsCI(caps.szPname, "Wave Out Mix")||
+			    nameContainsCI(caps.szPname, "Wave Out Mix") ||
 			    nameContainsCI(caps.szPname, "Loopback"))
 			{
 				// WAVE_FORMAT_QUERY only validates format support; it does not
@@ -1052,7 +1052,9 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	IAudioCaptureClient *pCapture = NULL;
 	WAVEFORMATEX        *pDevFmt  = NULL;
 
-	// Initialize COM for this call (harmless if already initialized on this thread).
+	// Initialize COM for this call.
+	// S_OK  = freshly initialized → we must call CoUninitialize() on the way out.
+	// S_FALSE = already initialized on this thread → do NOT call CoUninitialize().
 	HRESULT hrCom    = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	bool    bNeedCo  = (hrCom == S_OK);
 
@@ -1080,7 +1082,7 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 
 	if (FAILED(pClient->Start())) goto done;
 
-	Sleep(520); // wait ~500 ms so the buffer fills
+	Sleep(520); // wait 520 ms so the ~500 ms buffer fills and a little extra
 
 	{
 		bool   bFloat  = wfxIsFloat(pDevFmt);
@@ -1107,7 +1109,9 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 					short s = 0;
 					if (!bSilent)
 					{
-						const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)c * nBPCh;
+						// Clamp source channel index to the number of available channels
+						UINT32 srcC = (c < nSrcCh) ? c : (nSrcCh - 1);
+						const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)srcC * nBPCh;
 						if (bFloat && nBPS == 32)
 						{
 							float fv; memcpy(&fv, pSrc, 4);
