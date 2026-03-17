@@ -88,6 +88,7 @@ private:
 	bool httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpSession &session);
 	bool httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSession &session);
 	bool httprsp_capAudio(socketTCP *psock,httpResponse &httprsp);
+	bool httprsp_getCursor(socketTCP *psock,httpResponse &httprsp);
 	bool httprsp_sysinfo(socketTCP *psock,httpResponse &httprsp);
 	bool httprsp_usageimage(socketTCP *psock,httpResponse &httprsp);
 	bool httprsp_fport(socketTCP *psock,httpResponse &httprsp);

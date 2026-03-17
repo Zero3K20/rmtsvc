@@ -37,23 +37,59 @@ function isLeftButton(b)
 return isIE ? (b===1) : (b===0);
 }
 
-// Scale display coordinates back to actual screen coordinates when image is resized
+// Scale display coordinates back to actual screen coordinates when image is resized.
+// Uses getBoundingClientRect() for the rendered dimensions so that CSS transforms,
+// fractional scaling, and subpixel layouts are all accounted for correctly.
 function scaleToScreen(x, y)
 {
 var img=document.getElementById("screenimage");
-if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
+var rect=img.getBoundingClientRect();
+var rw=rect.width||img.clientWidth;
+var rh=rect.height||img.clientHeight;
+if(img.naturalWidth && rw && img.naturalWidth !== rw)
 {
-x=Math.round(x * img.naturalWidth / img.clientWidth);
-y=Math.round(y * img.naturalHeight / img.clientHeight);
+x=Math.round(x * img.naturalWidth / rw);
+y=Math.round(y * img.naturalHeight / rh);
 }
 return {x:x, y:y};
 }
 
+// --- Cursor sync ---
+// Fetch the current server cursor shape and apply it to the screen image element.
+// The /getCursor endpoint returns JSON {"cursor":"text"} with a CSS cursor name.
+function fetchCursor()
+{
+var xhr;
+if(window.XMLHttpRequest) xhr=new XMLHttpRequest();
+else if(window.ActiveXObject) xhr=new ActiveXObject("Microsoft.XMLHTTP");
+if(!xhr) return;
+xhr.open("GET","/getCursor",true);
+xhr.onreadystatechange=function(){
+if(xhr.readyState===4 && xhr.status===200)
+{
+try{
+var data=JSON.parse(xhr.responseText);
+if(data && data.cursor)
+{
+var img=document.getElementById("screenimage");
+if(img) img.style.cursor=data.cursor;
+}
+}catch(e){}
+}
+};
+xhr.send();
+}
+
+// Compute the mouse position relative to the screen image using getBoundingClientRect()
+// so the result is accurate regardless of scroll, CSS transforms, or frame nesting.
 function msPosition(e) 
 { 
-var o=window.document.getElementById("divScreen");
-ptX=(e.clientX !== undefined ? e.clientX : e.x)+o.scrollLeft-o.parentElement.offsetLeft;
-ptY=(e.clientY !== undefined ? e.clientY : e.y)+o.scrollTop-o.parentElement.offsetTop;
+var img=document.getElementById("screenimage");
+var rect=img.getBoundingClientRect();
+var cx=(e.clientX !== undefined ? e.clientX : e.x);
+var cy=(e.clientY !== undefined ? e.clientY : e.y);
+ptX=cx-Math.round(rect.left);
+ptY=cy-Math.round(rect.top);
 var coords=scaleToScreen(ptX,ptY);
 ptX=coords.x; ptY=coords.y;
 var w=window.parent.frmLeft;
@@ -65,6 +101,9 @@ function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("txtHide").focus();
+// Poll server cursor shape every 200 ms so the client cursor stays in sync
+fetchCursor();
+window.setInterval(fetchCursor, 200);
 }
 
 function processRequest() 
