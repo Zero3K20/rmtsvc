@@ -347,8 +347,10 @@ function fetchAudioChunk()
 	{
 		if (xhr.status === 200 && xhr.response && xhr.response.byteLength > 44)
 		{
+			var responseData = xhr.response;
+			fetchAudioChunk(); // start next fetch immediately, before decoding
 			audioCtx.decodeAudioData(
-				xhr.response,
+				responseData,
 				function(buffer)
 				{
 					var source = audioCtx.createBufferSource();
@@ -358,11 +360,10 @@ function fetchAudioChunk()
 					if (nextAudioTime < now) nextAudioTime = now;
 					source.start(nextAudioTime);
 					nextAudioTime += buffer.duration;
-					fetchAudioChunk();
 				},
 				function()
 				{
-					setTimeout(fetchAudioChunk, 500);
+					// decode failed; next fetch was already started above
 				}
 			);
 		}
