@@ -576,7 +576,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		"\r\n", boundary);
 	if(psock->Send(hlen, header, -1) < 0) return true;
 
-	bool ifCapCursor = true;
+	bool ifCapCursor = false; // do not draw server cursor into frames; client uses CSS cursor via /getCursor
 	WORD w = LOWORD(m_dwImgSize);
 	WORD h = HIWORD(m_dwImgSize);
 	HWND hwnd = (HWND)atol(session["cap_hwnd"].c_str());
