@@ -100,6 +100,20 @@ IN DWORD dwProtocolVersion; // 2 - UDP, 23 - UDPv6 (size of *pUdpTable must be 2
 */
 typedef DWORD (WINAPI *PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)(PMIB_UDPTABLE_EX*,BOOL,HANDLE,DWORD,DWORD);
 
+// GetExtendedTcpTable / GetExtendedUdpTable (documented, Windows XP SP2+)
+// Used as fallback when the undocumented Allocate* functions are unavailable (Windows Vista+).
+// With AF_INET (2) and TCP_TABLE_OWNER_PID_ALL (5) / UDP_TABLE_OWNER_PID (1) the returned
+// table entries are binary-compatible with MIB_TCPROW_EX / MIB_UDPROW_EX above.
+typedef DWORD (WINAPI *PROCGETEXTENDEDTCPTABLE)(PVOID,PDWORD,BOOL,ULONG,DWORD,ULONG);
+typedef DWORD (WINAPI *PROCGETEXTENDEDUDPTABLE)(PVOID,PDWORD,BOOL,ULONG,DWORD,ULONG);
+
+// Constants for GetExtendedTcpTable / GetExtendedUdpTable
+#ifndef FPORT_AF_INET
+#define FPORT_AF_INET               2   // AF_INET
+#define FPORT_TCP_TABLE_OWNER_PID_ALL 5 // TCP_TABLE_CLASS::TCP_TABLE_OWNER_PID_ALL
+#define FPORT_UDP_TABLE_OWNER_PID   1   // UDP_TABLE_CLASS::UDP_TABLE_OWNER_PID
+#endif
+
 static char *TCP_STATE[13]={"","CLOSED","LISTEN","SYN_SENT","SYN_RCVD","ESTAB","FIN_WAIT1",
 			"FIN_WAIT2","CLOSE_WAIT","CLOSING","LAST_ACK","TIME_WAIT","DELETE_TCB"};
 
@@ -115,17 +129,49 @@ BOOL portList(cBuffer &buffer)
 	//getfunctionpointer // XP and later - actually tested on 2k as well
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
-	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
+
+	// Fall back to documented GetExtendedTcpTable/GetExtendedUdpTable (Windows XP SP2+)
+	// when undocumented functions are unavailable (Windows Vista and later).
+	BOOL bUseUndocumented = (lpfnAllocateAndGetTcpExTableFromStack != NULL && lpfnAllocateAndGetUdpExTableFromStack != NULL);
+	PROCGETEXTENDEDTCPTABLE lpfnGetExtendedTcpTable = NULL;
+	PROCGETEXTENDEDUDPTABLE lpfnGetExtendedUdpTable = NULL;
+	if (!bUseUndocumented)
+	{
+		lpfnGetExtendedTcpTable = (PROCGETEXTENDEDTCPTABLE)GetProcAddress(hModule,"GetExtendedTcpTable");
+		lpfnGetExtendedUdpTable = (PROCGETEXTENDEDUDPTABLE)GetProcAddress(hModule,"GetExtendedUdpTable");
+		if (lpfnGetExtendedTcpTable == NULL || lpfnGetExtendedUdpTable == NULL)
+		{
+			::FreeLibrary(hModule);
+			return FALSE;
+		}
+	}
 	
 	Wutils::EnablePrivilege(SE_DEBUG_NAME,true);
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 	 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	DWORD dwLastError,dwSize,dwState,dwCount=0;
+	DWORD dwLastError=NO_ERROR,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
 	//enumallTCP
-	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
+	if (bUseUndocumented)
+	{
+		dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
+	}
+	else
+	{
+		// GetExtendedTcpTable two-call pattern; result layout is binary-compatible with MIB_TCPTABLE_EX.
+		DWORD dwTableSize = 0;
+		lpfnGetExtendedTcpTable(NULL,&dwTableSize,FALSE,FPORT_AF_INET,FPORT_TCP_TABLE_OWNER_PID_ALL,0);
+		if (dwTableSize > 0)
+		{
+			lpBuffer = (PMIB_TCPTABLE_EX)HeapAlloc(GetProcessHeap(),0,dwTableSize);
+			if (lpBuffer)
+				dwLastError = lpfnGetExtendedTcpTable(lpBuffer,&dwTableSize,TRUE,FPORT_AF_INET,FPORT_TCP_TABLE_OWNER_PID_ALL,0);
+			else
+				dwLastError = ERROR_NOT_ENOUGH_MEMORY;
+		}
+	}
 	if (dwLastError == NO_ERROR)
 	{
 		char strRemoteAddr[24];
@@ -159,7 +205,25 @@ BOOL portList(cBuffer &buffer)
 	}//?if (dwLastError == NO_ERROR)
 	
 	//enumallUDP
-	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
+	dwLastError = NO_ERROR;
+	if (bUseUndocumented)
+	{
+		dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
+	}
+	else
+	{
+		// GetExtendedUdpTable two-call pattern; result layout is binary-compatible with MIB_UDPTABLE_EX.
+		DWORD dwTableSize = 0;
+		lpfnGetExtendedUdpTable(NULL,&dwTableSize,FALSE,FPORT_AF_INET,FPORT_UDP_TABLE_OWNER_PID,0);
+		if (dwTableSize > 0)
+		{
+			lpBuffer1 = (PMIB_UDPTABLE_EX)HeapAlloc(GetProcessHeap(),0,dwTableSize);
+			if (lpBuffer1)
+				dwLastError = lpfnGetExtendedUdpTable(lpBuffer1,&dwTableSize,TRUE,FPORT_AF_INET,FPORT_UDP_TABLE_OWNER_PID,0);
+			else
+				dwLastError = ERROR_NOT_ENOUGH_MEMORY;
+		}
+	}
 	if (dwLastError == NO_ERROR)
 	{
 //		printf("Local IP\tLocal Port\tPID\n\n");
@@ -206,17 +270,49 @@ BOOL portList(string &strret)
 	//getfunctionpointer // XP and later - actually tested on 2k as well
 	lpfnAllocateAndGetTcpExTableFromStack = (PROCALLOCATEANDGETTCPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetTcpExTableFromStack");
 	lpfnAllocateAndGetUdpExTableFromStack = (PROCALLOCATEANDGETUDPEXTABLEFROMSTACK)GetProcAddress(hModule,"AllocateAndGetUdpExTableFromStack");
-	if (lpfnAllocateAndGetTcpExTableFromStack == NULL || lpfnAllocateAndGetUdpExTableFromStack==NULL) return FALSE;
+
+	// Fall back to documented GetExtendedTcpTable/GetExtendedUdpTable (Windows XP SP2+)
+	// when undocumented functions are unavailable (Windows Vista and later).
+	BOOL bUseUndocumented = (lpfnAllocateAndGetTcpExTableFromStack != NULL && lpfnAllocateAndGetUdpExTableFromStack != NULL);
+	PROCGETEXTENDEDTCPTABLE lpfnGetExtendedTcpTable = NULL;
+	PROCGETEXTENDEDUDPTABLE lpfnGetExtendedUdpTable = NULL;
+	if (!bUseUndocumented)
+	{
+		lpfnGetExtendedTcpTable = (PROCGETEXTENDEDTCPTABLE)GetProcAddress(hModule,"GetExtendedTcpTable");
+		lpfnGetExtendedUdpTable = (PROCGETEXTENDEDUDPTABLE)GetProcAddress(hModule,"GetExtendedUdpTable");
+		if (lpfnGetExtendedTcpTable == NULL || lpfnGetExtendedUdpTable == NULL)
+		{
+			::FreeLibrary(hModule);
+			return FALSE;
+		}
+	}
 	
 	Wutils::EnablePrivilege(SE_DEBUG_NAME,true);
 	char stmp[512]; long len=0;
 	len=sprintf(stmp,"id\ttype\tLocal\tRemote\tpname\r\n");
 	strret.append(stmp,len);
-	DWORD dwLastError,dwSize,dwState,dwCount=0;
+	DWORD dwLastError=NO_ERROR,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
 	PMIB_UDPTABLE_EX lpBuffer1 = NULL;
 	//enumallTCP
-	dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
+	if (bUseUndocumented)
+	{
+		dwLastError = lpfnAllocateAndGetTcpExTableFromStack(&lpBuffer,TRUE,GetProcessHeap(),0,2);
+	}
+	else
+	{
+		// GetExtendedTcpTable two-call pattern; result layout is binary-compatible with MIB_TCPTABLE_EX.
+		DWORD dwTableSize = 0;
+		lpfnGetExtendedTcpTable(NULL,&dwTableSize,FALSE,FPORT_AF_INET,FPORT_TCP_TABLE_OWNER_PID_ALL,0);
+		if (dwTableSize > 0)
+		{
+			lpBuffer = (PMIB_TCPTABLE_EX)HeapAlloc(GetProcessHeap(),0,dwTableSize);
+			if (lpBuffer)
+				dwLastError = lpfnGetExtendedTcpTable(lpBuffer,&dwTableSize,TRUE,FPORT_AF_INET,FPORT_TCP_TABLE_OWNER_PID_ALL,0);
+			else
+				dwLastError = ERROR_NOT_ENOUGH_MEMORY;
+		}
+	}
 	if (dwLastError == NO_ERROR)
 	{
 		char strRemoteAddr[24];
@@ -241,7 +337,25 @@ BOOL portList(string &strret)
 	}//?if (dwLastError == NO_ERROR)
 	
 	//enumallUDP
-	dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
+	dwLastError = NO_ERROR;
+	if (bUseUndocumented)
+	{
+		dwLastError = lpfnAllocateAndGetUdpExTableFromStack(&lpBuffer1,TRUE,GetProcessHeap(),0,2);
+	}
+	else
+	{
+		// GetExtendedUdpTable two-call pattern; result layout is binary-compatible with MIB_UDPTABLE_EX.
+		DWORD dwTableSize = 0;
+		lpfnGetExtendedUdpTable(NULL,&dwTableSize,FALSE,FPORT_AF_INET,FPORT_UDP_TABLE_OWNER_PID,0);
+		if (dwTableSize > 0)
+		{
+			lpBuffer1 = (PMIB_UDPTABLE_EX)HeapAlloc(GetProcessHeap(),0,dwTableSize);
+			if (lpBuffer1)
+				dwLastError = lpfnGetExtendedUdpTable(lpBuffer1,&dwTableSize,TRUE,FPORT_AF_INET,FPORT_UDP_TABLE_OWNER_PID,0);
+			else
+				dwLastError = ERROR_NOT_ENOUGH_MEMORY;
+		}
+	}
 	if (dwLastError == NO_ERROR)
 	{
 //		printf("Local IP\tLocal Port\tPID\n\n");
