@@ -178,7 +178,13 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 		{
 			httprsp_capDesktop(psock,httprsp,session);
 			return true;
-		}else if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)==RMTSVC_ACCESS_SCREEN_ALL)
+		}
+		else if(strcasecmp(httpreq.url().c_str(),"/capStream")==0)
+		{
+			httprsp_capStream(psock,httprsp,session);
+			return true;
+		}
+		else if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)==RMTSVC_ACCESS_SCREEN_ALL)
 		{//if the user has full control permission
 			if(strcasecmp(httpreq.url().c_str(),"/capAudio")==0)
 			{

@@ -458,6 +458,53 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	return true;
 }
 
+// MJPEG stream: continuously sends JPEG frames as a multipart/x-mixed-replace response
+bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSession &session)
+{
+	static const char *boundary = "mjpegboundary";
+	char header[512];
+	int hlen = sprintf(header,
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Type: multipart/x-mixed-replace; boundary=%s\r\n"
+		"Cache-Control: no-cache, no-store, must-revalidate\r\n"
+		"Pragma: no-cache\r\n"
+		"Connection: close\r\n"
+		"\r\n", boundary);
+	if(psock->Send(hlen, header, -1) < 0) return true;
+
+	bool ifCapCursor = true;
+	WORD w = LOWORD(m_dwImgSize);
+	WORD h = HIWORD(m_dwImgSize);
+	HWND hwnd = (HWND)atol(session["cap_hwnd"].c_str());
+
+	while(psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
+	{
+		Wutils::selectDesktop();
+		LPBYTE lpbits = NULL;
+		DWORD dwRet = capDesktop(hwnd, w, h, ifCapCursor, m_quality, lpbits);
+		if(dwRet > 0 && lpbits)
+		{
+			char frameheader[256];
+			int fhlen = sprintf(frameheader,
+				"--%s\r\n"
+				"Content-Type: image/jpeg\r\n"
+				"Content-Length: %lu\r\n"
+				"\r\n", boundary, (unsigned long)dwRet);
+			SOCKSRESULT sr = psock->Send(fhlen, frameheader, -1);
+			if(sr >= 0) sr = psock->Send(dwRet, (const char*)lpbits, -1);
+			if(sr >= 0) sr = psock->Send(2, "\r\n", -1);
+			::free(lpbits);
+			if(sr < 0) break;
+		}
+		else
+		{
+			if(lpbits) ::free(lpbits);
+		}
+		Sleep(100); // ~10 fps
+	}
+	return true;
+}
+
 bool webServer::httprsp_sysinfo(socketTCP *psock,httpResponse &httprsp)
 {
 	char buf[512]; int buflen=0;
