@@ -594,9 +594,9 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 				"Content-Type: image/jpeg\r\n"
 				"Content-Length: %lu\r\n"
 				"\r\n", boundary, (unsigned long)dwRet);
-			SOCKSRESULT sr = psock->Send(fhlen, frameheader, -1);
-			if(sr >= 0) sr = psock->Send(dwRet, (const char*)lpbits, -1);
-			if(sr >= 0) sr = psock->Send(2, "\r\n", -1);
+			SOCKSRESULT sr = psock->Send(fhlen, frameheader, HTTP_MAX_RESPTIMEOUT);
+			if(sr >= 0) sr = psock->Send(dwRet, (const char*)lpbits, HTTP_MAX_RESPTIMEOUT);
+			if(sr >= 0) sr = psock->Send(2, "\r\n", HTTP_MAX_RESPTIMEOUT);
 			::free(lpbits);
 			if(sr < 0) break;
 		}

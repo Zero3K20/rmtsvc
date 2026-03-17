@@ -90,14 +90,19 @@ void httpServer :: onTooMany(socketTCP *psock)
 void httpServer :: onIdle(void)
 {
 	static time_t checkedTime=time(NULL);
-	if(checkedTime-time(NULL)>20){//check session timeout once every 20 seconds
+	if(time(NULL)-checkedTime>20){//check session timeout once every 20 seconds
 		checkedTime=time(NULL);
 		m_mutex.lock();
 		std::map<std::string,httpSession *>::iterator it=m_sessions.begin();
-		for(;it!=m_sessions.end();it++)
+		while(it!=m_sessions.end())
 		{
 			httpSession *psession=(*it).second;
-			if(!psession->isValid(checkedTime)) { delete psession; m_sessions.erase(it); }
+			if(!psession->isValid(checkedTime))
+			{
+				delete psession;
+				it=m_sessions.erase(it);
+			}
+			else ++it;
 		}
 		m_mutex.unlock(); 
 	}
