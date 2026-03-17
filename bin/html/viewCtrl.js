@@ -31,7 +31,7 @@ function loadImg()
 function Imgloaded()
 {
 	imgLoaded=true;
-	if(autoRefresh>0) window.setTimeout(loadImg,autoRefresh);
+	if(autoRefresh>0) window.setTimeout("loadImg()",autoRefresh);
 }
 
 function msPosition(e) 
@@ -51,7 +51,8 @@ function window_onload()
 	var o=window.parent.frmLeft.document.getElementById("chkAuto");
 	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
-	loadImg();		
+	loadImg();
+	document.getElementById("txtHide").focus();
 }
 
 function processRequest() 
@@ -87,20 +88,14 @@ function sendEvent(strurl,param,bLoad)
 
 function msmove()
 {
-	var x=ptX;
-	var y=ptY;
  	msPosition(window.event);
- 	if(autoRefresh>0 && (ptX-x)==0 && (ptY-y)==0)
- 	{
- 		var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
- 		if(timerID_move==0)
-			timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",autoRefresh);
-	}
-	else if(timerID_move!=0)
+ 	var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
+	if(timerID_move!=0)
 	{
 		window.clearTimeout(timerID_move);
 		timerID_move=0;
 	}
+	timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",50);
 }
 
 function msclick()
