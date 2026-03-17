@@ -122,7 +122,9 @@ DWORD serviceList(cBuffer &buffer)
 
 	LPBYTE lpqsconfig_buffer=NULL;
 	DWORD bytes=bytesNeeded+sizeof(ENUM_SERVICE_STATUS);
-	if( (lpservice=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); return 0; }
+	ENUM_SERVICE_STATUS *lpservice_base;
+	if( (lpservice_base=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); return 0; }
+	lpservice=lpservice_base;
 
 	::EnumServicesStatus(schSCManager,SERVICE_WIN32,SERVICE_STATE_ALL,lpservice,
 		bytes,&bytesNeeded,&servicesReturned,&resumeHandle);
@@ -159,7 +161,7 @@ DWORD serviceList(cBuffer &buffer)
 				break;
 		}//?switch
 		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_ALL_ACCESS);
-		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); continue; }
+		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); lpservice++; continue; }
 		
 		bytesNeeded=0;// get further info
 		QueryServiceConfig( hService, NULL, 0, &bytesNeeded);
@@ -203,7 +205,7 @@ DWORD serviceList(cBuffer &buffer)
 				QueryServiceConfig2(hService,SERVICE_CONFIG_DESCRIPTION,(LPBYTE)lpqscBuf, lpqscBuf_Size, &bytesNeeded);
 				if(buffer.Space()<(lpqscBuf_Size+48)) buffer.Resize(buffer.size()+(lpqscBuf_Size+48));
 				SERVICE_DESCRIPTION *p=(SERVICE_DESCRIPTION *)lpqscBuf;
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdesc><![CDATA[\r\n%s\r\n]]></sdesc>",p->lpDescription);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdesc><![CDATA[\r\n%s\r\n]]></sdesc>",p->lpDescription?p->lpDescription:"");
 			}		
 		}//?if(QueryServiceConfig
 		if(lpqscBuf) ::free(lpqscBuf);
@@ -214,5 +216,5 @@ DWORD serviceList(cBuffer &buffer)
 	::CloseServiceHandle(schSCManager);
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
-	::free(lpservice); return dwret;
+	::free(lpservice_base); return dwret;
 }
