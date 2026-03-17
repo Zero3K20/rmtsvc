@@ -180,7 +180,12 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			return true;
 		}else if((lAccess & RMTSVC_ACCESS_SCREEN_ALL)==RMTSVC_ACCESS_SCREEN_ALL)
 		{//if the user has full control permission
-			if(strcasecmp(httpreq.url().c_str(),"/getclipboard")==0)
+			if(strcasecmp(httpreq.url().c_str(),"/capAudio")==0)
+			{
+				httprsp_capAudio(psock,httprsp);
+				return true;
+			}
+			else if(strcasecmp(httpreq.url().c_str(),"/getclipboard")==0)
 			{
 				httprsp_GetClipBoard(psock,httprsp);
 				return true;

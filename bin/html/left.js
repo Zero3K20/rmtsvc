@@ -99,6 +99,8 @@ function setButtonStatus()
     		o=document.getElementById("fLock")
     		o.disabled=false;
     		o.href="/command?cmd=Lock";
+    		o=document.getElementById("fAudio");
+    		o.disabled=false;
     		o=document.getElementById("fProc")
     		o.disabled=false;
     		o.href="viewProcess.htm";
@@ -312,6 +314,68 @@ function fileNanage()
 		window.open(rspUrl);
 	} else alert(s);
 	return;
+}
+
+var audioEnabled = false;
+var audioCtx = null;
+var nextAudioTime = 0;
+
+function toggleAudio()
+{
+	audioEnabled = !audioEnabled;
+	var o = document.getElementById("fAudio");
+	if (audioEnabled)
+	{
+		if (!audioCtx)
+		{
+			audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+			nextAudioTime = audioCtx.currentTime;
+		}
+		if (o) o.innerText = "Audio: ON";
+		fetchAudioChunk();
+	}
+	else
+	{
+		if (o) o.innerText = "Audio: OFF";
+	}
+}
+
+function fetchAudioChunk()
+{
+	if (!audioEnabled) return;
+	var xhr = new XMLHttpRequest();
+	xhr.open("GET", "/capAudio", true);
+	xhr.responseType = "arraybuffer";
+	xhr.onload = function()
+	{
+		if (xhr.status === 200 && xhr.response && xhr.response.byteLength > 44)
+		{
+			audioCtx.decodeAudioData(
+				xhr.response,
+				function(buffer)
+				{
+					var source = audioCtx.createBufferSource();
+					source.buffer = buffer;
+					source.connect(audioCtx.destination);
+					var now = audioCtx.currentTime;
+					if (nextAudioTime < now) nextAudioTime = now;
+					source.start(nextAudioTime);
+					nextAudioTime += buffer.duration;
+					fetchAudioChunk();
+				},
+				function()
+				{
+					setTimeout(fetchAudioChunk, 500);
+				}
+			);
+		}
+		else
+		{
+			setTimeout(fetchAudioChunk, 500);
+		}
+	};
+	xhr.onerror = function() { setTimeout(fetchAudioChunk, 500); };
+	xhr.send();
 }
 
 
