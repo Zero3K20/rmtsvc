@@ -172,18 +172,7 @@ var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
 sendEvent("/msevent",param);
 }
 
-function msdrop(e)
-{
-e=e||window.event;
-msPosition(e);
-var altk=0;
-if(e.ctrlKey) altk=altk | 1;
-if(e.shiftKey) altk=altk | 2;
-if(e.altKey) altk=altk | 4;
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
-sendEvent("/msevent",param);
-}
-// Get mouse down event, record drag start point. ondrag event has offset issues
+// Get mouse down event, record drag start point. Prevents browser native drag/text-selection.
 function msdown(e)
 {
 e=e||window.event;
@@ -193,18 +182,29 @@ msPosition(e);
 ptX_drag=ptX;
 ptY_drag=ptY;
 }
+if(e.preventDefault) e.preventDefault();
 }
-// Get non-left button click actions
+// Handle mouse up: detect left-button drag vs click; forward right/middle button clicks
 function msup(e)
 {
 e=e||window.event;
 var b=e.button;
-if(isLeftButton(b)) return; // Skip left button click
 msPosition(e);
 var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
+if(isLeftButton(b))
+{
+var dx=ptX-ptX_drag, dy=ptY-ptY_drag;
+if(ptX_drag!==undefined && (dx*dx+dy*dy)>4)
+{
+// Mouse moved enough to be a drag — send drag event instead of click
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
+sendEvent("/msevent",param);
+}
+return;
+}
 var serverBtn=normalizeButton(b);
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=1";
 sendEvent("/msevent",param);
