@@ -85,6 +85,7 @@ timerID_click=0;
 }
 console.log("[viewCtrl] sendEvent: "+strurl+" "+param);
 xmlHttp.open("POST", strurl, true);
+xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
 xmlHttp.onreadystatechange = processRequest;
 xmlHttp.send(param);
 }
@@ -202,6 +203,7 @@ if(kxhr)
 {
 console.log("[viewCtrl] keyevent: vkey="+param);
 kxhr.open("POST", "/keyevent", true);
+kxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
 kxhr.onreadystatechange=function(){
 if(kxhr.readyState===4 && kxhr.status!==200)
 console.log("[viewCtrl] keyevent XHR error: status="+kxhr.status);
