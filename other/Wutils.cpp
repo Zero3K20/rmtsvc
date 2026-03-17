@@ -16,11 +16,12 @@
 
 #include <stdio.h>
 #include <tlhelp32.h> //enumerate all processes
+#include "../net4cpp21/include/cLogger.h"
 
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
-inline VOID Mouse_Event(DWORD dwFlags, // motion and click options
+inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
   DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dwData)         // wheel movement
@@ -32,9 +33,13 @@ inline VOID Mouse_Event(DWORD dwFlags, // motion and click options
 	inp.mi.mouseData   = dwData;
 	inp.mi.dwFlags     = dwFlags;
 	inp.mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
-	SendInput(1, &inp, sizeof(INPUT));
+	UINT ret = SendInput(1, &inp, sizeof(INPUT));
+	if(ret == 0)
+		RW_LOG_DEBUG("Mouse_Event SendInput failed: flags=0x%lx dx=%lu dy=%lu dwData=%lu err=%lu\r\n",
+			dwFlags, dx, dy, dwData, (unsigned long)GetLastError());
+	return ret;
 }
-inline VOID Keybd_Event(BYTE bVk,               // virtual-key code
+inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
   BYTE /*bScan*/,         // hardware scan code (derived from bVk via MapVirtualKey)
   DWORD dwFlags )         // function options
 {
@@ -44,7 +49,11 @@ inline VOID Keybd_Event(BYTE bVk,               // virtual-key code
 	inp.ki.wScan      = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
 	inp.ki.dwFlags    = dwFlags;
 	inp.ki.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
-	SendInput(1, &inp, sizeof(INPUT));
+	UINT ret = SendInput(1, &inp, sizeof(INPUT));
+	if(ret == 0)
+		RW_LOG_DEBUG("Keybd_Event SendInput failed: vk=0x%02x flags=0x%lx err=%lu\r\n",
+			(unsigned)bVk, dwFlags, (unsigned long)GetLastError());
+	return ret;
 }
 
 //return local machine name
@@ -272,7 +281,16 @@ Cleanup:
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
-	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
+	RW_LOG_DEBUG("sendMouseEvent: x=%d y=%d flags=0x%04x dwData=%lu\r\n",
+		x, y, (unsigned)flags, (unsigned long)dwData);
+	if(!Wutils::inputDesktopSelected())
+	{
+		RW_LOG_DEBUG("sendMouseEvent: not on input desktop (%s), switching\r\n", Wutils::getLastInfo());
+		if(!Wutils::selectInputDesktop())
+			RW_LOG_DEBUG("sendMouseEvent: selectInputDesktop failed: %s\r\n", Wutils::getLastInfo());
+		else
+			RW_LOG_DEBUG("sendMouseEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
+	}
 	// Move the cursor using SendInput with absolute virtual-screen coordinates.
 	// This is more reliable than SetCursorPos (which can silently fail in a service
 	// context) and works correctly across multiple monitors.
@@ -355,7 +373,17 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 //          third bit represents whether Alt key is pressed
 BOOL Wutils :: sendKeyEvent(short vkey)
 {
-	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
+	RW_LOG_DEBUG("sendKeyEvent: vkey=0x%04x (key=0x%02x ctrl=%d shift=%d alt=%d)\r\n",
+		(unsigned)vkey, (unsigned)(vkey&0x0ff),
+		(vkey&0x0100)!=0, (vkey&0x0200)!=0, (vkey&0x0400)!=0);
+	if(!Wutils::inputDesktopSelected())
+	{
+		RW_LOG_DEBUG("sendKeyEvent: not on input desktop (%s), switching\r\n", Wutils::getLastInfo());
+		if(!Wutils::selectInputDesktop())
+			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop failed: %s\r\n", Wutils::getLastInfo());
+		else
+			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
+	}
 	if((vkey&0x0100)!=0) //Ctrl press
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL,0);
 	if((vkey&0x0200)!=0) //SHIFT pressed
