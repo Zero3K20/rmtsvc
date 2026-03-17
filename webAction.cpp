@@ -1162,6 +1162,12 @@ static bool wfxIsFloat(const WAVEFORMATEX *pwfx)
 // 8 s at 96 kHz / stereo / 16-bit ≈ 3 MB
 #define AUDIO_RING_CAP (96000 * 2 * 2 * 8)
 
+// Maximum acceptable llNextChunk lead over llWrTotal, expressed in chunk
+// multiples.  If the lead exceeds this threshold, llNextChunk is reset to
+// the current ring write position so that the server self-heals instead of
+// timing out on every subsequent request.
+#define AUDIO_MAX_DRIFT_CHUNKS 2
+
 struct AudioRing
 {
 	LPBYTE           pBuf;        // circular PCM buffer
@@ -1365,8 +1371,19 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 
 	// Atomically claim the next sequential window so that concurrent requests
 	// receive non-overlapping, perfectly back-to-back audio chunks.
+	// If llNextChunk has drifted too far ahead of the ring's write position
+	// (e.g., due to a previous timeout that left it advanced beyond where the
+	// ring can fill in time), reset it to the current write position so that
+	// the server self-heals rather than timing out on every subsequent request.
 	LONGLONG llStart;
 	EnterCriticalSection(&g_ar.cs);
+	// Both llNextChunk and llWrTotal are read under the critical section so
+	// this comparison is thread-safe.  llWrTotal is monotonically increasing;
+	// resetting llNextChunk to it discards any audio that would have been
+	// served in the skipped range, but that is preferable to every subsequent
+	// request timing out and exhausting the browser's connection pool.
+	if (g_ar.llNextChunk > g_ar.llWrTotal + (LONGLONG)dwChunkBytes * AUDIO_MAX_DRIFT_CHUNKS)
+		g_ar.llNextChunk = g_ar.llWrTotal; // clamp excessive drift
 	llStart           = g_ar.llNextChunk;
 	g_ar.llNextChunk += (LONGLONG)dwChunkBytes;
 	LeaveCriticalSection(&g_ar.cs);
@@ -1380,7 +1397,18 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 		LONGLONG llCur = g_ar.llWrTotal;
 		LeaveCriticalSection(&g_ar.cs);
 		if (llCur >= llEnd) break;
-		if (GetTickCount64() >= tLimit) return 0;
+		if (GetTickCount64() >= tLimit)
+		{
+			// Timeout: undo the chunk claim so that llNextChunk is not left
+			// permanently advanced past a position the ring cannot fill.
+			// Only rewind if no concurrent request has already advanced
+			// llNextChunk further (i.e., we are still the most-recent claim).
+			EnterCriticalSection(&g_ar.cs);
+			if (g_ar.llNextChunk == llEnd)
+				g_ar.llNextChunk = llStart;
+			LeaveCriticalSection(&g_ar.cs);
+			return 0;
+		}
 		WaitForSingleObject(g_ar.hEvent, 20);
 	}
 

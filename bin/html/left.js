@@ -352,11 +352,12 @@ function fetchAudioChunk()
 		fetchAudioChunk();
 	}
 
-	// Fire the next request ~2 s after this one starts.  With the server-side
-	// ring buffer, the server always blocks for exactly 2 s per request while
-	// filling the next sequential chunk, so sending a new request early ensures
-	// the next chunk is ready to decode just as this one finishes playing.
-	var prefetchTimer = setTimeout(startNext, 1800);
+	// Fire the next request exactly 2 s after this one starts.  The server-side
+	// ring buffer fills one 2-second sequential chunk per request, so 2000 ms
+	// matches the server's capture window precisely and eliminates cumulative
+	// drift that would otherwise push each successive request further behind
+	// the ring's write position until the 3-second wait timeout is exceeded.
+	var prefetchTimer = setTimeout(startNext, 2000);
 
 	xhr.onload = function()
 	{
@@ -384,7 +385,16 @@ function fetchAudioChunk()
 		}
 		else
 		{
-			setTimeout(fetchAudioChunk, 500);
+			// Only retry if the prefetch chain has not already been started.
+			// Without this guard, a slow/failed server response (which takes
+			// longer than the 2000 ms prefetch timer) causes both the timer
+			// and this else-branch to call fetchAudioChunk(), doubling the
+			// number of concurrent request chains on every failure.  After a
+			// few failures the chains multiply exponentially, exhaust the
+			// browser's per-host connection limit (~6), and block all other
+			// requests (screen updates, mouse events) — making the server
+			// appear completely unresponsive.
+			if (!nextStarted) setTimeout(fetchAudioChunk, 500);
 		}
 	};
 	xhr.onerror = function() { clearTimeout(prefetchTimer); if (!nextStarted) setTimeout(fetchAudioChunk, 500); };
