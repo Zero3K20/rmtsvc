@@ -18,6 +18,8 @@
 #include <tlhelp32.h> //enumerate all processes
 #include "../net4cpp21/include/cLogger.h"
 
+using namespace net4cpp21;
+
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
