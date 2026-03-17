@@ -1,11 +1,16 @@
-// Scale display coordinates back to actual screen coordinates when image is resized
+// Scale display coordinates back to actual screen coordinates when image is resized.
+// Uses getBoundingClientRect() for the rendered dimensions so that CSS transforms,
+// fractional scaling, and subpixel layouts are all accounted for correctly.
 function scaleToScreen(x, y)
 {
 var img=document.getElementById("screenimage");
-if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
+var rect=img.getBoundingClientRect();
+var rw=rect.width||img.clientWidth;
+var rh=rect.height||img.clientHeight;
+if(img.naturalWidth && rw && img.naturalWidth !== rw)
 {
-x=Math.round(x * img.naturalWidth / img.clientWidth);
-y=Math.round(y * img.naturalHeight / img.clientHeight);
+x=Math.round(x * img.naturalWidth / rw);
+y=Math.round(y * img.naturalHeight / rh);
 }
 return {x:x, y:y};
 }
@@ -41,15 +46,24 @@ else alert("Failed to retrieve, err="+(iret.item(0).textContent || iret.item(0).
 // Detect Internet Explorer (pre-Edge)
 var isIE = !!(window.ActiveXObject || (navigator.userAgent.indexOf("Trident") !== -1));
 
+// Compute the mouse position relative to the screen image using getBoundingClientRect()
+// so the result is accurate regardless of scroll, CSS transforms, or frame nesting.
+// Returns already-scaled server screen coordinates.
+function imgPosition(e)
+{
+var img=document.getElementById("screenimage");
+var rect=img.getBoundingClientRect();
+var cx=(e.clientX !== undefined ? e.clientX : e.x);
+var cy=(e.clientY !== undefined ? e.clientY : e.y);
+return scaleToScreen(cx-Math.round(rect.left), cy-Math.round(rect.top));
+}
+
 // Get click action
 function msup(e)
 {
 e=e||window.event;
-var o=window.document.getElementById("divScreen");
-var x1=(e.clientX !== undefined ? e.clientX : e.x)+o.scrollLeft-o.parentElement.offsetLeft;
-var y1=(e.clientY !== undefined ? e.clientY : e.y)+o.scrollTop-o.parentElement.offsetTop;
-var coords=scaleToScreen(x1,y1);
-x1=coords.x; y1=coords.y;
+var coords=imgPosition(e);
+var x1=coords.x; var y1=coords.y;
 var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
@@ -76,12 +90,9 @@ xmlHttp.send(null);
 function msmove(e)
 {
 e=e||window.event;
- var o=window.document.getElementById("divScreen");
- var x1=(e.clientX !== undefined ? e.clientX : e.x)+o.scrollLeft-o.parentElement.offsetLeft;
-  var y1=(e.clientY !== undefined ? e.clientY : e.y)+o.scrollTop-o.parentElement.offsetTop;
-var coords=scaleToScreen(x1,y1);
-  var w=window.parent.frmLeft;
-  w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
+var coords=imgPosition(e);
+var w=window.parent.frmLeft;
+w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
 }
 
 // --- Cursor sync ---

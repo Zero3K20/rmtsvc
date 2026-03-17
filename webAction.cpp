@@ -174,7 +174,7 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 				if((*it).second.first==std::string(ptr_pswd))
 				{
 					session["user"]=(*it).first;
-					char tmp[16]; sprintf(tmp,"%d",(*it).second.second);
+					char tmp[16]; sprintf(tmp,"%ld",(*it).second.second);
 					session["lAccess"]=string(tmp);
 					this->httprsp_Redirect(psock,httprsp,"/");
 					return true;
@@ -460,7 +460,8 @@ bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 	::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
 
 	// Map Windows system cursor handles to CSS cursor names
-	static const struct { LPTSTR id; const char *css; } cursorMap[] = {
+	struct CursorMapping { LPTSTR id; const char *css; };
+	static const CursorMapping cursorMap[] = {
 		{ IDC_IBEAM,       "text"        },
 		{ IDC_WAIT,        "wait"        },
 		{ IDC_CROSS,       "crosshair"   },
