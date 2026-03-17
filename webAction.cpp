@@ -861,6 +861,9 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		{
 			ptCursor.x -= ((int) IconInfo.xHotspot);
 			ptCursor.y -= ((int) IconInfo.yHotspot);
+			//GetIconInfo allocates these bitmaps; the caller must delete them
+			if(IconInfo.hbmMask)  ::DeleteObject(IconInfo.hbmMask);
+			if(IconInfo.hbmColor) ::DeleteObject(IconInfo.hbmColor);
 		}
 		//draw the cursor on the compatible device context
 		::DrawIconEx(
@@ -910,6 +913,10 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 		//perform JPEG compression
 		dwret=cImageF::IPF_EncodeJPEG(&bih,lpbuffer,lpbuffer,quality);
 		lpbits=lpbuffer;	
+	}else{
+		//GDI capture failed (e.g. desktop switch, screen lock): free the buffer
+		//so the stream loop does not accumulate leaked allocations
+		::free(lpbuffer);
 	}//?if(::GetDIBits(hWndDC,
 
 	::SelectObject(hMemDC, hOldBmp);
@@ -1491,7 +1498,7 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		httprsp.Header()["Content-Type"] = "audio/wav";
 		httprsp.lContentLength(dwSendSize);
 		httprsp.send_rspH(psock, 200, "OK");
-		psock->Send(dwSendSize, (const char*)lpBuffer, -1);
+		psock->Send(dwSendSize, (const char*)lpBuffer, HTTP_MAX_RESPTIMEOUT);
 	}
 	else
 	{

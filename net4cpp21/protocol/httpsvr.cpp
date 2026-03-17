@@ -99,8 +99,8 @@ void httpServer :: onIdle(void)
 			httpSession *psession=(*it).second;
 			if(!psession->isValid(checkedTime))
 			{
-				delete psession;
 				it=m_sessions.erase(it);
+				delete psession;
 			}
 			else ++it;
 		}
