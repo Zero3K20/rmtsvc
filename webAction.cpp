@@ -14,6 +14,8 @@
 #include "shellCommandEx.h"
 #include "other\wutils.h"
 #include "other\ipf.h"
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
 
 void downThreadX(char *strParam)
 {
@@ -921,3 +923,126 @@ bool SetMouseKeybHook(bool bInstall)
 }
 bool ifInstallMouseKeyHook() { return (g_hKBLockHook || g_hMSLockHook); }
 */
+
+//---------------------------Audio Capture--------------------------------------------
+// Try to find a loopback (stereo mix / wave out mix) recording device.
+// Returns WAVE_MAPPER if no loopback device is found.
+static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
+{
+	UINT nDevs = waveInGetNumDevs();
+	for (UINT i = 0; i < nDevs; i++)
+	{
+		WAVEINCAPS caps;
+		if (waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
+		{
+			if (strstr(caps.szPname, "Mix")      ||
+			    strstr(caps.szPname, "mix")      ||
+			    strstr(caps.szPname, "What")     ||
+			    strstr(caps.szPname, "Loopback") ||
+			    strstr(caps.szPname, "loopback") ||
+			    strstr(caps.szPname, "Stereo")   ||
+			    strstr(caps.szPname, "stereo"))
+			{
+				HWAVEIN hTest = NULL;
+				if (waveInOpen(&hTest, i, pwfx, 0, 0, WAVE_FORMAT_QUERY) == MMSYSERR_NOERROR)
+					return i;
+			}
+		}
+	}
+	return WAVE_MAPPER;
+}
+
+// Capture ~500 ms of system audio and return it as a WAV (RIFF/PCM) response.
+// Audio format: 22050 Hz, 16-bit, stereo.
+bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
+{
+	WAVEFORMATEX wfx;
+	memset(&wfx, 0, sizeof(wfx));
+	wfx.wFormatTag      = WAVE_FORMAT_PCM;
+	wfx.nChannels       = 2;
+	wfx.nSamplesPerSec  = 22050;
+	wfx.wBitsPerSample  = 16;
+	wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
+	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+	wfx.cbSize          = 0;
+
+	// 500 ms worth of PCM samples
+	DWORD dwPCMSize   = wfx.nAvgBytesPerSec / 2;
+	// WAV header is 44 bytes (RIFF chunk + fmt chunk + data chunk header)
+	DWORD dwTotalSize = 44 + dwPCMSize;
+
+	LPBYTE lpBuffer = (LPBYTE)malloc(dwTotalSize);
+	if (!lpBuffer)
+	{
+		httprsp.set_mimetype(MIMETYPE_HTML);
+		httprsp.lContentLength(0);
+		httprsp.send_rspH(psock, 500, "Internal Server Error");
+		return true;
+	}
+
+	UINT   nDevice    = findLoopbackDevice(&wfx);
+	HANDLE hEvent     = CreateEvent(NULL, FALSE, FALSE, NULL);
+	HWAVEIN hWaveIn   = NULL;
+	DWORD  dwCaptured = 0;
+
+	if (hEvent &&
+	    waveInOpen(&hWaveIn, nDevice, &wfx, (DWORD_PTR)hEvent, 0, CALLBACK_EVENT) == MMSYSERR_NOERROR)
+	{
+		WAVEHDR waveHdr;
+		memset(&waveHdr, 0, sizeof(WAVEHDR));
+		waveHdr.lpData        = (LPSTR)(lpBuffer + 44);
+		waveHdr.dwBufferLength = dwPCMSize;
+
+		if (waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR)) == MMSYSERR_NOERROR)
+		{
+			waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
+			waveInStart(hWaveIn);
+			// Wait up to 1.5 s for the buffer to be filled
+			if (WaitForSingleObject(hEvent, 1500) == WAIT_OBJECT_0)
+				dwCaptured = waveHdr.dwBytesRecorded;
+			waveInStop(hWaveIn);
+			waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
+		}
+		waveInClose(hWaveIn);
+	}
+	if (hEvent) CloseHandle(hEvent);
+
+	DWORD dwSendSize = 0;
+	if (dwCaptured > 0)
+	{
+		// Build the 44-byte WAV / RIFF header in place
+		LPBYTE p = lpBuffer;
+		DWORD  tmp;
+
+		memcpy(p, "RIFF", 4); p += 4;
+		tmp = 36 + dwCaptured;             // RIFF chunk size
+		memcpy(p, &tmp, 4);   p += 4;
+		memcpy(p, "WAVE", 4); p += 4;
+		memcpy(p, "fmt ", 4); p += 4;
+		tmp = 16;                           // fmt chunk size (PCM)
+		memcpy(p, &tmp, 4);   p += 4;
+		memcpy(p, &wfx, 16);  p += 16;     // WAVEFORMATEX without cbSize
+		memcpy(p, "data", 4); p += 4;
+		memcpy(p, &dwCaptured, 4);          // data chunk size
+
+		dwSendSize = 44 + dwCaptured;
+	}
+
+	httprsp.NoCache();
+	if (dwSendSize > 0)
+	{
+		httprsp.Header()["Content-Type"] = "audio/wav";
+		httprsp.lContentLength(dwSendSize);
+		httprsp.send_rspH(psock, 200, "OK");
+		psock->Send(dwSendSize, (const char*)lpBuffer, -1);
+	}
+	else
+	{
+		httprsp.set_mimetype(MIMETYPE_HTML);
+		httprsp.lContentLength(0);
+		httprsp.send_rspH(psock, 200, "OK");
+	}
+
+	free(lpBuffer);
+	return true;
+}
