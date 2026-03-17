@@ -1,7 +1,11 @@
 var regpath="";
 var regkeyData=[];
 var regitemData=[];
-var xmlReg=null;
+var editRegitemIdx=-1;
+
+function isTextType(rtype) {
+	return rtype=="REG_SZ"||rtype=="REG_EXPAND_SZ"||rtype=="REG_MULTI_SZ";
+}
 
 function getNodeText(el, tag) {
 	var n=el.getElementsByTagName(tag);
@@ -100,7 +104,6 @@ function renderRegitems()
 			var d=regitemData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
-			tr.id="fItems";
 			tr.style.cursor="pointer";
 			tr.onmousemove=function(){this.style.background="#e5e5e5";};
 			tr.onmouseout=function(){this.style.background="#ffffff";};
@@ -108,18 +111,35 @@ function renderRegitems()
 			tr.appendChild(makeCell(escHtml(d.id),"right"));
 			tr.appendChild(makeCell(escHtml(d.rtype),"center"));
 			tr.appendChild(makeCell(escHtml(d.rdlen),"center"));
-			tr.appendChild(makeCell(escHtml(d.rname),""));
-			// data textarea cell
+			// name input cell
+			var td4=document.createElement("td");
+			var inpName=document.createElement("input");
+			inpName.type="text";
+			inpName.className="txtInput_none";
+			inpName.readOnly=true;
+			inpName.value=d.rname;
+			inpName.setAttribute("data-field","rname");
+			inpName.onclick=function(e){modifyItem(this,e||window.event);};
+			inpName.onblur=function(){cancelModifyItem(this);};
+			inpName.onkeypress=function(e){keypressHandler(this,e||window.event);};
+			td4.appendChild(inpName);
+			tr.appendChild(td4);
+			// data input cell
 			var td5=document.createElement("td");
-			var ta=document.createElement("textarea");
-			ta.className="txtInput_none";
-			ta.readOnly=true;
-			ta.value=d.rdata;
-			ta.setAttribute("data-rdata",d.rdata);
-			ta.onclick=function(e){modifyItem(this,e||window.event);};
-			ta.onblur=function(){cancelModifyItem(this);};
-			ta.onkeypress=function(e){keypressHandler(this,e||window.event);};
-			td5.appendChild(ta);
+			var inpData=document.createElement("input");
+			inpData.type="text";
+			inpData.className="txtInput_none";
+			inpData.readOnly=true;
+			inpData.value=d.rdata;
+			inpData.setAttribute("data-field","rdata");
+			if(isTextType(d.rtype)) {
+				inpData.onclick=function(e){modifyItem(this,e||window.event);};
+				inpData.onkeypress=function(e){keypressHandler(this,e||window.event);};
+			} else {
+				inpData.onclick=function(e){modifyDataPopup(idx,e||window.event);};
+			}
+			inpData.onblur=function(){cancelModifyItem(this);};
+			td5.appendChild(inpData);
 			tr.appendChild(td5);
 			tbody.appendChild(tr);
 		})(i);
@@ -317,9 +337,7 @@ function keypressHandler(txtElement, e)
 		var d=regitemData[idx];
 		if(d.id!="")
 		{
-			var rname=d.rname;
-			var rtype=d.rtype;
-			var rvalue=txtElement.value;
+			var field=txtElement.getAttribute("data-field")||"rdata";
 			var regkey=document.getElementById("lblRegKey").innerText;
 			var rpath=document.getElementById("lblRegPath").innerText;
 			var strEncode="";
@@ -327,18 +345,22 @@ function keypressHandler(txtElement, e)
 			{
 				var rtmp=rpath+"\\"+regkey;
 				strEncode="rpath="+rtmp.replace(/&/g,"%26");
-				strEncode=strEncode+"&rtype="+rtype;
-				strEncode=strEncode+"&rname="+rname.replace(/&/g,"%26");
-				strEncode=strEncode+"&rdata="+rvalue.replace(/&/g,"%26");
+			}
+			else
+				strEncode="rpath="+rpath.replace(/&/g,"%26");
+			if(field=="rname")
+			{
+				strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
+				strEncode=strEncode+"&nname="+txtElement.value.replace(/&/g,"%26");
+				submitIt(strEncode,"/regitem_ren");
 			}
 			else
 			{
-				strEncode="rpath="+rpath.replace(/&/g,"%26");
-				strEncode=strEncode+"&rtype="+rtype;
-				strEncode=strEncode+"&rname="+rname.replace(/&/g,"%26");
-				strEncode=strEncode+"&rdata="+rvalue.replace(/&/g,"%26");
+				strEncode=strEncode+"&rtype="+d.rtype;
+				strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
+				strEncode=strEncode+"&rdata="+txtElement.value.replace(/&/g,"%26");
+				submitIt(strEncode,"/regitem_md");
 			}
-			submitIt(strEncode,"/regitem_md");
 		}
 		if(e.preventDefault) e.preventDefault(); else e.returnValue=false;
 	}
@@ -348,7 +370,10 @@ function cancelModifyItem(txtElement)
 {
 	var tr=txtElement.parentNode.parentNode;
 	var idx=parseInt(tr.getAttribute("data-idx"));
-	if(!isNaN(idx)&&idx>=0&&idx<regitemData.length) txtElement.value=regitemData[idx].rdata;
+	if(!isNaN(idx)&&idx>=0&&idx<regitemData.length) {
+		var field=txtElement.getAttribute("data-field")||"rdata";
+		txtElement.value=(field=="rname")?regitemData[idx].rname:regitemData[idx].rdata;
+	}
 	txtElement.className="txtInput_none";
 	txtElement.readOnly=true;
 	document.getElementById("lblHelp").innerHTML="";
@@ -367,4 +392,30 @@ function modifyItem(txtElement, e)
 		txtElement.readOnly=false;
 		document.getElementById("lblHelp").innerHTML="(<font color=red>Press Ctrl+Enter to save changes</font>)";
 	}
+}
+
+function modifyDataPopup(idx, e)
+{
+	if(document.getElementById("fAddItem").disabled) return;
+	if(isNaN(idx)||idx<0||idx>=regitemData.length) return;
+	if(regitemData[idx].id=="") return;
+	editRegitemIdx=idx;
+	var w=window.open("editRegitem.htm","_blank","height=200,width=350,resizable=no,scrollbars=no,status=no");
+	if(w) w._editItemCallback=function(newData) {
+		var d=regitemData[idx];
+		var regkey=document.getElementById("lblRegKey").innerText;
+		var rpath=document.getElementById("lblRegPath").innerText;
+		var strEncode="";
+		if(regkey!="")
+		{
+			var rtmp=rpath+"\\"+regkey;
+			strEncode="rpath="+rtmp.replace(/&/g,"%26");
+		}
+		else
+			strEncode="rpath="+rpath.replace(/&/g,"%26");
+		strEncode=strEncode+"&rtype="+d.rtype;
+		strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
+		strEncode=strEncode+"&rdata="+newData.replace(/&/g,"%26");
+		submitIt(strEncode,"/regitem_md");
+	};
 }

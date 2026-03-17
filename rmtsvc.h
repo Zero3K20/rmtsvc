@@ -106,6 +106,8 @@ private:
 							const char *stype,const char *sname,const char *svalue);
 	bool httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const char *spath,
 							const char *stype,const char *sname,const char *svalue);
+	bool httprsp_regitem_ren(socketTCP *psock,httpResponse &httprsp,const char *spath,
+							const char *sname,const char *snewname);
 
 	bool  httprsp_filelist(socketTCP *psock,httpResponse &httprsp,const char *spath,int listWhat,bool bdsphide);
 	bool  httprsp_folder_del(socketTCP *psock,httpResponse &httprsp,const char *spath,const char *fname,bool bdsphide);

@@ -276,6 +276,52 @@ bool webServer::httprsp_regitem_md(socketTCP *psock,httpResponse &httprsp,const 
 	return httprsp_reglist(psock,httprsp,spath,2);
 }
 
+bool webServer::httprsp_regitem_ren(socketTCP *psock,httpResponse &httprsp,const char *spath,
+									const char *sname,const char *snewname)
+{
+	if(spath && spath[0]=='\\' && sname && snewname && strcmp(sname,snewname)!=0)
+	{
+		const char *sroot=spath+1;
+		const char *lpregpath=NULL;
+		//extract HKEY_ROOT and RegPath
+		const char *ptr=strchr(sroot,'\\');
+		if(ptr) { *(char *)ptr=0; lpregpath=ptr+1; }
+		HKEY hKEY_ROOT,hKEY=NULL;
+		if( strcmp(sroot,"HKEY_CLASSES_ROOT")==0 )
+			hKEY_ROOT=HKEY_CLASSES_ROOT;
+		else if(strcmp(sroot,"HKEY_CURRENT_USER")==0 )
+			hKEY_ROOT=HKEY_CURRENT_USER;
+		else if(strcmp(sroot,"HKEY_LOCAL_MACHINE")==0 )
+			hKEY_ROOT=HKEY_LOCAL_MACHINE;
+		else if(strcmp(sroot,"HKEY_USERS")==0 )
+			hKEY_ROOT=HKEY_USERS;
+		else if(strcmp(sroot,"HKEY_CURRENT_CONFIG")==0 )
+			hKEY_ROOT=HKEY_CURRENT_CONFIG;
+		else hKEY_ROOT=NULL;
+		if(ptr) *(char *)ptr='\\';
+		if(lpregpath==NULL || lpregpath[0]==0)
+			hKEY=hKEY_ROOT;
+		else if(::RegOpenKeyEx(hKEY_ROOT, lpregpath, 0, KEY_READ|KEY_WRITE, &hKEY)!=ERROR_SUCCESS)
+			hKEY=NULL;
+		if(hKEY)
+		{
+			DWORD dwType=0, dwSize=0;
+			if(::RegQueryValueEx(hKEY,sname,NULL,&dwType,NULL,&dwSize)==ERROR_SUCCESS)
+			{
+				BYTE *pbuf=(dwSize>0)?new BYTE[dwSize]:NULL;
+				if(dwSize==0||::RegQueryValueEx(hKEY,sname,NULL,&dwType,pbuf,&dwSize)==ERROR_SUCCESS)
+				{
+					::RegSetValueEx(hKEY,snewname,NULL,dwType,pbuf,dwSize);
+					::RegDeleteValue(hKEY,sname);
+				}
+				delete[] pbuf;
+			}
+			::RegCloseKey(hKEY);
+		}
+	}//?if(spath && spath[0]=='\\')
+	return httprsp_reglist(psock,httprsp,spath,2);
+}
+
 //-------------------------------------------------------------------------------
 
 bool regkeyList(cBuffer &buffer,const char *skey)
