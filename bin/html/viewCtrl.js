@@ -83,6 +83,7 @@ if(timerID_click!=0)
 window.clearTimeout(timerID_click);
 timerID_click=0;
 }
+console.log("[viewCtrl] sendEvent: "+strurl+" "+param);
 xmlHttp.open("POST", strurl, true);
 xmlHttp.onreadystatechange = processRequest;
 xmlHttp.send(param);
@@ -199,8 +200,17 @@ else
 var kxhr=getKeyXHR();
 if(kxhr)
 {
+console.log("[viewCtrl] keyevent: vkey="+param);
 kxhr.open("POST", "/keyevent", true);
+kxhr.onreadystatechange=function(){
+if(kxhr.readyState===4 && kxhr.status!==200)
+console.log("[viewCtrl] keyevent XHR error: status="+kxhr.status);
+};
 kxhr.send("vkey="+param);
+}
+else
+{
+console.log("[viewCtrl] keyevent: could not create XHR object");
 }
 }
 }
@@ -214,6 +224,7 @@ if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
 var kevent=altk*256+(e.keyCode||e.which);
+console.log("[viewCtrl] keyup: keyCode="+(e.keyCode||e.which)+" altk="+altk+" kevent="+kevent);
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
 timerID_key=window.setInterval(Kevent,50);

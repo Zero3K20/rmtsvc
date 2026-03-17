@@ -297,9 +297,16 @@ bool webServer :: httprsp_msevent(socketTCP *psock,httpRequest &httpreq,httpResp
 	if( (ptr=httpreq.Request("act")) )
 	{
 		short i=(atoi(ptr) & 0x000f);
+		RW_LOG_DEBUG("httprsp_msevent: x=%d y=%d button=0x%02x altk=0x%02x act=%d dragx=%d dragy=%d wheel=%ld cap_hwnd=%ld\r\n",
+			x, y, (unsigned)(flag&0x0f), (unsigned)((flag>>8)&0x0f), (int)i, dragx, dragy, dwData, (long)(LONG_PTR)hwnd);
 		if(i==4) //dragdrop
 			Wutils::sendMouseEvent(dragx,dragy,(flag |0x0030),0);//first simulate drag action
 		flag |=(i<<4); 
+	}
+	else
+	{
+		RW_LOG_DEBUG("httprsp_msevent: x=%d y=%d button=0x%02x altk=0x%02x act=0(move) cap_hwnd=%ld\r\n",
+			x, y, (unsigned)(flag&0x0f), (unsigned)((flag>>8)&0x0f), (long)(LONG_PTR)hwnd);
 	}
 	
 	Wutils::sendMouseEvent(x,y,flag,dwData);
@@ -316,6 +323,7 @@ bool webServer :: httprsp_keyevent(socketTCP *psock,httpRequest &httpreq,httpRes
 {
 	short vkey=0;
 	const char *ptr,*ptr_vkey=httpreq.Request("vkey");
+	RW_LOG_DEBUG("httprsp_keyevent: vkey_param=%s\r\n", ptr_vkey ? ptr_vkey : "(null)");
 	if(ptr_vkey)
 	{
 		while( (ptr=strchr(ptr_vkey,',')) )
