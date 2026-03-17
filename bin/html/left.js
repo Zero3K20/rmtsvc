@@ -343,14 +343,28 @@ function fetchAudioChunk()
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", "/capAudio", true);
 	xhr.responseType = "arraybuffer";
+	var nextStarted = false;
+
+	function startNext()
+	{
+		if (nextStarted) return;
+		nextStarted = true;
+		fetchAudioChunk();
+	}
+
+	// Send the next request ~2 s after this one so it arrives at the server
+	// near the end of the current 2-second capture window.  This closes the
+	// round-trip-latency gap that would otherwise appear between chunks.
+	var prefetchTimer = setTimeout(startNext, 2000);
+
 	xhr.onload = function()
 	{
+		clearTimeout(prefetchTimer);
 		if (xhr.status === 200 && xhr.response && xhr.response.byteLength > 44)
 		{
-			var responseData = xhr.response;
-			fetchAudioChunk(); // start next fetch immediately, before decoding
+			startNext(); // start next fetch before decoding (no-op if timer fired)
 			audioCtx.decodeAudioData(
-				responseData,
+				xhr.response,
 				function(buffer)
 				{
 					var source = audioCtx.createBufferSource();
@@ -372,7 +386,7 @@ function fetchAudioChunk()
 			setTimeout(fetchAudioChunk, 500);
 		}
 	};
-	xhr.onerror = function() { setTimeout(fetchAudioChunk, 500); };
+	xhr.onerror = function() { clearTimeout(prefetchTimer); if (!nextStarted) setTimeout(fetchAudioChunk, 500); };
 	xhr.send();
 }
 
