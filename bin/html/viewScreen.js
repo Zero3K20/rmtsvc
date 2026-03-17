@@ -1,6 +1,3 @@
-var autoRefresh=0; // Auto-refresh interval in ms
-var imgLoaded=true; // Whether screen capture is done
-
 // Scale display coordinates back to actual screen coordinates when image is resized
 function scaleToScreen(x, y)
 {
@@ -11,30 +8,6 @@ function scaleToScreen(x, y)
 		y=Math.round(y * img.naturalHeight / img.clientHeight);
 	}
 	return {x:x, y:y};
-}
-function loadImg()
-{
-	if(imgLoaded)
-	{
-		document.screenimage.src="/capDesktop";
-		imgLoaded=false;
-	}
-}
-
-function Imgloaded()
-{
-	imgLoaded=true;
-	if(autoRefresh>0) window.setTimeout("loadImg()",autoRefresh);
-}
-
-function msmove_IE()
-{
- 	var o=window.document.getElementById("divScreen");
- 	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
-  	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop; 
-	var coords=scaleToScreen(x1,y1);
-  	var w=window.parent.frmLeft;
-  	w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
 }
 
 function processRequest() 
@@ -47,7 +20,6 @@ function processRequest()
 			var hwnd=xmlobj.getElementsByTagName("hwnd");
 			if(hwnd!=null && hwnd.length>0)
 			{
-				loadImg();
 				var sHelp="\r\nPress Alt then left-click on a password box to retrieve the password";
 				if((hwnd.item(0).textContent || hwnd.item(0).text)==0)
 					alert("Currently capturing the entire desktop. To capture a specific window,\r\npress Ctrl+Shift then left-click on the target window"+sHelp);
@@ -95,12 +67,19 @@ function msup()
 	xmlHttp.send(null);
 }
 
+function msmove_IE()
+{
+ 	var o=window.document.getElementById("divScreen");
+ 	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
+  	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop; 
+	var coords=scaleToScreen(x1,y1);
+  	var w=window.parent.frmLeft;
+  	w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
+}
+
 function window_onload()
 {
-	var o=window.parent.frmLeft.document.getElementById("chkAuto");
-	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
-	loadImg()
 	return;	
 }
 

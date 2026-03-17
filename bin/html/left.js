@@ -224,30 +224,6 @@ function capsetting()
     	xmlHttp.send(null);
 }
 
-function chkAuto_click(e)
-{
-	var w=window.parent.frmView; 
-	if(e.checked)
-	{ 
-		var interval=prompt("Set auto-refresh interval, range [300~8000] ms", e.value);
-		if(interval<300 || interval>8000) interval=e.value;
-		e.value=interval;
-		w.autoRefresh=interval;
-		document.getElementById("lblInterval").innerText=interval+"ms";
-		w.loadImg();
-	} else{
-		document.getElementById("lblInterval").innerText="";
-	 	w.autoRefresh=0;
-	}
-}
-
-function refreshScreen()
-{
-	var w=window.parent.frmView;
-	w.imgLoaded=true;
-	w.loadImg(); 
-}
-
 function sendKey()
 {
 	var altk=document.getElementById("selCSA").value;
@@ -255,8 +231,6 @@ function sendKey()
 	altk=altk*256+fx*1;
 	xmlHttp.open("GET","/keyevent?vkey="+altk+",",false);
 	xmlHttp.send(null);
-	refreshScreen();
-	
 }
 
 

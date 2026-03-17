@@ -26,11 +26,7 @@
 <br>
 <b> Cursor Position:</b> &nbsp;<span id="lblXY" name="lblXY" >X:000 Y:000</span>&nbsp;&nbsp;&nbsp;&nbsp;
 <br>
-<A href="javascript:refreshScreen();">Refresh Screen</A>&nbsp;&nbsp;
-<input type=checkbox id=chkAuto name=chkAuto value=1000 onclick="chkAuto_click(this);">Auto
-&nbsp;<span id=lblInterval name=lblInterval></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<br>
-<A id=fKeys onclick="javascript:window.setTimeout('refreshScreen()',500);" disabled >Send Keys</A>
+<A id=fKeys onclick="javascript:window.setTimeout('sendKey()',500);" disabled >Send Keys</A>
 <select id=selCSA>
 <option value=0 SELECTED> </option>
 <option value=1>Ctrl</option>

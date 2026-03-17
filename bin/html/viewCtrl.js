@@ -1,6 +1,3 @@
-var autoRefresh=0; // Auto-refresh interval in ms
-var imgLoaded=true; // Whether screen capture is done
-var loadTimes=500; // Delay in ms before refreshing image after event
 var ptX,ptY;
 var ptX_drag,ptY_drag;
 var timerID_key=0;
@@ -19,20 +16,6 @@ function scaleToScreen(x, y)
 	}
 	return {x:x, y:y};
 }
-function loadImg()
-{
-	if(imgLoaded)
-	{
-		document.screenimage.src="/capDesktop";
-		imgLoaded=false;
-	}
-}
-
-function Imgloaded()
-{
-	imgLoaded=true;
-	if(autoRefresh>0) window.setTimeout("loadImg()",autoRefresh);
-}
 
 function msPosition(e) 
 { 
@@ -48,25 +31,15 @@ function msPosition(e)
 
 function window_onload()
 {
-	var o=window.parent.frmLeft.document.getElementById("chkAuto");
-	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
-	loadImg();
 	document.getElementById("txtHide").focus();
 }
 
 function processRequest() 
 {
-	if (xmlHttp.readyState == 4) { // Check object state
-		if (xmlHttp.status == 200) 
-		{ // Data returned successfully, start processing
-			if(loadTimes>0)
-				window.setTimeout(loadImg,loadTimes);
-			else loadImg();
-            	}
-        }
+	// Event sent; the MJPEG stream updates the display automatically
 }
-function sendEvent(strurl,param,bLoad)
+function sendEvent(strurl,param)
 {
 	if(timerID_move!=0)
 	{
@@ -78,9 +51,6 @@ function sendEvent(strurl,param,bLoad)
 		window.clearTimeout(timerID_click);
 		timerID_click=0;
 	}
-	if(bLoad)
-		loadTimes=0;
-	else loadTimes=500;
 	xmlHttp.open("POST", strurl, true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send(param);
@@ -95,7 +65,7 @@ function msmove()
 		window.clearTimeout(timerID_move);
 		timerID_move=0;
 	}
-	timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",50);
+	timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\")",50);
 }
 
 function msclick()
@@ -108,7 +78,7 @@ function msclick()
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
 	if(timerID_click!=0) window.clearTimeout(timerID_click);
 	if(timerID_move!=0) window.clearTimeout(timerID_move);
-	timerID_click=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\",true)",500);
+	timerID_click=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\")",500);
 }
 function msdblclick()
 {
@@ -123,7 +93,7 @@ function msdblclick()
 	if(window.event.shiftKey) altk=altk | 2;
 	if(window.event.altKey) altk=altk | 4;
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
-	sendEvent("/msevent",param,false);
+	sendEvent("/msevent",param);
 }
 
 function msdrop()
@@ -134,7 +104,7 @@ function msdrop()
 	if(window.event.shiftKey) altk=altk | 2;
 	if(window.event.altKey) altk=altk | 4;
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
-	sendEvent("/msevent",param,false);
+	sendEvent("/msevent",param);
 }
 // Get mouse down event, record drag start point. ondrag event has offset issues
 function msdown()
@@ -157,7 +127,7 @@ function msup()
 	if(window.event.shiftKey) altk=altk | 2;
 	if(window.event.altKey) altk=altk | 4;
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+b+"&act=1";
-	sendEvent("/msevent",param,false);
+	sendEvent("/msevent",param);
 }
 
 function mswheel()
@@ -168,7 +138,7 @@ function mswheel()
 	if(window.event.altKey) altk=altk | 4;
 	var d=window.event.wheelDelta;
 	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=5&wheel="+window.event.wheelDelta;
-	sendEvent("/msevent",param,false);
+	sendEvent("/msevent",param);
 	window.event.returnValue=false;
 }
 
@@ -183,7 +153,7 @@ function Kevent()
 		timerID_key=0;
 	}
 	else
-		sendEvent("/keyevent","vkey="+param,true);
+		sendEvent("/keyevent","vkey="+param);
 }
 
 
@@ -199,3 +169,4 @@ function keyup()
 		timerID_key=window.setInterval(Kevent,1000);
 	window.event.keyCode=0;
 }
+
