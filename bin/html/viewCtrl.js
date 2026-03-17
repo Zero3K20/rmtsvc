@@ -5,6 +5,18 @@ var timerID_click=0;
 var timerID_move=0;
 var txtKeyEvent="";
 
+// Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
+var xmlHttpKey = false;
+function getKeyXHR()
+{
+if(!xmlHttpKey)
+{
+if(window.XMLHttpRequest) xmlHttpKey = new XMLHttpRequest();
+else if(window.ActiveXObject) xmlHttpKey = new ActiveXObject("Microsoft.XMLHTTP");
+}
+return xmlHttpKey;
+}
+
 // Detect Internet Explorer (pre-Edge) which uses different button/event conventions
 var isIE = !!(window.ActiveXObject || (navigator.userAgent.indexOf("Trident") !== -1));
 
@@ -100,7 +112,7 @@ if(e.altKey) altk=altk | 4;
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
 if(timerID_click!=0) window.clearTimeout(timerID_click);
 if(timerID_move!=0) window.clearTimeout(timerID_move);
-timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },500);
+timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },200);
 }
 function msdblclick(e)
 {
@@ -183,7 +195,14 @@ window.clearInterval(timerID_key);
 timerID_key=0;
 }
 else
-sendEvent("/keyevent","vkey="+param);
+{
+var kxhr=getKeyXHR();
+if(kxhr)
+{
+kxhr.open("POST", "/keyevent", true);
+kxhr.send("vkey="+param);
+}
+}
 }
 
 
@@ -197,7 +216,7 @@ if(e.altKey) altk=altk | 4;
 var kevent=altk*256+(e.keyCode||e.which);
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
-timerID_key=window.setInterval(Kevent,1000);
+timerID_key=window.setInterval(Kevent,50);
 if(e.preventDefault) e.preventDefault();
 return false;
 }

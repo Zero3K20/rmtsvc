@@ -21,17 +21,30 @@ char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
 inline VOID Mouse_Event(DWORD dwFlags, // motion and click options
-  DWORD dx,              // horizontal position or change
-  DWORD dy,              // vertical position or change
+  DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
+  DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dwData)         // wheel movement
 {
-	::mouse_event(dwFlags,dx,dy,dwData,Wutils::mskbEvent_dwExtraInfo);
+	INPUT inp = {0};
+	inp.type = INPUT_MOUSE;
+	inp.mi.dx          = (LONG)dx;
+	inp.mi.dy          = (LONG)dy;
+	inp.mi.mouseData   = dwData;
+	inp.mi.dwFlags     = dwFlags;
+	inp.mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
+	SendInput(1, &inp, sizeof(INPUT));
 }
 inline VOID Keybd_Event(BYTE bVk,               // virtual-key code
-  BYTE bScan,             // hardware scan code
+  BYTE /*bScan*/,         // hardware scan code (derived from bVk via MapVirtualKey)
   DWORD dwFlags )         // function options
 {
-	::keybd_event(bVk, bScan, dwFlags, Wutils::mskbEvent_dwExtraInfo);
+	INPUT inp = {0};
+	inp.type = INPUT_KEYBOARD;
+	inp.ki.wVk        = bVk;
+	inp.ki.wScan      = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
+	inp.ki.dwFlags    = dwFlags;
+	inp.ki.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
+	SendInput(1, &inp, sizeof(INPUT));
 }
 
 //return local machine name
@@ -260,9 +273,19 @@ Cleanup:
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
 	if(!Wutils::inputDesktopSelected()) Wutils::selectInputDesktop();
-	//The calling process must have WINSTA_WRITEATTRIBUTES access to the window station. 
-	//when running as a service, SetCursorPos may not work by default
-	::SetCursorPos(x, y);//move mouse cursor to specified position
+	// Move the cursor using SendInput with absolute virtual-screen coordinates.
+	// This is more reliable than SetCursorPos (which can silently fail in a service
+	// context) and works correctly across multiple monitors.
+	{
+		int screenLeft   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+		int screenTop    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+		int screenWidth  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		LONG nx = (screenWidth  > 0) ? (LONG)((double)(x - screenLeft) * 65535.0 / screenWidth  + 0.5) : 0;
+		LONG ny = (screenHeight > 0) ? (LONG)((double)(y - screenTop)  * 65535.0 / screenHeight + 0.5) : 0;
+		Mouse_Event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_MOVE,
+		            (DWORD)nx, (DWORD)ny, 0);
+	}
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//only move cursor
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
@@ -291,13 +314,11 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	}
 	
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DRAG)
-	{//mousedrag
+	{//mousedrag: press the button at the drag-start position (cursor already moved there)
 		Mouse_Event(fDown,0, 0,dwData);//mouse button down
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse button down
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_DROP)
-	{//mousedrop
-		Mouse_Event(fDown|MOUSEEVENTF_MOVE,0, 0,dwData);//mouse button down
+	{//mousedrop: cursor already moved to drop position; release the button
 		Mouse_Event(fUp, 0, 0,0);
 	}
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_WHEEL)

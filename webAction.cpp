@@ -16,6 +16,10 @@
 #include "other\ipf.h"
 #include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
+// WASAPI loopback audio capture (Windows Vista and later)
+#include <audioclient.h>
+#include <mmdeviceapi.h>
+#pragma comment(lib, "ole32.lib")
 
 void downThreadX(char *strParam)
 {
@@ -972,6 +976,16 @@ bool ifInstallMouseKeyHook() { return (g_hKBLockHook || g_hMSLockHook); }
 */
 
 //---------------------------Audio Capture--------------------------------------------
+// Case-insensitive substring search helper
+static bool nameContainsCI(const char *name, const char *pattern)
+{
+	size_t plen = strlen(pattern);
+	size_t nlen = strlen(name);
+	for (size_t i = 0; i + plen <= nlen; i++)
+		if (_strnicmp(name + i, pattern, plen) == 0) return true;
+	return false;
+}
+
 // Try to find a loopback (stereo mix / wave out mix) recording device.
 // Returns WAVE_MAPPER if no loopback device is found.
 static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
@@ -982,15 +996,12 @@ static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
 		WAVEINCAPS caps;
 		if (waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
 		{
-			// Match common loopback device name substrings:
-			// "Stereo Mix", "What U Hear", "Wave Out Mix", "Loopback"
-			if (strstr(caps.szPname, "Mix")      ||
-			    strstr(caps.szPname, "mix")      ||
-			    strstr(caps.szPname, "What U")   ||
-			    strstr(caps.szPname, "Loopback") ||
-			    strstr(caps.szPname, "loopback") ||
-			    strstr(caps.szPname, "Stereo")   ||
-			    strstr(caps.szPname, "stereo"))
+			// Match only well-known loopback device name substrings
+			// (case-insensitive, precise to avoid matching non-loopback devices)
+			if (nameContainsCI(caps.szPname, "Stereo Mix")  ||
+			    nameContainsCI(caps.szPname, "What U Hear") ||
+			    nameContainsCI(caps.szPname, "Wave Out Mix")||
+			    nameContainsCI(caps.szPname, "Loopback"))
 			{
 				// WAVE_FORMAT_QUERY only validates format support; it does not
 				// open the device and does not set the handle (phwi is ignored).
@@ -1002,24 +1013,156 @@ static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
 	return WAVE_MAPPER;
 }
 
+// Convert a 32-bit float sample to a 16-bit signed integer sample.
+static inline short floatToS16(float f)
+{
+	if (f >  1.0f) f =  1.0f;
+	if (f < -1.0f) f = -1.0f;
+	return (short)(f * 32767.0f);
+}
+
+// Return true if the WAVEFORMATEX (or WAVEFORMATEXTENSIBLE) describes IEEE-float samples.
+static bool wfxIsFloat(const WAVEFORMATEX *pwfx)
+{
+	if (pwfx->wFormatTag == WAVE_FORMAT_IEEE_FLOAT) return true;
+	if (pwfx->wFormatTag == WAVE_FORMAT_EXTENSIBLE)
+	{
+		// KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = {00000003-0000-0010-8000-00AA00389B71}
+		static const GUID GUID_IEEE_FLOAT =
+			{ 0x00000003, 0x0000, 0x0010,
+			  { 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 } };
+		const WAVEFORMATEXTENSIBLE *pExt =
+			reinterpret_cast<const WAVEFORMATEXTENSIBLE *>(pwfx);
+		return (IsEqualGUID(pExt->SubFormat, GUID_IEEE_FLOAT) != 0);
+	}
+	return false;
+}
+
+// Capture ~500 ms of rendered audio using WASAPI loopback (Windows Vista and later).
+// Converts the device's native format to 16-bit stereo PCM on the fly.
+// On success, sets *pwfxOut and returns the number of PCM bytes written to lpPCMOut.
+// Returns 0 on any failure (caller then falls back to WinMM).
+static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwfxOut)
+{
+	DWORD  dwResult   = 0;
+	HRESULT hr;
+	IMMDeviceEnumerator *pEnum    = NULL;
+	IMMDevice           *pDev     = NULL;
+	IAudioClient        *pClient  = NULL;
+	IAudioCaptureClient *pCapture = NULL;
+	WAVEFORMATEX        *pDevFmt  = NULL;
+
+	// Initialize COM for this call (harmless if already initialized on this thread).
+	HRESULT hrCom    = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	bool    bNeedCo  = (hrCom == S_OK);
+
+	hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL,
+	                      __uuidof(IMMDeviceEnumerator), (void **)&pEnum);
+	if (FAILED(hr)) goto done;
+
+	hr = pEnum->GetDefaultAudioEndpoint(eRender, eConsole, &pDev);
+	if (FAILED(hr)) goto done;
+
+	hr = pDev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&pClient);
+	if (FAILED(hr)) goto done;
+
+	hr = pClient->GetMixFormat(&pDevFmt);
+	if (FAILED(hr)) goto done;
+
+	// Initialize in loopback mode: captures whatever the render endpoint is playing.
+	hr = pClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+	                         AUDCLNT_STREAMFLAGS_LOOPBACK,
+	                         5000000, 0, pDevFmt, NULL); // 500 ms buffer (100-ns units)
+	if (FAILED(hr)) goto done;
+
+	hr = pClient->GetService(__uuidof(IAudioCaptureClient), (void **)&pCapture);
+	if (FAILED(hr)) goto done;
+
+	if (FAILED(pClient->Start())) goto done;
+
+	Sleep(520); // wait ~500 ms so the buffer fills
+
+	{
+		bool   bFloat  = wfxIsFloat(pDevFmt);
+		UINT32 nSrcCh  = pDevFmt->nChannels;
+		UINT32 nDstCh  = (nSrcCh >= 2) ? 2 : 1;
+		UINT32 nBPS    = pDevFmt->wBitsPerSample;
+		UINT32 nBPCh   = nBPS / 8;
+		UINT32 nBlkSz  = pDevFmt->nBlockAlign;
+		UINT32 nPktLen = 0;
+
+		while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
+		{
+			BYTE  *pData   = NULL;
+			UINT32 nFrames = 0;
+			DWORD  dwFlags = 0;
+			if (FAILED(pCapture->GetBuffer(&pData, &nFrames, &dwFlags, NULL, NULL)))
+				break;
+
+			bool bSilent = ((dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) != 0) || (pData == NULL);
+			for (UINT32 f = 0; f < nFrames && dwResult + sizeof(short) * nDstCh <= dwMaxBytes; f++)
+			{
+				for (UINT32 c = 0; c < nDstCh; c++)
+				{
+					short s = 0;
+					if (!bSilent)
+					{
+						const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)c * nBPCh;
+						if (bFloat && nBPS == 32)
+						{
+							float fv; memcpy(&fv, pSrc, 4);
+							s = floatToS16(fv);
+						}
+						else if (!bFloat && nBPS == 16)
+						{
+							memcpy(&s, pSrc, 2);
+						}
+						else if (!bFloat && nBPS == 32)
+						{
+							INT32 i32; memcpy(&i32, pSrc, 4);
+							s = (short)(i32 >> 16);
+						}
+					}
+					memcpy(lpPCMOut + dwResult, &s, sizeof(short));
+					dwResult += sizeof(short);
+				}
+			}
+			pCapture->ReleaseBuffer(nFrames);
+		}
+	}
+
+	pClient->Stop();
+
+	if (dwResult > 0)
+	{
+		memset(pwfxOut, 0, sizeof(WAVEFORMATEX));
+		pwfxOut->wFormatTag      = WAVE_FORMAT_PCM;
+		pwfxOut->nChannels       = (pDevFmt->nChannels >= 2) ? 2 : 1;
+		pwfxOut->nSamplesPerSec  = pDevFmt->nSamplesPerSec;
+		pwfxOut->wBitsPerSample  = 16;
+		pwfxOut->nBlockAlign     = pwfxOut->nChannels * 2;
+		pwfxOut->nAvgBytesPerSec = pwfxOut->nSamplesPerSec * pwfxOut->nBlockAlign;
+	}
+
+done:
+	if (pCapture) pCapture->Release();
+	if (pClient)  pClient->Release();
+	if (pDevFmt)  CoTaskMemFree(pDevFmt);
+	if (pDev)     pDev->Release();
+	if (pEnum)    pEnum->Release();
+	if (bNeedCo)  CoUninitialize();
+	return dwResult;
+}
+
 // Capture ~500 ms of system audio and return it as a WAV (RIFF/PCM) response.
-// Audio format: 22050 Hz, 16-bit, stereo.
+// Audio format: 44100 Hz, 16-bit, stereo (or device native rate if WASAPI is used).
 bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 {
-	WAVEFORMATEX wfx;
-	memset(&wfx, 0, sizeof(wfx));
-	wfx.wFormatTag      = WAVE_FORMAT_PCM;
-	wfx.nChannels       = 2;
-	wfx.nSamplesPerSec  = 22050;
-	wfx.wBitsPerSample  = 16;
-	wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
-	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
-	wfx.cbSize          = 0;
-
-	// 500 ms worth of PCM samples
-	DWORD dwPCMSize   = wfx.nAvgBytesPerSec / 2;
+	// Maximum PCM buffer: 2 seconds at 48000 Hz / 16-bit / 2ch = 384 KB
+	const DWORD dwMaxPCM  = 48000 * 2 * 2 * 2;
 	// WAV header is 44 bytes (RIFF chunk + fmt chunk + data chunk header)
-	DWORD dwTotalSize = 44 + dwPCMSize;
+	const DWORD dwHdrSize = 44;
+	DWORD dwTotalSize = dwHdrSize + dwMaxPCM;
 
 	LPBYTE lpBuffer = (LPBYTE)malloc(dwTotalSize);
 	if (!lpBuffer)
@@ -1030,32 +1173,57 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		return true;
 	}
 
-	UINT   nDevice    = findLoopbackDevice(&wfx);
-	HANDLE hEvent     = CreateEvent(NULL, FALSE, FALSE, NULL);
-	HWAVEIN hWaveIn   = NULL;
-	DWORD  dwCaptured = 0;
+	WAVEFORMATEX wfx;
+	DWORD dwCaptured = 0;
 
-	if (hEvent &&
-	    waveInOpen(&hWaveIn, nDevice, &wfx, (DWORD_PTR)hEvent, 0, CALLBACK_EVENT) == MMSYSERR_NOERROR)
+	// --- Try WASAPI loopback first (Vista+, no "Stereo Mix" device required) ---
+	dwCaptured = capAudioWASAPI(lpBuffer + dwHdrSize, dwMaxPCM, &wfx);
+
+	// --- Fall back to WinMM loopback (requires "Stereo Mix" or equivalent) ---
+	if (dwCaptured == 0)
 	{
-		WAVEHDR waveHdr;
-		memset(&waveHdr, 0, sizeof(WAVEHDR));
-		waveHdr.lpData        = (LPSTR)(lpBuffer + 44);
-		waveHdr.dwBufferLength = dwPCMSize;
+		memset(&wfx, 0, sizeof(wfx));
+		wfx.wFormatTag      = WAVE_FORMAT_PCM;
+		wfx.nChannels       = 2;
+		wfx.nSamplesPerSec  = 44100;
+		wfx.wBitsPerSample  = 16;
+		wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
+		wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+		wfx.cbSize          = 0;
 
-		if (waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR)) == MMSYSERR_NOERROR)
+		UINT nDevice = findLoopbackDevice(&wfx);
+		if (nDevice != WAVE_MAPPER) // only attempt capture if a loopback device was found
 		{
-			waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-			waveInStart(hWaveIn);
-			// Wait up to 1.5 s for the buffer to be filled
-			if (WaitForSingleObject(hEvent, 1500) == WAIT_OBJECT_0)
-				dwCaptured = waveHdr.dwBytesRecorded;
-			waveInStop(hWaveIn);
-			waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
+			// 500 ms worth of PCM samples
+			DWORD dwPCMSize = wfx.nAvgBytesPerSec / 2;
+			if (dwPCMSize > dwMaxPCM) dwPCMSize = dwMaxPCM;
+
+			HANDLE  hEvent  = CreateEvent(NULL, FALSE, FALSE, NULL);
+			HWAVEIN hWaveIn = NULL;
+
+			if (hEvent &&
+			    waveInOpen(&hWaveIn, nDevice, &wfx, (DWORD_PTR)hEvent, 0, CALLBACK_EVENT) == MMSYSERR_NOERROR)
+			{
+				WAVEHDR waveHdr;
+				memset(&waveHdr, 0, sizeof(WAVEHDR));
+				waveHdr.lpData         = (LPSTR)(lpBuffer + dwHdrSize);
+				waveHdr.dwBufferLength = dwPCMSize;
+
+				if (waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR)) == MMSYSERR_NOERROR)
+				{
+					waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
+					waveInStart(hWaveIn);
+					// Wait up to 1.5 s for the buffer to be filled
+					if (WaitForSingleObject(hEvent, 1500) == WAIT_OBJECT_0)
+						dwCaptured = waveHdr.dwBytesRecorded;
+					waveInStop(hWaveIn);
+					waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
+				}
+				waveInClose(hWaveIn);
+			}
+			if (hEvent) CloseHandle(hEvent);
 		}
-		waveInClose(hWaveIn);
 	}
-	if (hEvent) CloseHandle(hEvent);
 
 	DWORD dwSendSize = 0;
 	if (dwCaptured > 0)
@@ -1075,7 +1243,7 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		memcpy(p, "data", 4); p += 4;
 		memcpy(p, &dwCaptured, 4);          // data chunk size
 
-		dwSendSize = 44 + dwCaptured;
+		dwSendSize = dwHdrSize + dwCaptured;
 	}
 
 	httprsp.NoCache();
