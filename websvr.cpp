@@ -341,6 +341,14 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 				httprsp_regitem_md(psock,httprsp,ptr_path,ptr_type,ptr_name,ptr_value);
 				return true;
 			}
+			else if(strcasecmp(httpreq.url().c_str(),"/regitem_ren")==0)
+			{
+				const char *ptr_path=httpreq.Request("rpath");
+				const char *ptr_name=httpreq.Request("rname");
+				const char *ptr_newname=httpreq.Request("nname");
+				httprsp_regitem_ren(psock,httprsp,ptr_path,ptr_name,ptr_newname);
+				return true;
+			}
 		}//?else if( (lAccess & RMTSVC_ACCESS_REGIST_ALL)==RMTSVC_ACCESS_REGIST_ALL)
 	}//?if((lAccess & RMTSVC_ACCESS_REGIST_ALL)!=0)
 	//if the user has service management permission
