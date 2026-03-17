@@ -1082,8 +1082,6 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 
 	if (FAILED(pClient->Start())) goto done;
 
-	Sleep(520); // wait 520 ms so the ~500 ms buffer fills and a little extra
-
 	{
 		bool   bFloat  = wfxIsFloat(pDevFmt);
 		UINT32 nSrcCh  = pDevFmt->nChannels;
@@ -1093,46 +1091,54 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 		UINT32 nBlkSz  = pDevFmt->nBlockAlign;
 		UINT32 nPktLen = 0;
 
-		while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
+		// Poll for ~2 seconds in 10 ms steps to keep the device buffer drained
+		// and collect as much audio as the output buffer can hold.
+		ULONGLONG dwEndTick = GetTickCount64() + 2000;
+		do
 		{
-			BYTE  *pData   = NULL;
-			UINT32 nFrames = 0;
-			DWORD  dwFlags = 0;
-			if (FAILED(pCapture->GetBuffer(&pData, &nFrames, &dwFlags, NULL, NULL)))
-				break;
-
-			bool bSilent = ((dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) != 0) || (pData == NULL);
-			for (UINT32 f = 0; f < nFrames && dwResult + sizeof(short) * nDstCh <= dwMaxBytes; f++)
+			Sleep(10);
+			while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
 			{
-				for (UINT32 c = 0; c < nDstCh; c++)
+				BYTE  *pData   = NULL;
+				UINT32 nFrames = 0;
+				DWORD  dwFlags = 0;
+				if (FAILED(pCapture->GetBuffer(&pData, &nFrames, &dwFlags, NULL, NULL)))
+					break;
+
+				bool bSilent = ((dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) != 0) || (pData == NULL);
+				for (UINT32 f = 0; f < nFrames && dwResult + sizeof(short) * nDstCh <= dwMaxBytes; f++)
 				{
-					short s = 0;
-					if (!bSilent)
+					for (UINT32 c = 0; c < nDstCh; c++)
 					{
-						// Clamp source channel index to the number of available channels
-						UINT32 srcC = (c < nSrcCh) ? c : (nSrcCh - 1);
-						const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)srcC * nBPCh;
-						if (bFloat && nBPS == 32)
+						short s = 0;
+						if (!bSilent)
 						{
-							float fv; memcpy(&fv, pSrc, 4);
-							s = floatToS16(fv);
+							// Clamp source channel index to the number of available channels
+							UINT32 srcC = (c < nSrcCh) ? c : (nSrcCh - 1);
+							const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)srcC * nBPCh;
+							if (bFloat && nBPS == 32)
+							{
+								float fv; memcpy(&fv, pSrc, 4);
+								s = floatToS16(fv);
+							}
+							else if (!bFloat && nBPS == 16)
+							{
+								memcpy(&s, pSrc, 2);
+							}
+							else if (!bFloat && nBPS == 32)
+							{
+								INT32 i32; memcpy(&i32, pSrc, 4);
+								s = (short)(i32 >> 16);
+							}
 						}
-						else if (!bFloat && nBPS == 16)
-						{
-							memcpy(&s, pSrc, 2);
-						}
-						else if (!bFloat && nBPS == 32)
-						{
-							INT32 i32; memcpy(&i32, pSrc, 4);
-							s = (short)(i32 >> 16);
-						}
+						memcpy(lpPCMOut + dwResult, &s, sizeof(short));
+						dwResult += sizeof(short);
 					}
-					memcpy(lpPCMOut + dwResult, &s, sizeof(short));
-					dwResult += sizeof(short);
 				}
+				pCapture->ReleaseBuffer(nFrames);
+				if (dwResult >= dwMaxBytes) break;
 			}
-			pCapture->ReleaseBuffer(nFrames);
-		}
+		} while (GetTickCount64() < dwEndTick && dwResult < dwMaxBytes);
 	}
 
 	pClient->Stop();
@@ -1158,7 +1164,7 @@ done:
 	return dwResult;
 }
 
-// Capture ~500 ms of system audio and return it as a WAV (RIFF/PCM) response.
+// Capture ~2 s of system audio and return it as a WAV (RIFF/PCM) response.
 // Audio format: 44100 Hz, 16-bit, stereo (or device native rate if WASAPI is used).
 bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 {
@@ -1198,8 +1204,8 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		UINT nDevice = findLoopbackDevice(&wfx);
 		if (nDevice != WAVE_MAPPER) // only attempt capture if a loopback device was found
 		{
-			// 500 ms worth of PCM samples
-			DWORD dwPCMSize = wfx.nAvgBytesPerSec / 2;
+			// 2000 ms worth of PCM samples
+			DWORD dwPCMSize = wfx.nAvgBytesPerSec * 2;
 			if (dwPCMSize > dwMaxPCM) dwPCMSize = dwMaxPCM;
 
 			HANDLE  hEvent  = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -1217,8 +1223,8 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 				{
 					waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
 					waveInStart(hWaveIn);
-					// Wait up to 1.5 s for the buffer to be filled
-					if (WaitForSingleObject(hEvent, 1500) == WAIT_OBJECT_0)
+					// Wait up to 3 s for the 2-second buffer to be filled
+					if (WaitForSingleObject(hEvent, 3000) == WAIT_OBJECT_0)
 						dwCaptured = waveHdr.dwBytesRecorded;
 					waveInStop(hWaveIn);
 					waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
