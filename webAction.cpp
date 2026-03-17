@@ -1138,13 +1138,55 @@ static bool wfxIsFloat(const WAVEFORMATEX *pwfx)
 	return false;
 }
 
-// Capture ~500 ms of rendered audio using WASAPI loopback (Windows Vista and later).
-// Converts the device's native format to 16-bit stereo PCM on the fly.
-// On success, sets *pwfxOut and returns the number of PCM bytes written to lpPCMOut.
-// Returns 0 on any failure (caller then falls back to WinMM).
-static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwfxOut)
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistent WASAPI loopback ring buffer
+//
+// A dedicated background thread runs WASAPI loopback capture continuously and
+// writes 16-bit stereo PCM into a circular buffer.  Each /capAudio HTTP
+// request reads the next sequential 2-second window from the ring without
+// re-initialising WASAPI between requests.  This eliminates the ~20-50 ms
+// silence gap that per-request WASAPI initialisation would otherwise inject
+// at every chunk boundary.
+//
+// Ring capacity: 8 seconds at up to 96 kHz / 16-bit / 2-ch (~3 MB).
+// The thread auto-stops after 10 s of inactivity and restarts on demand.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 8 s at 96 kHz / stereo / 16-bit ≈ 3 MB
+#define AUDIO_RING_CAP (96000 * 2 * 2 * 8)
+
+struct AudioRing
 {
-	DWORD  dwResult   = 0;
+	LPBYTE           pBuf;        // circular PCM buffer
+	DWORD            dwCap;       // capacity in bytes (AUDIO_RING_CAP)
+	LONGLONG         llWrTotal;   // monotonically increasing bytes-written counter
+	LONGLONG         llNextChunk; // first byte of the next 2-s chunk to serve
+	CRITICAL_SECTION cs;          // guards all fields above
+	HANDLE           hEvent;      // auto-reset: signalled after each batch write
+	HANDLE           hThread;     // capture thread handle (NULL when stopped)
+	volatile LONG    lStop;       // interlocked: non-zero = thread should exit
+	ULONGLONG        ullLastReq;  // GetTickCount64 of most recent /capAudio request
+	WAVEFORMATEX     wfxOut;      // 16-bit stereo PCM at the device's native rate
+};
+
+static AudioRing g_ar;
+static bool      g_arInited = false;
+
+static void arEnsureInit()
+{
+	if (g_arInited) return;
+	memset(&g_ar, 0, sizeof(g_ar));
+	g_ar.pBuf   = (LPBYTE)malloc(AUDIO_RING_CAP);
+	g_ar.dwCap  = g_ar.pBuf ? AUDIO_RING_CAP : 0;
+	InitializeCriticalSection(&g_ar.cs);
+	g_ar.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	g_arInited  = true;
+}
+
+// Background thread: runs WASAPI loopback and fills the ring until lStop is
+// set or 10 seconds pass with no /capAudio request.
+static DWORD WINAPI audioRingThread(LPVOID)
+{
 	HRESULT hr;
 	IMMDeviceEnumerator *pEnum    = NULL;
 	IMMDevice           *pDev     = NULL;
@@ -1152,11 +1194,8 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	IAudioCaptureClient *pCapture = NULL;
 	WAVEFORMATEX        *pDevFmt  = NULL;
 
-	// Initialize COM for this call.
-	// S_OK  = freshly initialized → we must call CoUninitialize() on the way out.
-	// S_FALSE = already initialized on this thread → do NOT call CoUninitialize().
-	HRESULT hrCom    = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	bool    bNeedCo  = (hrCom == S_OK);
+	HRESULT hrCom  = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	bool    bNeedCo = (hrCom == S_OK);
 
 	hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL,
 	                      __uuidof(IMMDeviceEnumerator), (void **)&pEnum);
@@ -1171,10 +1210,9 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	hr = pClient->GetMixFormat(&pDevFmt);
 	if (FAILED(hr)) goto done;
 
-	// Initialize in loopback mode: captures whatever the render endpoint is playing.
 	hr = pClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
 	                         AUDCLNT_STREAMFLAGS_LOOPBACK,
-	                         5000000, 0, pDevFmt, NULL); // 500 ms buffer (100-ns units)
+	                         5000000, 0, pDevFmt, NULL); // 500 ms engine buffer
 	if (FAILED(hr)) goto done;
 
 	hr = pClient->GetService(__uuidof(IAudioCaptureClient), (void **)&pCapture);
@@ -1189,14 +1227,26 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 		UINT32 nBPS    = pDevFmt->wBitsPerSample;
 		UINT32 nBPCh   = nBPS / 8;
 		UINT32 nBlkSz  = pDevFmt->nBlockAlign;
-		UINT32 nPktLen = 0;
 
-		// Poll for ~2 seconds in 10 ms steps to keep the device buffer drained
-		// and collect as much audio as the output buffer can hold.
-		ULONGLONG dwEndTick = GetTickCount64() + 2000;
-		do
+		// Publish the output format so request handlers can size their chunks.
+		EnterCriticalSection(&g_ar.cs);
+		memset(&g_ar.wfxOut, 0, sizeof(WAVEFORMATEX));
+		g_ar.wfxOut.wFormatTag      = WAVE_FORMAT_PCM;
+		g_ar.wfxOut.nChannels       = nDstCh;
+		g_ar.wfxOut.nSamplesPerSec  = pDevFmt->nSamplesPerSec;
+		g_ar.wfxOut.wBitsPerSample  = 16;
+		g_ar.wfxOut.nBlockAlign     = nDstCh * 2;
+		g_ar.wfxOut.nAvgBytesPerSec = g_ar.wfxOut.nSamplesPerSec * g_ar.wfxOut.nBlockAlign;
+		LeaveCriticalSection(&g_ar.cs);
+
+		while (!InterlockedCompareExchange(&g_ar.lStop, 0, 0))
 		{
+			// Auto-stop after 10 s of no /capAudio requests.
+			if (GetTickCount64() - g_ar.ullLastReq > 10000) break;
+
 			Sleep(10);
+
+			UINT32 nPktLen = 0;
 			while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
 			{
 				BYTE  *pData   = NULL;
@@ -1206,14 +1256,15 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 					break;
 
 				bool bSilent = ((dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) != 0) || (pData == NULL);
-				for (UINT32 f = 0; f < nFrames && dwResult + sizeof(short) * nDstCh <= dwMaxBytes; f++)
+
+				EnterCriticalSection(&g_ar.cs);
+				for (UINT32 f = 0; f < nFrames; f++)
 				{
 					for (UINT32 c = 0; c < nDstCh; c++)
 					{
 						short s = 0;
 						if (!bSilent)
 						{
-							// Clamp source channel index to the number of available channels
 							UINT32 srcC = (c < nSrcCh) ? c : (nSrcCh - 1);
 							const BYTE *pSrc = pData + (size_t)f * nBlkSz + (size_t)srcC * nBPCh;
 							if (bFloat && nBPS == 32)
@@ -1231,27 +1282,18 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 								s = (short)(i32 >> 16);
 							}
 						}
-						memcpy(lpPCMOut + dwResult, &s, sizeof(short));
-						dwResult += sizeof(short);
+						DWORD pos = (DWORD)(g_ar.llWrTotal % g_ar.dwCap);
+						memcpy(g_ar.pBuf + pos, &s, sizeof(short));
+						g_ar.llWrTotal += sizeof(short);
 					}
 				}
+				LeaveCriticalSection(&g_ar.cs);
+				SetEvent(g_ar.hEvent); // wake any waiting request handler
 				pCapture->ReleaseBuffer(nFrames);
-				if (dwResult >= dwMaxBytes) break;
 			}
-		} while (GetTickCount64() < dwEndTick && dwResult < dwMaxBytes);
-	}
+		}
 
-	pClient->Stop();
-
-	if (dwResult > 0)
-	{
-		memset(pwfxOut, 0, sizeof(WAVEFORMATEX));
-		pwfxOut->wFormatTag      = WAVE_FORMAT_PCM;
-		pwfxOut->nChannels       = (pDevFmt->nChannels >= 2) ? 2 : 1;
-		pwfxOut->nSamplesPerSec  = pDevFmt->nSamplesPerSec;
-		pwfxOut->wBitsPerSample  = 16;
-		pwfxOut->nBlockAlign     = pwfxOut->nChannels * 2;
-		pwfxOut->nAvgBytesPerSec = pwfxOut->nSamplesPerSec * pwfxOut->nBlockAlign;
+		pClient->Stop();
 	}
 
 done:
@@ -1261,15 +1303,102 @@ done:
 	if (pDev)     pDev->Release();
 	if (pEnum)    pEnum->Release();
 	if (bNeedCo)  CoUninitialize();
-	return dwResult;
+
+	// Clear the thread handle (under the lock) so the next request can restart.
+	EnterCriticalSection(&g_ar.cs);
+	HANDLE hSelf    = g_ar.hThread;
+	g_ar.hThread    = NULL;
+	g_ar.lStop      = 0;
+	LeaveCriticalSection(&g_ar.cs);
+	if (hSelf) CloseHandle(hSelf); // safe: decrements refcount, thread still runs to return
+	return 0;
+}
+
+// Read the next sequential 2-second chunk from the persistent ring buffer.
+// Ensures the background capture thread is running; blocks until 2 s of new
+// audio is available.  On success writes PCM into lpPCMOut, sets *pwfxOut,
+// and returns the byte count.  Returns 0 on failure (caller falls back to WinMM).
+static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwfxOut)
+{
+	arEnsureInit();
+	if (!g_ar.pBuf) return 0; // allocation failed at init
+
+	g_ar.ullLastReq = GetTickCount64();
+
+	// Start the background thread if it is not currently running.
+	// Reset llNextChunk to the current write position so we skip any window
+	// that was claimed but never fully filled (e.g., after an inactivity stop).
+	EnterCriticalSection(&g_ar.cs);
+	if (g_ar.hThread == NULL)
+	{
+		g_ar.llNextChunk = g_ar.llWrTotal; // start fresh
+		g_ar.lStop       = 0;
+		g_ar.hThread     = CreateThread(NULL, 0, audioRingThread, NULL, 0, NULL);
+	}
+	LeaveCriticalSection(&g_ar.cs);
+
+	// Wait for the ring thread to publish its output format (~30-50 ms after start).
+	WAVEFORMATEX wfx;
+	{
+		ULONGLONG tLimit = GetTickCount64() + 2000;
+		for (;;)
+		{
+			EnterCriticalSection(&g_ar.cs);
+			wfx = g_ar.wfxOut;
+			LeaveCriticalSection(&g_ar.cs);
+			if (wfx.nAvgBytesPerSec > 0) break;
+			if (GetTickCount64() >= tLimit) return 0;
+			WaitForSingleObject(g_ar.hEvent, 50);
+		}
+	}
+
+	// How many PCM bytes make exactly 2 seconds at this device's rate?
+	DWORD dwChunkBytes = wfx.nAvgBytesPerSec * 2;
+	if (dwChunkBytes > dwMaxBytes) dwChunkBytes = dwMaxBytes;
+
+	// Atomically claim the next sequential window so that concurrent requests
+	// receive non-overlapping, perfectly back-to-back audio chunks.
+	LONGLONG llStart;
+	EnterCriticalSection(&g_ar.cs);
+	llStart           = g_ar.llNextChunk;
+	g_ar.llNextChunk += (LONGLONG)dwChunkBytes;
+	LeaveCriticalSection(&g_ar.cs);
+
+	// Block until the ring has filled the claimed window (up to 3 s grace).
+	LONGLONG  llEnd  = llStart + (LONGLONG)dwChunkBytes;
+	ULONGLONG tLimit = GetTickCount64() + 3000;
+	for (;;)
+	{
+		EnterCriticalSection(&g_ar.cs);
+		LONGLONG llCur = g_ar.llWrTotal;
+		LeaveCriticalSection(&g_ar.cs);
+		if (llCur >= llEnd) break;
+		if (GetTickCount64() >= tLimit) return 0;
+		WaitForSingleObject(g_ar.hEvent, 20);
+	}
+
+	// Copy the window from the ring buffer.  No lock needed here: the bytes in
+	// [llStart, llEnd) were fully committed before we exited the loop above, and
+	// the ring is large enough (≥8 s) that the writer cannot wrap to this region
+	// before a simple memcpy-equivalent loop completes.
+	for (DWORD i = 0; i < dwChunkBytes; i++)
+	{
+		DWORD pos  = (DWORD)((llStart + (LONGLONG)i) % (LONGLONG)g_ar.dwCap);
+		lpPCMOut[i] = g_ar.pBuf[pos];
+	}
+
+	*pwfxOut = wfx;
+	return dwChunkBytes;
 }
 
 // Capture ~2 s of system audio and return it as a WAV (RIFF/PCM) response.
-// Audio format: 44100 Hz, 16-bit, stereo (or device native rate if WASAPI is used).
+// Uses a persistent background capture thread (ring buffer) so WASAPI never
+// re-initialises between requests, eliminating the inter-chunk silence gap.
+// Falls back to WinMM loopback if WASAPI is unavailable.
 bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 {
-	// Maximum PCM buffer: 2 seconds at 48000 Hz / 16-bit / 2ch = 384 KB
-	const DWORD dwMaxPCM  = 48000 * 2 * 2 * 2;
+	// Maximum PCM buffer: 2 seconds at up to 96000 Hz / 16-bit / 2ch = 768 KB
+	const DWORD dwMaxPCM  = 96000 * 2 * 2 * 2;
 	// WAV header is 44 bytes (RIFF chunk + fmt chunk + data chunk header)
 	const DWORD dwHdrSize = 44;
 	DWORD dwTotalSize = dwHdrSize + dwMaxPCM;
