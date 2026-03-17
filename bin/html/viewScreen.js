@@ -1,5 +1,17 @@
 var autoRefresh=0; // Auto-refresh interval in ms
 var imgLoaded=true; // Whether screen capture is done
+
+// Scale display coordinates back to actual screen coordinates when image is resized
+function scaleToScreen(x, y)
+{
+	var img=document.getElementById("screenimage");
+	if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
+	{
+		x=Math.round(x * img.naturalWidth / img.clientWidth);
+		y=Math.round(y * img.naturalHeight / img.clientHeight);
+	}
+	return {x:x, y:y};
+}
 function loadImg()
 {
 	if(imgLoaded)
@@ -20,8 +32,9 @@ function msmove_IE()
  	var o=window.document.getElementById("divScreen");
  	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
   	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop; 
+	var coords=scaleToScreen(x1,y1);
   	var w=window.parent.frmLeft;
-  	w.document.getElementById("lblXY").innerText="X:"+x1+" , Y:"+y1;
+  	w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
 }
 
 function processRequest() 
@@ -59,6 +72,8 @@ function msup()
 	var o=window.document.getElementById("divScreen");
  	var x1=window.event.x+o.scrollLeft-o.parentElement.offsetLeft; 
   	var y1=window.event.y+o.scrollTop-o.parentElement.offsetTop;
+	var coords=scaleToScreen(x1,y1);
+	x1=coords.x; y1=coords.y;
 	var altk=0;
 	if(window.event.ctrlKey) altk=altk | 1;
 	if(window.event.shiftKey) altk=altk | 2;
@@ -83,7 +98,7 @@ function msup()
 function window_onload()
 {
 	var o=window.parent.frmLeft.document.getElementById("chkAuto");
-	if( o.checked ) autoRefresh=o.value;
+	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
 	loadImg()
 	return;	

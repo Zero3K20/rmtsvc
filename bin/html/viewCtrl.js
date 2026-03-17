@@ -7,6 +7,18 @@ var timerID_key=0;
 var timerID_click=0;
 var timerID_move=0;
 var txtKeyEvent="";
+
+// Scale display coordinates back to actual screen coordinates when image is resized
+function scaleToScreen(x, y)
+{
+	var img=document.getElementById("screenimage");
+	if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
+	{
+		x=Math.round(x * img.naturalWidth / img.clientWidth);
+		y=Math.round(y * img.naturalHeight / img.clientHeight);
+	}
+	return {x:x, y:y};
+}
 function loadImg()
 {
 	if(imgLoaded)
@@ -27,6 +39,8 @@ function msPosition(e)
 	var o=window.document.getElementById("divScreen");
  	ptX=e.x+o.scrollLeft-o.parentElement.offsetLeft;
   	ptY=e.y+o.scrollTop-o.parentElement.offsetTop;
+	var coords=scaleToScreen(ptX,ptY);
+	ptX=coords.x; ptY=coords.y;
   	var w=window.parent.frmLeft;
   	w.document.getElementById("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
   	document.getElementById("txtHide").focus();
@@ -35,7 +49,7 @@ function msPosition(e)
 function window_onload()
 {
 	var o=window.parent.frmLeft.document.getElementById("chkAuto");
-	if( o.checked ) autoRefresh=o.value;
+	autoRefresh=o.value;
 	if(!xmlHttp) createXMLHttpRequest();
 	loadImg();
 	document.getElementById("txtHide").focus();
