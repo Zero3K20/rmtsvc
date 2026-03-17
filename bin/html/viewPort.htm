@@ -12,65 +12,38 @@
 <td>
 &nbsp;<b>Port/Process List</b>&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:fportXML.src='/fport';">
+ onmouseover='javascript:this.className="btnUP";' value="Refresh" onclick="javascript:loadFport();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
- onmouseover='javascript:this.className="btnUP";' value="Kill Process" onclick="javascript:pkill();">
+ onmouseover='javascript:this.className="btnUP";' value="Kill Process" onclick="javascript:terminateProcess();">
  &nbsp;&nbsp;
  <input type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
  onmouseover='javascript:this.className="btnUP";' value="Process Properties" onclick="javascript:proFile();">
- &nbsp;&nbsp;Current PID:<span id="lblProcess" name="lblProcess">
+ &nbsp;&nbsp;Current PID:<span id="lblProcess" name="lblProcess"></span>
 </td>
 </tr>
 
 <tr>
 <td valign=top width=100%>
  <div style="height:100%;width:100%;overflow:auto;" >
- <xml id="fportXML" src="fport" onreadystatechange="javascript:showPopup(250, 200, 150, 20);" ondatasetcomplete="javascript:hidePopup();"></xml>
- <table id=tblProcess name=tblProcess datasrc="#fportXML" BORDER=0 CELLSPACING=0 CELLPADDING=0>
+ <table id=tblProcess name=tblProcess BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
- <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','ptype');"> <u>Protocol</u> </th>
- <th width=50px style="cursor:hand" onclick="sort('fportXML','fportStyle','pid');"> <u>PID</u> </th>
- <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','laddr');"> <u>Local Address</u> </th>
- <th width=150px style="cursor:hand" onclick="sort('fportXML','fportStyle','raddr');"> <u>Remote Address</u> </th>
- <th width=80px style="cursor:hand" onclick="sort('fportXML','fportStyle','status');"> <u>State</u> </th>
+ <th width=50px style="cursor:pointer" onclick="sortFport('ptype');"> <u>Protocol</u> </th>
+ <th width=50px style="cursor:pointer" onclick="sortFport('pid');"> <u>PID</u> </th>
+ <th width=150px style="cursor:pointer" onclick="sortFport('laddr');"> <u>Local Address</u> </th>
+ <th width=150px style="cursor:pointer" onclick="sortFport('raddr');"> <u>Remote Address</u> </th>
+ <th width=80px style="cursor:pointer" onclick="sortFport('status');"> <u>State</u> </th>
  <th width=200px> Process Name </th>
- </tr><THEAD>
- <TBODY>
- <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';" 
-  onclick="javascript:processClick(this);" style="cursor:hand;">
- <td align=center ><span datafld="id" ></span></td>
- <td align=center ><span datafld="ptype" ></span></td>
- <td align=center ><span datafld="pid" ></span></td>
- <td >&nbsp;&nbsp;&nbsp;&nbsp;<span datafld="laddr" ></span></td>
- <td >&nbsp;&nbsp;<span datafld="raddr" ></span></td>
- <td >&nbsp;&nbsp;<span datafld="status" ></span></td>
- <td >&nbsp;&nbsp;<span datafld="pname" ></span></td>
- </tr>
- <TBODY></table>
+ </tr></THEAD>
+ <TBODY id="fportTbody"></TBODY>
+ </table>
  </div>
 </td>
 </tr>
 
 </table>
-
-<xml id="fportStyle"> 
-<xmlroot> 
-<xsl:for-each select="fport" order-by="+ptype" xmlns:xsl="http://www.w3.org/TR/WD-xsl"> 
-<fport> 
-<id><xsl:value-of select="id"/></id>
-<ptype><xsl:value-of select="ptype"/></ptype>
-<pid><xsl:value-of select="pid"/></pid> 
-<pname><xsl:value-of select="pname"/></pname>
-<laddr><xsl:value-of select="laddr"/></laddr> 
-<raddr><xsl:value-of select="raddr"/></raddr> 
-<status><xsl:value-of select="status"/></status>  
-</fport> 
-</xsl:for-each> 
-</xmlroot> 
-</xml> 
 
 </BODY>
 </HTML>

@@ -34,12 +34,15 @@ var sdri="";
 function window_onload()
 {
 	var qx=0;
-	sdri=window.dialogArguments;
-	var p=sdri.indexOf(',');
-	if(p!=-1)
-	{
-		qx=sdri.substr(0,p);
-		sdri=sdri.substr(p+1);
+	var query=window.location.search.substring(1);
+	var params=query.split("&");
+	for(var i=0;i<params.length;i++) {
+		var eqIdx=params[i].indexOf("=");
+		if(eqIdx<0) continue;
+		var key=params[i].substring(0,eqIdx);
+		var val=params[i].substring(eqIdx+1);
+		if(key=="qx") qx=parseInt(val)||0;
+		if(key=="path") sdri=decodeURIComponent(val||"");
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();

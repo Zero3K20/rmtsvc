@@ -22,12 +22,13 @@ if(!oPopup) createpopup();
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("cmdInput").focus();
 }
-function keypress(txtElement)
+function keypress(txtElement, e)
 {
 var scmd=document.getElementById("cmdInput").value;
-if(window.event.keyCode==13 && scmd!="")
+e = e || window.event;
+if(e && e.keyCode==13 && scmd!="")
 {
-window.event.keyCode=0;
+if(e.preventDefault) e.preventDefault(); else e.returnValue=false;
 showPopup(250, 200, 150, 20);
 xmlHttp.open("GET", "/cmdpage", true);
 xmlHttp.onreadystatechange = processRequest;
@@ -49,7 +50,7 @@ document.getElementById("txtOutput").value="";
 &nbsp;<B>Command:<B>
 </td>
 <td width=520px>
-<input id=cmdInput type="text" style="width:450px" onkeypress="javascript:keypress(this);">
+<input id=cmdInput type="text" style="width:450px" onkeypress="javascript:keypress(this,event);">
 &nbsp;
 <input id=btnInput type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
  title="Clear the output area" 

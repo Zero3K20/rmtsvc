@@ -36,27 +36,19 @@
 <tr>
 <td valign=top width="30%">
  <div style="height:100%;width:100%;overflow:auto;" >
- <xml id="regkeyXML" ></xml>
- <table id=tblRegkey name=tblRegkey datasrc="#regkeyXML" width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
+ <table id=tblRegkey name=tblRegkey width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
- <th width="20px"> &nbsp;<A href="javascript:goup();" style="cursor:hand;">UP</A> </th>
+ <th width="20px"> &nbsp;<A href="javascript:goup();" style="cursor:pointer;">UP</A> </th>
  <th> Key Name </th>
- </tr><THEAD>
- <TBODY>
- <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';"  height=18px>
- <td onclick="javascript:regkeyDblClick(this.parentElement);">
- &nbsp;<span datafld="subkeys" style="cursor:hand;" ></span>&nbsp;</td>
- <td onclick="javascript:regkeyClick(this.parentElement);" nowrap>
- <span datafld="regkey" style="cursor:hand;" ></span></td>
- </tr>
- <TBODY></table>
+ </tr></THEAD>
+ <TBODY id="regkeyTbody"></TBODY>
+ </table>
  </div>
 </td>
 <td valign=top >
  <div style="height:100%;width:100%;overflow:auto;" >
- <xml id="regitemXML" ></xml>
- <table id=tblRegitem name=tblRegitem datasrc="#regitemXML" width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
+ <table id=tblRegitem name=tblRegitem width=100% BORDER=0 CELLSPACING=0 CELLPADDING=0>
  <THEAD>
  <tr height=18px bgColor="Silver">
  <th width=20px> &nbsp; </th>
@@ -64,26 +56,17 @@
  <th width=80px> Length </th>
  <th width=220px> Name </th>
  <th> Data </th>
- </tr><THEAD>
- <TBODY>
- <tr onmousemove="javascript:this.style.background='#e5e5e5';" onmouseout="javascript:this.style.background='#ffffff';"  
-  id=fItems onclick="javascript:regItemClick(this);"  style="cursor:hand;" >
- <td align=right ><span datafld="id" ></span></td>
- <td align=center ><span datafld="rtype" ></span></td>
- <td align=center ><span datafld="rdlen" ></span></td>
- <td ><span datafld="rname" ></span></td>
- <td><TEXTAREA class="txtInput_none" datafld="rdata" READONLY onclick="javascript:modifyItem(this);" 
- onblur="javascript:cancelModifyItem(this);" onkeypress="javascript:keypress(this);"></TEXTAREA></td>
- </tr>
- <TBODY></table>
+ </tr></THEAD>
+ <TBODY id="regitemTbody"></TBODY>
+ </table>
  </div>
 </td>
 </tr>
 
 <tr><td colspan=2 bgcolor=Silver height=20px nowrap>
 &nbsp;
-<A href="javascript:goto();" style="cursor:hand;">Go to</A>
-<A href="javascript:goup();" style="cursor:hand;">Up</A>&nbsp;
+<A href="javascript:goto();" style="cursor:pointer;">Go to</A>
+<A href="javascript:goup();" style="cursor:pointer;">Up</A>&nbsp;
 <span id="lblRegPath" name="lblRegPath"></span>
 </td></tr>
 </table>

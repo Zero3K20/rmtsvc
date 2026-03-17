@@ -38,13 +38,16 @@ function processRequest()
 var spath="";
 function window_onload()
 {
-	spath=window.dialogArguments;
 	var qx=0;
-	var p=spath.indexOf(',');
-	if(p!=-1)
-	{
-		qx=spath.substr(0,p);
-		spath=spath.substr(p+1);
+	var query=window.location.search.substring(1);
+	var params=query.split("&");
+	for(var i=0;i<params.length;i++) {
+		var eqIdx=params[i].indexOf("=");
+		if(eqIdx<0) continue;
+		var key=params[i].substring(0,eqIdx);
+		var val=params[i].substring(eqIdx+1);
+		if(key=="qx") qx=parseInt(val)||0;
+		if(key=="path") spath=decodeURIComponent(val||"");
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();
