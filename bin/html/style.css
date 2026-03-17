@@ -53,6 +53,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 HEIGHT: 100%; 
  	 WIDTH:  100%;
  	 MARGIN-TOP: 0pt;
+ 	 PADDING: 0pt;
 }
 .txtInput_none
 { 
@@ -68,6 +69,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 HEIGHT: 100%; 
  	 WIDTH:  100%;
  	 MARGIN-TOP: 0pt;
+ 	 PADDING: 0pt;
 }
 .txtInput_n
 {
