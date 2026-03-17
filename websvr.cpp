@@ -11,6 +11,7 @@
    *******************************************************************/
 
 #include "rmtsvc.h"
+#include <mutex>
 
 webServer :: webServer():m_svrport(7778)
 {
@@ -127,6 +128,23 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 	
 	//check whether the user is authenticated and get their permissions
 	long lAccess=atol(session["lAccess"].c_str());
+	if(lAccess==RMTSVC_ACCESS_NONE){
+		const char *rememberToken=httpreq.Cookies("rmtsvc_remember");
+		if(rememberToken && !m_bAnonymous){
+			std::lock_guard<cMutex> lk(m_rememberMutex);
+			std::map<std::string,RememberEntry>::iterator it=m_rememberTokens.find(rememberToken);
+			if(it!=m_rememberTokens.end()){
+				if(time(NULL)<(*it).second.expires){
+					session["user"]=(*it).second.user;
+					char tmp[16]; sprintf(tmp,"%ld",(*it).second.lAccess);
+					session["lAccess"]=std::string(tmp);
+					lAccess=(*it).second.lAccess;
+				}else{
+					m_rememberTokens.erase(it); //clean up expired token
+				}
+			}
+		}
+	}
 	if(lAccess==RMTSVC_ACCESS_NONE){
 		if(m_bAnonymous){//if currently in anonymous login mode
 			session["user"]=string("Anonymous");

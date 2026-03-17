@@ -29,6 +29,8 @@ namespace net4cpp21
 		std::string cookie_value;
 		std::string cookie_expires;
 		std::string cookie_path;
+		bool cookie_httponly;
+		_TNew_Cookie():cookie_httponly(false){}
 	}TNew_Cookie; //newly set cookie structure
 	class httpResponse 
 	{

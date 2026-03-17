@@ -14,12 +14,15 @@
 #include "shellCommandEx.h"
 #include "other\wutils.h"
 #include "other\ipf.h"
+#include <mutex>
 #include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
 // WASAPI loopback audio capture (Windows Vista and later)
 #include <audioclient.h>
 #include <mmdeviceapi.h>
 #pragma comment(lib, "ole32.lib")
+#include <wincrypt.h>
+#pragma comment(lib, "crypt32.lib")
 
 void downThreadX(char *strParam)
 {
@@ -174,8 +177,43 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 				if((*it).second.first==std::string(ptr_pswd))
 				{
 					session["user"]=(*it).first;
-					char tmp[16]; sprintf(tmp,"%d",(*it).second.second);
+					char tmp[16]; sprintf(tmp,"%ld",(*it).second.second);
 					session["lAccess"]=string(tmp);
+
+					const char *ptr_remember=httpreq.Request("remember");
+					if(ptr_remember && strcmp(ptr_remember,"1")==0)
+					{//generate a remember-me token and set a long-lived cookie
+						static const char tokenchars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+						char token[33]; token[32]=0;
+						BYTE randBytes[32]={0};
+						HCRYPTPROV hProv=0;
+						if(CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL,CRYPT_VERIFYCONTEXT|CRYPT_SILENT)){
+							CryptGenRandom(hProv,32,randBytes);
+							CryptReleaseContext(hProv,0);
+						}else{
+							srand((unsigned)time(NULL)^(unsigned)(size_t)token);
+							for(int i=0;i<32;i++) randBytes[i]=(BYTE)rand();
+						}
+						for(int i=0;i<32;i++) token[i]=tokenchars[randBytes[i]%62];
+
+						time_t tExpires=time(NULL)+30*24*60*60; //30 days
+						RememberEntry entry; entry.user=(*it).first;
+						entry.lAccess=(*it).second.second; entry.expires=tExpires;
+						{
+							std::lock_guard<cMutex> lk(m_rememberMutex);
+							m_rememberTokens[std::string(token)]=entry;
+						}
+
+						struct tm *tmExpires=gmtime(&tExpires);
+						char strExpires[64];
+						strftime(strExpires,sizeof(strExpires),"%a, %d-%b-%Y %H:%M:%S GMT",tmExpires);
+
+						httprsp.SetCookie("rmtsvc_remember",token,"/");
+						TNew_Cookie *pCookie=httprsp.SetCookie("rmtsvc_remember");
+						if(pCookie){ pCookie->cookie_expires=std::string(strExpires);
+							pCookie->cookie_httponly=true; }
+					}
+
 					this->httprsp_Redirect(psock,httprsp,"/");
 					return true;
 				}

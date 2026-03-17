@@ -148,6 +148,11 @@ private:
 	//second.first - visitor account  second.second - visitor permissions
 	std::map<std::string,std::pair<std::string,long> > m_mapUsers;
 
+	// remember-me tokens: token -> (username, lAccess)
+	struct RememberEntry { std::string user; long lAccess; time_t expires; };
+	std::map<std::string,RememberEntry> m_rememberTokens;
+	cMutex m_rememberMutex;
+
 	bool m_bSSLenabled; //start SSL service
 	bool m_bSSLverify; //whether to perform client certificate authentication
 	//yyc add 2010-02-23 if account is configured in ini, anonymous access is not supported
