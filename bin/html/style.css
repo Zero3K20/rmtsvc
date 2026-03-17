@@ -12,7 +12,9 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	color:#000000; 
  	FONT-FAMILY: 'Arial'; 
  	FONT-SIZE: 9pt; 
- 	cursor:pointer 
+ 	cursor:pointer;
+	display: inline-block;
+	text-align: center;
   } 
 .btnDown 
 { 
@@ -24,7 +26,9 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
      color:#000000; 
      FONT-FAMILY: 'Arial'; 
      FONT-SIZE: 9pt; 
-     cursor:pointer 
+     cursor:pointer;
+     display: inline-block;
+     text-align: center;
 } 
 .btnOff 
 { 
@@ -36,7 +40,9 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
      color:#000000; 
      FONT-FAMILY: 'Arial'; 
      FONT-SIZE: 9pt; 
-     cursor:pointer; 
+     cursor:pointer;
+     display: inline-block;
+     text-align: center;
 }
 .txtInput_normal
 { 
