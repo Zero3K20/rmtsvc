@@ -67,7 +67,7 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 background: transparent;
  	 cursor:pointer;
  	 overflow: hidden;
- 	 HEIGHT: 100%; 
+ 	 HEIGHT: auto; 
  	 WIDTH:  100%;
  	 MARGIN-TOP: 0pt;
  	 PADDING: 0pt;

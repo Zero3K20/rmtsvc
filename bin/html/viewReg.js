@@ -112,6 +112,7 @@ function renderRegitems()
 			tr.appendChild(makeCell(escHtml(d.rname),""));
 			// data textarea cell
 			var td5=document.createElement("td");
+			td5.style.verticalAlign="middle";
 			var ta=document.createElement("textarea");
 			ta.className="txtInput_none";
 			ta.readOnly=true;
