@@ -935,16 +935,19 @@ static UINT findLoopbackDevice(WAVEFORMATEX *pwfx)
 		WAVEINCAPS caps;
 		if (waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
 		{
+			// Match common loopback device name substrings:
+			// "Stereo Mix", "What U Hear", "Wave Out Mix", "Loopback"
 			if (strstr(caps.szPname, "Mix")      ||
 			    strstr(caps.szPname, "mix")      ||
-			    strstr(caps.szPname, "What")     ||
+			    strstr(caps.szPname, "What U")   ||
 			    strstr(caps.szPname, "Loopback") ||
 			    strstr(caps.szPname, "loopback") ||
 			    strstr(caps.szPname, "Stereo")   ||
 			    strstr(caps.szPname, "stereo"))
 			{
-				HWAVEIN hTest = NULL;
-				if (waveInOpen(&hTest, i, pwfx, 0, 0, WAVE_FORMAT_QUERY) == MMSYSERR_NOERROR)
+				// WAVE_FORMAT_QUERY only validates format support; it does not
+				// open the device and does not set the handle (phwi is ignored).
+				if (waveInOpen(NULL, i, pwfx, 0, 0, WAVE_FORMAT_QUERY) == MMSYSERR_NOERROR)
 					return i;
 			}
 		}
