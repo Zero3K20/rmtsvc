@@ -178,7 +178,16 @@ function processRequest()
 			if(qxnode.length>0) userQX=qxnode[0].firstChild.data;
 			var userAgent=xmlobj.getElementsByTagName("userAgent");
 			strUserAgent=userAgent[0].firstChild.data;
-			setButtonStatus(); 
+			setButtonStatus();
+			var savedAudio = localStorage.getItem("audioEnabled");
+			if (savedAudio === "1")
+			{
+				var o = document.getElementById("fAudio");
+				if (o && !o.disabled)
+				{
+					toggleAudio();
+				}
+			}
             	}
         }
 }
@@ -205,7 +214,15 @@ function window_onload()
 	ArrangeTaskList();
 	Show_ChangeTool('Control');
 	if(!xmlHttp) createXMLHttpRequest();
-	xmlHttp.open("GET", "/capSetting", true);
+	var savedQuality = localStorage.getItem("imageQuality");
+	if (savedQuality)
+	{
+		xmlHttp.open("GET", "/capSetting?quality=" + savedQuality + "&lockmskb=0", true);
+	}
+	else
+	{
+		xmlHttp.open("GET", "/capSetting", true);
+	}
 	xmlHttp.onreadystatechange = processRequest;
     	xmlHttp.send(null);
 }
@@ -219,6 +236,7 @@ function capsetting()
 	else if(document.getElementById("quality60").checked) qualityVal=60;
 	else if(document.getElementById("quality90").checked) qualityVal=90;
 	else qualityVal=60;
+	localStorage.setItem("imageQuality", qualityVal);
 	xmlHttp.open("GET", "/capSetting?quality="+qualityVal+"&lockmskb="+lockmskb, true);
 	xmlHttp.onreadystatechange = processRequest;
     	xmlHttp.send(null);
@@ -297,6 +315,7 @@ var nextAudioTime = 0;
 function toggleAudio()
 {
 	audioEnabled = !audioEnabled;
+	localStorage.setItem("audioEnabled", audioEnabled ? "1" : "0");
 	var o = document.getElementById("fAudio");
 	if (audioEnabled)
 	{
