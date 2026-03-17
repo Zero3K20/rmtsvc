@@ -35,21 +35,23 @@ function loadFport()
 		if(xmlFport.readyState==4) {
 			if(xmlFport.status==200) {
 				var xmlobj=xmlFport.responseXML;
-				fportData=[];
-				var ports=xmlobj.getElementsByTagName("fport");
-				for(var i=0;i<ports.length;i++) {
-					var p=ports[i];
-					fportData.push({
-						id:getNodeText(p,"id"),
-						ptype:getNodeText(p,"ptype"),
-						pid:getNodeText(p,"pid"),
-						pname:getNodeText(p,"pname"),
-						laddr:getNodeText(p,"laddr"),
-						raddr:getNodeText(p,"raddr"),
-						status:getNodeText(p,"status")
-					});
+				if(xmlobj) {
+					fportData=[];
+					var ports=xmlobj.getElementsByTagName("fport");
+					for(var i=0;i<ports.length;i++) {
+						var p=ports[i];
+						fportData.push({
+							id:getNodeText(p,"id"),
+							ptype:getNodeText(p,"ptype"),
+							pid:getNodeText(p,"pid"),
+							pname:getNodeText(p,"pname"),
+							laddr:getNodeText(p,"laddr"),
+							raddr:getNodeText(p,"raddr"),
+							status:getNodeText(p,"status")
+						});
+					}
+					renderFport();
 				}
-				renderFport();
 			}
 			hidePopup();
 		}
