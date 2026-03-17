@@ -5,168 +5,199 @@ var timerID_click=0;
 var timerID_move=0;
 var txtKeyEvent="";
 
+// Detect Internet Explorer (pre-Edge) which uses different button/event conventions
+var isIE = !!(window.ActiveXObject || (navigator.userAgent.indexOf("Trident") !== -1));
+
+// Normalize mouse button to server-expected values: 1=left, 2=right, 4=middle
+// IE already uses these values; modern browsers use 0=left, 1=middle, 2=right
+function normalizeButton(b)
+{
+if(isIE) return b;
+if(b===0) return 1;
+if(b===1) return 4;
+if(b===2) return 2;
+return b;
+}
+
+// Return true if the mouse event button represents the left button
+function isLeftButton(b)
+{
+return isIE ? (b===1) : (b===0);
+}
+
 // Scale display coordinates back to actual screen coordinates when image is resized
 function scaleToScreen(x, y)
 {
-	var img=document.getElementById("screenimage");
-	if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
-	{
-		x=Math.round(x * img.naturalWidth / img.clientWidth);
-		y=Math.round(y * img.naturalHeight / img.clientHeight);
-	}
-	return {x:x, y:y};
+var img=document.getElementById("screenimage");
+if(img.naturalWidth && img.clientWidth && img.naturalWidth !== img.clientWidth)
+{
+x=Math.round(x * img.naturalWidth / img.clientWidth);
+y=Math.round(y * img.naturalHeight / img.clientHeight);
+}
+return {x:x, y:y};
 }
 
 function msPosition(e) 
 { 
-	var o=window.document.getElementById("divScreen");
- 	ptX=e.x+o.scrollLeft-o.parentElement.offsetLeft;
-  	ptY=e.y+o.scrollTop-o.parentElement.offsetTop;
-	var coords=scaleToScreen(ptX,ptY);
-	ptX=coords.x; ptY=coords.y;
-  	var w=window.parent.frmLeft;
-  	w.document.getElementById("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
-  	document.getElementById("txtHide").focus();
+var o=window.document.getElementById("divScreen");
+ptX=(e.clientX !== undefined ? e.clientX : e.x)+o.scrollLeft-o.parentElement.offsetLeft;
+ptY=(e.clientY !== undefined ? e.clientY : e.y)+o.scrollTop-o.parentElement.offsetTop;
+var coords=scaleToScreen(ptX,ptY);
+ptX=coords.x; ptY=coords.y;
+var w=window.parent.frmLeft;
+w.document.getElementById("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
+document.getElementById("txtHide").focus();
 }
 
 function window_onload()
 {
-	if(!xmlHttp) createXMLHttpRequest();
-	document.getElementById("txtHide").focus();
+if(!xmlHttp) createXMLHttpRequest();
+document.getElementById("txtHide").focus();
 }
 
 function processRequest() 
 {
-	// Event sent; the MJPEG stream updates the display automatically
+// Event sent; the MJPEG stream updates the display automatically
 }
 function sendEvent(strurl,param)
 {
-	if(timerID_move!=0)
-	{
-		window.clearTimeout(timerID_move);
-		timerID_move=0;
-	}
-	if(timerID_click!=0)
-	{
-		window.clearTimeout(timerID_click);
-		timerID_click=0;
-	}
-	xmlHttp.open("POST", strurl, true);
-	xmlHttp.onreadystatechange = processRequest;
-	xmlHttp.send(param);
+if(timerID_move!=0)
+{
+window.clearTimeout(timerID_move);
+timerID_move=0;
+}
+if(timerID_click!=0)
+{
+window.clearTimeout(timerID_click);
+timerID_click=0;
+}
+xmlHttp.open("POST", strurl, true);
+xmlHttp.onreadystatechange = processRequest;
+xmlHttp.send(param);
 }
 
-function msmove()
+function msmove(e)
 {
- 	msPosition(window.event);
- 	var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
-	if(timerID_move!=0)
-	{
-		window.clearTimeout(timerID_move);
-		timerID_move=0;
-	}
-	timerID_move=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\")",50);
+e=e||window.event;
+msPosition(e);
+var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
+if(timerID_move!=0)
+{
+window.clearTimeout(timerID_move);
+timerID_move=0;
+}
+timerID_move=window.setTimeout(function(){ sendEvent("/msevent",param); },50);
 }
 
-function msclick()
+function msclick(e)
 {
-	msPosition(window.event);
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
-	if(timerID_click!=0) window.clearTimeout(timerID_click);
-	if(timerID_move!=0) window.clearTimeout(timerID_move);
-	timerID_click=window.setTimeout("sendEvent(\"/msevent\",\""+param+"\")",500);
+e=e||window.event;
+msPosition(e);
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
+if(timerID_click!=0) window.clearTimeout(timerID_click);
+if(timerID_move!=0) window.clearTimeout(timerID_move);
+timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },500);
 }
-function msdblclick()
+function msdblclick(e)
 {
-	if(timerID_click!=0)
-	{
-		window.clearTimeout(timerID_click);
-		timerID_click=0;
-	}
-	msPosition(window.event);
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
-	sendEvent("/msevent",param);
+if(timerID_click!=0)
+{
+window.clearTimeout(timerID_click);
+timerID_click=0;
+}
+e=e||window.event;
+msPosition(e);
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
+sendEvent("/msevent",param);
 }
 
-function msdrop()
+function msdrop(e)
 {
-	msPosition(window.event);
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
-	sendEvent("/msevent",param);
+e=e||window.event;
+msPosition(e);
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
+sendEvent("/msevent",param);
 }
 // Get mouse down event, record drag start point. ondrag event has offset issues
-function msdown()
+function msdown(e)
 {
-	if(window.event.button==1)
-	{
-		msPosition(window.event);
-		ptX_drag=ptX;
-		ptY_drag=ptY;
-	}
+e=e||window.event;
+if(isLeftButton(e.button))
+{
+msPosition(e);
+ptX_drag=ptX;
+ptY_drag=ptY;
+}
 }
 // Get non-left button click actions
-function msup()
+function msup(e)
 {
-	var b=window.event.button;
-	if(b==1) return; // Skip left button click
-	msPosition(window.event);
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+b+"&act=1";
-	sendEvent("/msevent",param);
+e=e||window.event;
+var b=e.button;
+if(isLeftButton(b)) return; // Skip left button click
+msPosition(e);
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var serverBtn=normalizeButton(b);
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=1";
+sendEvent("/msevent",param);
 }
 
-function mswheel()
+function mswheel(e)
 {
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var d=window.event.wheelDelta;
-	var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=5&wheel="+window.event.wheelDelta;
-	sendEvent("/msevent",param);
-	window.event.returnValue=false;
+e=e||window.event;
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var wheelDelta=(e.wheelDelta !== undefined) ? e.wheelDelta : -e.deltaY;
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=5&wheel="+wheelDelta;
+sendEvent("/msevent",param);
+if(e.preventDefault) e.preventDefault();
+e.returnValue=false;
+return false;
 }
 
 function Kevent()
 {
-	var param=txtKeyEvent;
-	txtKeyEvent="";
-	if(param=="")
-	{
-		if(timerID_key!=0)
-			window.clearInterval(timerID_key);
-		timerID_key=0;
-	}
-	else
-		sendEvent("/keyevent","vkey="+param);
-}
-
-
-function keyup()
+var param=txtKeyEvent;
+txtKeyEvent="";
+if(param=="")
 {
-	var altk=0;
-	if(window.event.ctrlKey) altk=altk | 1;
-	if(window.event.shiftKey) altk=altk | 2;
-	if(window.event.altKey) altk=altk | 4;
-	var kevent=altk*256+window.event.keyCode;
-	txtKeyEvent=txtKeyEvent+kevent+",";
-	if(timerID_key==0)
-		timerID_key=window.setInterval(Kevent,1000);
-	window.event.keyCode=0;
+if(timerID_key!=0)
+window.clearInterval(timerID_key);
+timerID_key=0;
+}
+else
+sendEvent("/keyevent","vkey="+param);
 }
 
+
+function keyup(e)
+{
+e=e||window.event;
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var kevent=altk*256+(e.keyCode||e.which);
+txtKeyEvent=txtKeyEvent+kevent+",";
+if(timerID_key==0)
+timerID_key=window.setInterval(Kevent,1000);
+if(e.preventDefault) e.preventDefault();
+return false;
+}

@@ -14,11 +14,11 @@
 </div>
 
 </table>
-</BODY>
-</HTML>
 <SCRIPT LANGUAGE="javascript">
 document.oncontextmenu = new Function("return false;");
-document.screenimage.onmousemove=msmove_IE;
-document.screenimage.onmouseup=msup;
+var _img = document.getElementById("screenimage");
+_img.onmousemove = msmove;
+_img.onmouseup = msup;
 </SCRIPT>
-
+</BODY>
+</HTML>

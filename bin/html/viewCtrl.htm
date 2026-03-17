@@ -15,17 +15,25 @@
 </td></tr>
 
 </table>
-</BODY>
-</HTML>
 <SCRIPT LANGUAGE="javascript">
 document.oncontextmenu = new Function("return false;");
-document.screenimage.onmousemove=msmove;
-document.screenimage.onclick=msclick;
-document.screenimage.ondblclick=msdblclick;
-document.screenimage.ondragend=msdrop;
-document.screenimage.onmousewheel=mswheel;
-document.screenimage.onmousedown=msdown;
-document.screenimage.onmouseup=msup;
-document.getElementById("txtHide").onkeyup=keyup;
+var _img = document.getElementById("screenimage");
+var _txtHide = document.getElementById("txtHide");
+_img.onmousemove = msmove;
+_img.onclick = msclick;
+_img.ondblclick = msdblclick;
+_img.ondragend = msdrop;
+_img.onmousedown = msdown;
+_img.onmouseup = msup;
+if(_img.addEventListener)
+{
+_img.addEventListener("wheel", mswheel, {passive:false});
+}
+else
+{
+_img.onmousewheel = mswheel;
+}
+_txtHide.onkeyup = keyup;
 </SCRIPT>
-
+</BODY>
+</HTML>
