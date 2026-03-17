@@ -352,10 +352,11 @@ function fetchAudioChunk()
 		fetchAudioChunk();
 	}
 
-	// Send the next request ~2 s after this one so it arrives at the server
-	// near the end of the current 2-second capture window.  This closes the
-	// round-trip-latency gap that would otherwise appear between chunks.
-	var prefetchTimer = setTimeout(startNext, 2000);
+	// Fire the next request ~2 s after this one starts.  With the server-side
+	// ring buffer, the server always blocks for exactly 2 s per request while
+	// filling the next sequential chunk, so sending a new request early ensures
+	// the next chunk is ready to decode just as this one finishes playing.
+	var prefetchTimer = setTimeout(startNext, 1800);
 
 	xhr.onload = function()
 	{
