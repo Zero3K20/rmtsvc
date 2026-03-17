@@ -471,7 +471,7 @@ function keypressHandler(txtElement, e)
 	if(document.getElementById("fUpFile").disabled) return;
 	var kc=e?e.keyCode:0;
 	var ctrl=e?e.ctrlKey:false;
-	if(kc==10 && ctrl)
+	if((kc==10 || kc==13) && ctrl)
 	{
 		var tr=txtElement.parentNode.parentNode;
 		var idx=parseInt(tr.getAttribute("data-idx"));

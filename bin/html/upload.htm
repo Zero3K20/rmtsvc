@@ -57,10 +57,13 @@
 		if(!oPopup) createpopup();
 		if(!xmlHttp) createXMLHttpRequest();
 		// get destination path from URL parameter
-		var params=window.location.search.substring(1).split("&");
+		var query=window.location.search.substring(1);
+		var params=query.split("&");
 		for(var i=0;i<params.length;i++) {
-			var kv=params[i].split("=");
-			if(kv[0]=="path") destpath=decodeURIComponent(kv[1]||"");
+			var eqIdx=params[i].indexOf("=");
+			if(eqIdx<0) continue;
+			if(params[i].substring(0,eqIdx)=="path")
+				destpath=decodeURIComponent(params[i].substring(eqIdx+1)||"");
 		}
 		document.getElementById("destpath").value=destpath;
 
