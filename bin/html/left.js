@@ -322,13 +322,17 @@ function toggleAudio()
 		if (!audioCtx)
 		{
 			audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-			nextAudioTime = audioCtx.currentTime;
 		}
 		if (o) o.innerText = "Audio: ON";
-		fetchAudioChunk();
+		audioCtx.resume().then(function()
+		{
+			nextAudioTime = audioCtx.currentTime;
+			fetchAudioChunk();
+		});
 	}
 	else
 	{
+		if (audioCtx) audioCtx.suspend();
 		if (o) o.innerText = "Audio: OFF";
 	}
 }
