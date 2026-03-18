@@ -223,6 +223,25 @@ function _diffParseFrames()
 	}
 }
 
+// Fit the screen canvas to fill the available window space while preserving
+// aspect ratio (scales both up and down to fill the frame, like "Fit to Screen").
+// Uses window.innerWidth/Height so it works even when the CSS height chain
+// (height:100% through table cells) doesn't resolve correctly in the browser.
+function _fitCanvasToContainer()
+{
+	var canvas = document.getElementById("screenimage");
+	if (!canvas) return;
+	var nw = parseInt(canvas.getAttribute("data-nw") || "0") || canvas.width;
+	var nh = parseInt(canvas.getAttribute("data-nh") || "0") || canvas.height;
+	if (!nw || !nh) return;
+	var cw = window.innerWidth  || document.documentElement.clientWidth  || 0;
+	var ch = window.innerHeight || document.documentElement.clientHeight || 0;
+	if (!cw || !ch) return;
+	var scale = Math.min(cw / nw, ch / nh);
+	canvas.style.width  = Math.round(nw * scale) + "px";
+	canvas.style.height = Math.round(nh * scale) + "px";
+}
+
 // Render one frame onto the canvas with id="screenimage"
 function _diffRenderFrame(isDiff, width, height, rgb)
 {
@@ -238,6 +257,7 @@ function _diffRenderFrame(isDiff, width, height, rgb)
 		canvas.setAttribute("data-nh", height);
 		_diffCanvasW = width;
 		_diffCanvasH = height;
+		_fitCanvasToContainer();
 	}
 
 	if (!isDiff)
@@ -315,6 +335,7 @@ function _startBmpPoll()
 					canvas.height = img.height;
 					canvas.setAttribute("data-nw", img.width);
 					canvas.setAttribute("data-nh", img.height);
+					_fitCanvasToContainer();
 				}
 				canvas.getContext("2d").drawImage(img, 0, 0);
 			}
@@ -341,6 +362,11 @@ function _scheduleReconnect()
 // Uses the binary diff stream on modern browsers; falls back to BMP polling.
 function startScreenStream()
 {
+	if (window.addEventListener)
+		window.addEventListener("resize", _fitCanvasToContainer, false);
+	else if (window.attachEvent)
+		window.attachEvent("onresize", _fitCanvasToContainer);
+
 	if (typeof fetch !== "undefined" &&
 	    typeof ReadableStream !== "undefined" &&
 	    typeof Uint8Array !== "undefined")
