@@ -10,7 +10,7 @@ rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You c
 
 ## Build
 
-* Open `rmtsvc.dsw` and build using **Visual C++ 6.0**, you should get the binary: `rmtsvc.exe`.
+* Open `rmtsvc.sln` and build using **Visual Studio 2019** (or later), you should get the binary: `rmtsvc.exe`.
 
 ## Run
 
@@ -21,7 +21,7 @@ rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You c
 ## Download
 
 If you don't want to build the binary by yourself, the prebuilt binaries can always be found here:
-https://github.com/hsluoyz/rmtsvc/releases
+https://github.com/Zero3K20/rmtsvc/releases
 
 ## License
 
