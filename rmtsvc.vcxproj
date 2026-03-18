@@ -86,9 +86,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>.\Debug\rmtsvc.exe</OutputFile>
       <AdditionalLibraryDirectories>net4cpp21\openSSL\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <!-- jpeg-r-dll.lib is a pre-VS2015 library compiled without SAFESEH metadata.
-           SAFESEH:NO is required because we cannot rebuild that third-party library. -->
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -109,9 +106,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>bin\rmtsvc.exe</OutputFile>
       <AdditionalLibraryDirectories>net4cpp21\openSSL\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <!-- jpeg-r-dll.lib is a pre-VS2015 library compiled without SAFESEH metadata.
-           SAFESEH:NO is required because we cannot rebuild that third-party library. -->
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='nossl Release|Win32'">
@@ -130,9 +124,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>bin\rmtsvc.exe</OutputFile>
-      <!-- jpeg-r-dll.lib is a pre-VS2015 library compiled without SAFESEH metadata.
-           SAFESEH:NO is required because we cannot rebuild that third-party library. -->
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
