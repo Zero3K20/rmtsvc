@@ -53,8 +53,6 @@ public:
 	static BOOL SimulateCtrlAltDel();
 	//lock workstation
 	static BOOL LockWorkstation();
-	//capture current desktop image
-	static BOOL snapWindows(int quality,const char *filename,bool ifCapCursor);
 	//modify permissions of this process
 	static BOOL EnablePrivilege(LPCTSTR lpszPrivilegeName,bool bEnable);
 	//get ID of specified remote process by name

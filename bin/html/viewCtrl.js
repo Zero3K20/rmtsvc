@@ -103,7 +103,7 @@ function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("txtHide").focus();
-// Start the binary diff stream (falls back to JPEG polling on older browsers)
+// Start the binary diff stream (falls back to BMP polling on older browsers)
 startScreenStream();
 // Poll server cursor shape every 200 ms so the client cursor stays in sync
 fetchCursor();

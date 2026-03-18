@@ -126,7 +126,7 @@ xhr.send();
 function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
-// Start the binary diff stream (falls back to JPEG polling on older browsers)
+// Start the binary diff stream (falls back to BMP polling on older browsers)
 startScreenStream();
 // Poll server cursor shape every 200 ms so the displayed cursor matches the server
 fetchCursor();

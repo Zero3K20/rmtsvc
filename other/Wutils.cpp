@@ -553,29 +553,6 @@ const char *Wutils::GetNameFromPID(DWORD pid)
 	return ((bRet)?m_buffer:NULL);
 }
 
-//capture current desktop image and send
-#include "ipf.h"
-BOOL Wutils :: snapWindows(int quality,const char *filename,bool ifCapCursor)
-{
-	if(!Wutils::inputDesktopSelected())
-		Wutils::selectInputDesktop();
-
-	BYTE bi[BMPINFOSIZE]; 
-	LPBITMAPINFOHEADER lpbih=(LPBITMAPINFOHEADER)&bi;
-	lpbih->biCompression=BI_JPEG;
-	DWORD dwRet=0; LPBYTE lpBits=NULL;
-	if( (dwRet=cImageF::capWindow(NULL,lpbih,NULL,quality,ifCapCursor))!= 0
-			&& 
-		(lpBits=(LPBYTE)::malloc(dwRet)) //memory allocation success
-	  )
-	{
-		dwRet=cImageF::capWindow(NULL,lpbih,lpBits,quality,ifCapCursor);
-		cImageF::IPF_SaveJPEGFile(filename,lpBits,dwRet);
-		if(lpBits) ::free(lpBits);
-		return TRUE;
-	}
-	return FALSE;
-}
 //****************************************************************************
 //**********************private function for this file************************
 //****************************** start ***************************************

@@ -965,7 +965,7 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 }
 
 // ---------------------------------------------------------------------------
-// capDesktopRaw – capture desktop as top-down 24-bit RGB (no JPEG).
+// capDesktopRaw – capture desktop as top-down 24-bit RGB.
 // The returned buffer (lpbits) is allocated with malloc() and must be freed
 // by the caller.  actual_w / actual_h receive the output dimensions.
 // Returns total byte count of lpbits, or 0 on failure.
