@@ -298,8 +298,8 @@ function _startDiffStream()
 		.catch(function() { _scheduleReconnect(); });
 }
 
-// Fallback for browsers without ReadableStream: poll /capDesktop (JPEG) repeatedly
-function _startJpegPoll()
+// Fallback for browsers without ReadableStream: poll /capDesktop (BMP) repeatedly
+function _startBmpPoll()
 {
 	var img = new Image();
 	function poll()
@@ -338,7 +338,7 @@ function _scheduleReconnect()
 }
 
 // Call from window_onload() in each screen-viewer page.
-// Uses the binary diff stream on modern browsers; falls back to JPEG polling.
+// Uses the binary diff stream on modern browsers; falls back to BMP polling.
 function startScreenStream()
 {
 	if (typeof fetch !== "undefined" &&
@@ -349,6 +349,6 @@ function startScreenStream()
 	}
 	else
 	{
-		_startJpegPoll();
+		_startBmpPoll();
 	}
 }

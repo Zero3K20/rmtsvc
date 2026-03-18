@@ -2,7 +2,7 @@
 **	FILENAME			IPF.h
 **
 **	PURPOSE				open, save and convert image file formats
-**						currently supports only BMP and JPEG image formats
+**						currently supports only BMP image format
 **
 **	CREATION DATE		2003-12-24
 **	LAST MODIFICATION	2003-12-24
@@ -51,79 +51,6 @@ IPFRESULT cImageF :: IPF_LoadBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 	return dataLen;
 }
 
-/*
-//openJPEGfile -- 
-//[in] filename ---- JPEGfilename
-//[out] lpbi ---- return bitmap info
-//[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-//				if lpBits==NULL, only return bitmap info
-//return: 0 on failure, non-zero (image data size) on success
-IPFRESULT cImageF :: IPF_LoadJPEGFile(const char *filename,LPBITMAPINFO lpbi,LPBYTE lpBits)
-{
-	if(filename==NULL || lpbi==NULL) return 0;
-	FILE * file=NULL;
-	if((file=fopen(filename,"rb"))==NULL) return 0;
-
-	struct jpeg_decompress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
-
-	// Now we can initialize the JPEG compression object. 
-	jpeg_create_decompress(&cinfo);
-	jpeg_stdio_src(&cinfo, file);
-	jpeg_read_header(&cinfo, TRUE);//get the image header info
-	
-//	if(cinfo.out_color_components==3)  
-//		cinfo.out_color_space=JCS_RGB;
-//	else
-//		cinfo.out_color_space=JCS_GRAYSCALE;
-	jpeg_start_decompress(&cinfo);
-
-	lpbi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	lpbi->bmiHeader.biPlanes = 1;
-	lpbi->bmiHeader.biXPelsPerMeter=0;
-	lpbi->bmiHeader.biYPelsPerMeter=0;
-	lpbi->bmiHeader.biClrUsed = 0;
-	lpbi->bmiHeader.biClrImportant = 0;
-	lpbi->bmiHeader.biCompression =BI_RGB;
-	lpbi->bmiHeader.biBitCount =cinfo.out_color_components*8;
-	lpbi->bmiHeader.biHeight =cinfo.output_height;
-	lpbi->bmiHeader.biWidth =cinfo.output_width;
-	long lEffWidth=DIBSCANLINE_WIDTHBYTES(lpbi->bmiHeader.biWidth *lpbi->bmiHeader.biBitCount );
-	lpbi->bmiHeader.biSizeImage =lEffWidth * lpbi->bmiHeader.biHeight ;
-	
-	if( lpbi->bmiHeader.biBitCount==8 ){
-		lpbi->bmiHeader.biClrUsed=256;//(1<<8);
-		RGBQUAD	*lpRGB=(RGBQUAD *)((LPSTR)lpbi+lpbi->bmiHeader.biSize);
-		int ratio=lpbi->bmiHeader.biClrUsed/256;
-		for(int i=0; i <(int)lpbi->bmiHeader.biClrUsed;i++) {
-			lpRGB[i].rgbBlue=i/ratio;
-			lpRGB[i].rgbGreen=i/ratio;
-			lpRGB[i].rgbRed=i/ratio;
-			lpRGB[i].rgbReserved=0;
-		}
-	}//?if( (lpbi->bmiHeader.biBitCount==8...
-
-	if(lpBits)
-	{ 
-		JSAMPROW ptr=lpBits+lEffWidth*(lpbi->bmiHeader.biHeight-1);
-		//note: JPEG data is read top-to-bottom, but Windows bitmap data is stored starting from the last line, i.e.
-		//bottom-to-top
-		//if colors are incorrect, RGB colors may be reversed; adjust in "jpeg/jmorecfg.h" file
-		// Process data 
-		 while (cinfo.output_scanline < cinfo.output_height) 
-		 {
-			 jpeg_read_scanlines(&cinfo,&ptr,1);
-			 ptr-=lEffWidth;
-		  }//?while(
-		 jpeg_finish_decompress(&cinfo);
-	}//?if(lppBits)
-
-	jpeg_destroy_decompress(&cinfo);
-	fclose(file);
-	return lpbi->bmiHeader.biSizeImage;
-}
-*/
 /*
 //save BMP file -- 
 //[in] filename ---- destination bitmap filename
@@ -175,33 +102,6 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 	return bmf.bfSize;
 }
 */
-
-//lpBuf --- JPEG data stream 
-//dwSize --- JPEG data streamsize
-//return: 0 on failure, file size on success
-IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSize)
-{
-	if (lpBuf==NULL || dwSize==0 ) return 0;
-	if (filename==NULL || filename[0]==0) return 0;
-	FILE *fp=::fopen(filename, "w+b");// open file in create mode (binary)
-	if(!fp) return 0;
-	::fseek(fp, 0, SEEK_SET);
-
-	LPBYTE lp = lpBuf;
-	DWORD dwB, dwC;
-	// write bitmap data in fragments, each segment 32KB.
-	dwB = dwSize/32768;			// number of segments (32768)
-	dwC = dwSize - (dwB*32768);	// remainder
-	for (;dwB!=0;dwB--)
-	{
-		::fwrite((const void *)lp, 32768, 1, fp);
-		lp = (LPBYTE)((DWORD)lp+32768UL);
-	}
-	// write remaining bitmap data
-	::fwrite((const void *)lp, dwC, 1, fp);
-	::fclose(fp);
-	return dwSize;
-}
 
 //capture window image --- 24-bit true color image
 //if hWnd==NULL, capture the entire screen
