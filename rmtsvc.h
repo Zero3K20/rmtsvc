@@ -154,6 +154,8 @@ private:
 	struct RememberEntry { std::string user; long lAccess; time_t expires; };
 	std::map<std::string,RememberEntry> m_rememberTokens;
 	cMutex m_rememberMutex;
+	void saveRememberTokens(); //persist remember-me tokens to disk
+	void loadRememberTokens(); //restore remember-me tokens from disk
 
 	bool m_bSSLenabled; //start SSL service
 	bool m_bSSLverify; //whether to perform client certificate authentication

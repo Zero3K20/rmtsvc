@@ -32,10 +32,58 @@ webServer :: webServer():m_svrport(7778)
 }
 
 
+// Save all non-expired remember-me tokens to a file next to the executable
+void webServer::saveRememberTokens()
+{
+	std::string tokenfile("rmtsvc_tokens.dat");
+	getAbsoluteFilePath(tokenfile);
+	FILE *fp=::fopen(tokenfile.c_str(),"w");
+	if(fp==NULL) return;
+	time_t now=time(NULL);
+	std::lock_guard<cMutex> lk(m_rememberMutex);
+	for(std::map<std::string,RememberEntry>::iterator it=m_rememberTokens.begin();
+		it!=m_rememberTokens.end(); ++it)
+	{
+		if(it->second.expires>now)
+			::fprintf(fp,"%s %s %ld %lld\n",
+				it->first.c_str(),
+				it->second.user.c_str(),
+				it->second.lAccess,
+				(long long)it->second.expires);
+	}
+	::fclose(fp);
+}
+
+// Load remember-me tokens from file, discarding any that have expired
+void webServer::loadRememberTokens()
+{
+	std::string tokenfile("rmtsvc_tokens.dat");
+	getAbsoluteFilePath(tokenfile);
+	FILE *fp=::fopen(tokenfile.c_str(),"r");
+	if(fp==NULL) return;
+	char token[64], user[256];
+	long lAccess;
+	long long expires;
+	time_t now=time(NULL);
+	std::lock_guard<cMutex> lk(m_rememberMutex);
+	while(::fscanf(fp,"%63s %255s %ld %lld",token,user,&lAccess,&expires)==4)
+	{
+		if((time_t)expires>now){
+			RememberEntry entry;
+			entry.user.assign(user);
+			entry.lAccess=lAccess;
+			entry.expires=(time_t)expires;
+			m_rememberTokens[std::string(token)]=entry;
+		}
+	}
+	::fclose(fp);
+}
+
 //start service
 bool webServer :: Start() 
 {
 	if(m_svrport==0) return true; //do not start service
+	loadRememberTokens(); //restore persisted remember-me tokens
 #ifdef _SUPPORT_OPENSSL_
 	if(m_bSSLenabled) //start SSL service
 	{
@@ -131,18 +179,23 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 	if(lAccess==RMTSVC_ACCESS_NONE){
 		const char *rememberToken=httpreq.Cookies("rmtsvc_remember");
 		if(rememberToken && !m_bAnonymous){
-			std::lock_guard<cMutex> lk(m_rememberMutex);
-			std::map<std::string,RememberEntry>::iterator it=m_rememberTokens.find(rememberToken);
-			if(it!=m_rememberTokens.end()){
-				if(time(NULL)<(*it).second.expires){
-					session["user"]=(*it).second.user;
-					char tmp[16]; sprintf(tmp,"%ld",(*it).second.lAccess);
-					session["lAccess"]=std::string(tmp);
-					lAccess=(*it).second.lAccess;
-				}else{
-					m_rememberTokens.erase(it); //clean up expired token
+			bool bExpired=false;
+			{
+				std::lock_guard<cMutex> lk(m_rememberMutex);
+				std::map<std::string,RememberEntry>::iterator it=m_rememberTokens.find(rememberToken);
+				if(it!=m_rememberTokens.end()){
+					if(time(NULL)<(*it).second.expires){
+						session["user"]=(*it).second.user;
+						char tmp[16]; sprintf(tmp,"%ld",(*it).second.lAccess);
+						session["lAccess"]=std::string(tmp);
+						lAccess=(*it).second.lAccess;
+					}else{
+						m_rememberTokens.erase(it); //clean up expired token
+						bExpired=true;
+					}
 				}
 			}
+			if(bExpired) saveRememberTokens();
 		}
 	}
 	if(lAccess==RMTSVC_ACCESS_NONE){
