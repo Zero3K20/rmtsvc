@@ -410,7 +410,7 @@ function dwFile()
 		if(fpath!="")
 			fpath=fpath+"\\"+fld;
 		else fpath=fpath+fld;
-		window.open("/download/"+fitem+"?path="+fpath);
+		window.open("/download/"+encodeURIComponent(fitem)+"?path="+encodeURIComponent(fpath));
 	}
 }
 
