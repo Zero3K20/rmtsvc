@@ -91,3 +91,264 @@ function hidePopup()
 	oPopup.innerHTML = "&nbsp;&nbsp;Processing... ";
 	ista=0;
 }
+
+// ---------------------------------------------------------------------------
+// Inter-frame diff stream (binary, LZNT1-compressed).
+// Used by viewScreen.htm and viewCtrl.htm.
+//
+// Server sends frames as:
+//   DiffFrameHeader (17 bytes packed):
+//     magic    [4]  = 0x46464944 ('D','I','F','F' LE)
+//     flags    [1]  bit0: 0=full RGB, 1=XOR diff; bit1: 0=raw, 1=LZNT1
+//     width    [2]  uint16 LE
+//     height   [2]  uint16 LE
+//     rawSize  [4]  uint32 LE
+//     compSize [4]  uint32 LE  (bytes of payload following the header)
+//   payload  [compSize bytes]
+// ---------------------------------------------------------------------------
+var DIFF_MAGIC        = 0x46464944;
+var DIFF_HEADER_SIZE  = 17; // 4+1+2+2+4+4
+var _diffBuf          = null;  // Uint8Array accumulation buffer
+var _diffPos          = 0;     // read position within _diffBuf
+var _diffCtrl         = null;  // AbortController for current fetch
+var _diffCanvasW      = 0;     // last rendered canvas content width
+var _diffCanvasH      = 0;     // last rendered canvas content height
+
+// LZNT1 decompressor (RFC / MS-XCA spec)
+function lznt1Decompress(src)
+{
+	var out = [];
+	var pos = 0;
+	while (pos + 1 < src.length)
+	{
+		var b0 = src[pos], b1 = src[pos+1];
+		pos += 2;
+		var chunkHdr = (b0 | (b1 << 8)) >>> 0;
+		if (chunkHdr === 0) break;                     // terminal marker
+		var chunkSize   = (chunkHdr & 0xFFF) + 1;
+		var isCompressed = (chunkHdr & 0x8000) !== 0;
+		if (!isCompressed)
+		{
+			for (var i = 0; i < chunkSize && pos < src.length; i++)
+				out.push(src[pos++]);
+		}
+		else
+		{
+			var chunkEnd      = pos + chunkSize;
+			var chunkOutStart = out.length;
+			while (pos < chunkEnd)
+			{
+				if (pos >= src.length) break;
+				var flags = src[pos++];
+				for (var bit = 0; bit < 8 && pos < chunkEnd; bit++)
+				{
+					if ((flags >> bit) & 1)
+					{
+						if (pos + 1 >= src.length) break;
+						var w = src[pos] | (src[pos+1] << 8);
+						pos += 2;
+						// PointerShift: starts at 12, decrements while
+						// current chunk output length > MaxMatchOffset
+						var curLen        = out.length - chunkOutStart;
+						var pointerShift  = 12;
+						var maxMatchOff   = 16; // 1 << (16 - 12)
+						while (curLen > maxMatchOff)
+						{
+							pointerShift--;
+							maxMatchOff <<= 1;
+						}
+						var length = (w & ((1 << pointerShift) - 1)) + 3;
+						var offset = (w >>> pointerShift) + 1;
+						for (var j = 0; j < length; j++)
+							out.push(out[out.length - offset]);
+					}
+					else
+					{
+						if (pos < src.length) out.push(src[pos++]);
+					}
+				}
+			}
+		}
+	}
+	return new Uint8Array(out);
+}
+
+// Append newly received bytes to the accumulation buffer
+function _diffAppend(bytes)
+{
+	if (_diffBuf === null || _diffPos >= _diffBuf.length)
+	{
+		_diffBuf = bytes;
+		_diffPos = 0;
+	}
+	else
+	{
+		var rem  = _diffBuf.length - _diffPos;
+		var comb = new Uint8Array(rem + bytes.length);
+		comb.set(_diffBuf.subarray(_diffPos), 0);
+		comb.set(bytes, rem);
+		_diffBuf = comb;
+		_diffPos = 0;
+	}
+}
+
+// Parse and render any complete frames from the accumulation buffer
+function _diffParseFrames()
+{
+	var b = _diffBuf;
+	while (b !== null)
+	{
+		var avail = b.length - _diffPos;
+		if (avail < DIFF_HEADER_SIZE) break;
+
+		var p     = _diffPos;
+		var magic = (b[p] | (b[p+1]<<8) | (b[p+2]<<16) | (b[p+3]<<24)) >>> 0;
+		if (magic !== DIFF_MAGIC) { _diffPos++; continue; } // resync
+
+		var flags    = b[p+4];
+		var width    = b[p+5] | (b[p+6] << 8);
+		var height   = b[p+7] | (b[p+8] << 8);
+		// rawSize at p+9 (4 bytes) – not needed client-side after decompress
+		var compSize = (b[p+13] | (b[p+14]<<8) | (b[p+15]<<16) | (b[p+16]<<24)) >>> 0;
+
+		if (avail < DIFF_HEADER_SIZE + compSize) break; // incomplete frame
+
+		var payload  = b.subarray(p + DIFF_HEADER_SIZE, p + DIFF_HEADER_SIZE + compSize);
+		var isDiff   = (flags & 1) !== 0;
+		var isLznt1  = (flags & 2) !== 0;
+		var raw      = isLznt1 ? lznt1Decompress(payload) : payload;
+
+		_diffRenderFrame(isDiff, width, height, raw);
+		_diffPos = p + DIFF_HEADER_SIZE + compSize;
+	}
+}
+
+// Render one frame onto the canvas with id="screenimage"
+function _diffRenderFrame(isDiff, width, height, rgb)
+{
+	var canvas = document.getElementById("screenimage");
+	if (!canvas || !canvas.getContext) return;
+	var ctx = canvas.getContext("2d");
+
+	if (canvas.width !== width || canvas.height !== height)
+	{
+		canvas.width  = width;
+		canvas.height = height;
+		canvas.setAttribute("data-nw", width);
+		canvas.setAttribute("data-nh", height);
+		_diffCanvasW = width;
+		_diffCanvasH = height;
+	}
+
+	if (!isDiff)
+	{
+		// Full frame: top-down RGB -> canvas RGBA
+		var imgData = ctx.createImageData(width, height);
+		var d = imgData.data;
+		for (var i = 0, j = 0; j + 2 < rgb.length; i += 4, j += 3)
+		{
+			d[i]   = rgb[j];
+			d[i+1] = rgb[j+1];
+			d[i+2] = rgb[j+2];
+			d[i+3] = 255;
+		}
+		ctx.putImageData(imgData, 0, 0);
+	}
+	else
+	{
+		// XOR diff: apply to current canvas pixels
+		var imgData = ctx.getImageData(0, 0, width, height);
+		var d = imgData.data;
+		for (var i = 0, j = 0; j + 2 < rgb.length; i += 4, j += 3)
+		{
+			d[i]   ^= rgb[j];
+			d[i+1] ^= rgb[j+1];
+			d[i+2] ^= rgb[j+2];
+		}
+		ctx.putImageData(imgData, 0, 0);
+	}
+}
+
+// Start the binary diff stream using fetch + ReadableStream
+function _startDiffStream()
+{
+	if (_diffCtrl) { try { _diffCtrl.abort(); } catch(e){} }
+	_diffCtrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+	_diffBuf  = null;
+	_diffPos  = 0;
+
+	var opts = _diffCtrl ? {signal: _diffCtrl.signal} : {};
+	fetch("/capStream", opts)
+		.then(function(resp)
+		{
+			if (!resp.ok || !resp.body) { _scheduleReconnect(); return; }
+			var reader = resp.body.getReader();
+			function pump()
+			{
+				return reader.read().then(function(result)
+				{
+					if (result.done) { _scheduleReconnect(); return; }
+					_diffAppend(result.value);
+					_diffParseFrames();
+					return pump();
+				}).catch(function() { _scheduleReconnect(); });
+			}
+			return pump();
+		})
+		.catch(function() { _scheduleReconnect(); });
+}
+
+// Fallback for browsers without ReadableStream: poll /capDesktop (JPEG) repeatedly
+function _startJpegPoll()
+{
+	var img = new Image();
+	function poll()
+	{
+		img.onload = function()
+		{
+			var canvas = document.getElementById("screenimage");
+			if (canvas && canvas.getContext)
+			{
+				if (canvas.width !== img.width || canvas.height !== img.height)
+				{
+					canvas.width  = img.width;
+					canvas.height = img.height;
+					canvas.setAttribute("data-nw", img.width);
+					canvas.setAttribute("data-nh", img.height);
+				}
+				canvas.getContext("2d").drawImage(img, 0, 0);
+			}
+			setTimeout(poll, 100);
+		};
+		img.onerror = function() { setTimeout(poll, 1000); };
+		img.src = "/capDesktop?" + new Date().getTime();
+	}
+	poll();
+}
+
+var _reconnectTimer = 0;
+function _scheduleReconnect()
+{
+	if (_reconnectTimer) return;
+	_reconnectTimer = setTimeout(function()
+	{
+		_reconnectTimer = 0;
+		_startDiffStream();
+	}, 2000);
+}
+
+// Call from window_onload() in each screen-viewer page.
+// Uses the binary diff stream on modern browsers; falls back to JPEG polling.
+function startScreenStream()
+{
+	if (typeof fetch !== "undefined" &&
+	    typeof ReadableStream !== "undefined" &&
+	    typeof Uint8Array !== "undefined")
+	{
+		_startDiffStream();
+	}
+	else
+	{
+		_startJpegPoll();
+	}
+}
