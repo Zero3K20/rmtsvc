@@ -505,10 +505,7 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			}
 			else if(strcasecmp(httpreq.url().c_str(),"/upload")==0)
 			{
-				HTTPREQ_CONTENT_TYPE rt=httpreq.get_contentType(NULL);
-				if(rt==HTTP_CONTENT_TEXTXML) //parse XML file
-					httprsp_upload(psock,httpreq,httprsp,session);
-				else return false;
+				httprsp_upload(psock,httpreq,httprsp,session);
 				return true;
 			}
 			else if(strcasecmp(httpreq.url().c_str(),"/get_upratio")==0)
