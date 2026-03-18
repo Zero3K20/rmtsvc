@@ -298,7 +298,7 @@ function _startDiffStream()
 		.catch(function() { _scheduleReconnect(); });
 }
 
-// Fallback for browsers without ReadableStream: poll /capDesktop (JPEG) repeatedly
+// Fallback for browsers without ReadableStream: poll /capDesktop (BMP) repeatedly
 function _startJpegPoll()
 {
 	var img = new Image();

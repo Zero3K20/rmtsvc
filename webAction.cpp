@@ -626,7 +626,7 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	DWORD dwRet=capDesktop(hwnd,w,h,ifCapCursor,m_quality,lpbits);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
-	httprsp.set_mimetype(MIMETYPE_JPG);
+	httprsp.set_mimetype(MIMETYPE_BMP);
 	//set response content length
 	httprsp.lContentLength(dwRet); 
 	httprsp.send_rspH(psock,200,"OK");
@@ -799,11 +799,11 @@ bool webServer::httprsp_checkcode(socketTCP *psock,httpResponse &httprsp,httpSes
 	bih.biBitCount = 24;
 	bih.biCompression = BI_RGB;
 	bih.biSizeImage =bih.biHeight *DIBSCANLINE_WIDTHBYTES(bih.biWidth *bih.biBitCount );
-	LPBYTE lpbits=new BYTE[bih.biSizeImage];
+	LPBYTE lpbits=new BYTE[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+bih.biSizeImage];
 	DWORD dwret=chkcodeImage(&bih,lpbits,tmpBuf);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
-	httprsp.set_mimetype(MIMETYPE_JPG);
+	httprsp.set_mimetype(MIMETYPE_BMP);
 	//set response content length
 	httprsp.lContentLength(dwret); 
 	httprsp.send_rspH(psock,200,"OK");
@@ -823,11 +823,11 @@ bool webServer::httprsp_usageimage(socketTCP *psock,httpResponse &httprsp)
 	bih.biBitCount = 24;
 	bih.biCompression = BI_RGB;
 	bih.biSizeImage =bih.biHeight *DIBSCANLINE_WIDTHBYTES(bih.biWidth *bih.biBitCount );
-	LPBYTE lpbits=new BYTE[bih.biSizeImage];
+	LPBYTE lpbits=new BYTE[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+bih.biSizeImage];
 	DWORD dwret=usageImage(&bih,lpbits);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
-	httprsp.set_mimetype(MIMETYPE_JPG);
+	httprsp.set_mimetype(MIMETYPE_BMP);
 	//set response content length
 	httprsp.lContentLength(dwret); 
 	httprsp.send_rspH(psock,200,"OK");
@@ -859,10 +859,20 @@ DWORD chkcodeImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits,const  char *chkcode)
 	::SetBkMode(hMemDC,oldMode);
 	::SetTextColor(hMemDC,oldColor);
 	
-	//get image data and perform JPEG compression
+	//get image data and encode as BMP
 	DWORD dwret=0;
-	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
-		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //perform JPEG compression
+	DWORD hdrSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits+hdrSize,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
+	{
+		BITMAPFILEHEADER bmfh;
+		::memset(&bmfh, 0, sizeof(bmfh));
+		bmfh.bfType = 0x4D42; // 'BM'
+		bmfh.bfSize = hdrSize + lpbih->biSizeImage;
+		bmfh.bfOffBits = hdrSize;
+		::memcpy(lpbits, &bmfh, sizeof(BITMAPFILEHEADER));
+		::memcpy(lpbits + sizeof(BITMAPFILEHEADER), lpbih, sizeof(BITMAPINFOHEADER));
+		dwret = bmfh.bfSize;
+	}
 
 	::DeleteObject(hMemBmp);
 	::SelectObject(hMemDC, hOldBmp);	
@@ -932,10 +942,20 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	::SelectObject(hMemDC, hOldpen);
 	::DeleteObject(hpen);
 	
-	//get image data and perform JPEG compression
+	//get image data and encode as BMP
 	DWORD dwret=0;
-	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
-		dwret=cImageF::IPF_EncodeJPEG(lpbih,lpbits,lpbits,60); //perform JPEG compression
+	DWORD hdrSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	if(::GetDIBits(hMemDC,hMemBmp,0,lpbih->biHeight,lpbits+hdrSize,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
+	{
+		BITMAPFILEHEADER bmfh;
+		::memset(&bmfh, 0, sizeof(bmfh));
+		bmfh.bfType = 0x4D42; // 'BM'
+		bmfh.bfSize = hdrSize + lpbih->biSizeImage;
+		bmfh.bfOffBits = hdrSize;
+		::memcpy(lpbits, &bmfh, sizeof(BITMAPFILEHEADER));
+		::memcpy(lpbits + sizeof(BITMAPFILEHEADER), lpbih, sizeof(BITMAPINFOHEADER));
+		dwret = bmfh.bfSize;
+	}
 
 	::DeleteObject(hMemBmp);
 	::SelectObject(hMemDC, hOldBmp);	
@@ -1164,9 +1184,28 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &l
 				bih.biSizeImage=lEffwidth_dst*h;
 			}//?if(w<bih.biWidth && h<bih.biHeight)
 		}//?if(w!=0 && h!=0)
-		//perform JPEG compression
-		dwret=cImageF::IPF_EncodeJPEG(&bih,lpbuffer,lpbuffer,quality);
-		lpbits=lpbuffer;	
+		//encode as BMP
+		DWORD hdrSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+		LPBYTE bmpBuf = (LPBYTE)::malloc(hdrSize + bih.biSizeImage);
+		if(bmpBuf)
+		{
+			BITMAPFILEHEADER bmfh;
+			::memset(&bmfh, 0, sizeof(bmfh));
+			bmfh.bfType = 0x4D42; // 'BM'
+			bmfh.bfSize = hdrSize + bih.biSizeImage;
+			bmfh.bfOffBits = hdrSize;
+			::memcpy(bmpBuf, &bmfh, sizeof(BITMAPFILEHEADER));
+			::memcpy(bmpBuf + sizeof(BITMAPFILEHEADER), &bih, sizeof(BITMAPINFOHEADER));
+			::memcpy(bmpBuf + hdrSize, lpbuffer, bih.biSizeImage);
+			::free(lpbuffer);
+			lpbits = bmpBuf;
+			dwret = bmfh.bfSize;
+		}
+		else
+		{
+			::free(lpbuffer);
+			lpbits = NULL;
+		}
 	}else{
 		//GDI capture failed (e.g. desktop switch, screen lock): free the buffer
 		//so the stream loop does not accumulate leaked allocations

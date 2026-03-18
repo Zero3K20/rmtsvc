@@ -86,15 +86,6 @@ public:
 	//dwSize --- JPEG data streamsize
 	//return: 0 on failure, file size on success
 	static IPFRESULT IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSize);
-	//compress bitmap data into JPEG data stream -- 
-	//currently only supports 8-bit grayscale or 24-bit true color
-	//[in] lpbih ---- bitmap info header
-	//[in] lpBits ---- bitmap data pointer
-	//[out] dstBuf ---- storage space for converted JPEG data, user must ensure sufficient space
-	//					generally allocating the same size as the original bitmap is sufficient
-	//[in] quality --- JPEG compression quality (0~100)
-	//return：iffailurereturn0，otherwisereturncompressed JPEG data size
-	static IPFRESULT IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYTE dstBuf,int quality);
 	//decompress JPEG data into bitmap data stream -- 
 	//[in] srcBuf ---- jpegdatapointer
 	//[in] dwSize ---- size of the space pointed to by srcBuf
