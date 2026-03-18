@@ -312,6 +312,30 @@ var audioEnabled = false;
 var audioCtx = null;
 var nextAudioTime = 0;
 
+// Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
+var AUDIO_FRAME_MAGIC = 0x46445541;
+
+// Decode a /capAudio response that may be wrapped in an AudioFrameHeader
+// (13 bytes: 4 magic + 1 flags + 4 rawSize + 4 compSize) with optional
+// LZNT1 compression.  Returns a Uint8Array containing the plain WAV data.
+// Falls back to treating the input as a plain WAV when no AUDF header is
+// present (e.g. older server builds or direct file access).
+function unwrapAudioFrame(bytes)
+{
+	if (bytes.length >= 13)
+	{
+		var magic = (bytes[0] | (bytes[1]<<8) | (bytes[2]<<16) | (bytes[3]<<24)) >>> 0;
+		if (magic === AUDIO_FRAME_MAGIC)
+		{
+			var flags    = bytes[4];
+			var compSize = (bytes[9] | (bytes[10]<<8) | (bytes[11]<<16) | (bytes[12]<<24)) >>> 0;
+			var payload  = bytes.subarray(13, 13 + compSize);
+			return (flags & 1) ? lznt1Decompress(payload) : new Uint8Array(payload);
+		}
+	}
+	return bytes; // no AUDF wrapper: treat as plain WAV (backward compat)
+}
+
 function toggleAudio()
 {
 	audioEnabled = !audioEnabled;
@@ -365,8 +389,9 @@ function fetchAudioChunk()
 		if (xhr.status === 200 && xhr.response && xhr.response.byteLength > 44)
 		{
 			startNext(); // start next fetch before decoding (no-op if timer fired)
+			var wavData = unwrapAudioFrame(new Uint8Array(xhr.response));
 			audioCtx.decodeAudioData(
-				xhr.response,
+				wavData.buffer,
 				function(buffer)
 				{
 					var source = audioCtx.createBufferSource();
