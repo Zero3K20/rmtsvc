@@ -7,8 +7,7 @@ Program Overview:
 4. Feature-rich proxy service, supporting secondary proxy, HTTPS/SOCKS4/SOCKS5
 4. Complete vIDC management configuration, supporting local port mapping, remote port mapping, intranet proxy, proxy service, etc.
 5. SSL VPN functionality, providing secure remote access protection for your intranet applications
-6. msnbot functionality, allows managing the above features via MSN chat
-7. UPnP support, directly perform port mapping on UPnP-capable gateways or routers (new, added 20070806)
+6. UPnP support, directly perform port mapping on UPnP-capable gateways or routers (new, added 20070806)
 
 [Running the Program]:
 rmtsvc is a console application that can run as a system service. Supported command-line parameters:
@@ -95,39 +94,13 @@ ACCESS_VIDC_ADMIN : Remote vIDC management configuration
 
 Example: user account=aa pswd=bb access=ACCESS_ALL
 
-Set MSN bot information
-Command format:
-msnbot account=<msn account>:<password> [trusted=<trusted msn account>] [prefix="<mobile MSN reply prefix>"]
-account=<msn account>:<password> : Specify the login account and password for the MSN bot.
-trusted=<trusted msn account>: Specify an MSN account trusted by the MSN bot.
-  This account can control the MSN bot without entering the access password.
-  Multiple accounts can be entered, separated by ','.
-prefix="<mobile MSN reply prefix>" : Prefix to strip from incoming messages before interpretation.
-Example: msnbot account=xxx@hotmail.com:aaa prefix="The other party is using mobile MSN, see http://mobile.msn.com.cn."
-
-Note: If prefix is not configured, the default prefix is "The other party is using mobile MSN, see http://mobile.msn.com.cn."
-Note: If an MSN bot account is configured, it is also the rmtsvc access account with ACCESS_ALL permissions.
-
-Example: msnbot account=XXX@163.com:111 trusted=aaa@hotmail.com
-
-Configure MSN bot proxy
-Command format: 
-proxy type=HTTPS|SOCKS4|SOCKS5 host=<proxy address> port=<proxy port> [user=<account>] [pswd=<password>]
-type=HTTPS|SOCKS4|SOCKS5 : Specify proxy protocol type
-host=<proxy address>      : Specify proxy server host address
-port=<proxy port>         : Specify proxy service port
-
-
 rmtsvc.ini Example
 sets
-msnbot account=XXX@163.com:111 trusted=aaa@hotmail.com
 webs port=7779
 user account=aa pswd=1234 access=ACCESS_ALL
 
-
 //------------------------------------------------------------------------------------------------------------------------
-//---------------------------------------------------------MSN Bot Supported Commands------------------------------------
-//===========All commands below can be entered in the MSN bot chat control window
+//===========Supported Commands====================================
 //===========Prefix each command with #
 //===========Example: to terminate process aa.exe, enter: #terminate aa.exe
 terminate - Terminate the specified process
@@ -147,15 +120,15 @@ plst - List current processes on this machine
 
 path - Set the default storage path for uploaded files.
    Usage: path [<default storage path>]
-If not set, return current path. If set to ., use msnbot program directory.
+If not set, return current path. If set to ., use program directory.
 
-down - Download a file from a URL to the msnbot machine, or download from msnbot to local machine
-   Usage: down <http://url>|<ftp://url>|<msnbot local file>
+down - Download a file from a URL to the local machine
+   Usage: down <http://url>|<ftp://url>|<local file>
 
-head - Specify the avatar for the msnbot
-   Usage: head [<msnbot local image file>]
+head - Specify the avatar
+   Usage: head [<local image file>]
 
-nick - Specify the nickname for the msnbot
+nick - Specify the nickname
    Usage: nick <nickname>
 
 snap - Capture the current screen
@@ -216,14 +189,14 @@ telnet - Start/stop telnet service, reverse telnet connection
    telnet stop / telnet start [<port>] [account=<account:password>]
    telnet -r <host>:<port>: Reverse-connect to get a CMD shell
    telnet (status)
-Note: Supports same commands as msnbot (except MSN-specific: head, nick, snap, vcap).
+Note: Supports the same commands (except unsupported: head, nick, snap, vcap).
      ini config: telnet [port=<port>] [bindip=<local IP>] [account=<account:password>]
 
 2007-03-12
-All msnbot commands support output redirection with >:
+All commands support output redirection with >:
 Example: #plst > a.txt
 Then: #down a.txt
 
-Q: Why does stopping a service via msnbot and then restarting it always fail?
-A: Close the chat session window with the msnbot, reopen it, then enter the start command.
+Q: Why does stopping a service and then restarting it always fail?
+A: Close the chat session window, reopen it, then enter the start command.
   The cmdshell inherits handles from its parent process, so the port is not released until the cmdshell ends.

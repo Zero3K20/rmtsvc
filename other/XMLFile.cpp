@@ -83,7 +83,7 @@ std::string CXMLFile::GetStringC(const char* cstrBaseKeyName, const char* cstrVa
 	std::string strDummy;
 	GetNodeValue(cstrBaseKeyName, cstrValueName, cstrDefaultValue, strValue, 
 		NULL, NULL, strDummy);
-	//strings parsed from XML have \r removed, only \n remains; MSN messages with only \n don't break lines, therefore
+	//strings parsed from XML have \r removed, only \n remains; messages with only \n don't break lines, therefore
 	//yyc add: convert \n to \r, 2006-02-27
 	char *ptr=(char *)strValue.c_str();
 	while(*ptr){ if(*ptr=='\n') *ptr='\r'; ptr++; }

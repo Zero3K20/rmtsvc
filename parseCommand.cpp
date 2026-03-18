@@ -127,12 +127,6 @@ void MyService::parseCommand(const char *strCommand)
 		m_websvr.docmd_webs(strCommand+5);
 	else if(strncasecmp(strCommand,"user ",5)==0)
 		m_websvr.docmd_user(strCommand+5);
-/*  //yyc remove MSN 2010-11-05
-	else if(strncasecmp(strCommand,"msnbot ",7)==0)
-		m_msnbot.docmd_msnbot(strCommand+7);
-	else if(strncasecmp(strCommand,"proxy ",6)==0)
-		m_msnbot.docmd_proxy(strCommand+6);
-*/ //yyc remove MSN 2010-11-05
 	else if(strncasecmp(strCommand,"kill ",5)==0) //kill the specified process
 		::docmd_kill(strCommand+5);
 	else if(strncasecmp(strCommand,"exec ",5)==0) //execute the specified program
@@ -350,83 +344,6 @@ void webServer :: docmd_user(const char *strParam)
 	}
 	m_bAnonymous=false; //if accounts are configured, anonymous access is not allowed
 }
-/* //yyc remove MSN 2010-11-05
-//set MSN bot related info
-//command format:
-//	msnbot account=<msn account>:<password> [trusted=<trusted msn account>] [prefix="<mobile MSN reply message prefix>"]
-//account=<msn account>:<password> : specifies the login account and password for the MSN bot.
-//trusted=<trusted msn account>: specifies the MSN account trusted by the MSN bot;
-//			  this account can chat with the MSN bot without entering the control access password
-//			  multiple accounts can be entered, separated by ','
-//prefix="<mobile MSN reply message prefix>"
-BOOL msnShell :: docmd_msnbot(const char *strParam)
-{
-	std::map<std::string,std::string> maps;
-	if(splitString(strParam,' ',maps)<=0) return FALSE;
-	std::map<std::string,std::string>::iterator it;
-
-	if( (it=maps.find("account"))!=maps.end())
-	{//format: account:password
-		this->setMsnAccount((*it).second.c_str());
-		const char *ptr=strchr((*it).second.c_str(),':');
-		if(ptr)
-		{
-			MyService *ptrService=MyService::GetService();
-			webServer *pwwwSvc=&ptrService->m_websvr;//pointer to www service
-			*(char *)ptr=0; ptr++; char s[128]; 
-			sprintf(s,"account=%s pswd=%s access=ACCESS_ALL",(*it).second.c_str(),ptr);
-			pwwwSvc->docmd_user(s);
-		}
-	}
-	if( (it=maps.find("trusted"))!=maps.end())
-	{
-		this->m_strTrusted=(*it).second;
-		::_strlwr((char *)this->m_strTrusted.c_str());
-	}
-	if( (it=maps.find("prefix"))!=maps.end())
-	{
-		this->m_prefix==(*it).second;
-	}else this->m_prefix="the other party is using mobile MSN, see http://mobile.msn.com.cn for details.";
-		            
-	return TRUE;
-}
-
-//set MSN bot proxy info
-//command format: 
-//	proxy type=HTTPS|SOCKS4|SOCKS5 host=<proxy service address> port=<proxy service port> [user=<proxy service account>] [pswd=<proxy service password>]
-BOOL msnShell :: docmd_proxy(const char *strParam)
-{
-	std::map<std::string,std::string> maps;
-	if(splitString(strParam,' ',maps)<=0) return FALSE;
-	PROXYTYPE ptype=PROXY_NONE;
-	int proxyport=0;
-	std::string host,user,pswd;
-	std::map<std::string,std::string>::iterator it;
-	if( (it=maps.find("type"))!=maps.end())
-	{
-		if((*it).second=="HTTPS")
-			ptype=PROXY_HTTPS;
-		else if((*it).second=="SOCKS4")
-			ptype=PROXY_SOCKS4;
-		else if((*it).second=="SOCKS5")
-			ptype=PROXY_SOCKS5;
-	}
-	if( (it=maps.find("port"))!=maps.end())
-		proxyport=atoi((*it).second.c_str());
-	
-	if( (it=maps.find("host"))!=maps.end())
-		host=(*it).second;
-	if( (it=maps.find("user"))!=maps.end())
-		user=(*it).second;
-	if( (it=maps.find("pswd"))!=maps.end())
-		pswd=(*it).second;
-
-	if( m_curAccount.m_chatSock.setProxy(ptype,host.c_str(),
-		proxyport,user.c_str(),pswd.c_str()) )
-		return TRUE;
-	return FALSE;
-}
-*/ //yyc remove MSN 2010-11-05
 //------------------------------------private function----------------------
 int splitString(const char *str,char delm,std::map<std::string,std::string> &maps)
 {
