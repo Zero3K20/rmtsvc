@@ -16,18 +16,7 @@
 #include <stdio.h>
 #include "IPF.h"
 
-#ifdef __cplusplus
-	extern "C" {
-#endif // __cplusplus
 
-#include "../libs/jpeg/jpeglib.h"
-
-#ifdef __cplusplus
-	}
-#endif // __cplusplus
-
-#pragma comment( lib, "libs/bin/jpeg-r-dll" )
-#pragma comment( lib, "legacy_stdio_definitions.lib" )
 
 
 //open bitmap file -- 
@@ -187,68 +176,6 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 }
 */
 
-//save JPEG file -- 
-//currently only supports 8-bit grayscale or 24-bit true color
-//[in] filename ---- destination bitmap filename
-//[in] lpbi ---- bitmap info
-//[in] lpBits ---- bitmap data pointer
-//[in] quality --- JPEG compression quality (0~100)
-//return: 0 on failure, file size on success
-IPFRESULT cImageF :: IPF_SaveJPEGFile(const char *filename,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality)
-{
-	if (lpbih==NULL || lpBits==NULL ) return 0;
-	if (filename==NULL || filename[0]==0) return 0;
-	//currently only supports 8-bit grayscale or 24-bit true color
-	if(lpbih->biBitCount!=8 && lpbih->biBitCount!=24) return 0;
-	// bitmap compression not supported
-//	ASSERT(lpbih->biCompression == BI_RGB);
-	//calculate the row width of the original image
-	if(lpbih->biSizeImage==0)
-		lpbih->biSizeImage=lpbih->biHeight * 
-			DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount);
-	long lEffWidth =lpbih->biSizeImage/lpbih->biHeight;
-
-	FILE *fp=::fopen(filename, "w+b");// open file in create mode (binary)
-	if(!fp) return 0;
-	::fseek(fp, 0, SEEK_SET);
-
-	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
-	jpeg_create_compress(&cinfo);
-	jpeg_stdio_dest(&cinfo, fp);
-	cinfo.image_width =lpbih->biWidth; 	// image width and height, in pixels
-	cinfo.image_height =lpbih->biHeight;
-	if (lpbih->biBitCount==24) {
-		cinfo.input_components = 3;		// # of color components per pixel 
-		cinfo.in_color_space = JCS_RGB; 	// colorspace of input image 
-	 } else {
-		cinfo.input_components = 1;		// # of color components per pixel 
-		cinfo.in_color_space = JCS_GRAYSCALE; 	// colorspace of input image 
-	 }
-	jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, quality, TRUE);
-    cinfo.dct_method = JDCT_FASTEST;
-    cinfo.optimize_coding = TRUE;
-	jpeg_start_compress(&cinfo, TRUE);
-	//note: JPEG data is read top-to-bottom, but Windows bitmap data is stored starting from the last line, i.e.
-	//bottom-to-top
-	//if colors are incorrect, RGB colors may be reversed; adjust in "jpeg/jmorecfg.h" file
-	BYTE * IterImage=lpBits+lEffWidth*(cinfo.image_height-1);
-	while (cinfo.next_scanline < cinfo.image_height) 
-	{	
-		 jpeg_write_scanlines(&cinfo, &IterImage, 1);
-		 IterImage -= lEffWidth;
-	}
-	jpeg_finish_compress(&cinfo);
-	jpeg_destroy_compress(&cinfo);
-
-	fseek(fp,0,SEEK_END);
-	lEffWidth=ftell(fp);
-	fclose(fp);
-	return lEffWidth;
-}
-
 //lpBuf --- JPEG data stream 
 //dwSize --- JPEG data streamsize
 //return: 0 on failure, file size on success
@@ -276,174 +203,11 @@ IPFRESULT cImageF::IPF_SaveJPEGFile(const char *filename,LPBYTE lpBuf,DWORD dwSi
 	return dwSize;
 }
 
-//compress bitmap data into JPEG data stream -- 
-//currently only supports 8-bit grayscale or 24-bit true color
-//[in] lpbih ---- bitmap info header
-//[in] lpBits ---- bitmap data pointer
-//[out] dstBuf ---- storage space for converted JPEG data, user must ensure sufficient space
-//					generally allocating the same size as the original bitmap is sufficient
-//[in] quality --- JPEG compression quality (0~100)
-//return：iffailurereturn0，otherwisereturncompressed JPEG data size
-METHODDEF void init_destination (j_compress_ptr cinfo)
-{
-	return;
-}
-METHODDEF boolean empty_output_buffer (j_compress_ptr cinfo)
-{
-	return true;
-}
-METHODDEF void term_destination (j_compress_ptr cinfo)
-{
-	return;
-}
-IPFRESULT cImageF :: IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,LPBYTE dstBuf,int quality)
-{
-	if (lpbih==NULL || lpBits==NULL || dstBuf==NULL ) return 0;
-	//currently only supports 8-bit grayscale or 24-bit true color
-	if(lpbih->biBitCount!=8 && lpbih->biBitCount!=24) return 0;
-	//calculate the row width of the original image
-	if(lpbih->biSizeImage==0)
-		lpbih->biSizeImage=lpbih->biHeight * 
-			DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount);
-	long lEffWidth =lpbih->biSizeImage/lpbih->biHeight;
-	LPBYTE lpDstBits=dstBuf;
-	if(dstBuf==lpBits)
-	{//source address and destination address are the same
-		if( (lpDstBits=(LPBYTE)::malloc(lpbih->biSizeImage))==NULL)
-			return 0;
-	}
-	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	struct jpeg_destination_mgr dest;
-	cinfo.err = jpeg_std_error(&jerr);
-	jpeg_create_compress(&cinfo);
-	dest.next_output_byte = lpDstBits;
-	dest.free_in_buffer = lpbih->biSizeImage;
-	dest.init_destination = init_destination;//NULL;
-	dest.empty_output_buffer = empty_output_buffer;//NULL;
-	dest.term_destination = term_destination;//NULL;
-	cinfo.dest=&dest;
-	cinfo.image_width =lpbih->biWidth; 	// image width and height, in pixels
-	cinfo.image_height =lpbih->biHeight;
-	if (lpbih->biBitCount==24) {
-		cinfo.input_components = 3;		/* # of color components per pixel */
-		cinfo.in_color_space = JCS_RGB; 	/* colorspace of input image */
-	 } else {
-		cinfo.input_components = 1;		/* # of color components per pixel */
-		cinfo.in_color_space = JCS_GRAYSCALE; 	/* colorspace of input image */
-	 }
-	jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, quality, TRUE);
-    cinfo.dct_method = JDCT_FASTEST;
-    cinfo.optimize_coding = TRUE;
-	
-	jpeg_start_compress(&cinfo, TRUE);
-	
-	//note: JPEG data is read top-to-bottom, but Windows bitmap data is stored starting from the last line, i.e.
-	//bottom-to-top
-	//if colors are incorrect, RGB colors may be reversed; adjust in "jpeg/jmorecfg.h" file
-	BYTE * IterImage=lpBits+lEffWidth*(cinfo.image_height-1);
-	while (cinfo.next_scanline < cinfo.image_height) 
-	{	
-		 jpeg_write_scanlines(&cinfo, &IterImage, 1);
-		 IterImage -= lEffWidth;
-	}
-	
-	jpeg_finish_compress(&cinfo);
-	lEffWidth=lpbih->biSizeImage-dest.free_in_buffer;
-	jpeg_destroy_compress(&cinfo);
-
-	if(dstBuf==lpBits)
-	{//source address and destination address are the same
-		memcpy((void *)lpBits,(const void *)lpDstBits,lEffWidth);
-		::free(lpDstBits);
-	}
-	return lEffWidth;
-}
-/*
-//decompress JPEG data into bitmap data stream -- 
-//[in] srcBuf ---- jpegdatapointer
-//[in] dwSize ---- size of the space pointed to by srcBuf
-//[out] lpbi ---- return bitmap info
-//[out] lpBits ---- return bitmap data pointer (DWORD-aligned); user must ensure sufficient space
-//				if lpBits==NULL, only return bitmap info
-//return: 0 on failure, non-zero (image data size) on success
-IPFRESULT cImageF :: IPF_DecodeJPEG(LPBYTE srcBuf,DWORD dwSize,LPBITMAPINFO lpbi,LPBYTE lpBits)
-{
-	if(srcBuf==NULL || dwSize<=0 || lpbi==NULL) return 0;
-	
-	struct jpeg_decompress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	struct jpeg_source_mgr src;
-	cinfo.err = jpeg_std_error(&jerr);
-	// Now we can initialize the JPEG compression object. 
-	jpeg_create_decompress(&cinfo);
-	src.next_input_byte = srcBuf;
-	src.bytes_in_buffer = dwSize;
-	src.init_source = NULL;
-	src.fill_input_buffer=NULL;
-	src.skip_input_data=NULL;
-	src.resync_to_restart=NULL;
-	src.term_source=NULL;
-	cinfo.src=&src;
-
-	jpeg_read_header(&cinfo, TRUE);//get the image header info
-	jpeg_start_decompress(&cinfo);
-	
-	lpbi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	lpbi->bmiHeader.biPlanes = 1;
-	lpbi->bmiHeader.biXPelsPerMeter=0;
-	lpbi->bmiHeader.biYPelsPerMeter=0;
-	lpbi->bmiHeader.biClrUsed = 0;
-	lpbi->bmiHeader.biClrImportant = 0;
-	lpbi->bmiHeader.biCompression =BI_RGB;
-	lpbi->bmiHeader.biBitCount =cinfo.out_color_components*8;
-	lpbi->bmiHeader.biHeight =cinfo.output_height;
-	lpbi->bmiHeader.biWidth =cinfo.output_width;
-	long lEffWidth=DIBSCANLINE_WIDTHBYTES(lpbi->bmiHeader.biWidth *lpbi->bmiHeader.biBitCount );
-	lpbi->bmiHeader.biSizeImage =lEffWidth * lpbi->bmiHeader.biHeight ;
-
-	if( lpbi->bmiHeader.biBitCount==8 ){
-		lpbi->bmiHeader.biClrUsed=256;//(1<<8);
-		RGBQUAD	*lpRGB=(RGBQUAD *)((LPSTR)lpbi+lpbi->bmiHeader.biSize);
-		int ratio=lpbi->bmiHeader.biClrUsed/256;
-		for(int i=0; i <(int)lpbi->bmiHeader.biClrUsed;i++) {
-			lpRGB[i].rgbBlue=i/ratio;
-			lpRGB[i].rgbGreen=i/ratio;
-			lpRGB[i].rgbRed=i/ratio;
-			lpRGB[i].rgbReserved=0;
-		}
-	}//?if( (lpbi->bmiHeader.biBitCount==8...
-
-	if(lpBits)
-	{ 
-		JSAMPROW ptr=lpBits+lEffWidth*(lpbi->bmiHeader.biHeight-1);
-		//note: JPEG data is read top-to-bottom, but Windows bitmap data is stored starting from the last line, i.e.
-		//bottom-to-top
-		//if colors are incorrect, RGB colors may be reversed; adjust in "jpeg/jmorecfg.h" file
-		// Process data 
-		 while (cinfo.output_scanline < cinfo.output_height) 
-		 {
-			 jpeg_read_scanlines(&cinfo,&ptr,1);
-			 ptr-=lEffWidth;
-		  }//?while(
-		 jpeg_finish_decompress(&cinfo);
-	}//?if(lppBits)
-
-	jpeg_destroy_decompress(&cinfo);
-
-	return lpbi->bmiHeader.biSizeImage;
-}
-*/
-//------------------------------------------------------------------------------------------
 //capture window image --- 24-bit true color image
 //if hWnd==NULL, capture the entire screen
-//lpbih --- 
-//			biCompression specifies image data compression method, currently supports BI_RGB (no compression) and BI_JPEG (JPEG compression)
-//			returns image info
-//lpBits --- save image data or compressed image data
+//lpbih --- returns image info
+//lpBits --- save image data
 //			if==NULL, only return the space size needed for image data
-//quality --- if BI_JPEG compression is specified, this parameter specifies JPEG compression quality
 //failurereturn0，otherwisereturnimagedatasize
 //ifCapCursorwhethercapture mouse cursor
 IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor)
@@ -472,8 +236,6 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	long lEffWidth=DIBSCANLINE_WIDTHBYTES(lpbih->biWidth *lpbih->biBitCount );
 	DWORD dwRet=lpbih->biSizeImage =lEffWidth * lpbih->biHeight ;
 	if(lpBits==NULL) return dwRet;
-	//whether to compress
-	BOOL ifComp=(lpbih->biCompression==BI_JPEG);
 	lpbih->biCompression =BI_RGB;
 	
 	HDC hWndDC = NULL;
@@ -528,11 +290,6 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 
 	if(!::GetDIBits(hWndDC,hMemBmp,0,lHeight,lpBits,(LPBITMAPINFO)lpbih,DIB_RGB_COLORS))
 		dwRet=0;
-	else if(ifComp)
-	{//whetherperform JPEG compression
-		dwRet=cImageF::IPF_EncodeJPEG(lpbih,lpBits,lpBits,quality);
-		lpbih->biCompression =BI_JPEG;
-	}
 	::SelectObject(hMemDC, hOldBmp);
 	::DeleteObject(hMemBmp);
 	::DeleteDC(hMemDC);
