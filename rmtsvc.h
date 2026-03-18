@@ -24,7 +24,6 @@
 #pragma comment( lib, "libs/bin/net4cpp21_nossl" )
 #endif
 
-//#include "msnbot/msnbot.h"	//yyc remove MSN function
 #include "ftpserver.h"
 #include "proxyserver.h"
 #include "telnetserver.h"
@@ -194,7 +193,6 @@ class MyService : public CNTService
 //*********************user additional code start ****************************************
 public:
 	webServer m_websvr;
-//	msnShell m_msnbot;	//yyc remove MSN function
 	ftpsvrEx m_ftpsvr;
 	proxysvrEx m_proxysvr;
 	telServerEx m_telsvr;

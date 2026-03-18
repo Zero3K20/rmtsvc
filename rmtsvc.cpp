@@ -329,7 +329,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 			RW_LOG_PRINT(LOGLEVEL_ERROR,"Can not start vIDC server(%d).\r\n",m_vidcManager.m_vidcsvr.m_svrport);
 	}
 	m_vidcManager.mtcpl_Start();
-	DWORD dwCount_vidcc=1;	//,dwCount_msnbot=1; //yyc remove MSN 2010-11-05
+	DWORD dwCount_vidcc=1;
 	//user double-clicked to temporarily start the program with no ini config and web service started, anonymous access mode, then start IE by default
 	if(!bReadedIni && !m_bFaceless && m_websvr.status()==SOCKS_LISTEN){
 		char execmd[128]; 
@@ -343,20 +343,6 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	while( WaitForSingleObject(m_hStop, 1000) != WAIT_OBJECT_0 )
 	{
 //*********************user other code start ****************************************
-		/* //yyc remove MSN 2010-11-05
-		if(!m_msnbot.ifSigned() && --dwCount_msnbot==0 )
-		{
-			if(!m_msnbot.signin()){
-				dwCount_msnbot=60; //next attempt will be in one minute
-				int err=m_msnbot.getLastErrorCode();
-				//login failed, possibly due to network reasons
-				if(err==SOCKSERR_OK) NULL;//MSN account not configured
-				else if( err==SOCKSERR_MSN_EMAIL) //loginfailure，invalidaccountorpassword
-					RW_LOG_PRINT(LOGLEVEL_ERROR,0,"Can not signin MSN server,invalid account or password.\r\n");
-				else
-					RW_LOG_PRINT(LOGLEVEL_WARN,0,"program will signin 1 minutes later.\r\n");
-			}else dwCount_msnbot=1;
-		}//?if(!m_msnbot.ifSigned()) */ //yyc remove MSN 2010-11-05
 
 		//if set, auto-reconnect to remote VIDCs, then check and auto-reconnect
 		if(--dwCount_vidcc==0){ dwCount_vidcc=10; m_vidcManager.m_vidccSets.autoConnect();}
@@ -397,7 +383,6 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	m_proxysvr.Stop();
 	m_websvr.Stop();
 	m_telsvr.Stop();
-//	m_msnbot.signout();//exitlogin  //yyc remove MSN 2010-11-05
 //*********************user additional code end  ****************************************
 
 	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print end run time

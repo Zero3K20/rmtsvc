@@ -141,12 +141,6 @@ BOOL sysStatus(std::string &strRet)
 	buflen=sprintf(buf,"%s\r\n",Wutils::getLastInfo());
 	strRet.append(buf,buflen);
 	MyService *ptrService=MyService::GetService();
-	/* //yyc remove MSN 2010-11-05
-	if(ptrService){
-		buflen=sprintf(buf,"clientIP: %s , %s\r\n",ptrService->m_msnbot.clientIP(),
-			(!ptrService->m_msnbot.Connectivity())?"behind NAT":"" );
-		strRet.append(buf,buflen);
-	} */ //yyc remove MSN 2010-11-05
 	strRet.append("\r\n",2);
 
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
