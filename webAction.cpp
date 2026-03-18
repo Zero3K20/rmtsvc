@@ -24,6 +24,65 @@
 #include <wincrypt.h>
 #pragma comment(lib, "crypt32.lib")
 
+// ---------------------------------------------------------------------------
+// RtlCompressBuffer / RtlDecompressBuffer (ntdll) -- loaded at first use
+// ---------------------------------------------------------------------------
+typedef LONG (WINAPI *PFN_RtlGetCompressionWorkSpaceSize)(USHORT, PULONG, PULONG);
+typedef LONG (WINAPI *PFN_RtlCompressBuffer)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, ULONG, PULONG, PVOID);
+
+#ifndef COMPRESSION_FORMAT_LZNT1
+#define COMPRESSION_FORMAT_LZNT1  2
+#endif
+#ifndef COMPRESSION_ENGINE_STANDARD
+#define COMPRESSION_ENGINE_STANDARD 0
+#endif
+#define COMPRESS_FMT_LZNT1 ((USHORT)(COMPRESSION_FORMAT_LZNT1 | COMPRESSION_ENGINE_STANDARD))
+
+// Compress 'src' (srcSize bytes) into 'dst' (dstSize bytes) using LZNT1.
+// Returns compressed size, or 0 on failure.
+static DWORD rtlCompressLznt1(LPBYTE src, DWORD srcSize, LPBYTE dst, DWORD dstSize)
+{
+	static PFN_RtlGetCompressionWorkSpaceSize pfnGetWS   = NULL;
+	static PFN_RtlCompressBuffer             pfnCompress = NULL;
+	if (!pfnGetWS || !pfnCompress)
+	{
+		HMODULE h = ::GetModuleHandleA("ntdll.dll");
+		if (h)
+		{
+			pfnGetWS   = (PFN_RtlGetCompressionWorkSpaceSize)::GetProcAddress(h, "RtlGetCompressionWorkSpaceSize");
+			pfnCompress = (PFN_RtlCompressBuffer)             ::GetProcAddress(h, "RtlCompressBuffer");
+		}
+	}
+	if (!pfnGetWS || !pfnCompress) return 0;
+
+	ULONG wsSize = 0, fragSize = 0;
+	if (pfnGetWS(COMPRESS_FMT_LZNT1, &wsSize, &fragSize) != 0) return 0;
+
+	LPBYTE ws = (LPBYTE)::malloc(wsSize);
+	if (!ws) return 0;
+	ULONG compSize = 0;
+	LONG  st = pfnCompress(COMPRESS_FMT_LZNT1, src, srcSize, dst, dstSize, 4096, &compSize, ws);
+	::free(ws); // always free workspace regardless of result
+	return (st == 0) ? compSize : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Binary diff-stream frame header
+// ---------------------------------------------------------------------------
+#pragma pack(push, 1)
+struct DiffFrameHeader
+{
+	DWORD magic;    // DIFF_FRAME_MAGIC
+	BYTE  flags;    // bit 0: 0=full frame, 1=XOR diff;  bit 1: 0=raw, 1=LZNT1-compressed
+	WORD  width;
+	WORD  height;
+	DWORD rawSize;  // uncompressed payload size (bytes)
+	DWORD compSize; // size of the payload that follows this header
+};
+#pragma pack(pop)
+
+static const DWORD DIFF_FRAME_MAGIC = 0x46464944; // 'D','I','F','F' LE
+
 void downThreadX(char *strParam)
 {
 	if(strParam==NULL) return;
@@ -539,6 +598,7 @@ bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 }
 
 DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &lpbits);
+DWORD capDesktopRaw(HWND hWnd,WORD w,WORD h,WORD &actual_w,WORD &actual_h,LPBYTE &lpbits);
 bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
 	bool ifCapCursor=true;
@@ -562,50 +622,114 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	return true;
 }
 
-// MJPEG stream: continuously sends JPEG frames as a multipart/x-mixed-replace response
+// Binary inter-frame diff stream using RtlCompressBuffer (LZNT1).
+//
+// Wire protocol – one frame per iteration:
+//   DiffFrameHeader (17 bytes, packed)
+//   followed by compSize bytes of payload
+//
+// flags bit 0: 0 = full top-down RGB frame, 1 = XOR diff frame
+// flags bit 1: 0 = payload is raw,           1 = payload is LZNT1-compressed
 bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
-	static const char *boundary = "mjpegboundary";
-	char header[512];
-	int hlen = sprintf(header,
+	char hdr[256];
+	int hlen = sprintf(hdr,
 		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: multipart/x-mixed-replace; boundary=%s\r\n"
+		"Content-Type: application/octet-stream\r\n"
 		"Cache-Control: no-cache, no-store, must-revalidate\r\n"
 		"Pragma: no-cache\r\n"
 		"Connection: close\r\n"
-		"\r\n", boundary);
-	if(psock->Send(hlen, header, -1) < 0) return true;
+		"\r\n");
+	if (psock->Send(hlen, hdr, -1) < 0) return true;
 
-	bool ifCapCursor = false; // do not draw server cursor into frames; client uses CSS cursor via /getCursor
-	WORD w = LOWORD(m_dwImgSize);
-	WORD h = HIWORD(m_dwImgSize);
+	WORD w    = LOWORD(m_dwImgSize);
+	WORD h    = HIWORD(m_dwImgSize);
 	HWND hwnd = (HWND)atol(session["cap_hwnd"].c_str());
 
-	while(psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
+	LPBYTE lpPrevFrame = NULL; // previous top-down RGB frame
+	WORD   prevW = 0, prevH = 0;
+
+	while (psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
 	{
 		Wutils::selectDesktop();
-		LPBYTE lpbits = NULL;
-		DWORD dwRet = capDesktop(hwnd, w, h, ifCapCursor, m_quality, lpbits);
-		if(dwRet > 0 && lpbits)
+
+		LPBYTE lpCurrFrame = NULL;
+		WORD   currW = 0, currH = 0;
+		DWORD  rawSize = capDesktopRaw(hwnd, w, h, currW, currH, lpCurrFrame);
+
+		if (rawSize == 0 || !lpCurrFrame)
 		{
-			char frameheader[256];
-			int fhlen = sprintf(frameheader,
-				"--%s\r\n"
-				"Content-Type: image/jpeg\r\n"
-				"Content-Length: %lu\r\n"
-				"\r\n", boundary, (unsigned long)dwRet);
-			SOCKSRESULT sr = psock->Send(fhlen, frameheader, HTTP_MAX_RESPTIMEOUT);
-			if(sr >= 0) sr = psock->Send(dwRet, (const char*)lpbits, HTTP_MAX_RESPTIMEOUT);
-			if(sr >= 0) sr = psock->Send(2, "\r\n", HTTP_MAX_RESPTIMEOUT);
-			::free(lpbits);
-			if(sr < 0) break;
+			if (lpCurrFrame) ::free(lpCurrFrame);
+			Sleep(100);
+			continue;
 		}
-		else
+
+		bool bFull = (lpPrevFrame == NULL || prevW != currW || prevH != currH);
+
+		// Build the data to compress: full frame or XOR diff
+		LPBYTE lpToCompress = lpCurrFrame;
+		LPBYTE lpDiff       = NULL;
+		if (!bFull)
 		{
-			if(lpbits) ::free(lpbits);
+			lpDiff = (LPBYTE)::malloc(rawSize);
+			if (lpDiff)
+			{
+				for (DWORD i = 0; i < rawSize; i++)
+					lpDiff[i] = lpCurrFrame[i] ^ lpPrevFrame[i];
+				lpToCompress = lpDiff;
+			}
+			else
+			{
+				bFull = true; // fall back to full frame on alloc failure
+			}
 		}
+
+		// Attempt LZNT1 compression.
+		// Upper-bound: LZNT1 can expand incompressible data by ~1/8 plus a
+		// small constant per-chunk overhead (2 bytes per 4 KB chunk).
+		DWORD  compBufSize = rawSize + (rawSize >> 3) + 64;
+		LPBYTE lpCompBuf   = (LPBYTE)::malloc(compBufSize);
+		DWORD  compSize    = 0;
+		bool   bCompressed = false;
+		if (lpCompBuf)
+		{
+			compSize = rtlCompressLznt1(lpToCompress, rawSize, lpCompBuf, compBufSize);
+			if (compSize > 0 && compSize < rawSize)
+				bCompressed = true;
+			else
+				compSize = 0; // keep raw on failure or expansion
+		}
+
+		// Build frame header
+		DiffFrameHeader fhdr;
+		fhdr.magic    = DIFF_FRAME_MAGIC;
+		fhdr.flags    = (bFull ? 0 : 1) | (bCompressed ? 2 : 0);
+		fhdr.width    = currW;
+		fhdr.height   = currH;
+		fhdr.rawSize  = rawSize;
+		fhdr.compSize = bCompressed ? compSize : rawSize;
+
+		const char *lpSend = bCompressed
+			? (const char *)lpCompBuf
+			: (const char *)lpToCompress;
+
+		SOCKSRESULT sr = psock->Send(sizeof(fhdr), (const char *)&fhdr, HTTP_MAX_RESPTIMEOUT);
+		if (sr >= 0)
+			sr = psock->Send(fhdr.compSize, lpSend, HTTP_MAX_RESPTIMEOUT);
+
+		if (lpCompBuf) ::free(lpCompBuf);
+		if (lpDiff)    ::free(lpDiff);
+
+		// Current frame becomes previous frame
+		if (lpPrevFrame) ::free(lpPrevFrame);
+		lpPrevFrame = lpCurrFrame;
+		prevW = currW; prevH = currH;
+
+		if (sr < 0) break;
 		Sleep(100); // ~10 fps
 	}
+
+	if (lpPrevFrame) ::free(lpPrevFrame);
 	return true;
 }
 
@@ -801,6 +925,120 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 	::SelectObject(hMemDC, hOldBmp);	
 	::DeleteDC(hMemDC);
 	::ReleaseDC(NULL, hWndDC);
+	return dwret;
+}
+
+// ---------------------------------------------------------------------------
+// capDesktopRaw – capture desktop as top-down 24-bit RGB (no JPEG).
+// The returned buffer (lpbits) is allocated with malloc() and must be freed
+// by the caller.  actual_w / actual_h receive the output dimensions.
+// Returns total byte count of lpbits, or 0 on failure.
+// ---------------------------------------------------------------------------
+DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
+                    WORD &actual_w, WORD &actual_h, LPBYTE &lpbits)
+{
+	lpbits = NULL; actual_w = 0; actual_h = 0;
+
+	if (hWnd == NULL) hWnd = ::GetDesktopWindow();
+	RECT rect;
+	::GetWindowRect(hWnd, &rect);
+
+	BITMAPINFOHEADER bih;
+	::memset(&bih, 0, sizeof(bih));
+	bih.biSize        = sizeof(BITMAPINFOHEADER);
+	bih.biPlanes      = 1;
+	bih.biCompression = BI_RGB;
+	bih.biBitCount    = 24;
+	bih.biHeight      = rect.bottom - rect.top;
+	bih.biWidth       = rect.right  - rect.left;
+	bih.biSizeImage   = DIBSCANLINE_WIDTHBYTES(bih.biWidth * bih.biBitCount) * bih.biHeight;
+
+	LPBYTE lpbuffer = (LPBYTE)::malloc(bih.biSizeImage);
+	if (!lpbuffer) return 0;
+
+	HDC     hWndDC = ::GetDCEx(hWnd, NULL, DCX_WINDOW);
+	HDC     hMemDC = ::CreateCompatibleDC(hWndDC);
+	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hWndDC, bih.biWidth, bih.biHeight);
+	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
+	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, 0, 0, SRCCOPY);
+
+	DWORD dwret = 0;
+	if (::GetDIBits(hWndDC, hMemBmp, 0, bih.biHeight, lpbuffer,
+	                (LPBITMAPINFO)&bih, DIB_RGB_COLORS))
+	{
+		// Scale down if requested (same logic as capDesktop).
+		// In-place rewrite is safe here: the output stride (lEffwidth_dst = w*3)
+		// is strictly less than the source stride (lEffwidth_src), so each
+		// destination pixel is always at a lower address than its source pixel.
+		if (w != 0 && h != 0)
+		{
+			float f  = (float)bih.biWidth / bih.biHeight;
+			float f1 = (float)w / h;
+			if (f1 > f) w = (WORD)(h * f); else h = (WORD)(w / f);
+			if (w < bih.biWidth && h < bih.biHeight)
+			{
+				long lEffwidth_src = bih.biSizeImage / bih.biHeight;
+				long lEffwidth_dst = w * 3;
+				float fX = (float)bih.biWidth / w;
+				float fY = (float)bih.biHeight / h;
+				LPBYTE ptrD = lpbuffer;
+				for (int i = 0; i < (int)h; i++)
+				{
+					LPBYTE ptr = ptrD;
+					for (int j = 0; j < (int)w; j++)
+					{
+						long x = (long)(fX * j), y = (long)(fY * i);
+						LPBYTE ptrS = lpbuffer + y * lEffwidth_src + x * 3;
+						*ptr++ = *ptrS; *ptr++ = *(ptrS+1); *ptr++ = *(ptrS+2);
+					}
+					ptrD += lEffwidth_dst;
+				}
+				bih.biWidth    = w;
+				bih.biHeight   = h;
+				bih.biSizeImage = (DWORD)lEffwidth_dst * h;
+			}
+		}
+
+		// DIB is bottom-up BGR; convert to top-down RGB for the browser
+		WORD  outW      = (WORD)bih.biWidth;
+		WORD  outH      = (WORD)bih.biHeight;
+		DWORD dibStride = DIBSCANLINE_WIDTHBYTES(outW * bih.biBitCount); // row stride with DWORD padding
+		DWORD outStride = outW * 3;                          // no padding
+		LPBYTE rgbBuf   = (LPBYTE)::malloc((DWORD)outW * outH * 3);
+		if (rgbBuf)
+		{
+			for (WORD row = 0; row < outH; row++)
+			{
+				// Row 0 of DIB is the bottom row of the image
+				LPBYTE src = lpbuffer + (DWORD)(outH - 1 - row) * dibStride;
+				LPBYTE dst = rgbBuf  + (DWORD)row * outStride;
+				for (WORD col = 0; col < outW; col++)
+				{
+					dst[col*3+0] = src[col*3+2]; // R <- B
+					dst[col*3+1] = src[col*3+1]; // G
+					dst[col*3+2] = src[col*3+0]; // B <- R
+				}
+			}
+			::free(lpbuffer);
+			lpbits   = rgbBuf;
+			actual_w = outW;
+			actual_h = outH;
+			dwret    = (DWORD)outW * outH * 3;
+		}
+		else
+		{
+			::free(lpbuffer);
+		}
+	}
+	else
+	{
+		::free(lpbuffer);
+	}
+
+	::SelectObject(hMemDC, hOldBmp);
+	::DeleteObject(hMemBmp);
+	::DeleteDC(hMemDC);
+	::ReleaseDC(hWnd, hWndDC);
 	return dwret;
 }
 

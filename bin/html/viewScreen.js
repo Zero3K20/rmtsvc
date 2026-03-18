@@ -1,16 +1,18 @@
-// Scale display coordinates back to actual screen coordinates when image is resized.
-// Uses getBoundingClientRect() for the rendered dimensions so that CSS transforms,
-// fractional scaling, and subpixel layouts are all accounted for correctly.
+// Scale display coordinates back to actual screen coordinates when the canvas
+// is CSS-resized.  Uses data-nw/data-nh (set by the diff-stream renderer) for
+// the logical content size, and getBoundingClientRect() for the rendered size.
 function scaleToScreen(x, y)
 {
-var img=document.getElementById("screenimage");
-var rect=img.getBoundingClientRect();
-var rw=rect.width||img.clientWidth;
-var rh=rect.height||img.clientHeight;
-if(img.naturalWidth && rw && img.naturalWidth !== rw)
+var canvas=document.getElementById("screenimage");
+var rect=canvas.getBoundingClientRect();
+var rw=rect.width||canvas.clientWidth;
+var rh=rect.height||canvas.clientHeight;
+var nw=parseInt(canvas.getAttribute("data-nw")||"0")||canvas.width;
+var nh=parseInt(canvas.getAttribute("data-nh")||"0")||canvas.height;
+if(nw && rw && nw !== rw)
 {
-x=Math.round(x * img.naturalWidth / rw);
-y=Math.round(y * img.naturalHeight / rh);
+x=Math.round(x * nw / rw);
+y=Math.round(y * nh / rh);
 }
 return {x:x, y:y};
 }
@@ -124,6 +126,8 @@ xhr.send();
 function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
+// Start the binary diff stream (falls back to JPEG polling on older browsers)
+startScreenStream();
 // Poll server cursor shape every 200 ms so the displayed cursor matches the server
 fetchCursor();
 window.setInterval(fetchCursor, 200);
