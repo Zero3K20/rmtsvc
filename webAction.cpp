@@ -277,6 +277,7 @@ bool webServer::httprsp_login(socketTCP *psock,httpRequest &httpreq,httpResponse
 							std::lock_guard<cMutex> lk(m_rememberMutex);
 							m_rememberTokens[std::string(token)]=entry;
 						}
+						saveRememberTokens();
 
 						struct tm *tmExpires=gmtime(&tExpires);
 						char strExpires[64];
