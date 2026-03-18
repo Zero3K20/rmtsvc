@@ -14,6 +14,8 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <wincodec.h>
+#pragma comment(lib, "windowscodecs.lib")
 #include "IPF.h"
 
 
@@ -348,4 +350,111 @@ WORD cImageF::PaletteSize(LPBITMAPINFOHEADER lpbih)
 	return size;	
 }
 */
+
+//compress bitmap data into JPEG data stream using WIC (Windows Imaging Component).
+//Currently supports 24-bit true color only.
+//[in]  lpbih    -- bitmap info header
+//[in]  lpBits   -- bitmap data pointer (bottom-up DIB)
+//[out] dstBuf   -- destination buffer; must be at least biSizeImage bytes.
+//                  May be the same pointer as lpBits.
+//[in]  quality  -- JPEG quality 0..100
+//return: 0 on failure, compressed JPEG size on success
+IPFRESULT cImageF::IPF_EncodeJPEG(LPBITMAPINFOHEADER lpbih, LPBYTE lpBits, LPBYTE dstBuf, int quality)
+{
+	if (!lpbih || !lpBits || !dstBuf) return 0;
+	if (lpbih->biBitCount != 24) return 0;
+
+	LONG width  = lpbih->biWidth;
+	LONG height = lpbih->biHeight;
+	if (width <= 0 || height == 0) return 0;
+	LONG absH = (height < 0) ? -height : height;
+
+	DWORD stride   = DIBSCANLINE_WIDTHBYTES(width * lpbih->biBitCount);
+	DWORD imgBytes = stride * (DWORD)absH;
+
+	// Initialize COM on this thread if not yet done.
+	// S_OK  = we initialized it (ref-count incremented from 0)
+	// S_FALSE = already initialized with same model (ref-count incremented, must still uninit)
+	// FAILED = apartment mismatch; COM is still usable but we must not uninit
+	HRESULT hrInit = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	bool didInit = SUCCEEDED(hrInit);
+
+	// DIB is stored bottom-up; WIC needs top-down rows.
+	LPBYTE flipped = (LPBYTE)::malloc(imgBytes);
+	if (!flipped)
+	{
+		if (didInit) CoUninitialize();
+		return 0;
+	}
+	for (LONG row = 0; row < absH; row++)
+		::memcpy(flipped + (LONG)row * stride, lpBits + (absH - 1 - row) * stride, stride);
+
+	IStream               *pStream  = NULL;
+	IWICImagingFactory    *pFactory = NULL;
+	IWICBitmapEncoder     *pEncoder = NULL;
+	IWICBitmapFrameEncode *pFrame   = NULL;
+	IPropertyBag2         *pProps   = NULL;
+	IPFRESULT result = 0;
+
+	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
+
+	if (SUCCEEDED(hr))
+		hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
+		                      IID_IWICImagingFactory, (void **)&pFactory);
+	if (SUCCEEDED(hr))
+		hr = pFactory->CreateEncoder(GUID_ContainerFormatJpeg, NULL, &pEncoder);
+	if (SUCCEEDED(hr))
+		hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
+	if (SUCCEEDED(hr))
+		hr = pEncoder->CreateNewFrame(&pFrame, &pProps);
+	if (SUCCEEDED(hr) && pProps)
+	{
+		PROPBAG2 propQuality = {};
+		propQuality.pstrName = const_cast<LPOLESTR>(L"ImageQuality");
+		VARIANT varQuality   = {};
+		varQuality.vt        = VT_R4;
+		varQuality.fltVal    = (float)quality / 100.0f;
+		pProps->Write(1, &propQuality, &varQuality);
+		pProps->Release(); pProps = NULL;
+	}
+	if (SUCCEEDED(hr))
+		hr = pFrame->Initialize(NULL);
+	if (SUCCEEDED(hr))
+		hr = pFrame->SetSize((UINT)width, (UINT)absH);
+	if (SUCCEEDED(hr))
+	{
+		WICPixelFormatGUID fmt = GUID_WICPixelFormat24bppBGR;
+		hr = pFrame->SetPixelFormat(&fmt);
+	}
+	if (SUCCEEDED(hr))
+		hr = pFrame->WritePixels((UINT)absH, stride, imgBytes, flipped);
+	if (SUCCEEDED(hr))
+		hr = pFrame->Commit();
+	if (SUCCEEDED(hr))
+		hr = pEncoder->Commit();
+
+	if (SUCCEEDED(hr))
+	{
+		HGLOBAL hGlobal = NULL;
+		if (SUCCEEDED(GetHGlobalFromStream(pStream, &hGlobal)))
+		{
+			SIZE_T sz = GlobalSize(hGlobal);
+			LPVOID pv = GlobalLock(hGlobal);
+			if (pv && sz > 0 && sz <= (SIZE_T)lpbih->biSizeImage)
+			{
+				::memcpy(dstBuf, pv, sz);
+				result = (IPFRESULT)sz;
+			}
+			if (pv) GlobalUnlock(hGlobal);
+		}
+	}
+
+	if (pFrame)   pFrame->Release();
+	if (pEncoder) pEncoder->Release();
+	if (pFactory) pFactory->Release();
+	if (pStream)  pStream->Release();
+	::free(flipped);
+	if (didInit) CoUninitialize();
+	return result;
+}
 
