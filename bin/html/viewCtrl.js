@@ -112,7 +112,7 @@ window.setInterval(fetchCursor, 200);
 
 function processRequest() 
 {
-// Event sent; the MJPEG stream updates the display automatically
+// Event sent; the binary diff stream updates the display automatically
 }
 function sendEvent(strurl,param)
 {
