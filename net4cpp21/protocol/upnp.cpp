@@ -20,9 +20,21 @@ static char *UPNP_SEARCH_NAME[] =
 {
 	"urn:schemas-upnp-org:service:WANPPPConnection:1",  //search by service name
 	"urn:schemas-upnp-org:service:WANIPConnection:1",
-	"urn:schemas-upnp-org:device:InternetGatewayDevice:1" //以设备名进行查找
+	"urn:schemas-upnp-org:service:WANIPConnection:2",   //IGDv2 (e.g. AT&T BGW320)
+	"urn:schemas-upnp-org:device:InternetGatewayDevice:1", //search by device name
+	"urn:schemas-upnp-org:device:InternetGatewayDevice:2"  //IGDv2 device name
 }; //因为有些设备支持以service name查找，有些支持设备名查找
 bool GetProperty(const char *xml,const char *name,string &strret);
+
+// Case-insensitive substring search (replaces multiple strstr calls for HTTP headers)
+static const char *stristr_hdr(const char *buf, const char *hdr)
+{
+	size_t hlen=strlen(hdr);
+	for(; *buf; buf++){
+		if(strncasecmp(buf,hdr,hlen)==0) return buf;
+	}
+	return NULL;
+}
 
 upnp :: upnp()
 {
@@ -89,9 +101,7 @@ void upnp :: onData()
 		return;
 	if (status_code != HTTP_STATUS_OK) return;
 	
-	const char *ptr_beg=strstr(buf,"\r\nLOCATION:");
-	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nLocation:");
-	if(ptr_beg==NULL) ptr_beg=strstr(buf,"\r\nlocation:");
+	const char *ptr_beg=stristr_hdr(buf,"\r\nLOCATION:");
 	if(ptr_beg==NULL) return; else ptr_beg+=11;
 	while( *ptr_beg==' ') ptr_beg++; //remove spaces
 	const char *ptr_end=strchr(ptr_beg,'\r');
@@ -99,7 +109,7 @@ void upnp :: onData()
 	m_strLocation.assign(ptr_beg,ptr_end-ptr_beg);
 	RW_LOG_DEBUG("[UPnP] Found Loaction: %s\r\n",m_strLocation.c_str());
 	//getST的值
-	if( (ptr_beg=strstr(buf,"\r\nST:")) ){
+	if( (ptr_beg=stristr_hdr(buf,"\r\nST:")) ){
 		ptr_beg+=5;
 		while( *ptr_beg==' ') ptr_beg++; //remove spaces
 		if( (ptr_end=strchr(ptr_beg,'\r')) )
@@ -319,8 +329,8 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	
 	//send HTTP request
 	httpClient httpsock; 
-	httpsock.add_reqHeader("Content-Type","text/xml");
-	string s=m_targetName+string("#")+strCmd;
+	httpsock.add_reqHeader("Content-Type","text/xml; charset=\"utf-8\"");
+	string s="\""+m_targetName+"#"+strCmd+"\"";
 	httpsock.add_reqHeader("SOAPACTION",s.c_str());
 	httpsock.set_reqPostdata(xml_data.c_str(),xml_data.length());
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
@@ -349,8 +359,8 @@ bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 	
 	//send HTTP request
 	httpClient httpsock; 
-	httpsock.add_reqHeader("Content-Type","text/xml");
-	string s=m_targetName+string("#")+reqName;
+	httpsock.add_reqHeader("Content-Type","text/xml; charset=\"utf-8\"");
+	string s="\""+m_targetName+"#"+reqName+"\"";
 	httpsock.add_reqHeader("SOAPACTION",s.c_str());
 	httpsock.set_reqPostdata(xml_data.c_str(),xml_data.length());
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
