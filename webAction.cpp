@@ -83,6 +83,21 @@ struct DiffFrameHeader
 
 static const DWORD DIFF_FRAME_MAGIC = 0x46464944; // 'D','I','F','F' LE
 
+// ---------------------------------------------------------------------------
+// Audio frame header (WAV payload, optionally LZNT1-compressed)
+// ---------------------------------------------------------------------------
+#pragma pack(push, 1)
+struct AudioFrameHeader
+{
+	DWORD magic;    // AUDIO_FRAME_MAGIC
+	BYTE  flags;    // bit 0: 0=raw WAV, 1=LZNT1-compressed WAV
+	DWORD rawSize;  // original (uncompressed) WAV size in bytes
+	DWORD compSize; // size of the payload that follows this header
+};
+#pragma pack(pop)
+
+static const DWORD AUDIO_FRAME_MAGIC = 0x46445541; // 'AUDF' LE
+
 void downThreadX(char *strParam)
 {
 	if(strParam==NULL) return;
@@ -1756,12 +1771,47 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		memcpy(p, &dwCaptured, 4);          // data chunk size
 
 		dwSendSize = dwHdrSize + dwCaptured;
+
+		// Wrap the WAV in an AudioFrameHeader with optional LZNT1 compression
+		// to reduce bandwidth.  Upper-bound for LZNT1 output is src + src/8 + 64
+		// (LZNT1 worst-case expansion ≈ 12.5 % of input plus a small fixed overhead).
+		const DWORD dwCompBound = dwSendSize + dwSendSize / 8 + 64;
+		LPBYTE lpOut = (LPBYTE)malloc(sizeof(AudioFrameHeader) + dwCompBound);
+		if (lpOut)
+		{
+			AudioFrameHeader afh;
+			afh.magic   = AUDIO_FRAME_MAGIC;
+			afh.rawSize = dwSendSize;
+
+			DWORD compSize = rtlCompressLznt1(lpBuffer, dwSendSize,
+			                                  lpOut + sizeof(AudioFrameHeader), dwCompBound);
+			// Only use compression when it actually reduces the payload size.
+			if (compSize > 0 && compSize < dwSendSize)
+			{
+				afh.flags    = 1; // LZNT1-compressed
+				afh.compSize = compSize;
+			}
+			else
+			{
+				// Compression not beneficial; embed raw WAV after header
+				afh.flags    = 0;
+				afh.compSize = dwSendSize;
+				memcpy(lpOut + sizeof(AudioFrameHeader), lpBuffer, dwSendSize);
+			}
+
+			memcpy(lpOut, &afh, sizeof(AudioFrameHeader));
+			free(lpBuffer);
+			lpBuffer   = lpOut;
+			dwSendSize = (DWORD)sizeof(AudioFrameHeader) + afh.compSize;
+		}
+		// If malloc fails, lpBuffer still holds the plain WAV; the client
+		// detects the missing AUDF magic and decodes it as plain WAV.
 	}
 
 	httprsp.NoCache();
 	if (dwSendSize > 0)
 	{
-		httprsp.Header()["Content-Type"] = "audio/wav";
+		httprsp.Header()["Content-Type"] = "application/octet-stream";
 		httprsp.lContentLength(dwSendSize);
 		httprsp.send_rspH(psock, 200, "OK");
 		psock->Send(dwSendSize, (const char*)lpBuffer, HTTP_MAX_RESPTIMEOUT);
