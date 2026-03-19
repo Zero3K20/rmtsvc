@@ -114,7 +114,14 @@ var _diffCtrl         = null;  // AbortController for current fetch
 var _diffCanvasW      = 0;     // last rendered canvas content width
 var _diffCanvasH      = 0;     // last rendered canvas content height
 
-// LZNT1 decompressor (RFC / MS-XCA spec)
+// LZNT1 decompressor (MS-XCA spec)
+// Compressed-chunk header: bits[0:11] = compressed_data_size - 3,
+//                           bit[15]   = 1 (compressed) / 0 (raw).
+// Uncompressed-chunk header: bits[0:11] = raw_data_size - 1, bit[15] = 0.
+// Back-reference tuple: LengthShift starts at 4 and decrements each time the
+// current chunk output position exceeds MaximumMatchOffset (which doubles
+// with each decrement, starting at 16).  The tuple's low LengthShift bits
+// encode (match_length - 3) and the remaining high bits encode (offset - 1).
 function lznt1Decompress(src)
 {
 	var out = [];
@@ -123,10 +130,10 @@ function lznt1Decompress(src)
 	{
 		var b0 = src[pos], b1 = src[pos+1];
 		pos += 2;
-		var chunkHdr = (b0 | (b1 << 8)) >>> 0;
+		var chunkHdr     = (b0 | (b1 << 8)) >>> 0;
 		if (chunkHdr === 0) break;                     // terminal marker
-		var chunkSize   = (chunkHdr & 0xFFF) + 1;
 		var isCompressed = (chunkHdr & 0x8000) !== 0;
+		var chunkSize    = (chunkHdr & 0xFFF) + (isCompressed ? 3 : 1);
 		if (!isCompressed)
 		{
 			for (var i = 0; i < chunkSize && pos < src.length; i++)
@@ -147,18 +154,18 @@ function lznt1Decompress(src)
 						if (pos + 1 >= src.length) break;
 						var w = src[pos] | (src[pos+1] << 8);
 						pos += 2;
-						// PointerShift: starts at 12, decrements while
-						// current chunk output length > MaxMatchOffset
-						var curLen        = out.length - chunkOutStart;
-						var pointerShift  = 12;
-						var maxMatchOff   = 16; // 1 << (16 - 12)
-						while (curLen > maxMatchOff)
+						// LengthShift: starts at 4, decrements (min 0) while
+						// current chunk output length > MaximumMatchOffset.
+						var curLen       = out.length - chunkOutStart;
+						var lengthShift  = 4;
+						var maxMatchOff  = 16; // 1 << 4
+						while (curLen > maxMatchOff && lengthShift > 0)
 						{
-							pointerShift--;
+							lengthShift--;
 							maxMatchOff <<= 1;
 						}
-						var length = (w & ((1 << pointerShift) - 1)) + 3;
-						var offset = (w >>> pointerShift) + 1;
+						var length = (w & ((1 << lengthShift) - 1)) + 3;
+						var offset = (w >>> lengthShift) + 1;
 						for (var j = 0; j < length; j++)
 							out.push(out[out.length - offset]);
 					}
