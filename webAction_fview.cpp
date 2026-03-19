@@ -251,7 +251,7 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 		{
 			unsigned long long fsz=fileSize64(finddata.nFileSizeHigh,finddata.nFileSizeLow);
 			char fszbuf[32]; formatFileSize(fszbuf,fsz);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu byte)</fsize>",fszbuf,fsz);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu bytes)</fsize>",fszbuf,fsz);
 		}
 		 
 //		::FileTimeToLocalFileTime(&finddata.ftCreationTime,&localFtime);
@@ -345,7 +345,7 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 			double dbsize=folderSize(spath,ptr_name,folders,files);
 			{
 				char fszbuf[32]; formatFileSize(fszbuf,(unsigned long long)dbsize);
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu byte)</fsize>",
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu bytes)</fsize>",
 					fszbuf,(unsigned long long)dbsize);
 			}
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsubs>%d file(s), %d folder(s)</fsubs>",files,folders);
