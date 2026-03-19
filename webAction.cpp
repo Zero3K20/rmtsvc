@@ -98,7 +98,7 @@ static const DWORD DIFF_FRAME_MAGIC = 0x46464944; // 'D','I','F','F' LE
 // ---------------------------------------------------------------------------
 #define QOA_IMPLEMENTATION
 #define QOA_NO_STDIO
-#include "other\qoa.h"
+#include "other/qoa.h"
 
 // ---------------------------------------------------------------------------
 // Audio frame header (payload is either raw WAV or QOA-encoded PCM)
