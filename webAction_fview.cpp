@@ -475,7 +475,7 @@ bool webServer :: httprsp_upload(socketTCP *psock,httpRequest &httpreq,httpRespo
 				if(wlen==0){ cUtils::usleep(SCHECKTIMEOUT); continue; }//==0 means received data exceeded the limit
 				::fwrite(buff.str(),sizeof(char),wlen,fp); receivedBytes+=wlen;
 				sprintf(fmtbuf,"%d",receivedBytes); session["up_rbyte"]=string(fmtbuf);
-				sprintf(fmtbuf,"%d%%",receivedBytes*100/allbytes); session["up_ratio"]=string(fmtbuf);
+				sprintf(fmtbuf,"%d%%",(allbytes>0)?(int)((double)receivedBytes/allbytes*100):0); session["up_ratio"]=string(fmtbuf);
 				if( (t=(time(NULL)-tStart))>0 )
 				{  sprintf(fmtbuf,"%.2fK/s",receivedBytes/t/1000.0); session["up_speed"]=string(fmtbuf); }
 			}//?while
