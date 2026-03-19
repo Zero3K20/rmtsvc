@@ -2,6 +2,7 @@
 #include <WinSock2.h>
 #include <windows.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "chacha20.c"
 #include "tls.h"
 #include "ecc.c"
