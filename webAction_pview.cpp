@@ -270,7 +270,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 			if(bMatch)
 			{
 				int pnlen=strlen(szProcessName);
-				long space_needed=pnlen*3+256;
+				size_t space_needed=pnlen*3+256;
 				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 				char utf8pname[MAX_PATH*4];
 				cCoder::utf8_encode(szProcessName, pnlen, utf8pname);
@@ -340,7 +340,7 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 			if(bMatch)
 			{
 				int pnlen=strlen(ptrFilename);
-				long space_needed=pnlen*3+256;
+				size_t space_needed=pnlen*3+256;
 				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 				char utf8pname[MAX_PATH*4];
 				cCoder::utf8_encode(ptrFilename, pnlen, utf8pname);
@@ -417,7 +417,7 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 				strcpy(szProcessName,"unknown path");
 
 			int mnlen=strlen(szProcessName);
-			long space_needed=mnlen*3+256;
+			size_t space_needed=mnlen*3+256;
 			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 			char utf8mname[MAX_PATH*4];
 			cCoder::utf8_encode(szProcessName, mnlen, utf8mname);
@@ -468,7 +468,7 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 		do
 		{
 			int mnlen=strlen(moduleInfo->szExePath);
-			long space_needed=mnlen*3+256;
+			size_t space_needed=mnlen*3+256;
 			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 			char utf8mname[MAX_PATH*4];
 			cCoder::utf8_encode(moduleInfo->szExePath, mnlen, utf8mname);
