@@ -183,7 +183,32 @@ function processRequest()
 				var o = document.getElementById("fAudio");
 				if (o && !o.disabled)
 				{
-					toggleAudio();
+					// Mark audio as enabled and update the label, but defer the
+					// actual AudioContext creation and playback start until the
+					// first user gesture.  Browsers block AudioContext.resume()
+					// called without a preceding user interaction (Autoplay
+					// Policy), so calling toggleAudio() directly here would
+					// silently fail and leave audio stuck in the "on" visual
+					// state without ever fetching any audio.
+					audioEnabled = true;
+					o.innerText = "Audio: ON";
+					var _audioAutoStart = function()
+					{
+						document.removeEventListener('click',   _audioAutoStart, true);
+						document.removeEventListener('keydown', _audioAutoStart, true);
+						if (audioEnabled)
+						{
+							if (!audioCtx)
+								audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+							audioCtx.resume().then(function()
+							{
+								nextAudioTime = audioCtx.currentTime;
+								fetchAudioChunk();
+							});
+						}
+					};
+					document.addEventListener('click',   _audioAutoStart, true);
+					document.addEventListener('keydown', _audioAutoStart, true);
 				}
 			}
             	}

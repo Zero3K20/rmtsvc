@@ -1562,8 +1562,9 @@ static DWORD WINAPI audioRingThread(LPVOID)
 
 			Sleep(10);
 
-			UINT32 nPktLen = 0;
-			while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
+			UINT32  nPktLen = 0;
+			HRESULT hrPkt   = S_OK;
+			while (SUCCEEDED(hrPkt = pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
 			{
 				BYTE  *pData   = NULL;
 				UINT32 nFrames = 0;
@@ -1607,6 +1608,14 @@ static DWORD WINAPI audioRingThread(LPVOID)
 				SetEvent(g_ar.hEvent); // wake any waiting request handler
 				pCapture->ReleaseBuffer(nFrames);
 			}
+			// If GetNextPacketSize returned a hard error (e.g.
+			// AUDCLNT_E_DEVICE_INVALIDATED on device disconnect/reset), exit
+			// the outer capture loop immediately so the thread terminates and
+			// the next /capAudio request can restart it cleanly.  Without this,
+			// the thread keeps spinning without writing to the ring, causing
+			// every pending capAudioWASAPI call to time out (3 s each) and
+			// producing audible gaps until the 10-second inactivity timer fires.
+			if (FAILED(hrPkt)) break;
 		}
 
 		pClient->Stop();
