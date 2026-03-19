@@ -151,7 +151,7 @@ function lznt1Decompress(src)
 				{
 					if ((flags >> bit) & 1)
 					{
-						if (pos + 1 >= src.length) break;
+						if (pos + 1 >= chunkEnd) break;
 						var w = src[pos] | (src[pos+1] << 8);
 						pos += 2;
 						// LengthShift: starts at 4, decrements (min 0) while
