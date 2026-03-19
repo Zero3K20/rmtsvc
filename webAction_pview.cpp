@@ -142,9 +142,78 @@ inline bool ifMatch(const char *szProcessName,const char *filter)
 	return bMatch;
 }
 //enumerate NT system processes
-//for NT operating system, use PSAPI.DLL to enumerate processes and module info
+//for modern NT (Vista/7/8/10), use CreateToolhelp32Snapshot which provides process names
+//without requiring OpenProcess access; fall back to PSAPI for old NT 3.x/4.x
 DWORD procList_NT(cBuffer &buffer,const char *filter)
 {
+	//try Toolhelp32 first (available on all Windows 2000+ including Vista/7/8/10)
+	HINSTANCE hKernel=::LoadLibrary("KERNEL32.dll");
+	if(hKernel!=NULL)
+	{
+		typedef HANDLE (WINAPI *pfnCreateToolhelp32Snapshot_D)(DWORD,DWORD);
+		typedef BOOL (WINAPI *pfnProcess32Next_D)(HANDLE,LPPROCESSENTRY32);
+		typedef BOOL (WINAPI *pfnProcess32First_D)(HANDLE,LPPROCESSENTRY32);
+		pfnCreateToolhelp32Snapshot_D pfnCreateToolhelp32Snapshot=(pfnCreateToolhelp32Snapshot_D)::GetProcAddress(hKernel,"CreateToolhelp32Snapshot");
+		pfnProcess32First_D pfnProcess32First=(pfnProcess32First_D)::GetProcAddress(hKernel,"Process32First");
+		pfnProcess32Next_D pfnProcess32Next=(pfnProcess32Next_D)::GetProcAddress(hKernel,"Process32Next");
+
+		if(pfnCreateToolhelp32Snapshot!=NULL && pfnProcess32First!=NULL && pfnProcess32Next!=NULL)
+		{
+			HANDLE hSnapShot=(*pfnCreateToolhelp32Snapshot)(TH32CS_SNAPPROCESS,0);
+			PROCESSENTRY32 processInfo;
+			memset((void *)&processInfo,0,sizeof(PROCESSENTRY32));
+			processInfo.dwSize=sizeof(PROCESSENTRY32);
+
+			DWORD dwret=0;
+			if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
+			if((*pfnProcess32First)(hSnapShot, &processInfo))
+			{
+				const char *ptrFilename=NULL;
+				int filternums=0;
+				if(filter && filter[0]!=0) filternums=(strchr(filter,','))?2:1;
+				do
+				{
+					if((ptrFilename=strrchr(processInfo.szExeFile,'\\'))==NULL)
+						ptrFilename=processInfo.szExeFile;
+					else
+						ptrFilename+=1;
+
+					bool bMatch=true;
+					if(filternums==1)
+						bMatch=MatchingString(ptrFilename,filter,false);
+					else if(filternums>1)
+						bMatch=ifMatch(ptrFilename,filter);
+					if(bMatch)
+					{
+						if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),
+							"<process>"
+							"<id>%d</id>"
+							"<pid>%04d</pid>"
+							"<ppid>%04d</ppid>"
+							"<pname>%s</pname>"
+							"<priority>%02d</priority>"
+							"<threads>%02d</threads>"
+							"<ppath></ppath>"
+							"</process>",++dwret,processInfo.th32ProcessID,
+							processInfo.th32ParentProcessID,
+							ptrFilename,processInfo.pcPriClassBase,
+							processInfo.cntThreads);
+					}
+				}while((*pfnProcess32Next)(hSnapShot,&processInfo));
+			}
+			if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>");
+
+			CloseHandle(hSnapShot);
+			::FreeLibrary(hKernel);
+			return dwret;
+		}
+		::FreeLibrary(hKernel);
+	}
+
+	//fallback: use PSAPI for old NT 3.x/4.x where Toolhelp32 is unavailable
 	typedef BOOL (WINAPI *pfnEnumProcesses_D)(
 						DWORD * lpidProcess,  // array to receive the process identifiers
 						DWORD cb,             // size of the array
