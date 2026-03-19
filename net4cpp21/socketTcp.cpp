@@ -134,475 +134,455 @@ SOCKSRESULT socketTcp::Connect(time_t lWaitout,int bindport,const char *bindip)
 	return sr;
 }
 
+
 //-----------------------------socketSSL--------------------------------
 #ifdef _SUPPORT_OPENSSL_
 
-static char default_cacert[]="-----BEGIN CERTIFICATE-----\n"
-					"MIIDgzCCAuygAwIBAgIBADANBgkqhkiG9w0BAQQFADCBjjELMAkGA1UEBhMCQ04x\n"
-					"EDAOBgNVBAgTB2JlaWppbmcxEDAOBgNVBAcTB3hpY2hlbmcxDTALBgNVBAoTBGhv\n"
-					"bWUxDTALBgNVBAsTBGhvbWUxGDAWBgNVBAMTD3l5Y25ldC55ZWFoLm5ldDEjMCEG\n"
-					"CSqGSIb3DQEJARYUeXljbWFpbEAyNjMuc2luYS5jb20wHhcNMDUwNDA3MDExMzI3\n"
-					"WhcNMTUwNDA1MDExMzI3WjCBjjELMAkGA1UEBhMCQ04xEDAOBgNVBAgTB2JlaWpp\n"
-					"bmcxEDAOBgNVBAcTB3hpY2hlbmcxDTALBgNVBAoTBGhvbWUxDTALBgNVBAsTBGhv\n"
-					"bWUxGDAWBgNVBAMTD3l5Y25ldC55ZWFoLm5ldDEjMCEGCSqGSIb3DQEJARYUeXlj\n"
-					"bWFpbEAyNjMuc2luYS5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAOFb\n"
-					"JLOA6+M4XVGS4L60ERmzzE6dIWZX3WSvsUnOsgGWEoaUBq24SKoWP5CbuX7+4awm\n"
-					"N7DbBTW1TjdHV26yuo50kWnJBgkxKnwLcg+Ddhqdy3yLdlft6NsVmjd8BJ5i9GVt\n"
-					"UatwiO4sTnSz2aA2vDb5esqUnJU99Y1dOiu7Uc/vAgMBAAGjge4wgeswHQYDVR0O\n"
-					"BBYEFEtQsbWgZC5WSkGnybXMUVJV+jmrMIG7BgNVHSMEgbMwgbCAFEtQsbWgZC5W\n"
-					"SkGnybXMUVJV+jmroYGUpIGRMIGOMQswCQYDVQQGEwJDTjEQMA4GA1UECBMHYmVp\n"
-					"amluZzEQMA4GA1UEBxMHeGljaGVuZzENMAsGA1UEChMEaG9tZTENMAsGA1UECxME\n"
-					"aG9tZTEYMBYGA1UEAxMPeXljbmV0LnllYWgubmV0MSMwIQYJKoZIhvcNAQkBFhR5\n"
-					"eWNtYWlsQDI2My5zaW5hLmNvbYIBADAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEB\n"
-					"BAUAA4GBAGEEmmxsYUpvTIRJ3gLWp+IoDqqyldkfV9PkLhDpUePs3viTg0WkxQla\n"
-					"JFlMslz/HAdZ/GPXcLsAJqeMKzWQq4EXOH3AJ8VEd089zmd8xf8n8dKID8WNovgR\n"
-					"b/ko8Vo1D2Mrm2u2yTd0ZYR7NQhsUInQLIUrnznMN2ryEhoaA21A\n"
-					"-----END CERTIFICATE-----\n";
-static char default_cakey[] ="-----BEGIN RSA PRIVATE KEY-----\n"
-					"Proc-Type: 4,ENCRYPTED\n"
-					"DEK-Info: DES-EDE3-CBC,CB70670238B9A46F\n"
-					"\n"
-					"4VDw50tA8qVC3wHHhVirFUMIfvYsF5seRDZCi/YDhg7FykteEa/ksQxImcc83xD+\n"
-					"M64Xg2H9PssLVh/cnOcB4IiZumV7vqmFD/L/DO2HdlGPmp/mCtpFeT4z0arqhiel\n"
-					"fevG4xzgI1Ns8THTtHK+3oLejliFXruViaLw+Zg9mYHCPPlHD/4kORcPoptyI3hS\n"
-					"CJrvsWlxTxua1VyOXpaZlYvxrYKV9Wsd0XT9BeRXbiMrW4qL1cZ2KienwukvBCKx\n"
-					"E/uesEk1j4h5gc0Y2IQ69hss8cMcM1BVE9coMoWBRPWESgO1pd0EXKkqfl4wpIJJ\n"
-					"C0kImYvnRHwStJ+zlDpmwWPZtGUZRkj+2pQGtWJlwkJKmSIksqqF91AOIIoMN4ql\n"
-					"iWViV3ys4dH/stJGjU+Be8EnvcIyoPEZ1rrTK6QPjcjn7xiyg5PxT6zm3F2E04jj\n"
-					"K+qiwj+KBbjMoUQom0IirwSPSfNVswQm3/BQ/2R/U/Ugps2Ze/AAUZ0ogVkpRZAM\n"
-					"sIvPxWDayVjQ5xHuEzfe4AEYq7i+G51T+jJcDXJ+7mJPNTcuG3tMdYK2TWZeYsuO\n"
-					"EfctWaw6AS7CtzsozaY3VGykOhtHewRYCQGcz0Sqn/33u+ALfaaaQ41pzs4JnBgv\n"
-					"U5DI0zmatjKb5gNNG95FVF1l1hyCBx19j4npozsbvh97/uQjiI3G2+6rH7maNCil\n"
-					"yBdzhUkMuVT21OtmwynHkGXzd5YhTTZ6sUaqfCCie1GfmJ5ImI8Vcqmlb6sn8Q29\n"
-					"O0noKSLb9spUVIW9pqQ/kEPPodt4fpPeiFsamtwH9DEqfbNco/IVVg==\n"
-					"-----END RSA PRIVATE KEY-----\n";
-static char default_cakeypass[]="123456";
+#include "include/cCoder.h"
+#include <vector>
 
-socketSSL :: socketSSL():
-	m_ctx(NULL),m_ssl(NULL),m_ssltype(SSL_INIT_NONE)
+// Default self-signed P-256 ECDSA certificate (DER-encoded X.509).
+// Generated with: openssl ecparam -name prime256v1 -genkey -noout -out k.key &&
+//   openssl req -new -x509 -key k.key -days 3650 -subj "/CN=rmtsvc" -outform DER -out c.der
+static const unsigned char default_cert_der[] = {
+  0x30, 0x82, 0x01, 0x78, 0x30, 0x82, 0x01, 0x1d, 0xa0, 0x03, 0x02, 0x01,
+  0x02, 0x02, 0x14, 0x06, 0xa9, 0x5e, 0x1f, 0xd7, 0xa0, 0xeb, 0x8a, 0x7e,
+  0x40, 0x02, 0x1e, 0xc6, 0x90, 0x13, 0xb5, 0x72, 0xa4, 0xf6, 0xde, 0x30,
+  0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02, 0x30,
+  0x11, 0x31, 0x0f, 0x30, 0x0d, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x06,
+  0x72, 0x6d, 0x74, 0x73, 0x76, 0x63, 0x30, 0x1e, 0x17, 0x0d, 0x32, 0x36,
+  0x30, 0x33, 0x31, 0x39, 0x31, 0x39, 0x34, 0x32, 0x35, 0x33, 0x5a, 0x17,
+  0x0d, 0x33, 0x36, 0x30, 0x33, 0x31, 0x36, 0x31, 0x39, 0x34, 0x32, 0x35,
+  0x33, 0x5a, 0x30, 0x11, 0x31, 0x0f, 0x30, 0x0d, 0x06, 0x03, 0x55, 0x04,
+  0x03, 0x0c, 0x06, 0x72, 0x6d, 0x74, 0x73, 0x76, 0x63, 0x30, 0x59, 0x30,
+  0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x08,
+  0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03, 0x42, 0x00, 0x04,
+  0x16, 0xf6, 0x72, 0x57, 0x28, 0xe7, 0x9d, 0x75, 0x9b, 0xe0, 0x4f, 0x61,
+  0x0f, 0x1f, 0x1f, 0x09, 0x92, 0xff, 0xc8, 0xb6, 0x53, 0xbd, 0x5e, 0xc2,
+  0x67, 0xf3, 0x93, 0x41, 0xdc, 0x5d, 0x50, 0x7a, 0x34, 0xc4, 0x1f, 0xd5,
+  0x50, 0x46, 0x78, 0xbd, 0x88, 0x90, 0x89, 0xcd, 0xe0, 0xfc, 0x74, 0x80,
+  0x9c, 0x36, 0xc7, 0xef, 0x06, 0xa8, 0x8d, 0x3e, 0x98, 0x32, 0x4f, 0xc1,
+  0x71, 0x07, 0x2b, 0x48, 0xa3, 0x53, 0x30, 0x51, 0x30, 0x1d, 0x06, 0x03,
+  0x55, 0x1d, 0x0e, 0x04, 0x16, 0x04, 0x14, 0x57, 0x7f, 0x30, 0x0e, 0x40,
+  0xbd, 0x29, 0xc3, 0x06, 0x82, 0x53, 0x60, 0x5c, 0xec, 0x6d, 0xd0, 0x1f,
+  0x3d, 0x5d, 0x0e, 0x30, 0x1f, 0x06, 0x03, 0x55, 0x1d, 0x23, 0x04, 0x18,
+  0x30, 0x16, 0x80, 0x14, 0x57, 0x7f, 0x30, 0x0e, 0x40, 0xbd, 0x29, 0xc3,
+  0x06, 0x82, 0x53, 0x60, 0x5c, 0xec, 0x6d, 0xd0, 0x1f, 0x3d, 0x5d, 0x0e,
+  0x30, 0x0f, 0x06, 0x03, 0x55, 0x1d, 0x13, 0x01, 0x01, 0xff, 0x04, 0x05,
+  0x30, 0x03, 0x01, 0x01, 0xff, 0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48,
+  0xce, 0x3d, 0x04, 0x03, 0x02, 0x03, 0x49, 0x00, 0x30, 0x46, 0x02, 0x21,
+  0x00, 0xc2, 0x42, 0x51, 0xa9, 0xf5, 0x2c, 0xcc, 0xc8, 0xfe, 0x3e, 0xcc,
+  0x2f, 0x15, 0x79, 0x08, 0xce, 0x70, 0xad, 0xf7, 0x95, 0xe0, 0xb9, 0x6a,
+  0x11, 0xcd, 0x32, 0x85, 0x70, 0x37, 0xfb, 0x0a, 0x19, 0x02, 0x21, 0x00,
+  0xc6, 0xf2, 0xf9, 0xec, 0x60, 0xd3, 0x61, 0xe1, 0xbd, 0x63, 0xc0, 0x00,
+  0x33, 0xb6, 0xaa, 0xd5, 0x0f, 0x52, 0xa9, 0xe2, 0x17, 0x33, 0x13, 0x44,
+  0x93, 0x03, 0xf7, 0x19, 0xbb, 0x9f, 0x18, 0x65
+};
+static const int default_cert_der_len = (int)sizeof(default_cert_der);
+
+// Default raw 32-byte P-256 private key (big-endian scalar).
+static const unsigned char default_privkey[32] = {
+  0x74, 0xef, 0x56, 0x6a, 0x05, 0xee, 0xf1, 0x99, 0x5b, 0x93, 0x13, 0xfc,
+  0xc0, 0x00, 0x0e, 0xdd, 0xde, 0x94, 0x17, 0xd3, 0xbf, 0xf9, 0xe4, 0xc1,
+  0x36, 0x06, 0x58, 0x98, 0x2a, 0x3e, 0x62, 0xd2
+};
+
+// ---------------------------------------------------------------------------
+// Helper: convert a PEM certificate block to DER.
+// Expects "-----BEGIN CERTIFICATE-----" ... "-----END CERTIFICATE-----".
+// ---------------------------------------------------------------------------
+static bool pem_cert_to_der(const char *pem, std::vector<unsigned char> &der)
 {
-	 m_bNotfile=true;
-	 m_bSSLverify=false;
-	 m_carootfile=""; //Root CA PEM file for SSL server to verify client certificates
-	 m_crlfile="";
+const char *begin = strstr(pem, "-----BEGIN CERTIFICATE-----");
+if(!begin) return false;
+begin += 27; // length of "-----BEGIN CERTIFICATE-----"
+const char *end = strstr(begin, "-----END CERTIFICATE-----");
+if(!end) return false;
+
+std::string b64;
+for(const char *p = begin; p < end; p++){
+char c = *p;
+if(c != '\n' && c != '\r' && c != ' ' && c != '\t') b64 += c;
+}
+if(b64.empty()) return false;
+
+int der_len = net4cpp21::cCoder::Base64DecodeSize((int)b64.length());
+if(der_len <= 0) return false;
+der.resize((size_t)der_len);
+int actual = net4cpp21::cCoder::base64_decode((char*)b64.c_str(),
+                                               (unsigned int)b64.length(),
+                                               (char*)der.data());
+if(actual <= 0) return false;
+der.resize((size_t)actual);
+return true;
 }
 
-socketSSL :: socketSSL(socketSSL &sockSSL) :socketTcp(sockSSL)
+// ---------------------------------------------------------------------------
+// Helper: scan DER bytes for the SEC1 EC private key raw scalar.
+// Looks for the ASN.1 pattern INTEGER(1) OCTET STRING(32) which marks the
+// private key field in both SEC1 and PKCS#8 encoded P-256 keys.
+// ---------------------------------------------------------------------------
+static bool extract_ec_raw_key(const unsigned char *der, int len, unsigned char raw[32])
 {
-	m_ssltype=sockSSL.m_ssltype;
-	m_ctx=sockSSL.m_ctx;
-	m_ssl=sockSSL.m_ssl;
-	m_cacert=sockSSL.m_cacert;
-	m_cakey=sockSSL.m_cakey;
-	m_cakeypass=sockSSL.m_cakeypass;
-	m_bNotfile=sockSSL.m_bNotfile;
-	m_bSSLverify=sockSSL.m_bSSLverify;
-	m_carootfile=sockSSL.m_carootfile;
-	m_crlfile=sockSSL.m_crlfile;
+// Pattern: 02 01 01  04 20  [32 bytes]
+//          INTEGER(1)  OCTET STRING(32)
+for(int i = 0; i + 37 <= len; i++){
+if(der[i]   == 0x02 && der[i+1] == 0x01 && der[i+2] == 0x01 &&
+   der[i+3] == 0x04 && der[i+4] == 0x20){
+memcpy(raw, der + i + 5, 32);
+return true;
+}
+}
+return false;
+}
 
-	sockSSL.m_ssltype=SSL_INIT_NONE;
-	sockSSL.m_ctx=NULL;
-	sockSSL.m_ssl=NULL;
+// ---------------------------------------------------------------------------
+// Helper: convert a PEM EC private key block to a raw 32-byte scalar.
+// Accepts "-----BEGIN EC PRIVATE KEY-----" (SEC1) and
+//         "-----BEGIN PRIVATE KEY-----" (PKCS#8).
+// ---------------------------------------------------------------------------
+static bool pem_ec_key_to_raw(const char *pem, unsigned char raw[32])
+{
+const char *begin = strstr(pem, "-----BEGIN");
+if(!begin) return false;
+// Advance past the header line
+while(*begin && *begin != '\n') begin++;
+if(*begin) begin++;
+
+const char *end = strstr(pem, "-----END");
+if(!end) return false;
+
+std::string b64;
+for(const char *p = begin; p < end; p++){
+char c = *p;
+if(c != '\n' && c != '\r' && c != ' ' && c != '\t') b64 += c;
+}
+if(b64.empty()) return false;
+
+int der_len = net4cpp21::cCoder::Base64DecodeSize((int)b64.length());
+if(der_len <= 0) return false;
+std::vector<unsigned char> der((size_t)der_len);
+int actual = net4cpp21::cCoder::base64_decode((char*)b64.c_str(),
+                                               (unsigned int)b64.length(),
+                                               (char*)der.data());
+if(actual <= 0) return false;
+return extract_ec_raw_key(der.data(), actual, raw);
+}
+
+// ---------------------------------------------------------------------------
+// Helper: load a certificate from a file (PEM or DER auto-detected).
+// ---------------------------------------------------------------------------
+static bool load_cert_file(const char *path, std::vector<unsigned char> &der)
+{
+FILE *f = fopen(path, "rb");
+if(!f) return false;
+fseek(f, 0, SEEK_END);
+long sz = ftell(f);
+fseek(f, 0, SEEK_SET);
+if(sz <= 0){ fclose(f); return false; }
+
+std::vector<char> buf((size_t)(sz + 1));
+fread(buf.data(), 1, (size_t)sz, f);
+fclose(f);
+buf[(size_t)sz] = 0;
+
+if(strstr(buf.data(), "-----BEGIN"))
+return pem_cert_to_der(buf.data(), der);
+
+// Assume DER
+der.assign((unsigned char*)buf.data(), (unsigned char*)buf.data() + sz);
+return !der.empty();
+}
+
+// ---------------------------------------------------------------------------
+// Helper: load a P-256 private key from a file (PEM or raw 32 bytes).
+// ---------------------------------------------------------------------------
+static bool load_key_file(const char *path, unsigned char raw[32])
+{
+FILE *f = fopen(path, "rb");
+if(!f) return false;
+fseek(f, 0, SEEK_END);
+long sz = ftell(f);
+fseek(f, 0, SEEK_SET);
+if(sz <= 0){ fclose(f); return false; }
+
+std::vector<char> buf((size_t)(sz + 1));
+fread(buf.data(), 1, (size_t)sz, f);
+fclose(f);
+buf[(size_t)sz] = 0;
+
+if(sz == 32){
+memcpy(raw, buf.data(), 32);
+return true;
+}
+if(strstr(buf.data(), "-----BEGIN"))
+return pem_ec_key_to_raw(buf.data(), raw);
+
+// Try DER
+return extract_ec_raw_key((unsigned char*)buf.data(), (int)sz, raw);
+}
+
+// ---------------------------------------------------------------------------
+// socketSSL implementation
+// ---------------------------------------------------------------------------
+
+socketSSL :: socketSSL():
+m_ssltype(SSL_INIT_NONE), m_tls_client(NULL), m_tls_server(NULL),
+m_has_cert(false), m_peeklen(0)
+{
+memset(m_privkey, 0, 32);
+}
+
+socketSSL :: socketSSL(socketSSL &sockSSL) : socketTcp(sockSSL)
+{
+m_ssltype   = sockSSL.m_ssltype;
+m_tls_client= sockSSL.m_tls_client;
+m_tls_server= sockSSL.m_tls_server;
+m_cert_der  = sockSSL.m_cert_der;
+memcpy(m_privkey, sockSSL.m_privkey, 32);
+m_has_cert  = sockSSL.m_has_cert;
+m_sni_host  = sockSSL.m_sni_host;
+m_peeklen   = 0;
+
+sockSSL.m_ssltype    = SSL_INIT_NONE;
+sockSSL.m_tls_client = NULL;
+sockSSL.m_tls_server = NULL;
 }
 
 socketSSL & socketSSL :: operator = (socketSSL &sockSSL)
 {
-	socketTcp::operator = (sockSSL);
-	m_ssltype=sockSSL.m_ssltype;
-	m_ctx=sockSSL.m_ctx;
-	m_ssl=sockSSL.m_ssl;
-	m_cacert=sockSSL.m_cacert;
-	m_cakey=sockSSL.m_cakey;
-	m_cakeypass=sockSSL.m_cakeypass;
-	m_bNotfile=sockSSL.m_bNotfile;
-	m_bSSLverify=sockSSL.m_bSSLverify;
-	m_carootfile=sockSSL.m_carootfile;
-	m_crlfile=sockSSL.m_crlfile;
+socketTcp::operator = (sockSSL);
+m_ssltype   = sockSSL.m_ssltype;
+m_tls_client= sockSSL.m_tls_client;
+m_tls_server= sockSSL.m_tls_server;
+m_cert_der  = sockSSL.m_cert_der;
+memcpy(m_privkey, sockSSL.m_privkey, 32);
+m_has_cert  = sockSSL.m_has_cert;
+m_sni_host  = sockSSL.m_sni_host;
+m_peeklen   = 0;
 
-	sockSSL.m_ssltype=SSL_INIT_NONE;
-	sockSSL.m_ctx=NULL;
-	sockSSL.m_ssl=NULL;
-	return *this;
+sockSSL.m_ssltype    = SSL_INIT_NONE;
+sockSSL.m_tls_client = NULL;
+sockSSL.m_tls_server = NULL;
+return *this;
 }
 
 socketSSL :: ~socketSSL()
 {
-	Close();
-	freeSSL();
+Close();
+freeSSL();
 }
 
-
-//Set the SSL certificate private key password
-//bNotfile -- indicates whether strCaCert&strCaKey point to certificate file names or certificate content
-//If bNotfile=true and strCaCert or strCaKey is empty, default certificate and private key are used
-void socketSSL :: setCacert(const char *strCaCert,const char *strCaKey,const char *strCaKeypwd,
-							bool bNotfile,const char *strCaRootFile,const char *strCRLfile)
+//Set the TLS certificate and private key.
+void socketSSL :: setCacert(const char *strCaCert, const char *strCaKey,
+                             const char * /*strCaKeypwd*/, bool bNotfile,
+                             const char * /*strCaRootFile*/, const char * /*strCRLfile*/)
 {
-	if( (m_bNotfile=bNotfile) && 
-		(strCaCert==NULL || strCaCert[0]==0 || 
-			strCaKey==NULL || strCaKey[0]==0) )
-	{
-		m_cacert.assign(default_cacert);
-		m_cakey.assign(default_cakey);
-		m_cakeypass.assign(default_cakeypass);
-		m_carootfile="";
-		m_crlfile="";
-	}
-	else
-	{
-		if(strCaCert) m_cacert.assign(strCaCert);
-		if(strCaKey) m_cakey.assign(strCaKey);
-		if(strCaKeypwd) m_cakeypass.assign(strCaKeypwd);
-		if(strCaRootFile) m_carootfile.assign(strCaRootFile);
-		else m_carootfile="";
-		if(strCRLfile)	m_crlfile.assign(strCRLfile);
-		else m_crlfile="";
-	}
-	//If carootfile!="" then SSL client verification is required
-	if(m_carootfile!="") m_bSSLverify=true; else m_bSSLverify=false;
-	return;
+if(bNotfile &&
+   (strCaCert == NULL || strCaCert[0] == 0 ||
+    strCaKey  == NULL || strCaKey[0]  == 0))
+{
+// Use built-in default P-256 certificate
+m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+memcpy(m_privkey, default_privkey, 32);
+m_has_cert = true;
+return;
 }
-void socketSSL :: setCacert(socketSSL *psock,bool bOnlyCopyCert)
+
+if(!bNotfile){
+// Load from files (DER cert + raw/PEM key)
+std::vector<unsigned char> cert;
+unsigned char key[32];
+bool cert_ok = (strCaCert && strCaCert[0]) ? load_cert_file(strCaCert, cert) : false;
+bool key_ok  = (strCaKey  && strCaKey[0])  ? load_key_file(strCaKey, key)   : false;
+if(cert_ok && key_ok){
+m_cert_der = cert;
+memcpy(m_privkey, key, 32);
+m_has_cert = true;
+} else {
+RW_LOG_PRINT(LOGLEVEL_ERROR, 0, "[setCacert] Failed to load cert/key files.\r\n");
+// Fall back to default
+m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+memcpy(m_privkey, default_privkey, 32);
+m_has_cert = true;
+}
+return;
+}
+
+// bNotfile=true with non-empty content: detect PEM vs binary
+std::vector<unsigned char> cert;
+unsigned char key[32];
+bool cert_ok = false, key_ok = false;
+
+if(strCaCert && strCaCert[0]){
+if(strstr(strCaCert, "-----BEGIN"))
+cert_ok = pem_cert_to_der(strCaCert, cert);
+else {
+// Treat as binary DER: scan until '\0' or rely on size
+// We can't know the length from a char* alone; try PEM first
+RW_LOG_PRINT(LOGLEVEL_ERROR, 0, "[setCacert] Non-PEM in-memory cert not supported; using default.\r\n");
+}
+}
+if(strCaKey && strCaKey[0]){
+if(strstr(strCaKey, "-----BEGIN"))
+key_ok = pem_ec_key_to_raw(strCaKey, key);
+else if(strlen(strCaKey) == 32){
+memcpy(key, strCaKey, 32);
+key_ok = true;
+}
+}
+if(cert_ok && key_ok){
+m_cert_der = cert;
+memcpy(m_privkey, key, 32);
+m_has_cert = true;
+} else {
+// Fall back to default
+m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+memcpy(m_privkey, default_privkey, 32);
+m_has_cert = true;
+}
+}
+
+void socketSSL :: setCacert(socketSSL *psock, bool /*bOnlyCopyCert*/)
 {
-	if(psock==NULL) return;
-	m_cacert=psock->m_cacert;
-	m_cakey=psock->m_cakey;
-	m_cakeypass=psock->m_cakeypass;
-	m_bNotfile=psock->m_bNotfile;
-	if(!bOnlyCopyCert){
-		m_bSSLverify=psock->m_bSSLverify;
-		m_carootfile=psock->m_carootfile;
-		m_crlfile=psock->m_crlfile;
-	}else{
-		m_bSSLverify=false;
-		m_carootfile="";
-		m_crlfile="";
-	}
-	return;
+if(psock == NULL) return;
+m_cert_der = psock->m_cert_der;
+memcpy(m_privkey, psock->m_privkey, 32);
+m_has_cert = psock->m_has_cert;
 }
 
 void socketSSL :: Close()
 {
-	if(m_ssl) SSL_shutdown (m_ssl);  // send SSL/TLS close_notify 
-	socketTcp::Close();
-	if(m_ssl) SSL_free(m_ssl);  
-	m_ssl=NULL; return;
+freeSSL();
+m_sockfd = INVALID_SOCKET; // TLSSC already closed the socket; prevent double-close
+socketTcp::Close();
 }
 
-//Perform SSL handshake/negotiation
+//Perform TLS handshake/negotiation after TCP connect/accept
 bool socketSSL :: SSL_Associate()
 {
-	if(m_sockstatus!=SOCKS_CONNECTED) return false;
-	if(m_ctx==NULL){
-		RW_LOG_DEBUG(0,"[SSL] Must be init SSL\r\n");
-		return false; 
-	}
-	if(m_ssl==NULL){
-		if( (m_ssl = SSL_new (m_ctx))==NULL )
-		{
-			RW_LOG_DEBUG(0,"[SSL] failed to ssl_new()\r\n");
-			return false;
-		}
-	}//?if(m_ssl==NULL)
-	SSL_set_fd (m_ssl, m_sockfd);
-	//SSL_CTX_set_timeout(m_ctx,1000); //default is 300ms
-	if(m_ssltype==SSL_INIT_CLNT) //Client-side SSL
-	{
-		if(SSL_connect(m_ssl)!=-1)
-		{
-			/* --------------------------------------------------------------
-			// Following two steps are optional and not required for
-			// data exchange to be successful. 
-			RW_LOG_DEBUG("SSL connection using %s\n", SSL_get_cipher (m_ssl));
-			// Get server's certificate (note: beware of dynamic allocation) - opt 
-			X509 *server_cert=SSL_get_peer_certificate (m_ssl);
-			if(server_cert==NULL){	 
-				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"failed to Server certificate!\r\n");
-				Close(); return SOCKSERR_SSL_ERROR; }
-			char *str = X509_NAME_oneline (X509_get_subject_name (server_cert),0,0);
-			if(str==NULL){ X509_free (server_cert); Close(); return SOCKSERR_SSL_ERROR; }
-			OPENSSL_free (str);
-			str = X509_NAME_oneline (X509_get_issuer_name  (server_cert),0,0);
-			if(str==NULL){ X509_free (server_cert); Close(); return SOCKSERR_SSL_ERROR; }
-			OPENSSL_free (str);
-			// We could do all sorts of certificate verification stuff here before
-			// deallocating the certificate.
-			X509_free (m_server_cert); m_server_cert=NULL;
-			// --------------------------------------------------- 
-			// DATA EXCHANGE - Send a message and receive a reply. 
-			// -------------------------------------------------------------*/
-			return true;
-		}//?if(SSL_connect(m_ssl)!=-1)
-		else
-			RW_LOG_DEBUG(0,"[SSL] failed to ssl_connect(),error=%d!\r\n",SSL_get_error(m_ssl,-1));
-	}//?if(m_ssltype==SSL_INIT_CLNT)
-	else
-	{
-		if(SSL_accept(m_ssl)!=-1)
-		{
-			RW_LOG_DEBUG("[SSL] SSL connection using %s\r\n",SSL_get_cipher (m_ssl));
-			X509*    client_cert=SSL_get_peer_certificate (m_ssl);
-			if (client_cert != NULL) 
-			{
-				RW_LOG_DEBUG(0,"[SSL] Client certificate:\r\n");
-				char *str = X509_NAME_oneline (X509_get_subject_name (client_cert), 0, 0);
-				if(str){
-					RW_LOG_DEBUG("\t subject: %s\r\n",str);
-					OPENSSL_free (str);
-				}
-				str = X509_NAME_oneline (X509_get_issuer_name  (client_cert), 0, 0);
-				if(str){
-					RW_LOG_DEBUG("\t issuer: %s\r\n",str);
-					OPENSSL_free (str);
-				}
-				// We could do all sorts of certificate verification stuff here before
-				//   deallocating the certificate. 
-				X509_free (client_cert);
-			} 
-			else RW_LOG_DEBUG(0,"[SSL] Client does not have certificate!\r\n");
-			return true;
-		}//?if(SSL_accept(m_ssl)!=-1)
-		else
-		{
-			RW_LOG_PRINT(LOGLEVEL_ERROR,"[SSL] failed to SSL_accept(),error=%d!\r\n",SSL_get_error(m_ssl,-1));
-			long verify_error=SSL_get_verify_result(m_ssl);
-			if (verify_error == X509_V_OK) return true;
-			RW_LOG_PRINT(LOGLEVEL_ERROR,"[SSL] verify error:%s\n",X509_verify_cert_error_string(verify_error));
-		}
-	}//?if(...) else ...
-	SSL_free(m_ssl); m_ssl=NULL;
-	return false;
+if(m_sockstatus != SOCKS_CONNECTED) return false;
+
+tls_client::init_global();
+
+if(m_ssltype == SSL_INIT_CLNT)
+{
+// Client-side: wrap the already-connected TCP socket
+tls_client *cli = new tls_client;
+const char *host = m_sni_host.empty() ? NULL : m_sni_host.c_str();
+if(cli->wrap(m_sockfd, host) != 0)
+{
+RW_LOG_DEBUG(0, "[SSL] TLS client handshake failed: %s\r\n",
+             cli->errmsg() ? cli->errmsg() : "");
+cli->detach_socket(); // don't close m_sockfd
+delete cli;
+return false;
+}
+m_tls_client = cli;
+return true;
+}
+else if(m_ssltype == SSL_INIT_SERV)
+{
+// Server-side: perform TLS handshake on the accepted socket
+if(!m_has_cert){
+// Load default certificate
+m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+memcpy(m_privkey, default_privkey, 32);
+m_has_cert = true;
+}
+tls_server_conn *srv = new tls_server_conn;
+srv->init(m_sockfd,
+          m_cert_der.data(), (int)m_cert_der.size(),
+          m_privkey);
+const char *err = srv->handshake();
+if(err != NULL)
+{
+RW_LOG_PRINT(LOGLEVEL_ERROR, "[SSL] TLS server handshake failed: %s\r\n", err);
+srv->detach_socket(); // don't close m_sockfd
+delete srv;
+return false;
+}
+RW_LOG_DEBUG("[SSL] TLS server handshake complete\r\n");
+m_tls_server = srv;
+return true;
+}
+RW_LOG_DEBUG(0, "[SSL] SSL_Associate called but TLS not initialized\r\n");
+return false;
 }
 
-inline size_t socketSSL :: v_write(const char *buf,size_t buflen)
+inline size_t socketSSL :: v_write(const char *buf, size_t buflen)
 {
-	size_t len=0;
-	if(m_ssl)
-		len = SSL_write (m_ssl, buf, buflen); //returns -1 on error
-	else
-		len=::send(m_sockfd,buf,buflen,MSG_NOSIGNAL);
-	return len;
-}
-inline size_t socketSSL :: v_read(char *buf,size_t buflen)
-{
-	size_t len=0;
-	if(m_ssl)
-		len=SSL_read (m_ssl, buf, buflen); //returns -1 on error	
-	else
-		len=::recv(m_sockfd,buf,buflen,MSG_NOSIGNAL);
-	return len;
-}
-//!!! SSL_peek modifies the socket readable flag after peeking; if checked via
-//select to inspect the socket handle, it will always appear unreadable
-inline size_t socketSSL :: v_peek(char *buf,size_t buflen)
-{
-	size_t len=0;
-	if(m_ssl)
-		len=SSL_peek (m_ssl, buf, buflen); //returns -1 on error
-	else
-		len=::recv(m_sockfd,buf,buflen,MSG_NOSIGNAL|MSG_PEEK);
-	return len;
+if(m_tls_client)
+return (size_t)m_tls_client->send((char*)buf, (int)buflen);
+if(m_tls_server)
+return (size_t)m_tls_server->send(buf, (int)buflen);
+return ::send(m_sockfd, buf, buflen, MSG_NOSIGNAL);
 }
 
-//------------------------------------------------------------------
-void socketSSL::freeSSL()
+inline size_t socketSSL :: v_read(char *buf, size_t buflen)
 {
-	if(m_ssltype!=SSL_INIT_NONE && m_ctx)
-		SSL_CTX_free(m_ctx);
-	m_ctx=NULL;
+// Drain peek buffer first
+if(m_peeklen > 0){
+size_t n = (buflen < (size_t)m_peeklen) ? buflen : (size_t)m_peeklen;
+memcpy(buf, m_peekbuf, n);
+m_peeklen -= (int)n;
+if(m_peeklen > 0)
+memmove(m_peekbuf, m_peekbuf + n, (size_t)m_peeklen);
+return n;
 }
-//Initialize SSL socket. bInitServer=true initializes server-side SSL; otherwise initializes client-side SSL
-static int passwdcb( char * buf, int size, int rwflag, void * userdata )
-{
-	strcpy( buf , (const char *)userdata );
-	return strlen( (const char *)userdata ); 
+if(m_tls_client)
+return (size_t)m_tls_client->recv(buf, (int)buflen);
+if(m_tls_server)
+return (size_t)m_tls_server->recv(buf, (int)buflen);
+return ::recv(m_sockfd, buf, buflen, MSG_NOSIGNAL);
 }
-//Certificate verification callback; additional processing can be done here...
-static int verify_callback(int ok, X509_STORE_CTX *ctx)
-{
-	if(ok) //Perform CRL verification for successfully verified certificates
-	{
-		X509 *ok_cert=X509_STORE_CTX_get_current_cert(ctx);
-	}
-	return ok;
-}
-//If psock!=NULL, use psock's certificate to initialize the SSL server
-bool socketSSL::initSSL(bool bInitServer,socketSSL *psock)
-{
-	if(m_ctx!=NULL) return true;
-	m_ssltype=SSL_INIT_NONE;
-	SSL_load_error_strings();//Prepare for printing debug information
-						//After calling SSL_load_error_strings(), ERR_print_errors_fp() can be used at any time to print error messages
-	SSLeay_add_ssl_algorithms();//Initialize
-	//Specify the protocol to use (SSLv2/SSLv3/TLSv1) here
-	SSL_METHOD *meth=(bInitServer)?SSLv23_server_method(): //TLSv1_server_method();
-								   SSLv23_client_method(); //SSLv2_client_method();
-	if( (m_ctx = SSL_CTX_new (meth))==NULL ) return false;
 
-	const char *strCacert=(psock!=NULL)?psock->m_cacert.c_str():this->m_cacert.c_str();
-	const char *strCakey=(psock!=NULL)?psock->m_cakey.c_str():this->m_cakey.c_str();
-	const char *strCakeypass=(psock!=NULL)?psock->m_cakeypass.c_str():this->m_cakeypass.c_str();
-	bool bNotfile =(psock!=NULL)?psock->m_bNotfile:this->m_bNotfile;
-	if(bInitServer && (strCacert==NULL || strCacert[0]==0) ){ //Safety check: initialize server with default certificate
-		strCacert=default_cacert; strCakey=default_cakey;
-		strCakeypass=default_cakeypass; bNotfile=true;
-	}
-	
-	//Initialize SSL: load certificate (public key) and private key
-	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
-		SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
-		SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass); 
-	}
-	
-	if(strCacert[0]!=0 && strCakey[0]!=0) //Certificate and private key are specified
-	{
-		if(strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
-			SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
-			SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass);
-		}
-		int ret=(bNotfile)? //Load certificate
-			SSL_CTX_use_certificate_buf(m_ctx, strCacert, SSL_FILETYPE_PEM):
-			SSL_CTX_use_certificate_file(m_ctx, strCacert, SSL_FILETYPE_PEM);
-		if(!(ret>0)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load certificate.\r\n");
-			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
-		}
-		ret=(bNotfile)? //Load private key
-			SSL_CTX_use_PrivateKey_buf(m_ctx, strCakey, SSL_FILETYPE_PEM):
-			SSL_CTX_use_PrivateKey_file(m_ctx, strCakey, SSL_FILETYPE_PEM);
-		if(!(ret>0)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load private key.\r\n");
-			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
-		}
-		if(!SSL_CTX_check_private_key(m_ctx)){
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Private key and certificate do not match.\r\n");
-			SSL_CTX_free (m_ctx);  m_ctx=NULL; return false;
-		}
-	}//Otherwise if initializing server-side, server cert and key must be specified; already guarded above
-//	else if(bInitServer){ SSL_CTX_free (m_ctx); m_ctx=NULL; return false; }
-	
-	if(!bInitServer){ m_ssltype=SSL_INIT_CLNT; return true;}
-	if(!m_bSSLverify){
-		SSL_CTX_set_verify(m_ctx,SSL_VERIFY_NONE,NULL);
-	}else{
-		SSL_CTX_load_verify_locations(m_ctx, m_carootfile.c_str(), NULL);
-		SSL_CTX_set_verify_depth(m_ctx,1);
-		int mode=SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE|SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-		SSL_CTX_set_verify(m_ctx,mode,NULL); //verify_callback);
-		//When client verification is required, the server sends trusted CA certificates from CAfile to the client.
-		//If SSL_CTX_set_client_CA_list is not called, the client (IE) lists all installed certificates for the user
-		//Otherwise only certificates verified by this CA are listed
-		if(m_carootfile !="" )
-			SSL_CTX_set_client_CA_list(m_ctx,SSL_load_client_CA_file(m_carootfile.c_str()));
-		//To generate a session_id within the program itself, a session_id_context must be configured,
-		//otherwise the program obtains session_id_context externally which is error-prone
-		//Length must not exceed SSL_MAX_SSL_SESSION_ID_LENGTH
-		//If SSL_CTX_set_session_id_context is not called, session resumption is disabled by default, causing every connection to perform
-		//full certificate verification and handshake (slow for e.g. IE). Enabling sessions means after the first verification
-		//the client retains a session and subsequent connections skip repeated verification/handshake
-		static const unsigned char s_server_session_id_context[]="yyc1234";
-		SSL_CTX_set_session_id_context(m_ctx,s_server_session_id_context,sizeof(s_server_session_id_context));
+inline size_t socketSSL :: v_peek(char *buf, size_t buflen)
+{
+if(m_peeklen == 0 && (m_tls_client || m_tls_server)){
+// Fill peek buffer from TLS layer
+int n = 0;
+if(m_tls_client)
+n = m_tls_client->recv(m_peekbuf, (int)sizeof(m_peekbuf));
+else if(m_tls_server)
+n = m_tls_server->recv(m_peekbuf, (int)sizeof(m_peekbuf));
+if(n > 0) m_peeklen = n;
+}
+if(m_peeklen > 0){
+size_t n = (buflen < (size_t)m_peeklen) ? buflen : (size_t)m_peeklen;
+memcpy(buf, m_peekbuf, n);
+return n;
+}
+return ::recv(m_sockfd, buf, buflen, MSG_NOSIGNAL | MSG_PEEK);
+}
 
-		if(m_crlfile!=""){ //Load CRL list
-			X509_STORE *store=SSL_CTX_get_cert_store(m_ctx);
-			X509_LOOKUP *lookup= X509_STORE_add_lookup(store, X509_LOOKUP_file());
-			int iret=X509_load_crl_file(lookup, m_crlfile.c_str(), X509_FILETYPE_PEM);
-			if(iret==1)
-				X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK |X509_V_FLAG_CRL_CHECK_ALL);
-			else RW_LOG_DEBUG("[SSL] Failed to load CRL %s\r\n",m_crlfile.c_str());
-		}
-	}
-	m_ssltype=SSL_INIT_SERV;
-	return true;
+void socketSSL :: freeSSL()
+{
+if(m_tls_client){ delete m_tls_client; m_tls_client = NULL; }
+if(m_tls_server){ delete m_tls_server; m_tls_server = NULL; }
+m_ssltype = SSL_INIT_NONE;
+m_peeklen = 0;
+}
+
+bool socketSSL :: initSSL(bool bInitServer, socketSSL *psock)
+{
+if(m_ssltype != SSL_INIT_NONE) return true;
+
+if(psock != NULL)
+setCacert(psock, false); // copy certificate from parent socket
+
+if(bInitServer){
+if(!m_has_cert){
+// Use default certificate if none configured
+m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+memcpy(m_privkey, default_privkey, 32);
+m_has_cert = true;
+}
+m_ssltype = SSL_INIT_SERV;
+} else {
+m_ssltype = SSL_INIT_CLNT;
+}
+return true;
 }
 
 #endif
-
-/*
-SOCKSRESULT socketSSL::Accept(time_t lWaitout,socketSSL *psock)
-{
-	SOCKSRESULT sr=socketTcp::Accept(lWaitout,psock);
-	if(sr>0 && psock)
-	{
-		psock->m_ssltype=SSL_INIT_NONE;
-		if((psock->m_ctx=this->m_ctx)==NULL)
-		{//psock may need to initialize SSL server-side, so copy the parent socketSSL certificate info to
-		 //the accepted psock; if the parent socket already initialized SSL server-side, pass the ctx object directly
-			psock->m_cacert=this->m_cacert;
-			psock->m_cakey=this->m_cakey;
-			psock->m_cakeypass=this->m_cakeypass;
-			psock->m_bNotfile=this->m_bNotfile;
-		}
-	}//?if(sr>0 && psock)
-	return sr;
-}
-
-  bool socketSSL::initSSL(bool bInitServer,socketSSL *psock)
-{
-	if(m_ctx!=NULL) return true;
-	m_ssltype=SSL_INIT_NONE;
-	SSL_load_error_strings();//Prepare for printing debug information
-						//After calling SSL_load_error_strings(), ERR_print_errors_fp() can be used at any time to print error messages
-	SSLeay_add_ssl_algorithms();//Initialize
-	//Specify the protocol to use (SSLv2/SSLv3/TLSv1) here
-	SSL_METHOD *meth=(bInitServer)?SSLv23_server_method(): //TLSv1_server_method();
-								   SSLv23_client_method(); //SSLv2_client_method();
-	if( (m_ctx = SSL_CTX_new (meth))==NULL ) return false;
-	if(!bInitServer){ m_ssltype=SSL_INIT_CLNT; return true;}
-
-	const char *strCacert=(psock!=NULL)?psock->m_cacert.c_str():this->m_cacert.c_str();
-	const char *strCakey=(psock!=NULL)?psock->m_cakey.c_str():this->m_cakey.c_str();
-	const char *strCakeypass=(psock!=NULL)?psock->m_cakeypass.c_str():this->m_cakeypass.c_str();
-	bool bNotfile =(psock!=NULL)?psock->m_bNotfile:this->m_bNotfile;
-
-	if(strCacert==NULL || strCacert[0]==0){ //Safety check: initialize with default certificate
-		strCacert=default_cacert;
-		strCakey=default_cakey;
-		strCakeypass=default_cakeypass;
-		bNotfile=true;
-	} //yyc add 2006-11-23
-
-	//Initialize SSL server: load certificate and private key
-	if(strCakeypass && strCakeypass[0]!=0){//strCakeypass!="" if no private key password is specified, the user will be prompted to enter one
-		SSL_CTX_set_default_passwd_cb(m_ctx,passwdcb);
-		SSL_CTX_set_default_passwd_cb_userdata(m_ctx,(void *)strCakeypass); 
-	}
-	
-	int ret=(bNotfile)?
-			SSL_CTX_use_certificate_buf(m_ctx, strCacert, SSL_FILETYPE_PEM):
-			SSL_CTX_use_certificate_file(m_ctx, strCacert, SSL_FILETYPE_PEM);
-
-	if(ret>0)
-	{//Certificate loaded successfully
-		ret=(bNotfile)?
-			SSL_CTX_use_PrivateKey_buf(m_ctx, strCakey, SSL_FILETYPE_PEM):
-			SSL_CTX_use_PrivateKey_file(m_ctx, strCakey, SSL_FILETYPE_PEM);
-		if(ret>0)
-		{//Private key loaded successfully
-			if(SSL_CTX_check_private_key(m_ctx))
-			{
-//				SSL_CTX_load_verify_locations(m_ctx, "cacert.pem", NULL);
-//				SSL_CTX_set_verify_depth(m_ctx,1);
-//				if(m_sslverifymode==SSL_VERIFY_PEER)
-//					SSL_CTX_set_verify(m_ctx,SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE);
-//				else if(m_sslverifymode==SSL_VERIFY_FAIL_IF_NO_PEER_CERT)
-//					SSL_CTX_set_verify(m_ctx,SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT|SSL_VERIFY_CLIENT_ONCE,NULL); //
-//				else 
-					SSL_CTX_set_verify(m_ctx,SSL_VERIFY_NONE,NULL);
-
-				m_ssltype=SSL_INIT_SERV;
-				return true;
-			}
-			else
-				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Private key and certificate do not match.\r\n");
-		}//?//Private key loaded successfully
-		else
-			RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load private key.\r\n");
-	}//Certificate loaded successfully
-	else
-		RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[initSSL] Failed to load certificate.\r\n");
-	SSL_CTX_free (m_ctx); 
-	m_ctx=NULL; return false;
-}
-
-*/

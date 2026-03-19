@@ -15,11 +15,26 @@
 #include <cstdlib>
 
 #ifndef _NOSSL_D
-#include <openssl/crypto.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+
+// Internal helper: compute a hash using Windows BCrypt API
+static bool bcrypt_hash(const wchar_t *algorithm, const void *data, int datalen,
+                        unsigned char *digest, ULONG digest_size)
+{
+	BCRYPT_ALG_HANDLE  hAlg  = NULL;
+	BCRYPT_HASH_HANDLE hHash = NULL;
+	bool ok = false;
+	if(BCryptOpenAlgorithmProvider(&hAlg, algorithm, NULL, 0) == 0){
+		if(BCryptCreateHash(hAlg, &hHash, NULL, 0, NULL, 0, 0) == 0){
+			if(BCryptHashData(hHash, (PUCHAR)data, (ULONG)datalen, 0) == 0)
+				ok = (BCryptFinishHash(hHash, digest, digest_size, 0) == 0);
+			BCryptDestroyHash(hHash);
+		}
+		BCryptCloseAlgorithmProvider(hAlg, 0);
+	}
+	return ok;
+}
 #endif
    
 using namespace net4cpp21;
@@ -295,10 +310,8 @@ const char *OTP::md5(const char *seed,const char *passphrase,int count)
 	m_buffer[0]=0; int buflen=0;
 	if(seed) buflen=sprintf(m_buffer,"%s",seed);
 	if(passphrase) buflen+=sprintf(m_buffer+buflen,"%s",passphrase);
-	MD5_CTX context; unsigned char digest[16];
-	MD5_Init(&context);
-	MD5_Update(&context, (const void *)m_buffer, buflen);
-	MD5_Final(digest, &context);
+	unsigned char digest[16];
+	if(!bcrypt_hash(BCRYPT_MD5_ALGORITHM, m_buffer, buflen, digest, 16)) return NULL;
 	int i; unsigned short summer=0; //summer校验and
 	for (i = 0; i < 8; i++) digest[i] ^= digest[i+8];
 	for(i=0;i<32;i++) summer+=( (digest[i/4]>>(6-2*(i%4))) & 0x03);
@@ -330,10 +343,8 @@ const char *OTP::md4(const char *seed,const char *passphrase,int count)
 	m_buffer[0]=0; int buflen=0;
 	if(seed) buflen=sprintf(m_buffer,"%s",seed);
 	if(passphrase) buflen+=sprintf(m_buffer+buflen,"%s",passphrase);
-	MD4_CTX context; unsigned char digest[16];
-	MD4_Init(&context);
-	MD4_Update(&context, (const void *)m_buffer, buflen);
-	MD4_Final(digest, &context);
+	unsigned char digest[16];
+	if(!bcrypt_hash(BCRYPT_MD4_ALGORITHM, m_buffer, buflen, digest, 16)) return NULL;
 		int i; unsigned short summer=0; //summer校验and
 	for (i = 0; i < 8; i++) digest[i] ^= digest[i+8];
 	for(i=0;i<32;i++) summer+=( (digest[i/4]>>(6-2*(i%4))) & 0x03);
