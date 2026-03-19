@@ -15,6 +15,7 @@
 #include <cstdlib>
 
 #ifndef _NOSSL_D
+#include <windows.h>
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt.lib")
 
