@@ -222,7 +222,7 @@ void vidccSession :: docmd_bind(const char *strParam)
 	ptr_mtcp->setAppsvr(ptr_appsvr,0,ptr_appdesc,apptype);
 	//从vIDCsservicegetSSLcertificateconfigurationinfo
 	socketTCP * ptr_vidcsSocket=(socketTCP *)m_psock_command->parent();
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	if(ptr_vidcsSocket) ptr_mtcp->setCacert(ptr_vidcsSocket,((bSSLVerify)?false:true) );
 #endif
 	SOCKSRESULT sr=ptr_mtcp->StartX(); //start mapping service
@@ -231,7 +231,7 @@ void vidccSession :: docmd_bind(const char *strParam)
 		delete ptr_mtcp; return;
 	}
 	m_tcpsets[mapname]=ptr_mtcp;
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	m_psock_command->Send(msg_err_ok,sr,((ptr_mtcp->ifSSLVerify())?"sslv=1":"") );
 #else
 	m_psock_command->Send(msg_err_ok,sr,"");
@@ -285,7 +285,7 @@ long vidccSession :: docmd_sslc(const char *strSSLC,const char *received,long re
 		const char *ptr_key=ptr_cert+certlen;
 		const char *ptr_keypswd=ptr_key+keylen;
 		mportTCP_vidcs *ptr_mtcp=(*it_mtcp).second;
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 		if(ptr_mtcp->getSSLType()==SSLSVR_TCPSVR)
 			ptr_mtcp->setCacert(ptr_cert,ptr_key,ptr_keypswd,true,NULL,NULL);
 #endif

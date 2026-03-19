@@ -18,7 +18,7 @@
 #include "net4cpp21/include/httpsvr.h"
 #ifdef _DEBUG
 #pragma comment( lib, "libs/bin/net4cpp21_d" )
-#elif defined _SUPPORT_OPENSSL_
+#elif defined _SUPPORT_TLSCLIENT_
 #pragma comment( lib, "libs/bin/net4cpp21" )
 #else
 #pragma comment( lib, "libs/bin/net4cpp21_nossl" )

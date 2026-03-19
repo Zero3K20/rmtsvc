@@ -271,7 +271,7 @@ BOOL docmd_websvc(const char *strParam,std::string &strRet,const char *strIP,con
 				((pwwwSvc->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:""));
 		if(strIP){ 
 			strRet.append(s);
-			#ifdef _SUPPORT_OPENSSL_
+			#ifdef _SUPPORT_TLSCLIENT_
 			sprintf(s,"http%s://%s:%d/login?%s\r\n",(pwwwSvc->ifSSL()?"s":""),strIP,pwwwSvc->getLocalPort(),urlparam);
 #else
 			sprintf(s,"http://%s:%d/login?%s\r\n",strIP,pwwwSvc->getLocalPort(),urlparam);
@@ -331,7 +331,7 @@ BOOL docmd_ftpsvc(const char *strParam,std::string &strRet)
 
 	char s[128]; //return FTP service status
 	if(pftp->status()==SOCKS_LISTEN)
-		#ifdef _SUPPORT_OPENSSL_
+		#ifdef _SUPPORT_TLSCLIENT_
 		sprintf(s,"FTP Service %s has been started at %s:%d %s\r\n",((pftp->ifSSL())?"(SSL)":""),
 			pftp->getLocalIP(),pftp->getLocalPort(),((pftp->GetReuseAddr()==SO_REUSEADDR)?STR_REUSEDPORT:"") );
 #else

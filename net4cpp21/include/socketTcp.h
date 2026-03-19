@@ -14,20 +14,23 @@
 #define __YY_SOCKET_TCP_H__
 
 #ifndef _NOSSL_D
-#define _SUPPORT_OPENSSL_ //Define this macro to enable SSL support
-						//Also add the OpenSSL header and library paths to the compiler options:
-						//<net4cpp2.1 directory>/OPENSSL
-						//<net4cpp2.1 directory>/OPENSSL/lib
-						//tools menu --> Options submenu --> directories page
+#define _SUPPORT_TLSCLIENT_ //Define this macro to enable SSL support
+                            //TLSClient source: https://github.com/zero3k/tardsplaya
+                            //Windows SChannel is used for server-side TLS
 #endif
-#ifdef _SUPPORT_OPENSSL_
-	#include <openssl/crypto.h>
-	#include <openssl/x509.h>
-	#include <openssl/pem.h>
-	#include <openssl/ssl.h>
-	#include <openssl/err.h>
-    #pragma comment( lib, "libeay32lib" )
-	#pragma comment( lib, "SSLeay32lib" )
+#ifdef _SUPPORT_TLSCLIENT_
+	// Forward declaration for tls_client (defined in tlsclient_source.cpp)
+	class tls_client;
+	// Windows SChannel / SSPI for server-side TLS
+	#ifndef SECURITY_WIN32
+	#define SECURITY_WIN32
+	#endif
+	#include <wincrypt.h>
+	#include <sspi.h>
+	#include <schannel.h>
+	#include <vector>
+	#pragma comment(lib, "Crypt32.lib")
+	#pragma comment(lib, "Secur32.lib")
 #endif
 #include "socketBase.h"
 
@@ -64,7 +67,7 @@ namespace net4cpp21
 		SOCKSRESULT Connect(time_t lWaitout,int bindport,const char *bindip); //yyc add 2007-08-07
 	};
 
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	class socketSSL : public socketTcp
 	{
 	public:
@@ -74,7 +77,7 @@ namespace net4cpp21
 		virtual ~socketSSL();
 
 		virtual void Close();
-		bool ifSSL() const { return m_ctx!=NULL; }
+		bool ifSSL() const { return m_ssltype != SSL_INIT_NONE; }
 		bool ifSSLVerify() const { return m_bSSLverify; } //Whether SSL service requires client certificate verification
 		//Set the SSL certificate private key password
 		//bNotfile -- indicates whether strCaCert&strCaKey point to certificate file names or certificate content
@@ -82,41 +85,78 @@ namespace net4cpp21
 		void setCacert(const char *strCaCert,const char *strCaKey,const char *strCaKeypwd,bool bNotfile,
 					   const char *strCaRootFile=NULL,const char *strCRLfile=NULL);
 		void setCacert(socketSSL *psock,bool bOnlyCopyCert);
-		//Perform SSL handshake after connecting or accepting a connection; returns true on success
+		//Perform SSL/TLS handshake after connecting or accepting a connection; returns true on success
 		bool SSL_Associate();
-		//Initialize SSL; bInitServer specifies whether to initialize server or client side
+		//Initialize SSL/TLS; bInitServer specifies whether to initialize server or client side
 		//If psock!=NULL, use psock's certificate to initialize the SSL server
 		bool initSSL(bool bInitServer,socketSSL *psock=NULL);
-		
+		//Override Connect to capture the hostname for TLS SNI
+		virtual SOCKSRESULT Connect(const char *host,int port,time_t lWaitout=-1);
+
 		SOCKSRESULT Accept(time_t lWaitout,socketSSL *psock)
 		{
 			SOCKSRESULT sr=socketTcp::Accept(lWaitout,psock);
 			if(sr>0 && psock){
 				psock->m_ssltype=SSL_INIT_NONE;
-				psock->m_ctx=this->m_ctx;
+				// Share SChannel credentials with accepted socket for server handshake
+				if(m_ssltype==SSL_INIT_SERV && m_credValid){
+					psock->m_hCred = m_hCred;
+					psock->m_credValid = true;
+					psock->m_credOwned = false; // accepted socket doesn't own the credential
+					psock->m_ssltype = SSL_INIT_SERV;
+					// Copy cert info in case it needs to re-init
+					psock->m_cacert = m_cacert;
+					psock->m_cakey = m_cakey;
+					psock->m_cakeypass = m_cakeypass;
+					psock->m_bNotfile = m_bNotfile;
+				}
 			}
 			return sr;
 		}
 
 	protected:
 		virtual size_t v_read(char *buf,size_t buflen);
-		//!!! SSL_peek modifies the socket readable flag after peeking; if checked via
-		//select to inspect the socket handle, it will always appear unreadable
+		//!!! TLSClient/SChannel peek: reads into internal buffer without consuming
 		virtual size_t v_peek(char *buf,size_t buflen);
 		virtual size_t v_write(const char *buf,size_t buflen);
 		void freeSSL();
 	private:
-		SSL_INIT_TYPE m_ssltype;//SSL initialization type
-		SSL_CTX *m_ctx;
-		SSL *    m_ssl;
+		SSL_INIT_TYPE m_ssltype; //SSL initialization type
+
+		// Client mode: TLSClient
+		tls_client *m_tlsclient;
+		std::string m_tlsHostname; // stored hostname for SNI
+
+		// Server mode: Windows SChannel
+		CredHandle m_hCred;
+		CtxtHandle m_hCtx;
+		SecPkgContext_StreamSizes m_streamSizes;
+		bool m_credValid;
+		bool m_ctxValid;
+		bool m_credOwned;        // whether this object owns m_hCred
+		std::vector<BYTE> m_rawRecvBuf;  // raw encrypted data buffer
+		int  m_rawRecvLen;               // bytes in m_rawRecvBuf
+		std::vector<BYTE> m_pendingDecrypt; // decrypted plaintext ready to read
+		int  m_pendingOffset;            // read offset into m_pendingDecrypt
+
 		//SSL service certificate, private key, and private key password
-		std::string m_cacert;//SSL certificate
-		std::string m_cakey;//SSL private key
-		std::string m_cakeypass;//SSL private key password
-		bool m_bNotfile;//Indicates whether m_cacert&m_cakey point to certificate file names or certificate strings
+		std::string m_cacert;  //SSL certificate
+		std::string m_cakey;   //SSL private key
+		std::string m_cakeypass; //SSL private key password
+		bool m_bNotfile; //Indicates whether m_cacert&m_cakey point to certificate file names or certificate strings
 		bool m_bSSLverify; //Whether SSL verifies client certificates
 		std::string m_carootfile; //CA root certificate for verifying client certificate authenticity
 		std::string m_crlfile; //CRL list file
+		PCCERT_CONTEXT m_pCertContext; // loaded certificate context (for server mode)
+
+		// SChannel server handshake helper
+		bool doSchannelHandshake();
+		// Load PEM-encoded certificate/key helpers
+		static bool DecodePemToDer(const char* pem, const char* beginMarker, std::vector<BYTE>& der);
+		static PCCERT_CONTEXT LoadCertFromPemString(const char* pem);
+		static PCCERT_CONTEXT LoadCertFromPemFile(const char* filename);
+		static bool DecryptPemKey(const char* pemKey, const char* password, std::vector<BYTE>& derKey);
+		static bool ImportPrivateKeyToCert(PCCERT_CONTEXT pCert, const std::vector<BYTE>& derKey);
 	};
 	
 	typedef socketSSL socketTCP;
@@ -126,4 +166,3 @@ namespace net4cpp21
 }//?namespace net4cpp21
 
 #endif
-

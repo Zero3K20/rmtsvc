@@ -16,7 +16,7 @@
 #include "../include/ftpclnt.h"
 #include "../include/cLogger.h"
 
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 #include "../utils/OTP.h"
 #endif
 
@@ -325,7 +325,7 @@ SOCKSRESULT ftpClient::Auth_LOGIN()
 	{//send经useraccount
 		buflen=sprintf(buf,"PASS %s\r\n",m_strPwd.c_str());
 	}
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	else if(strncmp(ptr+4,"md4 ",4)==0 || strncmp(ptr+4,"md5 ",4)==0)
 	{
 		OTP otps; bool bMD5=(strncmp(ptr+4,"md5 ",4)==0);

@@ -16,7 +16,7 @@
 webServer :: webServer():m_svrport(7778)
 {
 	m_bPowerOff=false;
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 		setCacert(NULL,NULL,NULL,true); //load built-in certificate by default
 #endif
 		setRoot(NULL,HTTP_ACCESS_NONE,NULL);
@@ -83,7 +83,7 @@ bool webServer :: Start()
 {
 	if(m_svrport==0) return true; //do not start service
 	loadRememberTokens(); //restore persisted remember-me tokens
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	if(m_bSSLenabled) //start SSL service
 	{
 		if(g_strMyCert=="" || g_strMyKey=="")
@@ -105,7 +105,7 @@ bool webServer :: Start()
 void webServer :: Stop()
 { 
 	Close();
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	freeSSL();
 #endif
 	return;

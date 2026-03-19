@@ -56,7 +56,7 @@ public:
 		//set vIDCs SSL certificate info; remote-mapped services need certificate info obtained from this object
 		//therefore the vIDCs service cannot enable SSL encryption; if enabled, it will either require certificate authentication
 		//or not require certificate authentication, and the program cannot decide dynamically
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 		this->setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false
 					,g_strCaCert.c_str(),g_strCaCRL.c_str());
 #endif

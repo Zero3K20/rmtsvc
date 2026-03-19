@@ -198,7 +198,7 @@ void ftpsvrEx :: docmd_sets(const char *strParam)
 //capwd=<private key password>    : password for the specified private key
 void ftpsvrEx :: docmd_ssls(const char *strParam)
 {
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	std::map<std::string,std::string> maps;
 	if(splitString(strParam,' ',maps)<=0) return;
 	std::string strCert,strKey,strPwd;

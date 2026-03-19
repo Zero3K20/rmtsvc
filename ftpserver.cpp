@@ -12,7 +12,7 @@
 
 ftpsvrEx :: ftpsvrEx()
 {
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 		setCacert(NULL,NULL,NULL,true); //load built-in certificate by default
 #endif
 	initSetting();
@@ -36,7 +36,7 @@ bool ftpsvrEx :: Start()
 {
 	if(this->status()==SOCKS_LISTEN) return true;
 	//configure ftp service parameters and accounts----start------------
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	if(m_settings.ifSSLsvr) 
 		this->initSSL(true,NULL); //SSL encrypted FTP service
 #endif
@@ -62,7 +62,7 @@ bool ftpsvrEx :: Start()
 void ftpsvrEx :: Stop()
 { 
 	Close();
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 	freeSSL();
 #endif
 	return;
@@ -247,7 +247,7 @@ bool webServer::httprsp_ftpsets(socketTCP *psock,httpRequest &httpreq,httpRespon
 	if(pftpsvr->status()==SOCKS_LISTEN) //service is running
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",pftpsvr->getLocalPort());
-#ifdef _SUPPORT_OPENSSL_
+#ifdef _SUPPORT_TLSCLIENT_
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ifssl>%d</ifssl>",pftpsvr->ifSSL());
 #else
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ifssl>0</ifssl>");
