@@ -94,8 +94,6 @@ ptX=cx-Math.round(rect.left);
 ptY=cy-Math.round(rect.top);
 var coords=scaleToScreen(ptX,ptY);
 ptX=coords.x; ptY=coords.y;
-var w=window.parent.frmLeft;
-w.document.getElementById("lblXY").innerText="X:"+ptX+" , Y:"+ptY;
 document.getElementById("txtHide").focus();
 }
 
