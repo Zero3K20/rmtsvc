@@ -8,6 +8,14 @@
 	var xmlRatio=null;
 	var autoRefresh=0;
 	var destpath="";
+	function formatFileSize(bytes) {
+		bytes=parseInt(bytes)||0;
+		if(bytes<1024) return bytes+" B";
+		else if(bytes<1024*1024) return (bytes/1024).toFixed(2)+" KB";
+		else if(bytes<1024*1024*1024) return (bytes/1024/1024).toFixed(2)+" MB";
+		else if(bytes<1024*1024*1024*1024) return (bytes/1024/1024/1024).toFixed(2)+" GB";
+		else return (bytes/1024/1024/1024/1024).toFixed(2)+" TB";
+	}
 	function processRatio()
 	{
 		if (xmlRatio.readyState == 4) {
@@ -19,7 +27,7 @@
 				var node_abyte=xmlobj.getElementsByTagName("abyte");
 				var node_speed=xmlobj.getElementsByTagName("speed");
 				document.getElementById("lblRatio").innerText="Upload Progress: "+(node_ratio.item(0).textContent || node_ratio.item(0).text)+"  Upload Speed: "+(node_speed.item(0).textContent || node_speed.item(0).text);
-				document.getElementById("lblBytes").innerText="Uploaded Bytes: "+(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  Total Bytes: "+(node_abyte.item(0).textContent || node_abyte.item(0).text);
+				document.getElementById("lblBytes").innerText="Uploaded: "+formatFileSize(node_rbyte.item(0).textContent || node_rbyte.item(0).text)+"  Total: "+formatFileSize(node_abyte.item(0).textContent || node_abyte.item(0).text);
 				if(autoRefresh>0) window.setTimeout("get_upratio()",autoRefresh);
 			}
 		}

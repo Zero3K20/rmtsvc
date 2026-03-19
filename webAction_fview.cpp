@@ -47,6 +47,34 @@ static char DRIVE_TYPE[][16]={"unknown type","NO_ROOT_DIR","removable disk","loc
 				"CD-ROM","RAM Disk",""};
 const char * getFileType(const char *filename);
 const char * getFileOpmode(const char *filename);
+
+// Format a file size into a human-readable string (bytes/KB/MB/GB/TB).
+// buf must be at least 32 bytes.
+static void formatFileSize(char *buf, unsigned long long size)
+{
+	static const unsigned long long KB = 1024ULL;
+	static const unsigned long long MB = 1024ULL*1024;
+	static const unsigned long long GB = 1024ULL*1024*1024;
+	static const unsigned long long TB = 1024ULL*1024*1024*1024;
+	if (size < KB)
+		sprintf(buf, "%llu B", size);
+	else if (size < MB)
+		sprintf(buf, "%.2f KB", (double)size / KB);
+	else if (size < GB)
+		sprintf(buf, "%.2f MB", (double)size / MB);
+	else if (size < TB)
+		sprintf(buf, "%.2f GB", (double)size / GB);
+	else
+		sprintf(buf, "%.2f TB", (double)size / TB);
+}
+
+// Combine WIN32_FIND_DATA high and low parts into a 64-bit file size.
+static inline unsigned long long fileSize64(DWORD nFileSizeHigh, DWORD nFileSizeLow)
+{
+	return ((unsigned long long)nFileSizeHigh << 32) | nFileSizeLow;
+}
+// Maximum digits in a 64-bit decimal number (2^64 = 18446744073709551616 = 20 digits).
+#define LSIZE_FMT "%020llu"
 double folderSize(const char *spath,const char *name,unsigned long &folders,unsigned long &files);
 bool folderList(cBuffer &buffer,const char *spath,bool bdsphide);
 bool fileList(cBuffer &buffer,const char *spath,bool bdsphide);
@@ -220,8 +248,11 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftype>%s</ftype>",getFileType(ptr_name));
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",spath);
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<opmode>%s</opmode>",getFileOpmode(ptr_name));
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%d KB (%d byte)</fsize>",
-			finddata.nFileSizeLow/1024,finddata.nFileSizeLow);
+		{
+			unsigned long long fsz=fileSize64(finddata.nFileSizeHigh,finddata.nFileSizeLow);
+			char fszbuf[32]; formatFileSize(fszbuf,fsz);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu byte)</fsize>",fszbuf,fsz);
+		}
 		 
 //		::FileTimeToLocalFileTime(&finddata.ftCreationTime,&localFtime);
 //		::FileTimeToSystemTime(&localFtime,&st);
@@ -312,8 +343,11 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 					((finddata.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)?'A':' '));
 			unsigned long folders=0,files=0;
 			double dbsize=folderSize(spath,ptr_name,folders,files);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%lu KB (%lu byte)</fsize>",
-				(unsigned long)(dbsize/1024),(unsigned long)dbsize);
+			{
+				char fszbuf[32]; formatFileSize(fszbuf,(unsigned long long)dbsize);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsize>%s (%llu byte)</fsize>",
+					fszbuf,(unsigned long long)dbsize);
+			}
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fsubs>%d file(s), %d folder(s)</fsubs>",files,folders);
 		}//?if(ptr)
 		::FindClose(hd);
@@ -640,12 +674,15 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
 //					::FileTimeToSystemTime(&localFtime,&st);
 					::FileTimeToSystemTime(&finddata.ftLastWriteTime,&st);
-					long lsize=finddata.nFileSizeLow/1024;
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),
-						"<fitem><bhide>%c</bhide><hassub></hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize>%d KB</fsize><lsize>%08d</lsize><ftype>%s</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
-						,((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)?'*':' '),
-						finddata.cFileName,lsize,lsize, getFileType(finddata.cFileName), 
-						st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);				
+					{
+						unsigned long long fsz=fileSize64(finddata.nFileSizeHigh,finddata.nFileSizeLow);
+						char fszbuf[32]; formatFileSize(fszbuf,fsz);
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),
+							"<fitem><bhide>%c</bhide><hassub></hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize>%s</fsize><lsize>" LSIZE_FMT "</lsize><ftype>%s</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
+							,((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)?'*':' '),
+							finddata.cFileName,fszbuf,fsz, getFileType(finddata.cFileName),
+							st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);
+					}
 				}//?if(
 			}while(::FindNextFile(hd,&finddata));
 			::FindClose(hd);
