@@ -15,19 +15,12 @@
 
 #ifndef _NOSSL_D
 #define _SUPPORT_OPENSSL_ //Define this macro to enable SSL support
-						//Also add the OpenSSL header and library paths to the compiler options:
-						//<net4cpp2.1 directory>/OPENSSL
-						//<net4cpp2.1 directory>/OPENSSL/lib
-						//tools menu --> Options submenu --> directories page
+						//Also add the TLSSC header path to the compiler options:
+						//<net4cpp2.1 directory>/tlssc
 #endif
 #ifdef _SUPPORT_OPENSSL_
-	#include <openssl/crypto.h>
-	#include <openssl/x509.h>
-	#include <openssl/pem.h>
-	#include <openssl/ssl.h>
-	#include <openssl/err.h>
-    #pragma comment( lib, "libeay32lib" )
-	#pragma comment( lib, "SSLeay32lib" )
+	#include "tlssc/tls_server.h"
+	#pragma comment( lib, "ws2_32.lib" )
 #endif
 #include "socketBase.h"
 
@@ -74,49 +67,61 @@ namespace net4cpp21
 		virtual ~socketSSL();
 
 		virtual void Close();
-		bool ifSSL() const { return m_ctx!=NULL; }
-		bool ifSSLVerify() const { return m_bSSLverify; } //Whether SSL service requires client certificate verification
-		//Set the SSL certificate private key password
-		//bNotfile -- indicates whether strCaCert&strCaKey point to certificate file names or certificate content
-		//If bNotfile=true and strCaCert or strCaKey is empty, default certificate and private key are used
+		bool ifSSL() const { return m_ssltype!=SSL_INIT_NONE; }
+		bool ifSSLVerify() const { return false; } //TLSSC does not support client certificate verification
+		//Set the TLS certificate and private key.
+		//bNotfile=true with NULL cert/key: use built-in default P-256 certificate.
+		//bNotfile=false: strCaCert is path to DER certificate file,
+		//                strCaKey is path to raw 32-byte P-256 private key file (or PEM EC key file).
+		//bNotfile=true, non-NULL: strCaCert is PEM or DER certificate data,
+		//                         strCaKey is PEM EC private key data or raw 32-byte key data.
+		//strCaKeypwd, strCaRootFile, strCRLfile are accepted for API compatibility but ignored.
 		void setCacert(const char *strCaCert,const char *strCaKey,const char *strCaKeypwd,bool bNotfile,
 					   const char *strCaRootFile=NULL,const char *strCRLfile=NULL);
 		void setCacert(socketSSL *psock,bool bOnlyCopyCert);
-		//Perform SSL handshake after connecting or accepting a connection; returns true on success
+		//Perform TLS handshake after connecting or accepting a connection; returns true on success
 		bool SSL_Associate();
 		//Initialize SSL; bInitServer specifies whether to initialize server or client side
 		//If psock!=NULL, use psock's certificate to initialize the SSL server
 		bool initSSL(bool bInitServer,socketSSL *psock=NULL);
+
+		//Override Connect to capture hostname for SNI
+		virtual SOCKSRESULT Connect(const char *host,int port,time_t lWaitout=-1)
+		{
+			if(host) m_sni_host.assign(host);
+			return socketTcp::Connect(host,port,lWaitout);
+		}
 		
 		SOCKSRESULT Accept(time_t lWaitout,socketSSL *psock)
 		{
 			SOCKSRESULT sr=socketTcp::Accept(lWaitout,psock);
 			if(sr>0 && psock){
-				psock->m_ssltype=SSL_INIT_NONE;
-				psock->m_ctx=this->m_ctx;
+				psock->m_ssltype=SSL_INIT_SERV;
+				psock->m_cert_der=this->m_cert_der;
+				memcpy(psock->m_privkey,this->m_privkey,32);
+				psock->m_has_cert=this->m_has_cert;
 			}
 			return sr;
 		}
 
 	protected:
 		virtual size_t v_read(char *buf,size_t buflen);
-		//!!! SSL_peek modifies the socket readable flag after peeking; if checked via
-		//select to inspect the socket handle, it will always appear unreadable
 		virtual size_t v_peek(char *buf,size_t buflen);
 		virtual size_t v_write(const char *buf,size_t buflen);
 		void freeSSL();
 	private:
-		SSL_INIT_TYPE m_ssltype;//SSL initialization type
-		SSL_CTX *m_ctx;
-		SSL *    m_ssl;
-		//SSL service certificate, private key, and private key password
-		std::string m_cacert;//SSL certificate
-		std::string m_cakey;//SSL private key
-		std::string m_cakeypass;//SSL private key password
-		bool m_bNotfile;//Indicates whether m_cacert&m_cakey point to certificate file names or certificate strings
-		bool m_bSSLverify; //Whether SSL verifies client certificates
-		std::string m_carootfile; //CA root certificate for verifying client certificate authenticity
-		std::string m_crlfile; //CRL list file
+		SSL_INIT_TYPE m_ssltype;       //TLS initialization type
+		tls_client      *m_tls_client; //client-side TLS connection
+		tls_server_conn *m_tls_server; //server-side TLS connection
+		//Certificate and key storage (server-side)
+		std::vector<unsigned char> m_cert_der; //DER-encoded X.509 certificate
+		unsigned char m_privkey[32];           //raw 32-byte P-256 private key
+		bool m_has_cert;                       //true if cert/key have been loaded
+		//Peek buffer for v_peek implementation
+		char m_peekbuf[4096];
+		int  m_peeklen;
+		//Remote hostname for SNI
+		std::string m_sni_host;
 	};
 	
 	typedef socketSSL socketTCP;
