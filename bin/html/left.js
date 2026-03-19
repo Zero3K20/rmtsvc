@@ -415,9 +415,193 @@ var nextAudioTime = 0;
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
 
+// ---------------------------------------------------------------------------
+// QOA (Quite OK Audio) decoder – JavaScript port of phoboslab/qoa (MIT)
+// Decodes a QOA byte stream into interleaved 16-bit PCM samples.
+// Returns { pcm: Int16Array, channels: N, samplerate: N, samples: N }
+// or null on error.
+// ---------------------------------------------------------------------------
+var _qoa_dequant_tab = [
+	[   1,    -1,    3,    -3,    5,    -5,     7,     -7],
+	[   5,    -5,   18,   -18,   32,   -32,    49,    -49],
+	[  16,   -16,   53,   -53,   95,   -95,   147,   -147],
+	[  34,   -34,  113,  -113,  203,  -203,   315,   -315],
+	[  63,   -63,  210,  -210,  378,  -378,   588,   -588],
+	[ 104,  -104,  345,  -345,  621,  -621,   966,   -966],
+	[ 158,  -158,  528,  -528,  950,  -950,  1477,  -1477],
+	[ 228,  -228,  760,  -760, 1368, -1368,  2128,  -2128],
+	[ 316,  -316, 1053, -1053, 1895, -1895,  2947,  -2947],
+	[ 422,  -422, 1405, -1405, 2529, -2529,  3934,  -3934],
+	[ 548,  -548, 1828, -1828, 3290, -3290,  5117,  -5117],
+	[ 696,  -696, 2320, -2320, 4176, -4176,  6496,  -6496],
+	[ 868,  -868, 2893, -2893, 5207, -5207,  8099,  -8099],
+	[1064, -1064, 3548, -3548, 6386, -6386,  9933,  -9933],
+	[1286, -1286, 4288, -4288, 7718, -7718, 12005, -12005],
+	[1536, -1536, 5120, -5120, 9216, -9216, 14336, -14336]
+];
+
+function qoaDecode(bytes)
+{
+	// Read 32-bit big-endian unsigned integer from bytes[pos]
+	function u32(pos)
+	{
+		return ((bytes[pos] * 16777216) + (bytes[pos+1] * 65536) +
+		        (bytes[pos+2] * 256) + bytes[pos+3]) >>> 0;
+	}
+
+	if (bytes.length < 16) return null;
+
+	// File header: 4-byte magic + 4-byte total samples per channel
+	if (u32(0) !== 0x716f6166) return null; // 'qoaf'
+	var totalSamples = u32(4);
+	if (totalSamples === 0) return null;
+
+	// Peek at first frame header to get channels and samplerate
+	var fhHi = u32(8);  // bits 63:32 of frame header
+	var channels   = (fhHi >>> 24) & 0xff;
+	var samplerate = fhHi & 0xffffff;
+	if (channels === 0 || samplerate === 0) return null;
+
+	// Allocate output: interleaved 16-bit PCM
+	var pcm = new Int16Array(totalSamples * channels);
+
+	// Per-channel LMS filter state
+	var lms_h = [], lms_w = []; // history, weights
+	for (var c = 0; c < channels; c++)
+	{
+		lms_h.push(new Int32Array(4));
+		lms_w.push(new Int32Array(4));
+	}
+
+	var p = 8; // start decoding after file header
+	var sampleOffset = 0;
+
+	while (p < bytes.length && sampleOffset < totalSamples)
+	{
+		if (p + 8 > bytes.length) break;
+
+		// Frame header
+		var fhi = u32(p);
+		var flo = u32(p + 4);
+		p += 8;
+		var fch      = (fhi >>> 24) & 0xff;
+		var fsamples = (flo >>> 16) & 0xffff;
+		if (fch !== channels || fsamples === 0) break;
+
+		// LMS state per channel
+		for (var c = 0; c < channels; c++)
+		{
+			var hhi = u32(p), hlo = u32(p + 4); p += 8;
+			var whi = u32(p), wlo = u32(p + 4); p += 8;
+			lms_h[c][0] = (hhi >> 16) << 16 >> 16; // sign-extend int16
+			lms_h[c][1] = (hhi & 0xffff) << 16 >> 16;
+			lms_h[c][2] = (hlo >> 16) << 16 >> 16;
+			lms_h[c][3] = (hlo & 0xffff) << 16 >> 16;
+			lms_w[c][0] = (whi >> 16) << 16 >> 16;
+			lms_w[c][1] = (whi & 0xffff) << 16 >> 16;
+			lms_w[c][2] = (wlo >> 16) << 16 >> 16;
+			lms_w[c][3] = (wlo & 0xffff) << 16 >> 16;
+		}
+
+		// Decode slices: channels are interleaved per slice
+		var slices = Math.floor((fsamples + 19) / 20);
+		for (var si = 0; si < slices; si++)
+		{
+			var sliceBase = sampleOffset + si * 20;
+			var sliceLen  = Math.min(20, fsamples - si * 20);
+
+			for (var c = 0; c < channels; c++)
+			{
+				if (p + 8 > bytes.length) break;
+
+				// Read 8-byte slice as two 32-bit words (big-endian)
+				var hi = u32(p), lo = u32(p + 4);
+				p += 8;
+
+				// Top 4 bits = scalefactor index, shift them out
+				var sf = (hi >>> 28) & 0xf;
+				hi = ((hi << 4) | (lo >>> 28)) >>> 0;
+				lo = (lo << 4) >>> 0;
+
+				for (var ki = 0; ki < sliceLen; ki++)
+				{
+					// Extract top 3 bits as quantized residual, then shift out
+					var qr  = (hi >>> 29) & 0x7;
+					hi = ((hi << 3) | (lo >>> 29)) >>> 0;
+					lo = (lo << 3) >>> 0;
+
+					var dequantized = _qoa_dequant_tab[sf][qr];
+
+					// LMS predict
+					var predicted = lms_h[c][0] * lms_w[c][0] +
+					                lms_h[c][1] * lms_w[c][1] +
+					                lms_h[c][2] * lms_w[c][2] +
+					                lms_h[c][3] * lms_w[c][3];
+					predicted = Math.floor(predicted / 8192) | 0;
+
+					var reconstructed = predicted + dequantized;
+					if (reconstructed < -32768) reconstructed = -32768;
+					if (reconstructed >  32767) reconstructed =  32767;
+
+					// LMS update
+					var delta = dequantized >> 4;
+					for (var j = 0; j < 4; j++)
+						lms_w[c][j] += lms_h[c][j] < 0 ? -delta : delta;
+					lms_h[c][0] = lms_h[c][1];
+					lms_h[c][1] = lms_h[c][2];
+					lms_h[c][2] = lms_h[c][3];
+					lms_h[c][3] = reconstructed;
+
+					pcm[(sliceBase + ki) * channels + c] = reconstructed;
+				}
+			}
+		}
+
+		sampleOffset += fsamples;
+	}
+
+	return { pcm: pcm, channels: channels, samplerate: samplerate,
+	         samples: sampleOffset };
+}
+
+// Convert QOA-decoded PCM to a plain WAV (RIFF/PCM) Uint8Array so that
+// the Web Audio API's decodeAudioData() can play it unchanged.
+function qoaToWav(qoaBytes)
+{
+	var decoded = qoaDecode(qoaBytes);
+	if (!decoded) return null;
+
+	var pcmBytes = decoded.pcm.length * 2; // 16-bit samples
+	var buf  = new ArrayBuffer(44 + pcmBytes);
+	var view = new DataView(buf);
+	var p = 0;
+
+	// RIFF header
+	view.setUint32(p, 0x52494646, false); p += 4; // 'RIFF'
+	view.setUint32(p, 36 + pcmBytes,  true);  p += 4;
+	view.setUint32(p, 0x57415645, false); p += 4; // 'WAVE'
+	// fmt  chunk
+	view.setUint32(p, 0x666d7420, false); p += 4; // 'fmt '
+	view.setUint32(p, 16, true); p += 4;
+	view.setUint16(p, 1,  true); p += 2; // PCM
+	view.setUint16(p, decoded.channels, true); p += 2;
+	view.setUint32(p, decoded.samplerate, true); p += 4;
+	view.setUint32(p, decoded.samplerate * decoded.channels * 2, true); p += 4;
+	view.setUint16(p, decoded.channels * 2, true); p += 2; // block align
+	view.setUint16(p, 16, true); p += 2; // bits per sample
+	// data chunk
+	view.setUint32(p, 0x64617461, false); p += 4; // 'data'
+	view.setUint32(p, pcmBytes, true); p += 4;
+	for (var i = 0; i < decoded.pcm.length; i++)
+	{
+		view.setInt16(p, decoded.pcm[i], true); p += 2;
+	}
+	return new Uint8Array(buf);
+}
+
 // Decode a /capAudio response that may be wrapped in an AudioFrameHeader
 // (13 bytes: 4 magic + 1 flags + 4 rawSize + 4 compSize) with optional
-// RLE compression.  Returns a Uint8Array containing the plain WAV data.
+// QOA encoding.  Returns a Uint8Array containing the plain WAV data.
 // Falls back to treating the input as a plain WAV when no AUDF header is
 // present (e.g. older server builds or direct file access).
 function unwrapAudioFrame(bytes)
@@ -430,7 +614,12 @@ function unwrapAudioFrame(bytes)
 			var flags    = bytes[4];
 			var compSize = (bytes[9] | (bytes[10]<<8) | (bytes[11]<<16) | (bytes[12]<<24)) >>> 0;
 			var payload  = bytes.subarray(13, 13 + compSize);
-			return (flags & 1) ? rleDecompress(payload) : new Uint8Array(payload);
+			if (flags & 1)
+			{
+				var wav = qoaToWav(payload);
+				return wav ? wav : new Uint8Array(payload);
+			}
+			return new Uint8Array(payload);
 		}
 	}
 	return bytes; // no AUDF wrapper: treat as plain WAV (backward compat)
