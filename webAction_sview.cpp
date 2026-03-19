@@ -126,6 +126,7 @@ DWORD serviceList(cBuffer &buffer)
 	if( (lpservice_base=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); return 0; }
 	lpservice=lpservice_base;
 
+	resumeHandle=0; // Reset to enumerate all services from the beginning
 	::EnumServicesStatus(schSCManager,SERVICE_WIN32,SERVICE_STATE_ALL,lpservice,
 		bytes,&bytesNeeded,&servicesReturned,&resumeHandle);
 
