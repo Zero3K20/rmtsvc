@@ -2,6 +2,7 @@ var fportData=[];
 var xmlFport=null;
 var fportSortCol="ptype";
 var fportSortAsc=true;
+var selectedFportRow=null;
 
 function getNodeText(el, tag) {
 	var n=el.getElementsByTagName(tag);
@@ -70,14 +71,15 @@ function renderFport()
 {
 	var tbody=document.getElementById("fportTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedFportRow=null;
 	for(var i=0;i<fportData.length;i++) {
 		(function(idx) {
 			var d=fportData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){processClick(this);};
 			tr.appendChild(makeCell(escHtml(d.id),"center"));
 			tr.appendChild(makeCell(escHtml(d.ptype),"center"));
@@ -97,6 +99,10 @@ function processClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=fportData.length) return;
+	if(selectedFportRow) { selectedFportRow.className=""; selectedFportRow.style.background="#ffffff"; }
+	selectedFportRow=tblElement;
+	selectedFportRow.className="selected";
+	selectedFportRow.style.background="#cce8ff";
 	var curPid=fportData[idx].pid;
 	document.getElementById("lblProcess").innerText=" "+curPid;
 }

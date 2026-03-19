@@ -5,6 +5,7 @@ var slistData=[];
 var xmlSlist=null;
 var slistSortCol="";
 var slistSortAsc=true;
+var selectedSrow=null;
 
 function getNodeText(el, tag) {
 	var n=el.getElementsByTagName(tag);
@@ -75,14 +76,15 @@ function renderSlist()
 {
 	var tbody=document.getElementById("slistTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedSrow=null;
 	for(var i=0;i<slistData.length;i++) {
 		(function(idx) {
 			var d=slistData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){serviceClick(this);};
 			tr.appendChild(makeCell(escHtml(d.id),"center"));
 			tr.appendChild(makeCell(escHtml(d.status),"center"));
@@ -101,6 +103,10 @@ function serviceClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=slistData.length) return;
+	if(selectedSrow) { selectedSrow.className=""; selectedSrow.style.background="#ffffff"; }
+	selectedSrow=tblElement;
+	selectedSrow.className="selected";
+	selectedSrow.style.background="#cce8ff";
 	var d=slistData[idx];
 	var stat=d.status;
 	if(stat=="Running")

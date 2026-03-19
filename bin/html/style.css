@@ -102,3 +102,6 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
  	 cursor:pointer;
  	 MARGIN-TOP: 0pt;
 }
+tr.selected {
+	background-color: #cce8ff;
+}
