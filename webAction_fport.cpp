@@ -188,7 +188,7 @@ BOOL portList(cBuffer &buffer)
 			{
 				const char *pname_src=szProcessName?szProcessName:"OS kernel";
 				int pnlen=strlen(pname_src);
-				int space_needed=pnlen*3+512;
+				size_t space_needed=pnlen*3+512;
 				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 				char utf8pname[MAX_PATH*4];
 				cCoder::utf8_encode(pname_src, pnlen, utf8pname);
@@ -244,7 +244,7 @@ BOOL portList(cBuffer &buffer)
 			{
 				const char *pname_src=szProcessName?szProcessName:"OS kernel";
 				int pnlen=strlen(pname_src);
-				int space_needed=pnlen*3+512;
+				size_t space_needed=pnlen*3+512;
 				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 				char utf8pname[MAX_PATH*4];
 				cCoder::utf8_encode(pname_src, pnlen, utf8pname);

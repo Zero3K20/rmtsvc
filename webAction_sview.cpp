@@ -136,7 +136,7 @@ DWORD serviceList(cBuffer &buffer)
 	{
 		{
 			int snlen=strlen(lpservice->lpServiceName);
-			int space_needed=snlen*3+280;
+			size_t space_needed=snlen*3+280;
 			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 			char utf8sname[1024];
 			cCoder::utf8_encode(lpservice->lpServiceName, snlen, utf8sname);
@@ -200,7 +200,7 @@ DWORD serviceList(cBuffer &buffer)
 			{
 				int dlen=strlen(lpqscBuf->lpDisplayName);
 				int plen=strlen(lpqscBuf->lpBinaryPathName);
-				int space_needed=(dlen+plen)*3+64;
+				size_t space_needed=(dlen+plen)*3+64;
 				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 				char utf8sdisp[1024], utf8spath[2048];
 				cCoder::utf8_encode(lpqscBuf->lpDisplayName, dlen, utf8sdisp);
@@ -224,7 +224,7 @@ DWORD serviceList(cBuffer &buffer)
 				{
 					const char *desc_src=p->lpDescription?p->lpDescription:"";
 					int desc_len=strlen(desc_src);
-					int space_needed=desc_len*3+64;
+					size_t space_needed=desc_len*3+64;
 					if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 					char *utf8desc=new char[desc_len*3+2];
 					if(utf8desc){

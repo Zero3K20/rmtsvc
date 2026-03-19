@@ -391,7 +391,7 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 					////get this key's subkey count - end-----------------------------
 					{
 						int klen=strlen(subkey_buffer);
-						int space_needed=klen*3+128;
+						size_t space_needed=klen*3+128;
 						if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 						char *utf8key=new char[klen*3+2];
 						if(utf8key){
@@ -471,7 +471,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 					{
 						const char *rname_src=(subname_buffer[0]==0)?"(default)":subname_buffer;
 						int rname_len=strlen(rname_src);
-						int space_needed=rname_len*3+(dwNameBufferSize+100);
+						size_t space_needed=rname_len*3+(dwNameBufferSize+100);
 						if(space_needed<256) space_needed=256;
 						if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 						char *utf8rname=new char[rname_len*3+2];
@@ -536,7 +536,7 @@ bool regitemList(cBuffer &buffer,const char *skey)
 								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata></rdata>");
 							else {
 								int vlen=strlen((char*)subvalue_buffer);
-								int vspace=vlen*3+32;
+								size_t vspace=vlen*3+32;
 								if(buffer.Space()<vspace) buffer.Resize(buffer.size()+vspace);
 								char *utf8val=new char[vlen*3+2];
 								if(utf8val){
