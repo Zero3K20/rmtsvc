@@ -92,9 +92,6 @@ xmlHttp.send(null);
 function msmove(e)
 {
 e=e||window.event;
-var coords=imgPosition(e);
-var w=window.parent.frmLeft;
-w.document.getElementById("lblXY").innerText="X:"+coords.x+" , Y:"+coords.y;
 }
 
 // --- Cursor sync ---
