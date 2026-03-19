@@ -12,6 +12,12 @@ if(parent.myFrames.cols=="180,12,0,*")
 	parent.myFrames.cols="180,12,0,*";
 	document.getElementById("ImgArrow").innerText="← c l o s e ←";
 }
+setTimeout(function(){
+	try{
+		var fv=parent.frmView;
+		if(fv && fv._fitCanvasToContainer) fv._fitCanvasToContainer();
+	}catch(e){}
+},0);
 }
 </SCRIPT>
 </head>
