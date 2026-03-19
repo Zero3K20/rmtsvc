@@ -816,7 +816,7 @@ public:
 						 (char*)data12.master_key, sizeof(data12.master_key),
 						 key_expansion, (unsigned int)strlen(key_expansion),
 						 (char*)data12.server_rand, RAND_SIZE,
-						 (char*)data12.client_rand, RAND_SIZE);
+						 (unsigned char*)data12.client_rand, RAND_SIZE);
 
 		// Key block layout: [client_write_key | server_write_key | client_write_IV | server_write_IV]
 		// Server perspective: local=server keys, remote=client keys.

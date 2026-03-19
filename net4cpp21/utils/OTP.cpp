@@ -13,6 +13,7 @@
 //#include "../include/sysconfig.h"  
 #include "OTP.h"
 #include <cstdlib>
+#include <cstdio>
 
 #ifndef _NOSSL_D
 #include <windows.h>
