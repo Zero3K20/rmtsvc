@@ -317,7 +317,7 @@ var AUDIO_FRAME_MAGIC = 0x46445541;
 
 // Decode a /capAudio response that may be wrapped in an AudioFrameHeader
 // (13 bytes: 4 magic + 1 flags + 4 rawSize + 4 compSize) with optional
-// LZNT1 compression.  Returns a Uint8Array containing the plain WAV data.
+// RLE compression.  Returns a Uint8Array containing the plain WAV data.
 // Falls back to treating the input as a plain WAV when no AUDF header is
 // present (e.g. older server builds or direct file access).
 function unwrapAudioFrame(bytes)
@@ -330,7 +330,7 @@ function unwrapAudioFrame(bytes)
 			var flags    = bytes[4];
 			var compSize = (bytes[9] | (bytes[10]<<8) | (bytes[11]<<16) | (bytes[12]<<24)) >>> 0;
 			var payload  = bytes.subarray(13, 13 + compSize);
-			return (flags & 1) ? lznt1Decompress(payload) : new Uint8Array(payload);
+			return (flags & 1) ? rleDecompress(payload) : new Uint8Array(payload);
 		}
 	}
 	return bytes; // no AUDF wrapper: treat as plain WAV (backward compat)
