@@ -4,6 +4,8 @@ var folderData=[];
 var fileData=[];
 var fileSortCol="";
 var fileSortAsc=true;
+var selectedFolderRow=null;
+var selectedFileRow=null;
 
 function getNodeText(el, tag) {
 	var n=el.getElementsByTagName(tag);
@@ -78,13 +80,14 @@ function renderFolders()
 {
 	var tbody=document.getElementById("folderTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedFolderRow=null;
 	for(var i=0;i<folderData.length;i++) {
 		(function(idx) {
 			var d=folderData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.style.height="18px";
 			var td1=makeCell("&nbsp;"+escHtml(d.hassub)+"&nbsp;","");
 			td1.style.cursor="pointer";
@@ -106,6 +109,7 @@ function renderFiles()
 {
 	var tbody=document.getElementById("fileTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedFileRow=null;
 	for(var i=0;i<fileData.length;i++) {
 		(function(idx) {
 			var d=fileData[idx];
@@ -113,8 +117,8 @@ function renderFiles()
 			tr.setAttribute("data-idx",String(idx));
 			tr.id="fFiles";
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){fileClick(tr);};
 			// filename input cell
 			var td1=document.createElement("td");
@@ -176,6 +180,10 @@ function folderClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=folderData.length) return;
+	if(selectedFolderRow) { selectedFolderRow.className=""; selectedFolderRow.style.background="#ffffff"; }
+	selectedFolderRow=tblElement;
+	selectedFolderRow.className="selected";
+	selectedFolderRow.style.background="#cce8ff";
 	var fld=folderData[idx].alias||folderData[idx].fname;
 	var fpath=document.getElementById("lblFilePath").innerText;
 	document.getElementById("lblFolder").innerText=fld;
@@ -207,6 +215,10 @@ function fileClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=fileData.length) return;
+	if(selectedFileRow) { selectedFileRow.className=""; selectedFileRow.style.background="#ffffff"; }
+	selectedFileRow=tblElement;
+	selectedFileRow.className="selected";
+	selectedFileRow.style.background="#cce8ff";
 	var fitem=fileData[idx].fname;
 	if(fitem=="") document.getElementById("lblFile").innerHTML="";
 	else

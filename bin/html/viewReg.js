@@ -2,6 +2,8 @@ var regpath="";
 var regkeyData=[];
 var regitemData=[];
 var editRegitemIdx=-1;
+var selectedRegkeyRow=null;
+var selectedRegitemRow=null;
 
 function isTextType(rtype) {
 	return rtype=="REG_SZ"||rtype=="REG_EXPAND_SZ"||rtype=="REG_MULTI_SZ";
@@ -73,13 +75,14 @@ function renderRegkeys()
 {
 	var tbody=document.getElementById("regkeyTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedRegkeyRow=null;
 	for(var i=0;i<regkeyData.length;i++) {
 		(function(idx) {
 			var d=regkeyData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.style.height="18px";
 			var td1=makeCell("&nbsp;"+escHtml(d.subkeys)+"&nbsp;","");
 			td1.style.cursor="pointer";
@@ -99,14 +102,15 @@ function renderRegitems()
 {
 	var tbody=document.getElementById("regitemTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedRegitemRow=null;
 	for(var i=0;i<regitemData.length;i++) {
 		(function(idx) {
 			var d=regitemData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){regItemClick(tr);};
 			tr.appendChild(makeCell(escHtml(d.id),"right"));
 			tr.appendChild(makeCell(escHtml(d.rtype),"center"));
@@ -178,6 +182,10 @@ function regkeyClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=regkeyData.length) return;
+	if(selectedRegkeyRow) { selectedRegkeyRow.className=""; selectedRegkeyRow.style.background="#ffffff"; }
+	selectedRegkeyRow=tblElement;
+	selectedRegkeyRow.className="selected";
+	selectedRegkeyRow.style.background="#cce8ff";
 	var regkey=regkeyData[idx].regkey;
 	var rpath=document.getElementById("lblRegPath").innerText;
 	document.getElementById("lblRegKey").innerText=regkey;
@@ -206,8 +214,13 @@ function regItemClick(tblElement)
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=regitemData.length) return;
 	var d=regitemData[idx];
-	if(d.id!="")
+	if(d.id!="") {
+		if(selectedRegitemRow) { selectedRegitemRow.className=""; selectedRegitemRow.style.background="#ffffff"; }
+		selectedRegitemRow=tblElement;
+		selectedRegitemRow.className="selected";
+		selectedRegitemRow.style.background="#cce8ff";
 		document.getElementById("lblRegItem").innerText=d.rname;
+	}
 }
 
 function goup()

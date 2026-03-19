@@ -13,6 +13,8 @@ var plistSortCol="pid";
 var plistSortAsc=true;
 var mlistSortCol="";
 var mlistSortAsc=true;
+var selectedProw=null;
+var selectedMrow=null;
 
 function getNodeText(el, tag) {
 	var n=el.getElementsByTagName(tag);
@@ -96,14 +98,15 @@ function renderPlist()
 {
 	var tbody=document.getElementById("plistTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedProw=null;
 	for(var i=0;i<plistData.length;i++) {
 		(function(idx) {
 			var d=plistData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){processClick(this);};
 			tr.appendChild(makeCell(escHtml(d.id),"center"));
 			tr.appendChild(makeCell(escHtml(d.pid),"center"));
@@ -154,14 +157,15 @@ function renderMlist()
 {
 	var tbody=document.getElementById("mlistTbody");
 	while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+	selectedMrow=null;
 	for(var i=0;i<mlistData.length;i++) {
 		(function(idx) {
 			var d=mlistData[idx];
 			var tr=document.createElement("tr");
 			tr.setAttribute("data-idx",String(idx));
 			tr.style.cursor="pointer";
-			tr.onmousemove=function(){this.style.background="#e5e5e5";};
-			tr.onmouseout=function(){this.style.background="#ffffff";};
+			tr.onmousemove=function(){if(this.className!="selected") this.style.background="#e5e5e5";};
+			tr.onmouseout=function(){if(this.className!="selected") this.style.background="#ffffff";};
 			tr.onclick=function(){moduleClick(this);};
 			tr.appendChild(makeCell(escHtml(d.id),"center"));
 			tr.appendChild(makeCell(escHtml(d.mbase),"center"));
@@ -213,6 +217,10 @@ function processClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=plistData.length) return;
+	if(selectedProw) { selectedProw.className=""; selectedProw.style.background="#ffffff"; }
+	selectedProw=tblElement;
+	selectedProw.className="selected";
+	selectedProw.style.background="#cce8ff";
 	curPid=plistData[idx].pid;
 	curPname=plistData[idx].pname;
 	document.getElementById("lblProcess").innerText="pid:"+curPid+" - "+curPname;
@@ -223,6 +231,10 @@ function moduleClick(tblElement)
 {
 	var idx=parseInt(tblElement.getAttribute("data-idx"));
 	if(isNaN(idx)||idx<0||idx>=mlistData.length) return;
+	if(selectedMrow) { selectedMrow.className=""; selectedMrow.style.background="#ffffff"; }
+	selectedMrow=tblElement;
+	selectedMrow.className="selected";
+	selectedMrow.style.background="#cce8ff";
 	curHmdl=mlistData[idx].hmdl;
 	loadcount=mlistData[idx].usage;
 	document.getElementById("lblModule").innerText=mlistData[idx].mname;
