@@ -14,6 +14,8 @@
 	#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
 	#endif
+	#include <winsock2.h> //must be included before windows.h to avoid AF_IPX/AF_MAX macro redefinition (C4005)
+	#include <ws2tcpip.h>
 	#include <windows.h> //include Windows header files
 	#define	MSG_NOSIGNAL    0  //this definition does not exist on Windows
 	
