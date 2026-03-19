@@ -105,3 +105,8 @@ BODY {	FONT-FAMILY: Arial, sans-serif; FONT-SIZE: 9pt}
 tr.selected {
 	background-color: #cce8ff;
 }
+.btnOff > a, .btnUP > a, .btnDown > a {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
