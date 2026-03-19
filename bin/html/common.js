@@ -155,11 +155,11 @@ function lznt1Decompress(src)
 						var w = src[pos] | (src[pos+1] << 8);
 						pos += 2;
 						// LengthShift: starts at 4, decrements (min 0) while
-						// current chunk output length > MaximumMatchOffset.
+						// current chunk output length >= MaximumMatchOffset (MS-XCA spec).
 						var curLen       = out.length - chunkOutStart;
 						var lengthShift  = 4;
 						var maxMatchOff  = 16; // 1 << 4
-						while (curLen > maxMatchOff && lengthShift > 0)
+						while (curLen >= maxMatchOff && lengthShift > 0)
 						{
 							lengthShift--;
 							maxMatchOff <<= 1;
