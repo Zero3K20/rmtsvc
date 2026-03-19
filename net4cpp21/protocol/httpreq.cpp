@@ -618,7 +618,7 @@ inline void httpRequest::parseURL(const char *lpszurl)
 	const char *pFoundTerminator=strchr(m_httpreq_strUrl.c_str(),'?');
 	if( pFoundTerminator)
 	{
-		parseParam((char *)pFoundTerminator+1,'&',m_httpreq_params_GET,NULL);
+		parseParam((char *)pFoundTerminator+1,'&',m_httpreq_params_GET,"utf-8");
 		m_httpreq_strUrl.erase(pFoundTerminator-m_httpreq_strUrl.c_str());
 	}
 	//URL may be encoded; for Chinese characters MIME encoding followed by UTF-8 encoding is used; decoding is needed

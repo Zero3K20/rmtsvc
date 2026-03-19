@@ -134,9 +134,15 @@ DWORD serviceList(cBuffer &buffer)
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	while( servicesReturned-- >0 ) //lpservice->lpServiceName)
 	{
-		if(buffer.Space()<280) buffer.Resize(buffer.size()+280);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),
-			"<service><id>%d</id><sname>%s</sname>",++dwret,lpservice->lpServiceName);
+		{
+			int snlen=strlen(lpservice->lpServiceName);
+			int space_needed=snlen*3+280;
+			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+			char utf8sname[1024];
+			cCoder::utf8_encode(lpservice->lpServiceName, snlen, utf8sname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),
+				"<service><id>%d</id><sname>%s</sname>",++dwret,utf8sname);
+		}
 		switch(lpservice->ServiceStatus.dwCurrentState)
 		{
 			case SERVICE_RUNNING:
@@ -191,8 +197,17 @@ DWORD serviceList(cBuffer &buffer)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Kernel Driver</stype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>---</stype>");
 			
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp><![CDATA[%s]]></sdisp>",lpqscBuf->lpDisplayName);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<spath><![CDATA[%s]]></spath>",lpqscBuf->lpBinaryPathName);
+			{
+				int dlen=strlen(lpqscBuf->lpDisplayName);
+				int plen=strlen(lpqscBuf->lpBinaryPathName);
+				int space_needed=(dlen+plen)*3+64;
+				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+				char utf8sdisp[1024], utf8spath[2048];
+				cCoder::utf8_encode(lpqscBuf->lpDisplayName, dlen, utf8sdisp);
+				cCoder::utf8_encode(lpqscBuf->lpBinaryPathName, plen, utf8spath);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp>%s</sdisp>",utf8sdisp);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<spath>%s</spath>",utf8spath);
+			}
 			
 			QueryServiceConfig2(hService,SERVICE_CONFIG_DESCRIPTION,NULL, 0, &bytesNeeded);
 			if(bytesNeeded>lpqscBuf_Size)
@@ -206,7 +221,18 @@ DWORD serviceList(cBuffer &buffer)
 				QueryServiceConfig2(hService,SERVICE_CONFIG_DESCRIPTION,(LPBYTE)lpqscBuf, lpqscBuf_Size, &bytesNeeded);
 				if(buffer.Space()<(lpqscBuf_Size+48)) buffer.Resize(buffer.size()+(lpqscBuf_Size+48));
 				SERVICE_DESCRIPTION *p=(SERVICE_DESCRIPTION *)lpqscBuf;
-				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdesc><![CDATA[\r\n%s\r\n]]></sdesc>",p->lpDescription?p->lpDescription:"");
+				{
+					const char *desc_src=p->lpDescription?p->lpDescription:"";
+					int desc_len=strlen(desc_src);
+					int space_needed=desc_len*3+64;
+					if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+					char *utf8desc=new char[desc_len*3+2];
+					if(utf8desc){
+						cCoder::utf8_encode(desc_src, desc_len, utf8desc);
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdesc><![CDATA[\r\n%s\r\n]]></sdesc>",utf8desc);
+						delete[] utf8desc;
+					}
+				}
 			}		
 		}//?if(QueryServiceConfig
 		if(lpqscBuf) ::free(lpqscBuf);

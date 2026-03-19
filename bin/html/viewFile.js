@@ -229,7 +229,7 @@ function fileClick(tblElement)
 			fpath=fpath+"\\"+fld;
 		else fpath=fpath+fld;
 		var ssid=parent.frmLeft.ssid;
-		document.getElementById("lblFile").innerHTML="<a href=\"/dwfiles/"+ssid+"/"+fitem+"?path="+fpath+"\">"+escHtml(fitem)+"</a>";
+		document.getElementById("lblFile").innerHTML="<a href=\"/dwfiles/"+ssid+"/"+encodeURIComponent(fitem)+"?path="+encodeURIComponent(fpath)+"\">"+escHtml(fitem)+"</a>";
 	}
 }
 

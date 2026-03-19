@@ -269,7 +269,11 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 				bMatch=ifMatch(szProcessName,filter);
 			if(bMatch)
 			{
-				if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+				int pnlen=strlen(szProcessName);
+				long space_needed=pnlen*3+256;
+				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+				char utf8pname[MAX_PATH*4];
+				cCoder::utf8_encode(szProcessName, pnlen, utf8pname);
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),
 					"<process>"
 					"<id>%d</id>"
@@ -280,7 +284,7 @@ DWORD procList_NT(cBuffer &buffer,const char *filter)
 					"<threads>%02d</threads>"
 					"<ppath></ppath>"
 					"</process>",++dwret,aProcesses[i],
-					0,szProcessName,0,0);
+					0,utf8pname,0,0);
 			}
 		}//?for(...
 	}//?if (pfnEnumProcesses!=NULL &&
@@ -335,7 +339,11 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 				bMatch=ifMatch(ptrFilename,filter);
 			if(bMatch)
 			{
-				if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+				int pnlen=strlen(ptrFilename);
+				long space_needed=pnlen*3+256;
+				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+				char utf8pname[MAX_PATH*4];
+				cCoder::utf8_encode(ptrFilename, pnlen, utf8pname);
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),
 					"<process>"
 					"<id>%d</id>"
@@ -347,7 +355,7 @@ DWORD procList_2K(cBuffer &buffer,const char *filter)
 					"<ppath></ppath>"
 					"</process>",++dwret,processInfo->th32ProcessID,
 					processInfo->th32ParentProcessID,
-					ptrFilename,processInfo->pcPriClassBase,
+					utf8pname,processInfo->pcPriClassBase,
 					processInfo->cntThreads);
 			}
 		}while ((*pfnProcess32Next)(hSnapShot,processInfo));
@@ -408,7 +416,11 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 			else
 				strcpy(szProcessName,"unknown path");
 
-			if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+			int mnlen=strlen(szProcessName);
+			long space_needed=mnlen*3+256;
+			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+			char utf8mname[MAX_PATH*4];
+			cCoder::utf8_encode(szProcessName, mnlen, utf8mname);
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),
 				"<module>"
 				"<id>%d</id>"
@@ -417,7 +429,7 @@ DWORD moduleList_NT(cBuffer &buffer,DWORD processID)
 				"<mbase>0x%08lX</mbase>"
 				"<mname>%s</mname>"
 				"</module>",
-				++dwret,(LONG_PTR)aModules[i],-1,0,szProcessName);
+				++dwret,(LONG_PTR)aModules[i],-1,0,utf8mname);
 		}
 		::CloseHandle(hProcess);
 	}//?if (pfnEnumProcesses!=NULL &&
@@ -455,7 +467,11 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 	 {
 		do
 		{
-			if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
+			int mnlen=strlen(moduleInfo->szExePath);
+			long space_needed=mnlen*3+256;
+			if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+			char utf8mname[MAX_PATH*4];
+			cCoder::utf8_encode(moduleInfo->szExePath, mnlen, utf8mname);
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),
 				"<module>"
 				"<id>%d</id>"
@@ -467,7 +483,7 @@ DWORD moduleList_2K(cBuffer &buffer,DWORD processID)
 				++dwret,(LONG_PTR)moduleInfo->hModule,
 				moduleInfo->ProccntUsage,
 				(DWORD)(DWORD_PTR)moduleInfo->modBaseAddr,
-				moduleInfo->szExePath);
+				utf8mname);
 		}while ((*pfnModule32Next)(hSnapShot,moduleInfo));
 	}//?if ((*pfnProcess32First)(hSnapShot, processInfo))
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
