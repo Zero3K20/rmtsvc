@@ -83,7 +83,7 @@ bool webServer :: httprsp_filelist(socketTCP *psock,httpResponse &httprsp,const 
 {
 	bool bret=false;
 	cBuffer buffer(1024);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	
 	if(listWhat & 1) bret|=folderList(buffer,spath,bdsphide);
 	if(listWhat & 2) bret|=fileList(buffer,spath,bdsphide);
@@ -218,8 +218,8 @@ bool webServer :: httprsp_file_run(socketTCP *psock,httpResponse &httprsp,const 
 bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const char *spath,const char *prof)
 {
 
-	cBuffer buffer(1024);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	cBuffer buffer(4096);
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 
 	WIN32_FIND_DATA finddata; SYSTEMTIME st; //FILETIME localFtime;
 	HANDLE hd=::FindFirstFile(spath, &finddata);
@@ -244,10 +244,20 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 		}
 
 		*(char *)ptr_name=0; ptr_name++;
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fname>%s</fname>",ptr_name);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftype>%s</ftype>",getFileType(ptr_name));
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",spath);
-		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<opmode>%s</opmode>",getFileOpmode(ptr_name));
+		char utf8name[MAX_PATH*4], utf8path[MAX_PATH*4];
+		char utf8ftype[256], utf8opmode[1024];
+		int utf8namelen=cCoder::utf8_encode(ptr_name, strlen(ptr_name), utf8name);
+		int utf8pathlen=cCoder::utf8_encode(spath, strlen(spath), utf8path);
+		const char *ftype_str=getFileType(ptr_name);
+		const char *opmode_str=getFileOpmode(ptr_name);
+		int utf8ftypelen=cCoder::utf8_encode(ftype_str, strlen(ftype_str), utf8ftype);
+		int utf8opmodelen=cCoder::utf8_encode(opmode_str, strlen(opmode_str), utf8opmode);
+		int needed=utf8namelen+utf8pathlen+utf8ftypelen+utf8opmodelen+512;
+		if((int)buffer.Space()<needed) buffer.Resize(buffer.size()+needed);
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fname>%s</fname>",utf8name);
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ftype>%s</ftype>",utf8ftype);
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",utf8path);
+		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<opmode>%s</opmode>",utf8opmode);
 		{
 			unsigned long long fsz=fileSize64(finddata.nFileSizeHigh,finddata.nFileSizeLow);
 			char fszbuf[32]; formatFileSize(fszbuf,fsz);
@@ -303,7 +313,7 @@ bool webServer :: httprsp_profile(socketTCP *psock,httpResponse &httprsp,const c
 bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const char *spath,const char *prof)
 {
 
-	cBuffer buffer(1024);
+	cBuffer buffer(4096);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	if(spath && strlen(spath)>3)
 	{
@@ -329,8 +339,13 @@ bool webServer :: httprsp_profolder(socketTCP *psock,httpResponse &httprsp,const
 					finddata.dwFileAttributes=dwFileAttributes;
 			}
 			*(char *)ptr_name=0; ptr_name++;
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fname>%s</fname>",ptr_name);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",spath);
+			char utf8name[MAX_PATH*4], utf8path[MAX_PATH*4];
+			cCoder::utf8_encode(ptr_name, strlen(ptr_name), utf8name);
+			cCoder::utf8_encode(spath, strlen(spath), utf8path);
+			int needed=(int)(strlen(utf8name)+strlen(utf8path))*2+256;
+			if((int)buffer.Space()<needed) buffer.Resize(buffer.size()+needed);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fname>%s</fname>",utf8name);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<fpath>%s</fpath>",utf8path);
 			
 //			::FileTimeToLocalFileTime(&finddata.ftCreationTime,&localFtime);
 //			::FileTimeToSystemTime(&localFtime,&st);
@@ -608,11 +623,13 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 			if(drtype!=DRIVE_REMOVABLE || i!=0)  //avoid reading floppy drive A yyc modify 2006-09-14
 				::GetVolumeInformation(s,volumname,64,0,0,0,0,0);
 			++lret; s[2]=0; //remove trailing backslash
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),
-				"<fitem><bhide></bhide><hassub>+</hassub><alias>%s</alias><fname>%s(%c:) %c %s</fname><fsize></fsize><ftype></ftype><ftime></ftime></fitem>"
-				,s,DRIVE_TYPE[drtype],s[0],((volumname[0]==0)?' ':'-'), volumname);
+			char utf8vol[64*4];
+			cCoder::utf8_encode(volumname, strlen(volumname), utf8vol);
 			if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
 			if(buffer.str()==NULL) break;
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),
+				"<fitem><bhide></bhide><hassub>+</hassub><alias>%s</alias><fname>%s(%c:) %c %s</fname><fsize></fsize><ftype></ftype><ftime></ftime></fitem>"
+				,s,DRIVE_TYPE[drtype],s[0],((utf8vol[0]==0)?' ':'-'), utf8vol);
 		}//?for(int i=0
 	}else if(spath[1]==':'){ //valid path
 		WIN32_FIND_DATA finddata; SYSTEMTIME st; //FILETIME localFtime;
@@ -627,9 +644,11 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 						continue;
 					if((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !bdsphide) continue;
 					long fnlen=strlen(finddata.cFileName);
-					if(fnlen<256) fnlen=256;
-					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
+					long space_needed=fnlen*3+256;
+					if((long)buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 					if(buffer.str()==NULL) break;
+					char utf8fn[MAX_PATH*4];
+					cCoder::utf8_encode(finddata.cFileName, fnlen, utf8fn);
 					++lret; //check if this directory has subdirectories
 					bool bHas=ifHasSubDir(spath,finddata.cFileName);
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
@@ -638,7 +657,7 @@ bool folderList(cBuffer &buffer,const char *spath,bool bdsphide)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),
 						"<fitem><bhide>%c</bhide><hassub>%c</hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize></fsize><ftype>Folder</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
 						,((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)?'*':' '),
-						((bHas)?'+':' '),finddata.cFileName,st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);				
+						((bHas)?'+':' '),utf8fn,st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);
 				}//?if(
 			}while(::FindNextFile(hd,&finddata));
 			::FindClose(hd);
@@ -668,9 +687,11 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 				{
 					if((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) && !bdsphide) continue;
 					long fnlen=strlen(finddata.cFileName);
-					if(fnlen<256) fnlen=256;
-					if((long)buffer.Space()<fnlen) buffer.Resize(buffer.size()+fnlen);
+					long space_needed=fnlen*3+256;
+					if((long)buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
 					if(buffer.str()==NULL) break; else ++lret;
+					char utf8fn[MAX_PATH*4];
+					cCoder::utf8_encode(finddata.cFileName, fnlen, utf8fn);
 //					::FileTimeToLocalFileTime(&finddata.ftLastWriteTime,&localFtime);
 //					::FileTimeToSystemTime(&localFtime,&st);
 					::FileTimeToSystemTime(&finddata.ftLastWriteTime,&st);
@@ -680,7 +701,7 @@ bool fileList(cBuffer &buffer,const char *spath,bool bdsphide)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),
 							"<fitem><bhide>%c</bhide><hassub></hassub><alias></alias><fname><![CDATA[%s]]></fname><fsize>%s</fsize><lsize>" LSIZE_FMT "</lsize><ftype>%s</ftype><ftime>%04d-%02d-%02d %02d:%02d</ftime></fitem>"
 							,((finddata.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)?'*':' '),
-							finddata.cFileName,fszbuf,fsz, getFileType(finddata.cFileName),
+							utf8fn,fszbuf,fsz, getFileType(finddata.cFileName),
 							st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute);
 					}
 				}//?if(

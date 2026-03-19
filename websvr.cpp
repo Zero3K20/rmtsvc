@@ -494,17 +494,36 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			// url() returns the already URL-decoded path; extract filename after "/download/"
 			const char *fname=httpreq.url().c_str()+10;
 			filepath.append(fname);
-			// Build a sanitized filename for Content-Disposition (strip CR/LF and quotes)
-			string safeName;
+			// Build Content-Disposition header with RFC 5987 encoding for non-ASCII filenames
+			// fname is in ANSI (system code page) after URL decoding; convert to UTF-8
+			char utf8fname[MAX_PATH*4];
+			cCoder::utf8_encode(fname, strlen(fname), utf8fname);
+			// Build ASCII-only fallback name (replace non-ASCII bytes with '_')
+			string asciiFallback;
 			for(const char *p=fname;*p;p++){
 				if(*p=='\r'||*p=='\n') continue;
-				if(*p=='"') safeName.append("\\\"");
-				else safeName+= *p;
+				if(*p=='"') asciiFallback.append("\\\"");
+				else if((unsigned char)*p>0x7f) asciiFallback+='_';
+				else asciiFallback+=*p;
+			}
+			// Build RFC 5987 percent-encoded UTF-8 value
+			string rfc5987val;
+			for(const char *p=utf8fname;*p;p++){
+				unsigned char c=(unsigned char)*p;
+				if((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||
+				   c=='!'||c=='#'||c=='$'||c=='&'||c=='+'||c=='-'||
+				   c=='.'||c=='^'||c=='_'||c=='`'||c=='|'||c=='~'){
+					rfc5987val+=(char)c;
+				} else {
+					char buf[4]; sprintf(buf,"%%%02X",(unsigned int)c);
+					rfc5987val.append(buf);
+				}
 			}
 			string cdKey("Content-Disposition");
 			string cdValue("attachment; filename=\"");
-			cdValue.append(safeName);
-			cdValue.append("\"");
+			cdValue.append(asciiFallback);
+			cdValue.append("\"; filename*=UTF-8''");
+			cdValue.append(rfc5987val);
 			httprsp.AddHeader(cdKey,cdValue);
 			httprsp.sendfile(psock,filepath.c_str());
 			return true;

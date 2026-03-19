@@ -51,7 +51,7 @@ function window_onload()
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();
-	xmlHttp.open("GET", "/profolder?path="+spath, true);
+	xmlHttp.open("GET", "/profolder?path="+encodeURIComponent(spath), true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );
 	showPopup(100, 150, 150, 20);
@@ -74,7 +74,7 @@ function mdProperty()
 	if(document.getElementById("chkRead").checked) pf=pf+"R";
 	if(document.getElementById("chkHide").checked) pf=pf+"H";
 	if(document.getElementById("chkAchi").checked) pf=pf+"A";
-	xmlHttp.open("GET", "/profolder?path="+spath+"&prof="+pf, true);
+	xmlHttp.open("GET", "/profolder?path="+encodeURIComponent(spath)+"&prof="+pf, true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );
 }
