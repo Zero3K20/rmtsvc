@@ -25,45 +25,53 @@
 #pragma comment(lib, "crypt32.lib")
 
 // ---------------------------------------------------------------------------
-// RtlCompressBuffer / RtlDecompressBuffer (ntdll) -- loaded at first use
+// RLE (PackBits-style) compressor / decompressor
 // ---------------------------------------------------------------------------
-typedef LONG (WINAPI *PFN_RtlGetCompressionWorkSpaceSize)(USHORT, PULONG, PULONG);
-typedef LONG (WINAPI *PFN_RtlCompressBuffer)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, ULONG, PULONG, PVOID);
-
-#ifndef COMPRESSION_FORMAT_LZNT1
-#define COMPRESSION_FORMAT_LZNT1  2
-#endif
-#ifndef COMPRESSION_ENGINE_STANDARD
-#define COMPRESSION_ENGINE_STANDARD 0
-#endif
-#define COMPRESS_FMT_LZNT1 ((USHORT)(COMPRESSION_FORMAT_LZNT1 | COMPRESSION_ENGINE_STANDARD))
-
-// Compress 'src' (srcSize bytes) into 'dst' (dstSize bytes) using LZNT1.
-// Returns compressed size, or 0 on failure.
-static DWORD rtlCompressLznt1(LPBYTE src, DWORD srcSize, LPBYTE dst, DWORD dstSize)
+// Control byte encoding:
+//   0x00..0x7F  literal run:  next (ctrl+1) bytes are copied verbatim (1..128)
+//   0x80..0xFF  repeat run:   next byte is repeated (ctrl-0x80+2) times   (2..129)
+// Worst-case expansion: 1 extra control byte per 128 literal bytes (~0.8%).
+// ---------------------------------------------------------------------------
+// Compress 'src' (srcSize bytes) into 'dst' (dstSize bytes) using RLE.
+// Returns compressed size, or 0 on failure (output overflow).
+static DWORD rleCompress(LPBYTE src, DWORD srcSize, LPBYTE dst, DWORD dstSize)
 {
-	static PFN_RtlGetCompressionWorkSpaceSize pfnGetWS   = NULL;
-	static PFN_RtlCompressBuffer             pfnCompress = NULL;
-	if (!pfnGetWS || !pfnCompress)
+	DWORD out = 0;
+	DWORD i   = 0;
+	while (i < srcSize)
 	{
-		HMODULE h = ::GetModuleHandleA("ntdll.dll");
-		if (h)
+		BYTE  b      = src[i];
+		DWORD runLen = 1;
+		while (runLen < 129 && i + runLen < srcSize && src[i + runLen] == b)
+			runLen++;
+
+		if (runLen >= 2)
 		{
-			pfnGetWS   = (PFN_RtlGetCompressionWorkSpaceSize)::GetProcAddress(h, "RtlGetCompressionWorkSpaceSize");
-			pfnCompress = (PFN_RtlCompressBuffer)             ::GetProcAddress(h, "RtlCompressBuffer");
+			// Repeat run
+			if (out + 2 > dstSize) return 0;
+			dst[out++] = (BYTE)(0x80 | ((runLen - 2) & 0x7F));
+			dst[out++] = b;
+			i += runLen;
+		}
+		else
+		{
+			// Literal run: accumulate bytes until we hit a run or the 128-byte limit
+			DWORD litStart = i;
+			DWORD litLen   = 0;
+			while (litLen < 128 && i < srcSize)
+			{
+				if (i + 1 < srcSize && src[i] == src[i + 1])
+					break; // upcoming run – stop collecting literals
+				litLen++;
+				i++;
+			}
+			if (out + 1 + litLen > dstSize) return 0;
+			dst[out++] = (BYTE)(litLen - 1);
+			memcpy(dst + out, src + litStart, litLen);
+			out += litLen;
 		}
 	}
-	if (!pfnGetWS || !pfnCompress) return 0;
-
-	ULONG wsSize = 0, fragSize = 0;
-	if (pfnGetWS(COMPRESS_FMT_LZNT1, &wsSize, &fragSize) != 0) return 0;
-
-	LPBYTE ws = (LPBYTE)::malloc(wsSize);
-	if (!ws) return 0;
-	ULONG compSize = 0;
-	LONG  st = pfnCompress(COMPRESS_FMT_LZNT1, src, srcSize, dst, dstSize, 4096, &compSize, ws);
-	::free(ws); // always free workspace regardless of result
-	return (st == 0) ? compSize : 0;
+	return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,7 +81,7 @@ static DWORD rtlCompressLznt1(LPBYTE src, DWORD srcSize, LPBYTE dst, DWORD dstSi
 struct DiffFrameHeader
 {
 	DWORD magic;    // DIFF_FRAME_MAGIC
-	BYTE  flags;    // bit 0: 0=full frame, 1=XOR diff;  bit 1: 0=raw, 1=LZNT1-compressed
+	BYTE  flags;    // bit 0: 0=full frame, 1=XOR diff;  bit 1: 0=raw, 1=RLE-compressed
 	WORD  width;
 	WORD  height;
 	DWORD rawSize;  // uncompressed payload size (bytes)
@@ -84,13 +92,13 @@ struct DiffFrameHeader
 static const DWORD DIFF_FRAME_MAGIC = 0x46464944; // 'D','I','F','F' LE
 
 // ---------------------------------------------------------------------------
-// Audio frame header (WAV payload, optionally LZNT1-compressed)
+// Audio frame header (WAV payload, optionally RLE-compressed)
 // ---------------------------------------------------------------------------
 #pragma pack(push, 1)
 struct AudioFrameHeader
 {
 	DWORD magic;    // AUDIO_FRAME_MAGIC
-	BYTE  flags;    // bit 0: 0=raw WAV, 1=LZNT1-compressed WAV
+	BYTE  flags;    // bit 0: 0=raw WAV, 1=RLE-compressed WAV
 	DWORD rawSize;  // original (uncompressed) WAV size in bytes
 	DWORD compSize; // size of the payload that follows this header
 };
@@ -638,14 +646,14 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	return true;
 }
 
-// Binary inter-frame diff stream using RtlCompressBuffer (LZNT1).
+// Binary inter-frame diff stream using RLE compression.
 //
 // Wire protocol – one frame per iteration:
 //   DiffFrameHeader (17 bytes, packed)
 //   followed by compSize bytes of payload
 //
 // flags bit 0: 0 = full top-down RGB frame, 1 = XOR diff frame
-// flags bit 1: 0 = payload is raw,           1 = payload is LZNT1-compressed
+// flags bit 1: 0 = payload is raw,           1 = payload is RLE-compressed
 bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
 	char hdr[256];
@@ -700,16 +708,15 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 			}
 		}
 
-		// Attempt LZNT1 compression.
-		// Upper-bound: LZNT1 can expand incompressible data by ~1/8 plus a
-		// small constant per-chunk overhead (2 bytes per 4 KB chunk).
-		DWORD  compBufSize = rawSize + (rawSize >> 3) + 64;
+		// Attempt RLE compression.
+		// Worst-case expansion: 1 extra control byte per 128 literal bytes (~0.8%).
+		DWORD  compBufSize = rawSize + (rawSize >> 7) + 64;
 		LPBYTE lpCompBuf   = (LPBYTE)::malloc(compBufSize);
 		DWORD  compSize    = 0;
 		bool   bCompressed = false;
 		if (lpCompBuf)
 		{
-			compSize = rtlCompressLznt1(lpToCompress, rawSize, lpCompBuf, compBufSize);
+			compSize = rleCompress(lpToCompress, rawSize, lpCompBuf, compBufSize);
 			if (compSize > 0 && compSize < rawSize)
 				bCompressed = true;
 			else
@@ -1812,10 +1819,9 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 
 		dwSendSize = dwHdrSize + dwCaptured;
 
-		// Wrap the WAV in an AudioFrameHeader with optional LZNT1 compression
-		// to reduce bandwidth.  Upper-bound for LZNT1 output is src + src/8 + 64
-		// (LZNT1 worst-case expansion ≈ 12.5 % of input plus a small fixed overhead).
-		const DWORD dwCompBound = dwSendSize + dwSendSize / 8 + 64;
+		// Wrap the WAV in an AudioFrameHeader with optional RLE compression
+		// to reduce bandwidth.  RLE worst-case expansion: ~1/128 of input.
+		const DWORD dwCompBound = dwSendSize + (dwSendSize >> 7) + 64;
 		LPBYTE lpOut = (LPBYTE)malloc(sizeof(AudioFrameHeader) + dwCompBound);
 		if (lpOut)
 		{
@@ -1823,12 +1829,12 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 			afh.magic   = AUDIO_FRAME_MAGIC;
 			afh.rawSize = dwSendSize;
 
-			DWORD compSize = rtlCompressLznt1(lpBuffer, dwSendSize,
-			                                  lpOut + sizeof(AudioFrameHeader), dwCompBound);
+			DWORD compSize = rleCompress(lpBuffer, dwSendSize,
+			                             lpOut + sizeof(AudioFrameHeader), dwCompBound);
 			// Only use compression when it actually reduces the payload size.
 			if (compSize > 0 && compSize < dwSendSize)
 			{
-				afh.flags    = 1; // LZNT1-compressed
+				afh.flags    = 1; // RLE-compressed
 				afh.compSize = compSize;
 			}
 			else

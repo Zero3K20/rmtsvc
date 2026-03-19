@@ -93,13 +93,13 @@ function hidePopup()
 }
 
 // ---------------------------------------------------------------------------
-// Inter-frame diff stream (binary, LZNT1-compressed).
+// Inter-frame diff stream (binary, RLE-compressed).
 // Used by viewScreen.htm and viewCtrl.htm.
 //
 // Server sends frames as:
 //   DiffFrameHeader (17 bytes packed):
 //     magic    [4]  = 0x46464944 ('D','I','F','F' LE)
-//     flags    [1]  bit0: 0=full RGB, 1=XOR diff; bit1: 0=raw, 1=LZNT1
+//     flags    [1]  bit0: 0=full RGB, 1=XOR diff; bit1: 0=raw, 1=RLE
 //     width    [2]  uint16 LE
 //     height   [2]  uint16 LE
 //     rawSize  [4]  uint32 LE
@@ -114,67 +114,32 @@ var _diffCtrl         = null;  // AbortController for current fetch
 var _diffCanvasW      = 0;     // last rendered canvas content width
 var _diffCanvasH      = 0;     // last rendered canvas content height
 
-// LZNT1 decompressor (MS-XCA spec)
-// Compressed-chunk header: bits[0:11] = compressed_data_size - 3,
-//                           bit[15]   = 1 (compressed) / 0 (raw).
-// Uncompressed-chunk header: bits[0:11] = raw_data_size - 1, bit[15] = 0.
-// Back-reference tuple: LengthShift starts at 4 and decrements each time the
-// current chunk output position exceeds MaximumMatchOffset (which doubles
-// with each decrement, starting at 16).  The tuple's low LengthShift bits
-// encode (match_length - 3) and the remaining high bits encode (offset - 1).
-function lznt1Decompress(src)
+// RLE (PackBits-style) decompressor.
+// Control byte encoding:
+//   0x00..0x7F  literal run:  next (ctrl+1) bytes are copied verbatim (1..128)
+//   0x80..0xFF  repeat run:   next byte is repeated (ctrl-0x80+2) times   (2..129)
+function rleDecompress(src)
 {
 	var out = [];
 	var pos = 0;
-	while (pos + 1 < src.length)
+	while (pos < src.length)
 	{
-		var b0 = src[pos], b1 = src[pos+1];
-		pos += 2;
-		var chunkHdr     = (b0 | (b1 << 8)) >>> 0;
-		if (chunkHdr === 0) break;                     // terminal marker
-		var isCompressed = (chunkHdr & 0x8000) !== 0;
-		var chunkSize    = (chunkHdr & 0xFFF) + (isCompressed ? 3 : 1);
-		if (!isCompressed)
+		var ctrl = src[pos++];
+		if (ctrl & 0x80)
 		{
-			for (var i = 0; i < chunkSize && pos < src.length; i++)
-				out.push(src[pos++]);
+			// Repeat run
+			var count = (ctrl & 0x7F) + 2;
+			if (pos >= src.length) break;
+			var b = src[pos++];
+			for (var i = 0; i < count; i++)
+				out.push(b);
 		}
 		else
 		{
-			var chunkEnd      = pos + chunkSize;
-			var chunkOutStart = out.length;
-			while (pos < chunkEnd)
-			{
-				if (pos >= src.length) break;
-				var flags = src[pos++];
-				for (var bit = 0; bit < 8 && pos < chunkEnd; bit++)
-				{
-					if ((flags >> bit) & 1)
-					{
-						if (pos + 1 >= chunkEnd) break;
-						var w = src[pos] | (src[pos+1] << 8);
-						pos += 2;
-						// LengthShift: starts at 4, decrements (min 0) while
-						// current chunk output length >= MaximumMatchOffset (MS-XCA spec).
-						var curLen       = out.length - chunkOutStart;
-						var lengthShift  = 4;
-						var maxMatchOff  = 16; // 1 << 4
-						while (curLen >= maxMatchOff && lengthShift > 0)
-						{
-							lengthShift--;
-							maxMatchOff <<= 1;
-						}
-						var length = (w & ((1 << lengthShift) - 1)) + 3;
-						var offset = (w >>> lengthShift) + 1;
-						for (var j = 0; j < length; j++)
-							out.push(out[out.length - offset]);
-					}
-					else
-					{
-						if (pos < src.length) out.push(src[pos++]);
-					}
-				}
-			}
+			// Literal run
+			var count = ctrl + 1;
+			for (var i = 0; i < count && pos < src.length; i++)
+				out.push(src[pos++]);
 		}
 	}
 	return new Uint8Array(out);
@@ -222,8 +187,8 @@ function _diffParseFrames()
 
 		var payload  = b.subarray(p + DIFF_HEADER_SIZE, p + DIFF_HEADER_SIZE + compSize);
 		var isDiff   = (flags & 1) !== 0;
-		var isLznt1  = (flags & 2) !== 0;
-		var raw      = isLznt1 ? lznt1Decompress(payload) : payload;
+		var isRle    = (flags & 2) !== 0;
+		var raw      = isRle ? rleDecompress(payload) : payload;
 
 		_diffRenderFrame(isDiff, width, height, raw);
 		_diffPos = p + DIFF_HEADER_SIZE + compSize;
