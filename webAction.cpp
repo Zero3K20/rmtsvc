@@ -92,14 +92,23 @@ struct DiffFrameHeader
 static const DWORD DIFF_FRAME_MAGIC = 0x46464944; // 'D','I','F','F' LE
 
 // ---------------------------------------------------------------------------
-// Audio frame header (WAV payload, optionally RLE-compressed)
+// QOA (Quite OK Audio) – lossy audio codec used for audio frame compression.
+// Single-header library by Dominic Szablewski (MIT License).
+// https://github.com/phoboslab/qoa
+// ---------------------------------------------------------------------------
+#define QOA_IMPLEMENTATION
+#define QOA_NO_STDIO
+#include "other\qoa.h"
+
+// ---------------------------------------------------------------------------
+// Audio frame header (payload is either raw WAV or QOA-encoded PCM)
 // ---------------------------------------------------------------------------
 #pragma pack(push, 1)
 struct AudioFrameHeader
 {
 	DWORD magic;    // AUDIO_FRAME_MAGIC
-	BYTE  flags;    // bit 0: 0=raw WAV, 1=RLE-compressed WAV
-	DWORD rawSize;  // original (uncompressed) WAV size in bytes
+	BYTE  flags;    // bit 0: 0=raw WAV, 1=QOA-encoded PCM
+	DWORD rawSize;  // original PCM byte count (informational)
 	DWORD compSize; // size of the payload that follows this header
 };
 #pragma pack(pop)
@@ -1813,39 +1822,45 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 
 		dwSendSize = dwHdrSize + dwCaptured;
 
-		// Wrap the WAV in an AudioFrameHeader with optional RLE compression
-		// to reduce bandwidth.  RLE worst-case expansion: ~1/128 of input.
-		const DWORD dwCompBound = dwSendSize + (dwSendSize >> 7) + 64;
-		LPBYTE lpOut = (LPBYTE)malloc(sizeof(AudioFrameHeader) + dwCompBound);
-		if (lpOut)
+		// QOA-encode the raw PCM and wrap in an AudioFrameHeader.
+		// QOA achieves ~5x compression with transparent lossy quality.
+		const DWORD dwNumSamples = dwCaptured / (wfx.nChannels * sizeof(short));
+		if (dwNumSamples > 0 && wfx.nChannels > 0 &&
+		    wfx.nChannels <= QOA_MAX_CHANNELS && wfx.nSamplesPerSec > 0)
 		{
-			AudioFrameHeader afh;
-			afh.magic   = AUDIO_FRAME_MAGIC;
-			afh.rawSize = dwSendSize;
+			qoa_desc qoa;
+			memset(&qoa, 0, sizeof(qoa));
+			qoa.channels   = wfx.nChannels;
+			qoa.samplerate = wfx.nSamplesPerSec;
+			qoa.samples    = dwNumSamples;
 
-			DWORD compSize = rleCompress(lpBuffer, dwSendSize,
-			                             lpOut + sizeof(AudioFrameHeader), dwCompBound);
-			// Only use compression when it actually reduces the payload size.
-			if (compSize > 0 && compSize < dwSendSize)
-			{
-				afh.flags    = 1; // RLE-compressed
-				afh.compSize = compSize;
-			}
-			else
-			{
-				// Compression not beneficial; embed raw WAV after header
-				afh.flags    = 0;
-				afh.compSize = dwSendSize;
-				memcpy(lpOut + sizeof(AudioFrameHeader), lpBuffer, dwSendSize);
-			}
+			unsigned int qoaLen = 0;
+			void *qoaData = qoa_encode(
+			    (const short *)(lpBuffer + dwHdrSize), &qoa, &qoaLen);
 
-			memcpy(lpOut, &afh, sizeof(AudioFrameHeader));
-			free(lpBuffer);
-			lpBuffer   = lpOut;
-			dwSendSize = (DWORD)sizeof(AudioFrameHeader) + afh.compSize;
+			if (qoaData && qoaLen > 0)
+			{
+				LPBYTE lpOut = (LPBYTE)malloc(sizeof(AudioFrameHeader) + qoaLen);
+				if (lpOut)
+				{
+					AudioFrameHeader afh;
+					afh.magic    = AUDIO_FRAME_MAGIC;
+					afh.flags    = 1; // QOA-encoded PCM
+					afh.rawSize  = dwCaptured; // original PCM byte count
+					afh.compSize = qoaLen;
+					memcpy(lpOut, &afh, sizeof(AudioFrameHeader));
+					memcpy(lpOut + sizeof(AudioFrameHeader), qoaData, qoaLen);
+					free(lpBuffer);
+					lpBuffer   = lpOut;
+					dwSendSize = (DWORD)sizeof(AudioFrameHeader) + qoaLen;
+				}
+				// If lpOut malloc fails, fall through with plain WAV in lpBuffer.
+				free(qoaData);
+			}
+			// If qoa_encode fails, fall through with plain WAV in lpBuffer.
 		}
-		// If malloc fails, lpBuffer still holds the plain WAV; the client
-		// detects the missing AUDF magic and decodes it as plain WAV.
+		// If QOA was skipped or failed, lpBuffer holds the plain WAV; the
+		// client detects the missing AUDF magic and decodes it as plain WAV.
 	}
 
 	httprsp.NoCache();
