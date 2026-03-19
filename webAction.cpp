@@ -350,17 +350,12 @@ bool webServer:: httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpRes
 	return true;
 }
 
-//get/set image quality; bSetting - whether setting is allowed
+//get/set capture settings; bSetting - whether setting is allowed
 //getcurrentloginuserandpermissions
 bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp
 									,httpSession &session,bool bSetting)
 {
 	const char *ptr; char buf[1024];
-	if(bSetting &&  (ptr=httpreq.Request("quality")) )
-	{	
-		m_quality=atol(ptr);
-		if(m_quality<1 || m_quality>100) m_quality=60;
-	}
 //	if(bSetting && (ptr=httpreq.Request("lockmskb")) )
 //		SetMouseKeybHook( (atol(ptr)==1) );
 
@@ -370,14 +365,13 @@ bool webServer:: httprsp_capSetting(socketTCP *psock,httpRequest &httpreq,httpRe
 	HWND hwnd=(HWND)atol(session["cap_hwnd"].c_str());
 	int buflen=sprintf(buf,"<xmlroot>\r\n"
 				"<userAgent><![CDATA[%s]]></userAgent>\r\n"
-				"<quality>%d</quality>\r\n"
 				"<imgsize>%d</imgsize>\r\n"
 				"<qx>%s</qx>\r\n"
 				"<ssid>%s</ssid>\r\n"
 				"<lockmskb>%d</lockmskb>\r\n"
 				"<hwnd>%ld</hwnd>\r\n"
 				"</xmlroot>",httpreq.Header("User-Agent"),
-				m_quality,((m_dwImgSize==0)?0:1),session["lAccess"].c_str(),
+				((m_dwImgSize==0)?0:1),session["lAccess"].c_str(),
 				session.sessionID(),0,(long)(LONG_PTR)hwnd);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
@@ -621,7 +615,7 @@ bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 	return true;
 }
 
-DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &lpbits);
+DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits);
 DWORD capDesktopRaw(HWND hWnd,WORD w,WORD h,WORD &actual_w,WORD &actual_h,LPBYTE &lpbits);
 bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
@@ -631,7 +625,7 @@ bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpS
 	LPBYTE lpbits=NULL;
 	Wutils::selectDesktop();
 	HWND hwnd=(HWND)atol(session["cap_hwnd"].c_str());
-	DWORD dwRet=capDesktop(hwnd,w,h,ifCapCursor,m_quality,lpbits);
+	DWORD dwRet=capDesktop(hwnd,w,h,ifCapCursor,lpbits);
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_BMP);
@@ -1085,7 +1079,7 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 	return dwret;
 }
 
-DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,long quality,LPBYTE &lpbits)
+DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 {
 //	static LPBYTE lpbuffer=NULL;
 //	static DWORD dwbuffer_size=0;

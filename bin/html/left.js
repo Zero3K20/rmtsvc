@@ -170,8 +170,6 @@ function processRequest()
 		{ 
 		//	alert(xmlHttp.responseText);
 			var xmlobj = xmlHttp.responseXML;
-			var quality = xmlobj.getElementsByTagName("quality");
-			document.getElementById("quality"+quality[0].firstChild.data).checked=true;
 			var qxnode=xmlobj.getElementsByTagName("ssid");
 			if(qxnode.length>0) ssid=qxnode[0].firstChild.data;
 			qxnode=xmlobj.getElementsByTagName("qx");
@@ -214,30 +212,7 @@ function window_onload()
 	ArrangeTaskList();
 	Show_ChangeTool('Control');
 	if(!xmlHttp) createXMLHttpRequest();
-	var savedQuality = localStorage.getItem("imageQuality");
-	if (savedQuality)
-	{
-		xmlHttp.open("GET", "/capSetting?quality=" + savedQuality + "&lockmskb=0", true);
-	}
-	else
-	{
-		xmlHttp.open("GET", "/capSetting", true);
-	}
-	xmlHttp.onreadystatechange = processRequest;
-    	xmlHttp.send(null);
-}
-
-function capsetting()
-{
-	var lockmskb=0; var qualityVal=0;
-//	if(document.all("chkMsKb").checked) lockmskb=1;
-	if(document.getElementById("quality10").checked) qualityVal=10;
-	else if(document.getElementById("quality30").checked) qualityVal=30;
-	else if(document.getElementById("quality60").checked) qualityVal=60;
-	else if(document.getElementById("quality90").checked) qualityVal=90;
-	else qualityVal=60;
-	localStorage.setItem("imageQuality", qualityVal);
-	xmlHttp.open("GET", "/capSetting?quality="+qualityVal+"&lockmskb="+lockmskb, true);
+	xmlHttp.open("GET", "/capSetting", true);
 	xmlHttp.onreadystatechange = processRequest;
     	xmlHttp.send(null);
 }
