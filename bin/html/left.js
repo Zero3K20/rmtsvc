@@ -411,6 +411,7 @@ function fileNanage()
 var audioEnabled = false;
 var audioCtx = null;
 var nextAudioTime = 0;
+var audioChainRunning = false;
 
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
@@ -635,16 +636,40 @@ function toggleAudio()
 		if (!audioCtx)
 		{
 			audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+			// Some browsers (e.g. Chrome) start AudioContext in the "suspended"
+			// state when it is created without a prior user gesture.  The
+			// resume() promise may resolve immediately but leave the context
+			// suspended, or it may only resolve after the browser decides to
+			// allow audio (typically on the first user interaction with ANY
+			// frame on the page).  onstatechange fires reliably when the
+			// context actually transitions to "running", giving us a second
+			// chance to start the chain even if the resume() promise resolved
+			// early while the context was still paused.
+			audioCtx.onstatechange = function()
+			{
+				if (audioCtx.state === 'running' && audioEnabled)
+				{
+					// Reset scheduled-ahead time so new chunks play from "now"
+					// rather than from wherever the scheduler had advanced to
+					// while the context was suspended.
+					nextAudioTime = audioCtx.currentTime;
+					if (!audioChainRunning) fetchAudioChunk();
+				}
+			};
 		}
 		if (o) o.innerText = "Audio: ON";
 		audioCtx.resume().then(function()
 		{
-			nextAudioTime = audioCtx.currentTime;
-			fetchAudioChunk();
+			if (audioEnabled)
+			{
+				nextAudioTime = audioCtx.currentTime;
+				if (!audioChainRunning) fetchAudioChunk();
+			}
 		});
 	}
 	else
 	{
+		audioChainRunning = false;
 		if (audioCtx) audioCtx.suspend();
 		if (o) o.innerText = "Audio: OFF";
 	}
@@ -652,7 +677,8 @@ function toggleAudio()
 
 function fetchAudioChunk()
 {
-	if (!audioEnabled) return;
+	if (!audioEnabled) { audioChainRunning = false; return; }
+	audioChainRunning = true;
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", "/capAudio", true);
 	xhr.responseType = "arraybuffer";
@@ -708,10 +734,30 @@ function fetchAudioChunk()
 			// browser's per-host connection limit (~6), and block all other
 			// requests (screen updates, mouse events) — making the server
 			// appear completely unresponsive.
-			if (!nextStarted) setTimeout(fetchAudioChunk, 500);
+			if (!nextStarted)
+			{
+				// Snap nextAudioTime back to "now" so the next successfully-
+				// fetched chunk is scheduled for immediate playback.  If a
+				// previous error left nextAudioTime far in the future (because
+				// the scheduler was ahead when the failure occurred), the new
+				// chunk would otherwise be silently queued seconds ahead,
+				// creating a perceived gap even though audio data is available.
+				if (audioCtx && nextAudioTime > audioCtx.currentTime + 2.5)
+					nextAudioTime = audioCtx.currentTime;
+				setTimeout(fetchAudioChunk, 500);
+			}
 		}
 	};
-	xhr.onerror = function() { clearTimeout(prefetchTimer); if (!nextStarted) setTimeout(fetchAudioChunk, 500); };
+	xhr.onerror = function()
+	{
+		clearTimeout(prefetchTimer);
+		if (!nextStarted)
+		{
+			if (audioCtx && nextAudioTime > audioCtx.currentTime + 2.5)
+				nextAudioTime = audioCtx.currentTime;
+			setTimeout(fetchAudioChunk, 500);
+		}
+	};
 	xhr.send();
 }
 

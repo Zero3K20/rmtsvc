@@ -1558,12 +1558,19 @@ static DWORD WINAPI audioRingThread(LPVOID)
 		while (!InterlockedCompareExchange(&g_ar.lStop, 0, 0))
 		{
 			// Auto-stop after 10 s of no /capAudio requests.
-			if (GetTickCount64() - g_ar.ullLastReq > 10000) break;
+			// Read ullLastReq under the lock: on 32-bit Windows a plain
+			// ULONGLONG load is not atomic and could read a torn value,
+			// making the delta appear enormous and stopping the thread early.
+			EnterCriticalSection(&g_ar.cs);
+			ULONGLONG ullLast = g_ar.ullLastReq;
+			LeaveCriticalSection(&g_ar.cs);
+			if (GetTickCount64() - ullLast > 10000) break;
 
 			Sleep(10);
 
-			UINT32 nPktLen = 0;
-			while (SUCCEEDED(pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
+			UINT32  nPktLen = 0;
+			HRESULT hrPkt   = S_OK;
+			while (SUCCEEDED(hrPkt = pCapture->GetNextPacketSize(&nPktLen)) && nPktLen > 0)
 			{
 				BYTE  *pData   = NULL;
 				UINT32 nFrames = 0;
@@ -1607,6 +1614,14 @@ static DWORD WINAPI audioRingThread(LPVOID)
 				SetEvent(g_ar.hEvent); // wake any waiting request handler
 				pCapture->ReleaseBuffer(nFrames);
 			}
+			// If GetNextPacketSize returned a hard error (e.g.
+			// AUDCLNT_E_DEVICE_INVALIDATED on device disconnect/reset), exit
+			// the outer capture loop immediately so the thread terminates and
+			// the next /capAudio request can restart it cleanly.  Without this,
+			// the thread keeps spinning without writing to the ring, causing
+			// every pending capAudioWASAPI call to time out (3 s each) and
+			// producing audible gaps until the 10-second inactivity timer fires.
+			if (FAILED(hrPkt)) break;
 		}
 
 		pClient->Stop();
@@ -1639,7 +1654,13 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	arEnsureInit();
 	if (!g_ar.pBuf) return 0; // allocation failed at init
 
+	// Update the activity timestamp under the lock.  On 32-bit Windows,
+	// ULONGLONG reads and writes are not atomic; without the lock the ring
+	// thread's inactivity check could read a torn value and stop the thread
+	// prematurely, causing an unnecessary gap on the next request.
+	EnterCriticalSection(&g_ar.cs);
 	g_ar.ullLastReq = GetTickCount64();
+	LeaveCriticalSection(&g_ar.cs);
 
 	// Start the background thread if it is not currently running.
 	// Reset llNextChunk to the current write position so we skip any window
