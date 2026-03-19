@@ -227,25 +227,150 @@ function sendKey()
 }
 
 
-function SetClipBoard()
-{
-	var v=prompt("\u8bf7\u8f93\u5165\u8981\u8bbe\u7f6e\u5230\u526a\u8d34\u677f\u7684\u5185\u5bb9:","");
-	if(v!=null && v!="")
-	{
-		var v1=v.replace(/&/g,"%26"); 
-		var strEncode="val="+v1;
-		xmlHttp.open("POST", "/SetClipBoard", true);
-		xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
+var _clipOverlayCopyHandler = null;
 
-		xmlHttp.onreadystatechange = processRequest;
-		xmlHttp.send(strEncode);
+function _removeClipboardOverlay()
+{
+	var pdoc = parent.document;
+	var existing = pdoc.getElementById('_clipboardOverlay');
+	if (existing) existing.parentNode.removeChild(existing);
+	if (_clipOverlayCopyHandler)
+	{
+		pdoc.removeEventListener('copy', _clipOverlayCopyHandler);
+		_clipOverlayCopyHandler = null;
 	}
 }
 
+function _createClipboardOverlay(title, message, onCancel)
+{
+	_removeClipboardOverlay();
+	var pdoc = parent.document;
+	var root = pdoc.documentElement;
+
+	var overlay = pdoc.createElement('div');
+	overlay.id = '_clipboardOverlay';
+	overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
+		'background:rgba(0,0,0,0.5);z-index:99999;' +
+		'font-family:Arial,sans-serif;font-size:9pt;';
+
+	var dialog = pdoc.createElement('div');
+	dialog.style.cssText = 'position:fixed;top:50%;left:50%;' +
+		'margin-top:-110px;margin-left:-140px;' +
+		'background:#fff;border-radius:4px;width:280px;' +
+		'padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+
+	var titleRow = pdoc.createElement('div');
+	titleRow.style.cssText = 'overflow:hidden;margin-bottom:12px;' +
+		'border-bottom:1px solid #eee;padding-bottom:8px;';
+
+	var titleSpan = pdoc.createElement('b');
+	titleSpan.style.fontSize = '11pt';
+	titleSpan.appendChild(pdoc.createTextNode(title));
+
+	var closeBtn = pdoc.createElement('span');
+	closeBtn.style.cssText = 'float:right;cursor:pointer;font-size:16pt;line-height:1;color:#666;';
+	closeBtn.innerHTML = '\u00D7';
+	closeBtn.onclick = onCancel;
+
+	titleRow.appendChild(closeBtn);
+	titleRow.appendChild(titleSpan);
+
+	var msgDiv = pdoc.createElement('div');
+	msgDiv.style.cssText = 'border:2px dashed #bbb;padding:24px 16px;' +
+		'text-align:center;margin:0 0 16px 0;line-height:1.8;';
+	msgDiv.innerHTML = message;
+
+	var btnRow = pdoc.createElement('div');
+	btnRow.style.cssText = 'text-align:right;';
+
+	var cancelBtn = pdoc.createElement('button');
+	cancelBtn.style.cssText = 'background:silver;border:1px solid #888;' +
+		'cursor:pointer;padding:3px 14px;' +
+		'font-family:Arial,sans-serif;font-size:9pt;';
+	cancelBtn.appendChild(pdoc.createTextNode('Cancel'));
+	cancelBtn.onclick = onCancel;
+
+	btnRow.appendChild(cancelBtn);
+	dialog.appendChild(titleRow);
+	dialog.appendChild(msgDiv);
+	dialog.appendChild(btnRow);
+	overlay.appendChild(dialog);
+	root.appendChild(overlay);
+}
+
+function SetClipBoard()
+{
+	_createClipboardOverlay(
+		'Write clipboard',
+		'Press CTRL+C (CMD+C on Mac)<br><br>or<br><br>right-click and select Copy',
+		_removeClipboardOverlay
+	);
+
+	_clipOverlayCopyHandler = function(e)
+	{
+		var text = '';
+		if (parent.getSelection)
+		{
+			text = parent.getSelection().toString();
+		}
+		else if (parent.document.selection && parent.document.selection.createRange)
+		{
+			text = parent.document.selection.createRange().text;
+		}
+		if (text)
+		{
+			_removeClipboardOverlay();
+			var strEncode = "val=" + encodeURIComponent(text);
+			xmlHttp.open("POST", "/SetClipBoard", true);
+			xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+			xmlHttp.onreadystatechange = processRequest;
+			xmlHttp.send(strEncode);
+		}
+	};
+	parent.document.addEventListener('copy', _clipOverlayCopyHandler);
+}
+
+function _fallbackWriteClipboard(text)
+{
+	var pdoc = parent.document;
+	var ta = pdoc.createElement('textarea');
+	ta.value = text;
+	ta.style.cssText = 'position:fixed;top:0;left:-9999px;width:1px;height:1px;';
+	pdoc.documentElement.appendChild(ta);
+	ta.focus();
+	ta.select();
+	try { pdoc.execCommand('copy'); } catch(e) {}
+	ta.parentNode.removeChild(ta);
+}
 
 function GetClipBoard()
 {
-	window.open("/GetClipBoard","_blank","height=300,width=300,directories=no,location=no,menubar=no,status=no,toolbar=no");
+	var req = new XMLHttpRequest();
+	req.open("GET", "/GetClipBoard", true);
+	req.onreadystatechange = function()
+	{
+		if (req.readyState == 4 && req.status == 200)
+		{
+			var text = req.responseText;
+			if (navigator.clipboard && navigator.clipboard.writeText)
+			{
+				navigator.clipboard.writeText(text)['catch'](function()
+				{
+					_fallbackWriteClipboard(text);
+				});
+			}
+			else
+			{
+				_fallbackWriteClipboard(text);
+			}
+			_createClipboardOverlay(
+				'Read clipboard',
+				'Press CTRL+V (CMD+V on Mac)<br><br>or<br><br>right-click and select Paste',
+				_removeClipboardOverlay
+			);
+		}
+	};
+	req.send(null);
 }
 
 function RunProcess()
