@@ -7,10 +7,10 @@ function Submit_onclick()
 if(parent.myFrames.cols=="180,12,0,*")
 {
 	parent.myFrames.cols="0,12,0,*";
-	document.getElementById("ImgArrow").innerText="→ o p  e n →";
+	document.getElementById("ImgArrow").innerText="▶ Open";
 }else{
 	parent.myFrames.cols="180,12,0,*";
-	document.getElementById("ImgArrow").innerText="← c l o s e ←";
+	document.getElementById("ImgArrow").innerText="◀ Close";
 }
 setTimeout(function(){
 	try{
@@ -20,6 +20,16 @@ setTimeout(function(){
 },0);
 }
 </SCRIPT>
+<style>
+#ImgArrow {
+	writing-mode: vertical-rl;
+	text-orientation: mixed;
+	transform: rotate(180deg);
+	font-size: 10px;
+	white-space: nowrap;
+	user-select: none;
+}
+</style>
 </head>
 <body topmargin="0" leftmargin="0" bgcolor="#CEE5FF" >
  <TABLE cellSpacing="0" cellPadding="0" width="12" border="0" height="100%">
@@ -28,7 +38,7 @@ setTimeout(function(){
  </tr>
 <tr>
 	<td id=ImgArrow height="122" width="12" align=center style="cursor:pointer;" onclick="javascript:Submit_onclick()">
-	← c l o s e ←
+	&#9664; Close
 	</td>
 </tr>
 <tr>
