@@ -44,7 +44,7 @@ bool webServer :: httprsp_reglist(socketTCP *psock,httpResponse &httprsp,const c
 {
 	bool bret=false;
 	cBuffer buffer(1024);
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	
 	if(listWhat & 1) bret|=regkeyList(buffer,skey);
 	if(listWhat & 2) bret|=regitemList(buffer,skey);
@@ -389,9 +389,19 @@ bool regkeyList(cBuffer &buffer,const char *skey)
 						::RegCloseKey(hsubKey);
 					}
 					////get this key's subkey count - end-----------------------------
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),
-						"<kitem><id>%d</id><subkeys>%c</subkeys><regkey>%s</regkey></kitem>",
-						++lret, ((dwSubKeys>0)?'+':' '), subkey_buffer);
+					{
+						int klen=strlen(subkey_buffer);
+						int space_needed=klen*3+128;
+						if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+						char *utf8key=new char[klen*3+2];
+						if(utf8key){
+							cCoder::utf8_encode(subkey_buffer, klen, utf8key);
+							buffer.len()+=sprintf(buffer.str()+buffer.len(),
+								"<kitem><id>%d</id><subkeys>%c</subkeys><regkey>%s</regkey></kitem>",
+								++lret, ((dwSubKeys>0)?'+':' '), utf8key);
+							delete[] utf8key;
+						}
+					}
 					dwBufferSize=dwMaxSubKeyLen+1; dwIndex++;
 				}//?while
 				delete[] ptr_tmpbuf;
@@ -458,17 +468,25 @@ bool regitemList(cBuffer &buffer,const char *skey)
 				DWORD dwType; dwIndex=0;
 				while( ::RegEnumValue(hKEY,dwIndex,subname_buffer,&dwNameBufferSize,NULL,&dwType,subvalue_buffer,&dwValueBufferSize)==  ERROR_SUCCESS)
 				{
-					if(buffer.Space()<(dwNameBufferSize+100)){
-						if( (dwNameBufferSize+=100)<256 ) dwNameBufferSize=256;
-						if( buffer.Resize(buffer.size()+dwNameBufferSize)==NULL ) break;
+					{
+						const char *rname_src=(subname_buffer[0]==0)?"(default)":subname_buffer;
+						int rname_len=strlen(rname_src);
+						int space_needed=rname_len*3+(dwNameBufferSize+100);
+						if(space_needed<256) space_needed=256;
+						if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+						char *utf8rname=new char[rname_len*3+2];
+						if(utf8rname){
+							cCoder::utf8_encode(rname_src, rname_len, utf8rname);
+							buffer.len()+=sprintf(buffer.str()+buffer.len(),
+								"<vitem><id>%d</id><rtype>%s</rtype>"
+								"<rname><![CDATA[%s]]></rname>"
+								"<rdlen>%d</rdlen>",
+								++lret,STR_REG_TYPE[dwType],
+								utf8rname,
+								dwValueBufferSize);
+							delete[] utf8rname;
+						}
 					}
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),
-						"<vitem><id>%d</id><rtype>%s</rtype>"
-						"<rname><![CDATA[%s]]></rname>"
-						"<rdlen>%d</rdlen>",
-						++lret,STR_REG_TYPE[dwType],
-						((subname_buffer[0]==0)?"(default)":subname_buffer),
-						dwValueBufferSize);
 					
 					if(dwType==REG_BINARY)
 					{
@@ -516,8 +534,17 @@ bool regitemList(cBuffer &buffer,const char *skey)
 						{
 							if(subvalue_buffer[0]==0)
 								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata></rdata>");
-							else
-								buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%s]]></rdata>",subvalue_buffer);
+							else {
+								int vlen=strlen((char*)subvalue_buffer);
+								int vspace=vlen*3+32;
+								if(buffer.Space()<vspace) buffer.Resize(buffer.size()+vspace);
+								char *utf8val=new char[vlen*3+2];
+								if(utf8val){
+									cCoder::utf8_encode((char*)subvalue_buffer, vlen, utf8val);
+									buffer.len()+=sprintf(buffer.str()+buffer.len(),"<rdata><![CDATA[%s]]></rdata>",utf8val);
+									delete[] utf8val;
+								}
+							}
 						}
 					} //non-binary data
 					if(buffer.Space()<12) buffer.Resize(buffer.size()+12);

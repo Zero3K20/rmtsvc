@@ -148,7 +148,7 @@ BOOL portList(cBuffer &buffer)
 	
 	Wutils::EnablePrivilege(SE_DEBUG_NAME,true);
 	if(buffer.Space()<256) buffer.Resize(buffer.size()+256);
-	 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
+	 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 
 	DWORD dwLastError=NO_ERROR,dwSize,dwState,dwCount=0;
 	PMIB_TCPTABLE_EX lpBuffer = NULL;
@@ -185,7 +185,14 @@ BOOL portList(cBuffer &buffer)
 			if(dwState>MIB_TCP_STATE_DELETE_TCB) dwState=0;
 			sprintf(strRemoteAddr,"%s",socketBase::IP2A(lpBuffer->table[dwSize].dwRemoteAddr));
 			const char *szProcessName=Wutils::GetNameFromPID(lpBuffer->table[dwSize].dwProcessId);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),
+			{
+				const char *pname_src=szProcessName?szProcessName:"OS kernel";
+				int pnlen=strlen(pname_src);
+				int space_needed=pnlen*3+512;
+				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+				char utf8pname[MAX_PATH*4];
+				cCoder::utf8_encode(pname_src, pnlen, utf8pname);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),
 					"<fport><id>%d</id>"
 					"<ptype>TCP</ptype>"
 					"<pid>%04d</pid>"
@@ -195,12 +202,13 @@ BOOL portList(cBuffer &buffer)
 					"<status>%s</status>"
 					"</fport>",++dwCount,
 					lpBuffer->table[dwSize].dwProcessId,
-					((szProcessName)?szProcessName:"OS kernel"),
+					utf8pname,
 					socketBase::IP2A(lpBuffer->table[dwSize].dwLocalAddr),
 					ntohs((u_short)lpBuffer->table[dwSize].dwLocalPort),
 					strRemoteAddr,
 					ntohs((u_short)lpBuffer->table[dwSize].dwRemotePort),
 					TCP_STATE[dwState] );
+			}
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 	
@@ -233,7 +241,14 @@ BOOL portList(cBuffer &buffer)
 			if(buffer.Space()<512) buffer.Resize(buffer.size()+512);
 
 			const char *szProcessName=Wutils::GetNameFromPID(lpBuffer1->table[dwSize].dwProcessId);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),
+			{
+				const char *pname_src=szProcessName?szProcessName:"OS kernel";
+				int pnlen=strlen(pname_src);
+				int space_needed=pnlen*3+512;
+				if(buffer.Space()<space_needed) buffer.Resize(buffer.size()+space_needed);
+				char utf8pname[MAX_PATH*4];
+				cCoder::utf8_encode(pname_src, pnlen, utf8pname);
+				buffer.len()+=sprintf(buffer.str()+buffer.len(),
 					"<fport><id>%d</id>"
 					"<ptype>UDP</ptype>"
 					"<pid>%04d</pid>"
@@ -243,9 +258,10 @@ BOOL portList(cBuffer &buffer)
 					"<status></status>"
 					"</fport>",++dwCount,
 					lpBuffer1->table[dwSize].dwProcessId,
-					((szProcessName)?szProcessName:"OS kernel"),
+					utf8pname,
 					socketBase::IP2A(lpBuffer1->table[dwSize].dwLocalAddr),
 					ntohs((u_short)lpBuffer1->table[dwSize].dwLocalPort) );
+			}
 		}//?for
 	}//?if (dwLastError == NO_ERROR)
 

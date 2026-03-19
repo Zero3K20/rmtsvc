@@ -191,7 +191,7 @@ function regkeyClick(tblElement)
 	document.getElementById("lblRegKey").innerText=regkey;
 	document.getElementById("lblRegItem").innerText="";
 	var rkey=rpath+"\\"+regkey;
-	strEncode="listwhat=2&rkey="+rkey.replace(/&/g,"%26");
+	strEncode="listwhat=2&rkey="+encodeURIComponent(rkey);
 	submitIt(strEncode,"/reglist");
 }
 
@@ -205,7 +205,7 @@ function regkeyDblClick(tblElement)
 	document.getElementById("lblRegKey").innerText="";
 	document.getElementById("lblRegItem").innerText="";
 	regpath=rpath+"\\"+regkey;
-	strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
+	strEncode="listwhat=3&rkey="+encodeURIComponent(regpath);
 	submitIt(strEncode,"/reglist");
 }
 
@@ -230,7 +230,7 @@ function goup()
 	if(p!=-1)
 	{
 		regpath=rpath.substr(0,p);
-		strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
+		strEncode="listwhat=3&rkey="+encodeURIComponent(regpath);
 		submitIt(strEncode,"/reglist");
 	}
 	else alert("Reached the end");
@@ -243,7 +243,7 @@ function goto()
 	if(new_rpath!=null && new_rpath!="" )
 	{
 		regpath=new_rpath;
-		strEncode="listwhat=3&rkey="+regpath.replace(/&/g,"%26");
+		strEncode="listwhat=3&rkey="+encodeURIComponent(regpath);
 		submitIt(strEncode,"/reglist");
 	}
 }
@@ -251,7 +251,7 @@ function goto()
 function refreshKey()
 {
 	regpath=document.getElementById("lblRegPath").innerText;
-	strEncode="listwhat=1&rkey="+regpath.replace(/&/g,"%26");
+	strEncode="listwhat=1&rkey="+encodeURIComponent(regpath);
 	submitIt(strEncode,"/reglist");
 }
 
@@ -260,7 +260,7 @@ function refreshItem()
 	var regkey=document.getElementById("lblRegKey").innerText;
 	var rpath=document.getElementById("lblRegPath").innerText;
 	if(regkey!="") rpath=rpath+"\\"+regkey;
-	strEncode="listwhat=2&rkey="+rpath.replace(/&/g,"%26");
+	strEncode="listwhat=2&rkey="+encodeURIComponent(rpath);
 	submitIt(strEncode,"/reglist");
 }
 
@@ -272,7 +272,7 @@ function delKey()
 		alert("Please select a subkey to delete!");
 	else if( confirm("Are you sure you want to delete subkey "+regkey+"?") )
 	{
-		strEncode="rpath="+rpath.replace(/&/g,"%26")+"&rkey="+regkey.replace(/&/g,"%26");
+		strEncode="rpath="+encodeURIComponent(rpath)+"&rkey="+encodeURIComponent(regkey);
 		submitIt(strEncode,"/regkey_del");
 	}
 }
@@ -283,7 +283,7 @@ function addKey()
 	var regkey=prompt("Enter subkey name","");
 	if(regkey!=null && regkey!="" )
 	{
-		strEncode="rpath="+rpath.replace(/&/g,"%26")+"&rkey="+regkey.replace(/&/g,"%26");
+		strEncode="rpath="+encodeURIComponent(rpath)+"&rkey="+encodeURIComponent(regkey);
 		submitIt(strEncode,"/regkey_add");
 	}
 }
@@ -304,10 +304,10 @@ function delItem()
 			if(regkey!="")
 			{
 				var rtmp=rpath+"\\"+regkey;
-				strEncode="rpath="+rtmp.replace(/&/g,"%26")+"&rname="+regitem.replace(/&/g,"%26");
+				strEncode="rpath="+encodeURIComponent(rtmp)+"&rname="+encodeURIComponent(regitem);
 			}
 			else
-				strEncode="rpath="+rpath.replace(/&/g,"%26")+"&rname="+regitem.replace(/&/g,"%26");
+				strEncode="rpath="+encodeURIComponent(rpath)+"&rname="+encodeURIComponent(regitem);
 			document.getElementById("lblRegItem").innerText="";
 			submitIt(strEncode,"/regitem_del");
 		}
@@ -323,10 +323,10 @@ function addItemCallback(v)
 		if(regkey!="")
 		{
 			var rtmp=rpath+"\\"+regkey;
-			strEncode="rpath="+rtmp.replace(/&/g,"%26")+"&"+v;
+			strEncode="rpath="+encodeURIComponent(rtmp)+"&"+v;
 		}
 		else
-			strEncode="rpath="+rpath.replace(/&/g,"%26")+"&"+v;
+			strEncode="rpath="+encodeURIComponent(rpath)+"&"+v;
 		submitIt(strEncode,"/regitem_add");
 	}
 }
@@ -357,21 +357,21 @@ function keypressHandler(txtElement, e)
 			if(regkey!="")
 			{
 				var rtmp=rpath+"\\"+regkey;
-				strEncode="rpath="+rtmp.replace(/&/g,"%26");
+				strEncode="rpath="+encodeURIComponent(rtmp);
 			}
 			else
-				strEncode="rpath="+rpath.replace(/&/g,"%26");
+				strEncode="rpath="+encodeURIComponent(rpath);
 			if(field=="rname")
 			{
-				strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
-				strEncode=strEncode+"&nname="+txtElement.value.replace(/&/g,"%26");
+				strEncode=strEncode+"&rname="+encodeURIComponent(d.rname);
+				strEncode=strEncode+"&nname="+encodeURIComponent(txtElement.value);
 				submitIt(strEncode,"/regitem_ren");
 			}
 			else
 			{
 				strEncode=strEncode+"&rtype="+d.rtype;
-				strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
-				strEncode=strEncode+"&rdata="+txtElement.value.replace(/&/g,"%26");
+				strEncode=strEncode+"&rname="+encodeURIComponent(d.rname);
+				strEncode=strEncode+"&rdata="+encodeURIComponent(txtElement.value);
 				submitIt(strEncode,"/regitem_md");
 			}
 		}
@@ -422,13 +422,13 @@ function modifyDataPopup(idx, e)
 		if(regkey!="")
 		{
 			var rtmp=rpath+"\\"+regkey;
-			strEncode="rpath="+rtmp.replace(/&/g,"%26");
+			strEncode="rpath="+encodeURIComponent(rtmp);
 		}
 		else
-			strEncode="rpath="+rpath.replace(/&/g,"%26");
+			strEncode="rpath="+encodeURIComponent(rpath);
 		strEncode=strEncode+"&rtype="+d.rtype;
-		strEncode=strEncode+"&rname="+d.rname.replace(/&/g,"%26");
-		strEncode=strEncode+"&rdata="+newData.replace(/&/g,"%26");
+		strEncode=strEncode+"&rname="+encodeURIComponent(d.rname);
+		strEncode=strEncode+"&rdata="+encodeURIComponent(newData);
 		submitIt(strEncode,"/regitem_md");
 	};
 }

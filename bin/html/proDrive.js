@@ -46,7 +46,7 @@ function window_onload()
 	}
 	if(!oPopup) createpopup();
 	if(!xmlHttp) createXMLHttpRequest();
-	xmlHttp.open("GET", "/prodrive?path="+sdri, true);
+	xmlHttp.open("GET", "/prodrive?path="+encodeURIComponent(sdri), true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );
 	showPopup(100, 150, 150, 20);
@@ -63,7 +63,7 @@ function mdVolu()
 {
 	showPopup(100, 150, 150, 20);
 	var svolu=document.getElementById("fvolu").value;
-	xmlHttp.open("GET", "/prodrive?path="+sdri+"&volu="+svolu, true);
+	xmlHttp.open("GET", "/prodrive?path="+encodeURIComponent(sdri)+"&volu="+encodeURIComponent(svolu), true);
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.send( null );
 }
