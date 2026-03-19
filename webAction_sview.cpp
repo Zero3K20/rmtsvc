@@ -126,6 +126,7 @@ DWORD serviceList(cBuffer &buffer)
 	if( (lpservice_base=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); return 0; }
 	lpservice=lpservice_base;
 
+	resumeHandle=0; // Reset to enumerate all services from the beginning
 	::EnumServicesStatus(schSCManager,SERVICE_WIN32,SERVICE_STATE_ALL,lpservice,
 		bytes,&bytesNeeded,&servicesReturned,&resumeHandle);
 
@@ -190,8 +191,8 @@ DWORD serviceList(cBuffer &buffer)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>Kernel Driver</stype>");
 			else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<stype>---</stype>");
 			
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp>%s</sdisp>",lpqscBuf->lpDisplayName);
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<spath>%s</spath>",lpqscBuf->lpBinaryPathName);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<sdisp><![CDATA[%s]]></sdisp>",lpqscBuf->lpDisplayName);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<spath><![CDATA[%s]]></spath>",lpqscBuf->lpBinaryPathName);
 			
 			QueryServiceConfig2(hService,SERVICE_CONFIG_DESCRIPTION,NULL, 0, &bytesNeeded);
 			if(bytesNeeded>lpqscBuf_Size)
