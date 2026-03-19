@@ -143,7 +143,6 @@ private:
 	bool httprsp_upnpxml(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 
 	std::string m_defaultPage; //default document
-	int m_quality;//capture desktop image quality
 	DWORD m_dwImgSize;//capture desktop image size: 0=desktop size, otherwise specified size HWORD=h, WWORD=w
 
 	//first, visitor account - case insensitive. Saved in lowercase

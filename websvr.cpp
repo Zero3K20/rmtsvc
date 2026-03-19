@@ -21,7 +21,6 @@ webServer :: webServer():m_svrport(7778)
 #endif
 		setRoot(NULL,HTTP_ACCESS_NONE,NULL);
 		
-		m_quality=30;
 		m_dwImgSize=0;
 
 		m_defaultPage="index.htm";
