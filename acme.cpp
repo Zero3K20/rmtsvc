@@ -260,6 +260,10 @@ void AcmeClient::configure(const char *domain, const char *email,
     getAbsoluteFilePath(m_acctKeyFile);
     getAbsoluteFilePath(m_certFile);
     getAbsoluteFilePath(m_keyFile);
+
+    RW_LOG_PRINT(LOGLEVEL_INFO,
+        "[ACME] configure: domain=%s certFile=%s\r\n",
+        m_domain.c_str(), m_certFile.c_str());
 }
 
 // ===========================================================================
@@ -270,7 +274,12 @@ bool AcmeClient::hasCert(int minDays) const
     if (m_certFile.empty()) return false;
 
     FILE *f = fopen(m_certFile.c_str(), "rb");
-    if (!f) return false;
+    if (!f) {
+        RW_LOG_PRINT(LOGLEVEL_INFO,
+            "[ACME] hasCert(%d): no cert file found at %s\r\n",
+            minDays, m_certFile.c_str());
+        return false;
+    }
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -280,12 +289,20 @@ bool AcmeClient::hasCert(int minDays) const
     fclose(f);
 
     std::vector<unsigned char> der;
-    if (!pem_to_der(std::string(buf.data()), der)) return false;
+    if (!pem_to_der(std::string(buf.data()), der)) {
+        RW_LOG_PRINT(LOGLEVEL_INFO,
+            "[ACME] hasCert(%d): cert file found but failed to parse PEM.\r\n", minDays);
+        return false;
+    }
 
     PCCERT_CONTEXT ctx = CertCreateCertificateContext(
         X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
         der.data(), (DWORD)der.size());
-    if (!ctx) return false;
+    if (!ctx) {
+        RW_LOG_PRINT(LOGLEVEL_INFO,
+            "[ACME] hasCert(%d): cert file found but DER parse failed.\r\n", minDays);
+        return false;
+    }
 
     FILETIME ftNow;
     GetSystemTimeAsFileTime(&ftNow);
@@ -298,8 +315,13 @@ bool AcmeClient::hasCert(int minDays) const
 
     // Each day = 864 000 000 000 × 100-ns intervals
     ULONGLONG minNs = (ULONGLONG)minDays * 864000000000ULL;
-    return uExp.QuadPart > uNow.QuadPart &&
-           (uExp.QuadPart - uNow.QuadPart) > minNs;
+    bool valid = uExp.QuadPart > uNow.QuadPart &&
+                 (uExp.QuadPart - uNow.QuadPart) > minNs;
+    if (!valid)
+        RW_LOG_PRINT(LOGLEVEL_INFO,
+            "[ACME] hasCert(%d): cert found but expired or expiring within %d days.\r\n",
+            minDays, minDays);
+    return valid;
 }
 
 // ===========================================================================

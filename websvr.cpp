@@ -84,6 +84,12 @@ bool webServer :: Start()
 {
 	if(m_svrport==0) return true; //do not start service
 	loadRememberTokens(); //restore persisted remember-me tokens
+	// Always log the SSL/ACME state so the user can confirm configuration was read
+	RW_LOG_PRINT(LOGLEVEL_INFO,
+	    "[websvr] Starting on port %d - SSL=%s ACME-domain=%s\r\n",
+	    m_svrport,
+	    m_bSSLenabled ? "enabled" : "disabled",
+	    g_acme_domain.empty() ? "(none)" : g_acme_domain.c_str());
 #ifdef _SUPPORT_OPENSSL_
 	if(m_bSSLenabled) //start SSL service
 	{

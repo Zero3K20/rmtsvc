@@ -288,12 +288,10 @@ void webServer :: docmd_webs(const char *strParam)
 	this->setRoot(rootpath.c_str(),lAccess,defaultPage.c_str());
 	
 	//SSL support configuration parameters for web service
-	if( (it=maps.find("ssl_enabled"))!=maps.end() && (*it).second=="true")
-		m_bSSLenabled=true;
-	else m_bSSLenabled=false;
-	if( (it=maps.find("ssl_verify"))!=maps.end() && (*it).second=="true")
-		m_bSSLverify=true;
-	else m_bSSLverify=false;
+	if( (it=maps.find("ssl_enabled"))!=maps.end())
+		m_bSSLenabled=((*it).second=="true");
+	if( (it=maps.find("ssl_verify"))!=maps.end())
+		m_bSSLverify=((*it).second=="true");
 	
 	return;
 }
