@@ -731,12 +731,12 @@ public:
 			get_hash((char*)hash);
 		}
 		
-		_private_tls_hkdf_expand_label(data13.hs_secret, hash_len, data13.prk, hash_len, client_key, strlen(client_key), hash, hash_len);
+		_private_tls_hkdf_expand_label(data13.hs_secret, hash_len, data13.prk, hash_len, client_key, (unsigned char)strlen(client_key), hash, hash_len);
 		
 		_private_tls_hkdf_expand_label(local_keybuffer, key_len, data13.hs_secret, hash_len, "key", 3, NULL, 0);
 		_private_tls_hkdf_expand_label(local_ivbuffer, encoder->iv_len(true), data13.hs_secret, hash_len, "iv", 2, NULL, 0);
 
-		_private_tls_hkdf_expand_label(data13.secret, hash_len, data13.prk, hash_len, server_key, strlen(server_key), hash, hash_len);
+		_private_tls_hkdf_expand_label(data13.secret, hash_len, data13.prk, hash_len, server_key, (unsigned char)strlen(server_key), hash, hash_len);
 		
 		_private_tls_hkdf_expand_label(remote_keybuffer, key_len, data13.secret, hash_len, "key", 3, NULL, 0);
 		_private_tls_hkdf_expand_label(remote_ivbuffer, encoder->iv_len(true), data13.secret, hash_len, "iv", 2, NULL, 0);

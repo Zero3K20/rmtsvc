@@ -27,7 +27,9 @@
 //   → ChangeCipherSpec
 //   → Finished
 
+#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
 #include <WinSock2.h>
 #include <windows.h>
 #include "tlsclient.cpp"
