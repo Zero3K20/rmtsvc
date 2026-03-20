@@ -206,6 +206,9 @@ static const unsigned char CB_OID_BC[]        = {0x55,0x1d,0x13}; // 2.5.29.19
 // machine's DNS hostname (and 'localhost' / 127.0.0.1) in the Subject
 // Alternative Name extension so that modern browsers accept it.
 // On success fills cert_der and privkey[32] and returns true.
+// Self-signed certificate validity period (10 years in seconds).
+static const long SELF_SIGNED_CERT_VALIDITY_SEC = 10L * 365 * 24 * 3600;
+
 static bool gen_self_signed_cert(const char *hostname,
                                   std::vector<unsigned char> &cert_der,
                                   unsigned char privkey[32])
@@ -262,7 +265,7 @@ static bool gen_self_signed_cert(const char *hostname,
 
         std::vector<unsigned char> val;
         cb_utctime(val, now);
-        cb_utctime(val, now + 10L*365*24*3600);
+        cb_utctime(val, now + SELF_SIGNED_CERT_VALIDITY_SEC);
         auto validity = cb_der_seq(val);
 
         // SubjectPublicKeyInfo
