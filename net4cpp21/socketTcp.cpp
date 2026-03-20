@@ -508,7 +508,9 @@ bool expected = (strncmp(err, "timeout",              sizeof("timeout")         
                  strncmp(err, "connection closed",     sizeof("connection closed")    - 1) == 0 ||
                  strncmp(err, "not a TLS record",      sizeof("not a TLS record")     - 1) == 0 ||
                  strncmp(err, "fatal alert from client",
-                                                       sizeof("fatal alert from client") - 1) == 0);
+                                                       sizeof("fatal alert from client") - 1) == 0 ||
+                 strncmp(err, "TLS 1.2 not offered",
+                                                       sizeof("TLS 1.2 not offered")    - 1) == 0);
 if(expected)
     RW_LOG_PRINT(LOGLEVEL_WARN,  "[SSL] TLS server handshake failed: %s\r\n", err);
 else
