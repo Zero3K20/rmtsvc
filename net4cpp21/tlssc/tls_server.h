@@ -32,7 +32,24 @@
 #endif
 #include <WinSock2.h>
 #include <windows.h>
+#include <stdarg.h>
 #include "tlsclient.cpp"
+
+// ---------------------------------------------------------------------------
+// Verbose debug-logging helper.
+// When cLogger.h has already been included (i.e. its include-guard is defined)
+// we emit messages at DEBUG level through the application's logger.
+// Otherwise the macro is a no-op so this header can still be used standalone.
+// ---------------------------------------------------------------------------
+#ifndef TLS_SERVER_DEBUG
+#  ifdef __YY_CLOGGER_H__
+#    define TLS_SERVER_DEBUG(...) \
+         if(net4cpp21::cLogger::getInstance().ifOutPutLog(net4cpp21::LOGLEVEL_DEBUG)) \
+             net4cpp21::cLogger::getInstance().debug(__VA_ARGS__)
+#  else
+#    define TLS_SERVER_DEBUG(...) ((void)0)
+#  endif
+#endif
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -104,6 +121,7 @@ class tls_server_conn
     bool    handshake_done          = false;
     bool    received_close_notify   = false;
     bool    use_ems                 = false;   // extended_master_secret (RFC 7627)
+    const char *m_step              = "";      // current handshake step (for diagnostics)
 
     // -- private helpers ------------------------------------------------------
 
@@ -118,6 +136,19 @@ class tls_server_conn
         err_msg.set_size(len);
         memcpy(err_msg.buf, msg, len);
         return ret;
+    }
+
+    // Build a formatted error string into err_msg.buf and return it.
+    const char *set_errf(const char *fmt, ...)
+    {
+        char tmp[256];
+        va_list ap;
+        va_start(ap, fmt);
+        vsnprintf(tmp, sizeof(tmp), fmt, ap);
+        va_end(ap);
+        tmp[sizeof(tmp)-1] = '\0';
+        set_err(tmp, -1);
+        return err_msg.buf;
     }
 
     // When a plain HTTP client hits the HTTPS port, send a 301 redirect to HTTPS
@@ -221,7 +252,12 @@ class tls_server_conn
         while(sent < tmp.size)
         {
             int n = ::send(s, tmp.buf + sent, tmp.size - sent, 0);
-            if(n <= 0) return "send failed";
+            if(n <= 0)
+            {
+                int wsa_err = (int)WSAGetLastError(); // capture before any other call
+                return set_errf("send failed [%s] (WSAError=%d)",
+                                m_step && *m_step ? m_step : "?", wsa_err);
+            }
             sent += n;
         }
         return nullptr;
@@ -244,7 +280,15 @@ class tls_server_conn
                 timeval tv = { wait_sec, 0 };
                 int r = select((int)(s + 1), &set, nullptr, nullptr, &tv);
                 if(r <= 0)
-                    return r == 0 ? "timeout" : "select error";
+                {
+                    if(r == 0)
+                        return set_errf("timeout [%s] (waited %ds)",
+                                        m_step && *m_step ? m_step : "?",
+                                        wait_sec);
+                    int wsa_err = (int)WSAGetLastError(); // capture before any other call
+                    return set_errf("select error [%s] (WSAError=%d)",
+                                    m_step && *m_step ? m_step : "?", wsa_err);
+                }
 
                 recv_buf.check_size(recv_buf.size + 4096 * 4);
                 int len = ::recv(s, recv_buf.buf + recv_buf.size, 4096 * 4, 0);
@@ -504,7 +548,9 @@ class tls_server_conn
 
         // Client version.
         if(r.buf_size - r.readed < 2) return "truncated";
-        r.read<short>();
+        int client_ver = (int)(unsigned short)ntohs(r.read<short>());
+        TLS_SERVER_DEBUG("[SSL] server: ClientHello received, client_version=0x%04X\r\n",
+                         client_ver);
 
         // Client random (32 bytes).
         if(r.buf_size - r.readed < (int)RAND_SIZE) return "truncated";
@@ -541,7 +587,13 @@ class tls_server_conn
         r.readed = cs_start + cs_len; // ensure we skip the full list
 
         if(chosen_cipher_out == TLS_NONE)
+        {
+            TLS_SERVER_DEBUG("[SSL] server: no supported cipher in ClientHello"
+                             " (%d suite(s) offered)\r\n", cs_len / 2);
             return "no supported cipher suite offered by client";
+        }
+        TLS_SERVER_DEBUG("[SSL] server: chosen cipher=0x%04X, EMS=%d\r\n",
+                         (int)chosen_cipher_out, (int)use_ems);
 
         // Parse compression methods.
         if(r.buf_size - r.readed < 1) return nullptr;
@@ -705,6 +757,8 @@ public:
         try
         {
             // ---- Receive ClientHello ----------------------------------------
+            m_step = "ClientHello";
+            TLS_SERVER_DEBUG("[SSL] server: waiting for ClientHello\r\n");
             const char *ret = recv_records(10);
             if(ret)
             {
@@ -749,15 +803,21 @@ public:
             crypto.set_client_rand(client_rand);
 
             // ---- Send ServerHello ------------------------------------------
+            m_step = "ServerHello";
+            TLS_SERVER_DEBUG("[SSL] server: sending ServerHello\r\n");
             ret = send_server_hello(chosen_cipher, server_rand,
                                     session_id, session_id_len);
             if(ret) throw ret;
 
             // ---- Send Certificate ------------------------------------------
+            m_step = "Certificate";
+            TLS_SERVER_DEBUG("[SSL] server: sending Certificate\r\n");
             ret = send_certificate();
             if(ret) throw ret;
 
             // ---- Send ServerKeyExchange ------------------------------------
+            m_step = "ServerKeyExchange";
+            TLS_SERVER_DEBUG("[SSL] server: sending ServerKeyExchange\r\n");
             unsigned char server_pubkey[65];
             int           server_pubkey_len = 0;
             ret = send_server_key_exchange(client_rand, server_rand,
@@ -765,10 +825,14 @@ public:
             if(ret) throw ret;
 
             // ---- Send ServerHelloDone --------------------------------------
+            m_step = "ServerHelloDone";
+            TLS_SERVER_DEBUG("[SSL] server: sending ServerHelloDone\r\n");
             ret = send_server_hello_done();
             if(ret) throw ret;
 
             // ---- Receive ClientKeyExchange, ChangeCipherSpec, Finished -----
+            m_step = "ClientKeyExchange";
+            TLS_SERVER_DEBUG("[SSL] server: waiting for ClientKeyExchange/CCS/Finished\r\n");
             unsigned char client_pubkey[65];
             int           client_pubkey_len = 0;
             bool got_cke = false, got_ccs = false, got_fin = false;
@@ -788,6 +852,7 @@ public:
 
                     if(!got_cke && hs_t == MSG_CLIENT_KEY_EXCHANGE)
                     {
+                        TLS_SERVER_DEBUG("[SSL] server: received ClientKeyExchange\r\n");
                         ret = parse_client_key_exchange(payload.buf, payload.size,
                                                         client_pubkey,
                                                         client_pubkey_len);
@@ -798,15 +863,19 @@ public:
                         got_cke = true;
 
                         // Derive session keys (server perspective: swap client/server keys).
+                        m_step = "key derivation";
                         ret = crypto.tls12_compute_key_server(
                             ECC_secp256r1,
                             reinterpret_cast<const char*>(client_pubkey),
                             client_pubkey_len,
                             use_ems);
                         if(ret) throw ret;
+                        m_step = "ClientKeyExchange";
                     }
                     else if(got_ccs && hs_t == MSG_FINISHED)
                     {
+                        TLS_SERVER_DEBUG("[SSL] server: received client Finished\r\n");
+                        m_step = "Finished (client)";
                         // Finished is sent encrypted; consume_record already decrypted it.
                         ret = verify_client_finished(payload.buf, payload.size);
                         if(ret) throw ret;
@@ -818,10 +887,12 @@ public:
                 }
                 else if(rtype == CONTENT_CHANGECIPHERSPEC)
                 {
+                    TLS_SERVER_DEBUG("[SSL] server: received ChangeCipherSpec\r\n");
                     // Enable encryption/decryption for subsequent records.
                     // Sequence numbers are already 0 from key derivation; no reset needed.
                     crypto.set_encoding(true);
                     got_ccs = true;
+                    m_step = "Finished (client)";
                 }
                 else if(rtype == CONTENT_ALERT)
                 {
@@ -829,19 +900,28 @@ public:
                     // the client rejected our ServerHello.  Abort immediately instead
                     // of timing out waiting for a ClientKeyExchange that will never arrive.
                     if(payload.size >= 2 && (unsigned char)payload.buf[0] == 2 /* fatal */)
+                    {
+                        TLS_SERVER_DEBUG("[SSL] server: fatal alert from client"
+                                         " (code=%d)\r\n",
+                                         payload.size >= 2 ? (int)(unsigned char)payload.buf[1] : -1);
                         throw "fatal alert from client";
+                    }
                     // Warning alerts are non-fatal; ignore and continue.
                 }
             }
 
             // ---- Send ChangeCipherSpec + Finished --------------------------
+            m_step = "ChangeCipherSpec (server)";
+            TLS_SERVER_DEBUG("[SSL] server: sending ChangeCipherSpec + Finished\r\n");
             ret = send_change_cipherspec();
             if(ret) throw ret;
 
+            m_step = "Finished (server)";
             ret = send_server_finish();
             if(ret) throw ret;
 
             handshake_done = true;
+            m_step = "";
             return nullptr;
         }
         catch(const char *err)
@@ -923,6 +1003,7 @@ public:
         recv_channel_readed = 0;
         crypto.reset();
         time_out = 0x7fffffff;
+        m_step   = "";
         if(s != INVALID_SOCKET)
         {
             shutdown(s, SD_BOTH);
