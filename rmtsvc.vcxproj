@@ -126,6 +126,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cInjectDll.cpp" />
+    <ClCompile Include="acme.cpp" />
     <ClCompile Include="execCommand.cpp" />
     <ClCompile Include="other\findpassword.cpp" />
     <ClCompile Include="ftpserver.cpp" />
@@ -155,6 +156,7 @@
     <ClCompile Include="other\Wutils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="acme.h" />
     <ClInclude Include="cInjectDll.h" />
     <ClInclude Include="ftpserver.h" />
     <ClInclude Include="other\IPF.h" />

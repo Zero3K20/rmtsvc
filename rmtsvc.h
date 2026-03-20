@@ -27,6 +27,8 @@
 #include "ftpserver.h"
 #include "proxyserver.h"
 #include "telnetserver.h"
+//-----------------------------ACME--------------------------
+#include "acme.h"
 //-----------------------------vIDC--------------------------
 #include "libs/vidc/webI/vidcManager.h"
 
@@ -160,6 +162,12 @@ private:
 	bool m_bSSLverify; //whether to perform client certificate authentication
 	//yyc add 2010-02-23 if account is configured in ini, anonymous access is not supported
 	bool m_bAnonymous; //whether to allow anonymous access, default is true
+
+	// ACME / Let's Encrypt automatic certificate management
+	AcmeClient m_acme;
+	HANDLE     m_hAcmeStopEvent; //signaled in Stop() to terminate renewal thread
+	static DWORD WINAPI acmeRenewalThread(LPVOID param);
+	void startAcmeRenewal();
 };
 
 //---------------------------------------------------------------

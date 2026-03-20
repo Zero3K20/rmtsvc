@@ -71,6 +71,30 @@ ssl_verify=true: Only valid with ssl_enabled=true; requires client certificate v
 Example: webs port=7779 
 
 
+Set automatic trusted HTTPS certificate via Let's Encrypt (ACME v2)
+When ssl_enabled=true and a domain is configured, rmtsvc will automatically obtain and renew a
+trusted TLS certificate from Let's Encrypt, eliminating the ERR_CERT_AUTHORITY_INVALID browser error.
+Requirements:
+  - The domain must resolve to this machine's public IP.
+  - Port 80 (or the configured challenge_port) must be reachable from the internet for HTTP-01 validation.
+  - rmtsvc must run with sufficient privileges to bind the challenge port.
+Command format:
+acme domain=<domain> [email=<contact-email>] [staging=true] [challenge_port=<port>]
+domain=<domain>       : Required. The fully-qualified domain name for the certificate.
+email=<email>         : Optional. Contact email address sent to Let's Encrypt (for expiry notices).
+staging=true          : Use the Let's Encrypt staging API for testing (issues untrusted cert).
+challenge_port=<port> : Port for the HTTP-01 challenge listener. Default: 80.
+
+Example (enable HTTPS with automatic trusted certificate):
+webs port=443 ssl_enabled=true
+acme domain=myserver.example.com email=admin@example.com
+
+Certificate files are stored next to the executable:
+  rmtsvc_acme.crt         - PEM certificate chain (renewed automatically)
+  rmtsvc_acme.key         - Private key
+  rmtsvc_acme_account.key - ACME account key (keep private)
+
+
 Set visitor account permissions
 Command format:
 user account=<account> [pswd=<password>] access=<permissions>

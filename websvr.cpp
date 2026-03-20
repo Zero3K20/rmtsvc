@@ -28,6 +28,7 @@ webServer :: webServer():m_svrport(7778)
 		m_bSSLenabled=false;
 		m_bSSLverify=false;
 		m_bAnonymous=true;
+		m_hAcmeStopEvent=NULL;
 }
 
 
@@ -86,12 +87,39 @@ bool webServer :: Start()
 #ifdef _SUPPORT_OPENSSL_
 	if(m_bSSLenabled) //start SSL service
 	{
-		if(g_strMyCert=="" || g_strMyKey=="")
-			setCacert(NULL,NULL,NULL,true,NULL,NULL); //use built-in certificate
-		else if(m_bSSLverify)
-			setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,
-			g_strCaCert.c_str(),g_strCaCRL.c_str()); //use user-specified certificate and CRL
-		else setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,NULL,NULL);
+		bool acmeLoaded = false;
+		// ACME / Let's Encrypt: try to get a trusted certificate automatically
+		if(!g_acme_domain.empty())
+		{
+			m_acme.configure(g_acme_domain.c_str(), g_acme_email.c_str(),
+			                 g_acme_staging, g_acme_challenge_port);
+			if(!m_acme.hasCert(30))
+			{
+				RW_LOG_PRINT(LOGLEVEL_INFO,
+				    "[ACME] No valid certificate found - requesting one from Let's Encrypt...\r\n");
+				if(m_acme.run())
+					RW_LOG_PRINT(LOGLEVEL_INFO, "[ACME] Certificate obtained successfully.\r\n");
+				else
+					RW_LOG_PRINT(LOGLEVEL_WARN,
+					    "[ACME] Certificate request failed; falling back to built-in self-signed certificate.\r\n");
+			}
+			if(m_acme.hasCert(1))
+			{
+				setCacert(m_acme.certFile().c_str(), m_acme.keyFile().c_str(),
+				          "", false, NULL, NULL);
+				acmeLoaded = true;
+				startAcmeRenewal();
+			}
+		}
+		if(!acmeLoaded)
+		{
+			if(g_strMyCert=="" || g_strMyKey=="")
+				setCacert(NULL,NULL,NULL,true,NULL,NULL); //use built-in certificate
+			else if(m_bSSLverify)
+				setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,
+				g_strCaCert.c_str(),g_strCaCRL.c_str()); //use user-specified certificate and CRL
+			else setCacert(g_strMyCert.c_str(),g_strMyKey.c_str(),g_strKeyPswd.c_str(),false,NULL,NULL);
+		}
 		this->initSSL(true,NULL);
 	}
 #endif
@@ -104,11 +132,62 @@ bool webServer :: Start()
 
 void webServer :: Stop()
 { 
+	if(m_hAcmeStopEvent) { SetEvent(m_hAcmeStopEvent); } //signal renewal thread to exit
 	Close();
 #ifdef _SUPPORT_OPENSSL_
 	freeSSL();
 #endif
+	if(m_hAcmeStopEvent) { CloseHandle(m_hAcmeStopEvent); m_hAcmeStopEvent=NULL; }
 	return;
+}
+
+// Background thread: checks certificate expiry daily and renews via ACME when needed.
+DWORD WINAPI webServer::acmeRenewalThread(LPVOID param)
+{
+	webServer *self = (webServer *)param;
+	// Check every hour; renew if the cert will expire within 30 days.
+	// Splitting into 1-hour waits keeps the stop event responsive.
+	while(WaitForSingleObject(self->m_hAcmeStopEvent, 60*60*1000) == WAIT_TIMEOUT)
+	{
+		if(!self->m_acme.hasCert(30))
+		{
+			RW_LOG_PRINT(LOGLEVEL_INFO, "[ACME] Certificate expires soon - renewing...\r\n");
+			if(self->m_acme.run())
+			{
+				// Live-reload: update the parent socket's certificate so new
+				// connections pick up the renewed cert immediately.
+#ifdef _SUPPORT_OPENSSL_
+				self->setCacert(self->m_acme.certFile().c_str(),
+				                self->m_acme.keyFile().c_str(),
+				                "", false, NULL, NULL);
+				self->initSSL(true, NULL);
+#endif
+				RW_LOG_PRINT(LOGLEVEL_INFO, "[ACME] Certificate renewed successfully.\r\n");
+			}
+			else
+			{
+				RW_LOG_PRINT(LOGLEVEL_WARN, "[ACME] Certificate renewal failed; will retry in 1 hour.\r\n");
+			}
+		}
+	}
+	return 0;
+}
+
+void webServer::startAcmeRenewal()
+{
+	if(m_hAcmeStopEvent) return; //already running
+	m_hAcmeStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if(m_hAcmeStopEvent)
+	{
+		HANDLE hThread = CreateThread(NULL, 0, acmeRenewalThread, this, 0, NULL);
+		if(hThread)
+			CloseHandle(hThread); //detach: thread runs until m_hAcmeStopEvent is set
+		else
+		{
+			CloseHandle(m_hAcmeStopEvent);
+			m_hAcmeStopEvent = NULL;
+		}
+	}
 }
 
 void webServer :: setRoot(const char *rpath,long lAccess,const char *defaultPage)
