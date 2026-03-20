@@ -57,13 +57,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>.\Debug\</OutDir>
+    <OutDir>..\bin\</OutDir>
     <IntDir>.\Debug\</IntDir>
     <TargetName>vIDC_d</TargetName>
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>.\Release\</OutDir>
+    <OutDir>..\bin\</OutDir>
     <IntDir>.\Release\</IntDir>
     <TargetName>vIDC</TargetName>
     <TargetExt>.lib</TargetExt>

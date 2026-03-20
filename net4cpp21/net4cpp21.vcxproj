@@ -57,13 +57,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>.\Debug\</OutDir>
+    <OutDir>..\libs\bin\</OutDir>
     <IntDir>.\Debug\</IntDir>
     <TargetName>net4cpp21_d</TargetName>
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>.\Release\</OutDir>
+    <OutDir>..\libs\bin\</OutDir>
     <IntDir>.\Release\</IntDir>
     <TargetName>net4cpp21</TargetName>
     <TargetExt>.lib</TargetExt>
@@ -86,7 +86,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
-      <OutputFile>..\libs\bin\net4cpp21.lib</OutputFile>
+      <OutputFile>..\libs\bin\net4cpp21_d.lib</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
