@@ -79,6 +79,12 @@ static int tls_server_ecdsa_raw_to_der(const uint8_t *sig, int ecc_bytes,
 // tls_server_conn
 // ---------------------------------------------------------------------------
 
+// RFC 5246 §6.2.1: maximum TLS record plaintext payload is 2^14 bytes.
+// Encrypted records may carry up to 2048 bytes of additional overhead
+// (IV, MAC, padding), so accept up to this ceiling before rejecting.
+static const int TLS_MAX_RECORD_PAYLOAD  = 16384;
+static const int TLS_MAX_ENCRYPTED_OVERHEAD = 2048;
+
 class tls_server_conn
 {
     // -- state ----------------------------------------------------------------
@@ -97,6 +103,7 @@ class tls_server_conn
     int     time_out                = 0x7fffffff;
     bool    handshake_done          = false;
     bool    received_close_notify   = false;
+    bool    use_ems                 = false;   // extended_master_secret (RFC 7627)
 
     // -- private helpers ------------------------------------------------------
 
@@ -111,6 +118,87 @@ class tls_server_conn
         err_msg.set_size(len);
         memcpy(err_msg.buf, msg, len);
         return ret;
+    }
+
+    // When a plain HTTP client hits the HTTPS port, send a 301 redirect to HTTPS
+    // so the browser automatically retries with the correct scheme.
+    void try_send_http_redirect()
+    {
+        if(recv_buf.size < 4) return;
+        const char *p = recv_buf.buf;
+        int  n = recv_buf.size;
+
+        // HTTP request lines begin with an uppercase method (GET, POST, HEAD …).
+        if(!(p[0] >= 'A' && p[0] <= 'Z')) return;
+
+        // Find the end of the request line.
+        const char *req_end = (const char *)memchr(p, '\n', n);
+        if(!req_end) return;
+
+        // Extract the request-target (second token: "GET <target> HTTP/1.1").
+        const char *path = (const char *)memchr(p, ' ', req_end - p);
+        if(!path) return;
+        path++;   // skip the leading space
+        const char *path_end = (const char *)memchr(path, ' ', req_end - path);
+        if(!path_end) path_end = req_end;
+
+        // Default host – will be overridden by the "Host:" header.
+        char host[512] = "localhost";
+        bool found_host = false;
+
+        // Scan request headers for "Host:".
+        const char *hdr = req_end + 1;
+        int hdr_len = n - (int)(hdr - p);
+        for(int i = 0; i + 5 < hdr_len; i++)
+        {
+            if((hdr[i]   == 'H' || hdr[i]   == 'h') &&
+               (hdr[i+1] == 'o' || hdr[i+1] == 'O') &&
+               (hdr[i+2] == 's' || hdr[i+2] == 'S') &&
+               (hdr[i+3] == 't' || hdr[i+3] == 'T') &&
+                hdr[i+4] == ':')
+            {
+                const char *hv = hdr + i + 5;
+                while(hv < hdr + hdr_len && (*hv == ' ' || *hv == '\t')) hv++;
+                const char *he = hv;
+                while(he < hdr + hdr_len && *he != '\r' && *he != '\n') he++;
+                int hl = (int)(he - hv);
+                if(hl > 0 && hl < (int)sizeof(host))
+                {
+                    memcpy(host, hv, hl);
+                    host[hl] = '\0';
+                    found_host = true;
+                }
+                break;
+            }
+        }
+
+        // Copy the path (guard against oversized targets, and validate it starts
+        // with '/' to prevent open-redirect via an absolute-URI request-target).
+        int plen = (int)(path_end - path);
+        char pathbuf[2048] = "/";
+        if(plen > 0 && plen < (int)sizeof(pathbuf) && path[0] == '/')
+        {
+            memcpy(pathbuf, path, plen);
+            pathbuf[plen] = '\0';
+            // Strip any CR/LF that would allow HTTP response-header injection.
+            for(int i = 0; i < plen; i++)
+                if(pathbuf[i] == '\r' || pathbuf[i] == '\n')
+                    { pathbuf[i] = '\0'; break; }
+        }
+
+        // Only redirect if we found a valid Host header to redirect to.
+        if(!found_host) return;
+
+        char resp[3072];
+        int  resp_len = snprintf(resp, sizeof(resp),
+            "HTTP/1.1 301 Moved Permanently\r\n"
+            "Location: https://%s%s\r\n"
+            "Content-Length: 0\r\n"
+            "Connection: close\r\n"
+            "\r\n",
+            host, pathbuf);
+        if(resp_len > 0 && resp_len < (int)sizeof(resp))
+            ::send(s, resp, resp_len, 0);
     }
 
     // Send one TLS record. Updates the transcript hash for handshake records.
@@ -163,7 +251,17 @@ class tls_server_conn
             // Check we have at least one full record.
             if(recv_buf.size < 5)
                 continue;
+
+            // Validate TLS record header to fast-fail on non-TLS connections
+            // (e.g. plain HTTP clients hitting the HTTPS port).
+            unsigned char rec_type = (unsigned char)recv_buf.buf[0];
+            if(rec_type < CONTENT_CHANGECIPHERSPEC || rec_type > CONTENT_APPLICATION_DATA)
+                return "not a TLS record";
             int pkt_size = ntohs(*(unsigned short *)(recv_buf.buf + 3));
+            // RFC 5246: maximum TLS record payload is 2^14 bytes (16384).
+            // Allow a small overhead for encrypted records (up to 2048 bytes).
+            if(pkt_size > TLS_MAX_RECORD_PAYLOAD + TLS_MAX_ENCRYPTED_OVERHEAD)
+                return "TLS record too large";
             if(recv_buf.size < 5 + pkt_size)
                 continue;
 
@@ -225,8 +323,17 @@ class tls_server_conn
         send_buf.append((short)htons((short)cipher));   // chosen cipher
         send_buf.append((char)0);                       // no compression
 
-        // No extensions for a simple TLS 1.2 server hello.
-        send_buf.append((short)htons(0));               // extensions length = 0
+        // Echo the extended_master_secret extension if the client offered it (RFC 7627).
+        if(use_ems)
+        {
+            send_buf.append((short)htons(4));           // extensions total length = 4
+            send_buf.append((short)htons(0x0017));      // ext type: extended_master_secret
+            send_buf.append((short)htons(0));           // ext data length = 0
+        }
+        else
+        {
+            send_buf.append((short)htons(0));           // no extensions
+        }
 
         // Fill in the 3-byte handshake length.
         int body = send_buf.size - hs_size_idx - 3;
@@ -422,7 +529,26 @@ class tls_server_conn
         if(chosen_cipher_out == TLS_NONE)
             return "no supported cipher suite offered by client";
 
-        // Skip compression methods and extensions (not needed for TLS 1.2 data).
+        // Parse compression methods.
+        if(r.buf_size - r.readed < 1) return nullptr;
+        int comp_len = r.read<unsigned char>();
+        if(r.buf_size - r.readed < comp_len) return nullptr;
+        r.readed += comp_len;
+
+        // Parse extensions to detect extended_master_secret (RFC 7627).
+        if(r.buf_size - r.readed < 2) return nullptr;
+        int ext_total = (int)(unsigned short)ntohs(r.read<short>());
+        int ext_end   = r.readed + ext_total;
+        while(r.readed + 4 <= ext_end && r.readed + 4 <= r.buf_size)
+        {
+            int ext_type = (int)(unsigned short)ntohs(r.read<short>());
+            int ext_len  = (int)(unsigned short)ntohs(r.read<short>());
+            if(ext_type == 0x0017 /* extended_master_secret */ && ext_len == 0)
+                use_ems = true;
+            if(r.readed + ext_len > ext_end || r.readed + ext_len > r.buf_size) break;
+            r.readed += ext_len;
+        }
+
         return nullptr;
     }
 
@@ -566,7 +692,14 @@ public:
         {
             // ---- Receive ClientHello ----------------------------------------
             const char *ret = recv_records(10);
-            if(ret) throw ret;
+            if(ret)
+            {
+                // If Chrome (or any browser) hit the HTTPS port with plain HTTP,
+                // send an HTTP 301 redirect to HTTPS before giving up.
+                if(strcmp(ret, "not a TLS record") == 0)
+                    try_send_http_redirect();
+                throw ret;
+            }
 
             int rtype, rver;
             tlsbuf payload;
@@ -654,7 +787,8 @@ public:
                         ret = crypto.tls12_compute_key_server(
                             ECC_secp256r1,
                             reinterpret_cast<const char*>(client_pubkey),
-                            client_pubkey_len);
+                            client_pubkey_len,
+                            use_ems);
                         if(ret) throw ret;
                     }
                     else if(got_ccs && hs_t == MSG_FINISHED)
@@ -674,6 +808,15 @@ public:
                     // Sequence numbers are already 0 from key derivation; no reset needed.
                     crypto.set_encoding(true);
                     got_ccs = true;
+                }
+                else if(rtype == CONTENT_ALERT)
+                {
+                    // A fatal alert from the client (e.g. handshake_failure) means
+                    // the client rejected our ServerHello.  Abort immediately instead
+                    // of timing out waiting for a ClientKeyExchange that will never arrive.
+                    if(payload.size >= 2 && (unsigned char)payload.buf[0] == 2 /* fatal */)
+                        throw "fatal alert from client";
+                    // Warning alerts are non-fatal; ignore and continue.
                 }
             }
 
@@ -760,6 +903,7 @@ public:
     {
         handshake_done        = false;
         received_close_notify = false;
+        use_ems               = false;
         recv_buf.clear();
         recv_channel.clear();
         recv_channel_readed = 0;

@@ -497,7 +497,14 @@ srv->init(m_sockfd,
 const char *err = srv->handshake();
 if(err != NULL)
 {
-RW_LOG_PRINT(LOGLEVEL_ERROR, "[SSL] TLS server handshake failed: %s\r\n", err);
+// "timeout", "connection closed", and "not a TLS record" are expected for
+// port-scanners / probes or plain-HTTP clients hitting the HTTPS port;
+// log them at WARN level.
+if(strcmp(err, "timeout") == 0 || strcmp(err, "connection closed") == 0 ||
+   strcmp(err, "not a TLS record") == 0)
+    RW_LOG_PRINT(LOGLEVEL_WARN, "[SSL] TLS server handshake failed: %s\r\n", err);
+else
+    RW_LOG_PRINT(LOGLEVEL_ERROR, "[SSL] TLS server handshake failed: %s\r\n", err);
 srv->detach_socket(); // don't close m_sockfd
 delete srv;
 return false;

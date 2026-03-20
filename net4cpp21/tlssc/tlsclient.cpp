@@ -791,7 +791,9 @@ public:
 	// Like tls12_compute_key but initialises the encoder with server keys as local and
 	// client keys as remote (the server sends with the server-write key, receives with the
 	// client-write key).
-	const char *tls12_compute_key_server(ECC_GROUP ecc, const char *_client_key, int client_key_len)
+	// When ems is true, the master secret is derived via the Extended Master Secret
+	// construction (RFC 7627) using the session hash instead of the random values.
+	const char *tls12_compute_key_server(ECC_GROUP ecc, const char *_client_key, int client_key_len, bool ems = false)
 	{
 		if(cipher_index == -1)
 			return "compute_key error: no cipher";
@@ -802,15 +804,36 @@ public:
 			return ret;
 
 		int key_len = chiper_list()[cipher_index].key_len;
-		char master_secret_label[] = "master secret";
 		char key_expansion[]       = "key expansion";
 
-		_private_tls_prf((char*)data12.master_key, sizeof(data12.master_key),
-						 premaster_key.buf, premaster_key.size,
-						 master_secret_label, (unsigned int)strlen(master_secret_label),
-						 (char*)data12.client_rand, RAND_SIZE,
-						 data12.server_rand, RAND_SIZE);
+		if(ems)
+		{
+			// RFC 7627 §4: master_secret = PRF(pre_master_secret,
+			//                "extended master secret", session_hash)
+			// session_hash is the transcript hash of all handshake messages up to
+			// and including ClientKeyExchange, which is already in the running hash.
+			char ems_label[] = "extended master secret";
+			char session_hash[MAX_HASH_LEN];
+			int  hash_len = get_hash_size();
+			get_hash(session_hash);
+			_private_tls_prf((char*)data12.master_key, sizeof(data12.master_key),
+							 premaster_key.buf, premaster_key.size,
+							 ems_label, (unsigned int)strlen(ems_label),
+							 session_hash, (unsigned int)hash_len,
+							 NULL, 0);
+		}
+		else
+		{
+			char master_secret_label[] = "master secret";
+			_private_tls_prf((char*)data12.master_key, sizeof(data12.master_key),
+							 premaster_key.buf, premaster_key.size,
+							 master_secret_label, (unsigned int)strlen(master_secret_label),
+							 (char*)data12.client_rand, RAND_SIZE,
+							 data12.server_rand, RAND_SIZE);
+		}
 
+		// Key block layout: [client_write_key | server_write_key | client_write_IV | server_write_IV]
+		// Server perspective: local=server keys, remote=client keys.
 		unsigned char key[192];
 		_private_tls_prf((char*)key, sizeof(key),
 						 (char*)data12.master_key, sizeof(data12.master_key),
@@ -818,8 +841,6 @@ public:
 						 (char*)data12.server_rand, RAND_SIZE,
 						 (unsigned char*)data12.client_rand, RAND_SIZE);
 
-		// Key block layout: [client_write_key | server_write_key | client_write_IV | server_write_IV]
-		// Server perspective: local=server keys, remote=client keys.
 		int iv_len = encoder->iv_len(false);
 		if(encoder->init(key + key_len,                  // server_write_key  (local)
 						 key,                             // client_write_key  (remote)
