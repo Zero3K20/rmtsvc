@@ -79,6 +79,12 @@ static int tls_server_ecdsa_raw_to_der(const uint8_t *sig, int ecc_bytes,
 // tls_server_conn
 // ---------------------------------------------------------------------------
 
+// RFC 5246 §6.2.1: maximum TLS record plaintext payload is 2^14 bytes.
+// Encrypted records may carry up to 2048 bytes of additional overhead
+// (IV, MAC, padding), so accept up to this ceiling before rejecting.
+static const int TLS_MAX_RECORD_PAYLOAD  = 16384;
+static const int TLS_MAX_ENCRYPTED_OVERHEAD = 2048;
+
 class tls_server_conn
 {
     // -- state ----------------------------------------------------------------
@@ -163,7 +169,17 @@ class tls_server_conn
             // Check we have at least one full record.
             if(recv_buf.size < 5)
                 continue;
+
+            // Validate TLS record header to fast-fail on non-TLS connections
+            // (e.g. plain HTTP clients hitting the HTTPS port).
+            unsigned char rec_type = (unsigned char)recv_buf.buf[0];
+            if(rec_type < CONTENT_CHANGECIPHERSPEC || rec_type > CONTENT_APPLICATION_DATA)
+                return "not a TLS record";
             int pkt_size = ntohs(*(unsigned short *)(recv_buf.buf + 3));
+            // RFC 5246: maximum TLS record payload is 2^14 bytes (16384).
+            // Allow a small overhead for encrypted records (up to 2048 bytes).
+            if(pkt_size > TLS_MAX_RECORD_PAYLOAD + TLS_MAX_ENCRYPTED_OVERHEAD)
+                return "TLS record too large";
             if(recv_buf.size < 5 + pkt_size)
                 continue;
 
