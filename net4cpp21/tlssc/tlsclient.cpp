@@ -104,7 +104,7 @@ public:
 	}
 };
 
-void DumpData(const char* tag, const char* p, size_t cbSize)
+inline void DumpData(const char* tag, const char* p, size_t cbSize)
 {
 	return;
     printf("%s:", tag);
