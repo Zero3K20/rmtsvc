@@ -217,8 +217,13 @@ class tls_server_conn
         crypto.encode(tmp, buf.buf, buf.size, keep_original, false /* TLS 1.2 only */);
 
         *(u_short *)(tmp.buf + body_size_idx) = htons(tmp.size - body_size_idx - 2);
-        if(::send(s, tmp.buf, tmp.size, 0) != tmp.size)
-            return "send failed";
+        int sent = 0;
+        while(sent < tmp.size)
+        {
+            int n = ::send(s, tmp.buf + sent, tmp.size - sent, 0);
+            if(n <= 0) return "send failed";
+            sent += n;
+        }
         return nullptr;
     }
 
@@ -323,16 +328,25 @@ class tls_server_conn
         send_buf.append((short)htons((short)cipher));   // chosen cipher
         send_buf.append((char)0);                       // no compression
 
-        // Echo the extended_master_secret extension if the client offered it (RFC 7627).
+        // Include renegotiation_info extension (RFC 5746) for the initial handshake:
+        // this is required by modern browsers (e.g. Chrome/BoringSSL). Without it,
+        // Chrome sends a fatal alert and closes the connection.
+        // renegotiation_info: type(2) + ext_length(2) + ri_length(1) = 5 bytes total.
+        // Echo extended_master_secret (RFC 7627) if the client offered it: 4 bytes.
+        int ext_total = 5; // renegotiation_info always present
+        if(use_ems) ext_total += 4;
+        send_buf.append((short)htons((u_short)ext_total));  // extensions total length
+
+        // renegotiation_info extension: empty renegotiated_connection for initial handshake
+        send_buf.append((short)htons(0xFF01));  // ext type: renegotiation_info
+        send_buf.append((short)htons(1));       // ext data length = 1
+        send_buf.append((char)0);               // renegotiated_connection length = 0
+
+        // extended_master_secret extension (RFC 7627)
         if(use_ems)
         {
-            send_buf.append((short)htons(4));           // extensions total length = 4
-            send_buf.append((short)htons(0x0017));      // ext type: extended_master_secret
-            send_buf.append((short)htons(0));           // ext data length = 0
-        }
-        else
-        {
-            send_buf.append((short)htons(0));           // no extensions
+            send_buf.append((short)htons(0x0017));  // ext type: extended_master_secret
+            send_buf.append((short)htons(0));       // ext data length = 0
         }
 
         // Fill in the 3-byte handshake length.
