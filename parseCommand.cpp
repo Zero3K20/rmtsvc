@@ -51,6 +51,39 @@ void docmd_ssls(const char *strParam)
 	if(g_strCaCRL!="") getAbsoluteFilePath(g_strCaCRL);
 }
 //*********************define global user-defined certificate parameters  end  ****************************************
+//set ACME / Let's Encrypt certificate parameters, command format:
+//	acme domain=<domain> [email=<contact>] [staging=true] [challenge_port=<port>]
+//domain=<domain>        : required. The DNS name to obtain a certificate for.
+//email=<contact>        : optional. Contact email sent to Let's Encrypt.
+//staging=true           : use the Let's Encrypt staging API (for testing; cert not trusted).
+//challenge_port=<port>  : port for the HTTP-01 challenge listener (default: 80).
+void docmd_acme(const char *strParam)
+{
+	std::map<std::string,std::string> maps;
+	if(splitString(strParam,' ',maps)<=0){
+		RW_LOG_PRINT(LOGLEVEL_WARN,"[ACME] 'acme' directive has no parameters – ignoring.\r\n");
+		return;
+	}
+	std::map<std::string,std::string>::iterator it;
+
+	if((it=maps.find("domain"))!=maps.end())
+		g_acme_domain=(*it).second;
+	if((it=maps.find("email"))!=maps.end())
+		g_acme_email=(*it).second;
+	if((it=maps.find("staging"))!=maps.end())
+		g_acme_staging=((*it).second=="true");
+	if((it=maps.find("challenge_port"))!=maps.end())
+		g_acme_challenge_port=atoi((*it).second.c_str());
+
+	if(g_acme_domain.empty()){
+		RW_LOG_PRINT(LOGLEVEL_WARN,"[ACME] 'acme' directive found but no domain= specified – ACME disabled.\r\n");
+		return;
+	}
+	RW_LOG_PRINT(LOGLEVEL_INFO,"[ACME] Configured: domain=%s%s challenge_port=%d\r\n",
+		g_acme_domain.c_str(),
+		g_acme_staging?" (STAGING)":"",
+		g_acme_challenge_port);
+}
 //start automatic monitoring
 BOOL MyService::AutoSpy(const char *commandline)
 {
@@ -121,6 +154,8 @@ void MyService::parseCommand(const char *strCommand)
 		this->docmd_sets(strCommand+5);
 	else if(strncasecmp(strCommand,"ssls ",5)==0) //setsslcertificateinfo
 		docmd_ssls(strCommand+5);
+	else if(strncasecmp(strCommand,"acme ",5)==0) //ACME / Let's Encrypt certificate
+		docmd_acme(strCommand+5);
 	else if(strncasecmp(strCommand,"telnet ",7)==0) //settelnet
 		m_telsvr.docmd_sets(strCommand+7);
 	else if(strncasecmp(strCommand,"webs ",5)==0) //set this service info
@@ -253,12 +288,10 @@ void webServer :: docmd_webs(const char *strParam)
 	this->setRoot(rootpath.c_str(),lAccess,defaultPage.c_str());
 	
 	//SSL support configuration parameters for web service
-	if( (it=maps.find("ssl_enabled"))!=maps.end() && (*it).second=="true")
-		m_bSSLenabled=true;
-	else m_bSSLenabled=false;
-	if( (it=maps.find("ssl_verify"))!=maps.end() && (*it).second=="true")
-		m_bSSLverify=true;
-	else m_bSSLverify=false;
+	if( (it=maps.find("ssl_enabled"))!=maps.end())
+		m_bSSLenabled=((*it).second=="true");
+	if( (it=maps.find("ssl_verify"))!=maps.end())
+		m_bSSLverify=((*it).second=="true");
 	
 	return;
 }
