@@ -15,9 +15,13 @@
 #define POLY1305_KEYLEN     32
 #define POLY1305_TAGLEN     16
 
+#ifndef u_int
 #define u_int   unsigned int
-#define uint8_t unsigned char
+#endif
+#include <stdint.h>
+#ifndef u_char
 #define u_char  unsigned char
+#endif
 #ifndef NULL
 #define NULL (void *)0
 #endif
