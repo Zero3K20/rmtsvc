@@ -630,13 +630,28 @@ bool AcmeClient::fetchDirectory()
         : "https://acme-v02.api.letsencrypt.org/directory";
 
     int st; std::string resp;
-    if (!httpGet(dir, st, resp) || st != 200) return false;
+    if (!httpGet(dir, st, resp)) {
+        RW_LOG_PRINT(LOGLEVEL_ERROR,
+            "[ACME] Failed to connect to Let's Encrypt API (%s). "
+            "Check internet access and firewall.\r\n", dir);
+        return false;
+    }
+    if (st != 200) {
+        RW_LOG_PRINT(LOGLEVEL_ERROR,
+            "[ACME] Directory fetch returned HTTP %d.\r\n", st);
+        return false;
+    }
 
     m_urlNewNonce = jstr(resp, "newNonce");
     m_urlNewAcct  = jstr(resp, "newAccount");
     m_urlNewOrder = jstr(resp, "newOrder");
 
-    return !m_urlNewNonce.empty() && !m_urlNewAcct.empty() && !m_urlNewOrder.empty();
+    if (m_urlNewNonce.empty() || m_urlNewAcct.empty() || m_urlNewOrder.empty()) {
+        RW_LOG_PRINT(LOGLEVEL_ERROR,
+            "[ACME] Directory response missing required URLs.\r\n");
+        return false;
+    }
+    return true;
 }
 
 std::string AcmeClient::getNonce()
@@ -654,7 +669,10 @@ std::string AcmeClient::getNonce()
 bool AcmeClient::doNewAccount()
 {
     std::string nonce = getNonce();
-    if (nonce.empty()) return false;
+    if (nonce.empty()) {
+        RW_LOG_PRINT(LOGLEVEL_ERROR, "[ACME] Failed to obtain nonce from Let's Encrypt.\r\n");
+        return false;
+    }
 
     std::string payload = "{\"termsOfServiceAgreed\":true";
     if (!m_email.empty())
@@ -676,7 +694,11 @@ bool AcmeClient::doNewAccount()
 
     auto it = hdrs.find("Location");
     if (it != hdrs.end()) m_acctUrl = it->second;
-    return !m_acctUrl.empty();
+    if (m_acctUrl.empty()) {
+        RW_LOG_PRINT(LOGLEVEL_ERROR, "[ACME] Server did not return account URL.\r\n");
+        return false;
+    }
+    return true;
 }
 
 // ===========================================================================
@@ -1070,6 +1092,13 @@ bool AcmeClient::run()
     RW_LOG_PRINT(LOGLEVEL_INFO,
         "[ACME] Starting certificate workflow for domain: %s%s\r\n",
         m_domain.c_str(), m_staging ? " (STAGING)" : "");
+    RW_LOG_PRINT(LOGLEVEL_INFO,
+        "[ACME] Certificate will be saved to: %s\r\n", m_certFile.c_str());
+    RW_LOG_PRINT(LOGLEVEL_INFO,
+        "[ACME] HTTP-01 challenge listener will open on port %d.\r\n"
+        "       Ensure port %d is reachable from the internet and "
+        "forwarded to this machine.\r\n",
+        m_challengePort, m_challengePort);
 
     // 1. Load or generate account key
     if (!loadOrGenAcctKey()) {

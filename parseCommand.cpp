@@ -60,7 +60,10 @@ void docmd_ssls(const char *strParam)
 void docmd_acme(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
-	if(splitString(strParam,' ',maps)<=0) return;
+	if(splitString(strParam,' ',maps)<=0){
+		RW_LOG_PRINT(LOGLEVEL_WARN,"[ACME] 'acme' directive has no parameters – ignoring.\r\n");
+		return;
+	}
 	std::map<std::string,std::string>::iterator it;
 
 	if((it=maps.find("domain"))!=maps.end())
@@ -71,6 +74,15 @@ void docmd_acme(const char *strParam)
 		g_acme_staging=((*it).second=="true");
 	if((it=maps.find("challenge_port"))!=maps.end())
 		g_acme_challenge_port=atoi((*it).second.c_str());
+
+	if(g_acme_domain.empty()){
+		RW_LOG_PRINT(LOGLEVEL_WARN,"[ACME] 'acme' directive found but no domain= specified – ACME disabled.\r\n");
+		return;
+	}
+	RW_LOG_PRINT(LOGLEVEL_INFO,"[ACME] Configured: domain=%s%s challenge_port=%d\r\n",
+		g_acme_domain.c_str(),
+		g_acme_staging?" (STAGING)":"",
+		g_acme_challenge_port);
 }
 //start automatic monitoring
 BOOL MyService::AutoSpy(const char *commandline)

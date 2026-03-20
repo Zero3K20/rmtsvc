@@ -103,13 +103,31 @@ bool webServer :: Start()
 					RW_LOG_PRINT(LOGLEVEL_WARN,
 					    "[ACME] Certificate request failed; falling back to built-in self-signed certificate.\r\n");
 			}
+			else
+			{
+				RW_LOG_PRINT(LOGLEVEL_INFO,
+				    "[ACME] Existing certificate is still valid (>30 days). Skipping renewal.\r\n");
+			}
 			if(m_acme.hasCert(1))
 			{
+				RW_LOG_PRINT(LOGLEVEL_INFO,
+				    "[ACME] Loading certificate from: %s\r\n", m_acme.certFile().c_str());
 				setCacert(m_acme.certFile().c_str(), m_acme.keyFile().c_str(),
 				          "", false, NULL, NULL);
 				acmeLoaded = true;
 				startAcmeRenewal();
 			}
+			else
+			{
+				RW_LOG_PRINT(LOGLEVEL_WARN,
+				    "[ACME] No usable certificate after ACME attempt; falling back to built-in self-signed certificate.\r\n");
+			}
+		}
+		else
+		{
+			RW_LOG_PRINT(LOGLEVEL_INFO,
+			    "[ACME] No domain configured. To enable automatic trusted certificates, add "
+			    "'acme domain=your.domain.com' to the ini file.\r\n");
 		}
 		if(!acmeLoaded)
 		{
