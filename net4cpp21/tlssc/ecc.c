@@ -1085,7 +1085,7 @@ static void ecc_point_decompress(EccState *s, EccPoint *p_point, const uint8_t *
 }
 
 
-int ecdh_shared_secret(EccState *s, const uint8_t *p_publicKey, uint32_t publicKeySize, uint8_t *p_secret)
+static int ecdh_shared_secret(EccState *s, const uint8_t *p_publicKey, uint32_t publicKeySize, uint8_t *p_secret)
 {
 	if(publicKeySize != s->ECC_BYTES*2+1 || p_publicKey[0] != 0x04)
 		return -1;
@@ -1106,7 +1106,7 @@ int ecdh_shared_secret(EccState *s, const uint8_t *p_publicKey, uint32_t publicK
     
     return EccPoint_isZero(s, &l_product) ? -1 : 0;
 }
-int ecc_init(EccState *s, int bytes)
+static int ecc_init(EccState *s, int bytes)
 {
 	s->ECC_BYTES		= bytes;
 	s->NUM_ECC_DIGITS	= bytes/8;
@@ -1161,7 +1161,7 @@ int ecc_init(EccState *s, int bytes)
 	return 0;
 };
 
-int ecc_export_public_key(EccState *s, uint8_t *p_publicKey, uint32_t publicKeySize)
+static int ecc_export_public_key(EccState *s, uint8_t *p_publicKey, uint32_t publicKeySize)
 {
 	if(p_publicKey == 0 || publicKeySize < s->ECC_BYTES*2+1)
 		return 0;
@@ -1243,7 +1243,7 @@ static uint umax(uint a, uint b)
     return (a > b ? a : b);
 }
 
-int ecdsa_sign(EccState *s, const uint8_t *p_privateKey, const uint8_t *p_hash, uint8_t *p_signature)
+static int ecdsa_sign(EccState *s, const uint8_t *p_privateKey, const uint8_t *p_hash, uint8_t *p_signature)
 {
     uint64_t k[MAX_NUM_ECC_DIGITS];
     uint64_t l_tmp[MAX_NUM_ECC_DIGITS];
@@ -1290,7 +1290,7 @@ int ecdsa_sign(EccState *s, const uint8_t *p_privateKey, const uint8_t *p_hash, 
     return 1;
 }
 
-int ecdsa_verify(EccState *s, const uint8_t *p_publicKey, const uint8_t *p_hash, const uint8_t *p_signature)
+static int ecdsa_verify(EccState *s, const uint8_t *p_publicKey, const uint8_t *p_hash, const uint8_t *p_signature)
 {
     uint64_t u1[MAX_NUM_ECC_DIGITS], u2[MAX_NUM_ECC_DIGITS];
     uint64_t z[MAX_NUM_ECC_DIGITS];
