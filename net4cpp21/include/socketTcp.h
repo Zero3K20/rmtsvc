@@ -19,6 +19,7 @@
 						//<net4cpp2.1 directory>/tlssc
 #endif
 #ifdef _SUPPORT_OPENSSL_
+	#include "cLogger.h"
 	#include "tlssc/tls_server.h"
 	#pragma comment( lib, "ws2_32.lib" )
 #endif

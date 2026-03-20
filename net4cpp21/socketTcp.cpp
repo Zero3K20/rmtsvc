@@ -497,12 +497,20 @@ srv->init(m_sockfd,
 const char *err = srv->handshake();
 if(err != NULL)
 {
-// "timeout", "connection closed", and "not a TLS record" are expected for
-// port-scanners / probes or plain-HTTP clients hitting the HTTPS port;
-// log them at WARN level.
-if(strcmp(err, "timeout") == 0 || strcmp(err, "connection closed") == 0 ||
-   strcmp(err, "not a TLS record") == 0)
-    RW_LOG_PRINT(LOGLEVEL_WARN, "[SSL] TLS server handshake failed: %s\r\n", err);
+// These errors are expected for port-scanners, probes, plain-HTTP clients
+// hitting the HTTPS port, or clients that close mid-handshake.  Log them at
+// WARN level so they appear without flooding the error log.
+// All other errors (crypto failures, protocol bugs, etc.) are logged at ERROR.
+// Use prefix matching (strncmp) because error strings now carry step and
+// error-code context, e.g. "send failed [ServerHello] (WSAError=10054)".
+bool expected = (strncmp(err, "timeout",              sizeof("timeout")              - 1) == 0 ||
+                 strncmp(err, "send failed",           sizeof("send failed")          - 1) == 0 ||
+                 strncmp(err, "connection closed",     sizeof("connection closed")    - 1) == 0 ||
+                 strncmp(err, "not a TLS record",      sizeof("not a TLS record")     - 1) == 0 ||
+                 strncmp(err, "fatal alert from client",
+                                                       sizeof("fatal alert from client") - 1) == 0);
+if(expected)
+    RW_LOG_PRINT(LOGLEVEL_WARN,  "[SSL] TLS server handshake failed: %s\r\n", err);
 else
     RW_LOG_PRINT(LOGLEVEL_ERROR, "[SSL] TLS server handshake failed: %s\r\n", err);
 srv->detach_socket(); // don't close m_sockfd
