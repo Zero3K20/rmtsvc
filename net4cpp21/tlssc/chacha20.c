@@ -391,7 +391,7 @@ static void _private_tls_U32TO8(unsigned char *p, unsigned long v) {
     p[3] = (v >> 24) & 0xff;
 }
 
-void _private_tls_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+static void _private_tls_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
     poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
 
     /* r &= 0xffffffc0ffffffc0ffffffc0fffffff */
@@ -478,7 +478,7 @@ static void _private_tls_poly1305_blocks(poly1305_state_internal_t *st, const un
     st->h[4] = h4;
 }
 
-void _private_tls_poly1305_finish(poly1305_context *ctx, unsigned char mac[16]) {
+static void _private_tls_poly1305_finish(poly1305_context *ctx, unsigned char mac[16]) {
     poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
     unsigned long h0,h1,h2,h3,h4,c;
     unsigned long g0,g1,g2,g3,g4;
@@ -564,7 +564,7 @@ void _private_tls_poly1305_finish(poly1305_context *ctx, unsigned char mac[16]) 
     st->pad[3] = 0;
 }
 
-void _private_tls_poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes) {
+static void _private_tls_poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes) {
     poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
     size_t i;
     /* handle leftover */
@@ -599,7 +599,7 @@ void _private_tls_poly1305_update(poly1305_context *ctx, const unsigned char *m,
     }
 }
 
-int poly1305_verify(const unsigned char mac1[16], const unsigned char mac2[16]) {
+static int poly1305_verify(const unsigned char mac1[16], const unsigned char mac2[16]) {
     size_t i;
     unsigned int dif = 0;
     for (i = 0; i < 16; i++)
@@ -608,7 +608,7 @@ int poly1305_verify(const unsigned char mac1[16], const unsigned char mac2[16]) 
     return (dif & 1);
 }
 
-void chacha20_poly1305_key(struct chacha_ctx *ctx, unsigned char *poly1305_key) {
+static void chacha20_poly1305_key(struct chacha_ctx *ctx, unsigned char *poly1305_key) {
     unsigned char key[32];
     unsigned char nonce[12];
     chacha_key(ctx, key);
@@ -616,7 +616,7 @@ void chacha20_poly1305_key(struct chacha_ctx *ctx, unsigned char *poly1305_key) 
     poly1305_generate_key(key, nonce, sizeof(nonce), poly1305_key, 0);
 }
 
-int chacha20_poly1305_aead(struct chacha_ctx *ctx,  unsigned char *pt, unsigned int len, unsigned char *aad, unsigned int aad_len, unsigned char *poly_key, unsigned char *out) {
+static int chacha20_poly1305_aead(struct chacha_ctx *ctx,  unsigned char *pt, unsigned int len, unsigned char *aad, unsigned int aad_len, unsigned char *poly_key, unsigned char *out) {
     static unsigned char zeropad[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if (aad_len > POLY1305_MAX_AAD)
         return -1;
@@ -647,7 +647,7 @@ int chacha20_poly1305_aead(struct chacha_ctx *ctx,  unsigned char *pt, unsigned 
     
     return len + POLY1305_TAGLEN;
 }
-int chacha20_poly1305_decode(struct chacha_ctx *remote_ctx,  unsigned char *pt, unsigned int len, unsigned char *aad, unsigned int aad_len, unsigned char *poly_key, unsigned char *out)
+static int chacha20_poly1305_decode(struct chacha_ctx *remote_ctx,  unsigned char *pt, unsigned int len, unsigned char *aad, unsigned int aad_len, unsigned char *poly_key, unsigned char *out)
 {
 	len -= POLY1305_TAGLEN;
 

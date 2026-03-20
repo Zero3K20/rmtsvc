@@ -152,7 +152,7 @@ static uint32_t RCON[10];   // AES round constants
  *  at system initialization to setup the tables for all subsequent use.
  *
  ******************************************************************************/
-void aes_init_keygen_tables( void )
+static void aes_init_keygen_tables( void )
 {
     int i, x, y, z;     // general purpose iteration and computation locals
     int pow[256];
@@ -228,7 +228,7 @@ void aes_init_keygen_tables( void )
  *  Valid lengths are: 16, 24 or 32 bytes (128, 192, 256 bits).
  *
  ******************************************************************************/
-int aes_set_encryption_key( aes_context *ctx,
+static int aes_set_encryption_key( aes_context *ctx,
                             const uchar *key,
                             uint keysize )
 {
@@ -317,7 +317,7 @@ int aes_set_encryption_key( aes_context *ctx,
  *  length in bits. Valid lengths are: 128, 192, or 256 bits.
  *
  ******************************************************************************/
-int aes_set_decryption_key( aes_context *ctx,
+static int aes_set_decryption_key( aes_context *ctx,
                             const uchar *key,
                             uint keysize )
 {
@@ -359,7 +359,7 @@ int aes_set_decryption_key( aes_context *ctx,
  *  Invoked to establish the key schedule for subsequent encryption/decryption
  *
  ******************************************************************************/
-int aes_setkey( aes_context *ctx,   // AES context provided by our caller
+static int aes_setkey( aes_context *ctx,   // AES context provided by our caller
                 int mode,           // ENCRYPT or DECRYPT flag
                 const uchar *key,   // pointer to the key
                 uint keysize )      // key length in bytes
@@ -398,7 +398,7 @@ int aes_setkey( aes_context *ctx,   // AES context provided by our caller
  *  and all keying information appropriate for the task.
  *
  ******************************************************************************/
-int aes_cipher( aes_context *ctx,
+static int aes_cipher( aes_context *ctx,
                     const uchar *input,
                     uchar *output )
 {
@@ -653,7 +653,7 @@ static const uint64_t last4[16] = {
  *  environment is running.
  *
  ******************************************************************************/
-int gcm_initialize( void )
+static int gcm_initialize( void )
 {
     aes_init_keygen_tables();
     return( 0 );
@@ -719,7 +719,7 @@ static void gcm_mult_h( gcm_context *ctx, const uchar I[16], uchar output[16] ) 
  *
  ******************************************************************************/
 
-int gcm_setkey( gcm_context *ctx,   // pointer to caller-provided gcm context
+static int gcm_setkey( gcm_context *ctx,   // pointer to caller-provided gcm context
                 const uchar *key,   // pointer to the AES encryption key
                 const uint keysize) // size in bytes (must be 16, 24, 32 for
 		                    // 128, 192 or 256-bit keys respectively)
@@ -847,7 +847,7 @@ int gcm_setkey( gcm_context *ctx,   // pointer to caller-provided gcm context
  *  mode, and preprocesses the initialization vector and additional AEAD data.
  *
  ******************************************************************************/
-int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
+static int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
                int mode,            // GCM_ENCRYPT or GCM_DECRYPT
                const uchar *iv,     // pointer to initialization vector
                size_t iv_len,       // IV length in bytes (should == 12)
@@ -916,7 +916,7 @@ int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
  *  have a partial block length of < 128 bits.)
  *
  ******************************************************************************/
-int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
+static int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
                 size_t length,          // length, in bytes, of data to process
                 const uchar *input,     // pointer to source data
                 uchar *output )         // pointer to destination data
@@ -980,7 +980,7 @@ int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
  *  It performs the final GHASH to produce the resulting authentication TAG.
  *
  ******************************************************************************/
-int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
+static int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
                 uchar *tag,         // pointer to buffer which receives the tag
                 size_t tag_len )    // length, in bytes, of the tag-receiving buf
 {
@@ -1024,7 +1024,7 @@ int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
  *  to perform its decryption and tag generation, which it then compares.
  *
  ******************************************************************************/
-int gcm_crypt_and_tag(
+static int gcm_crypt_and_tag(
         gcm_context *ctx,       // gcm context with key already setup
         int mode,               // cipher direction: GCM_ENCRYPT or GCM_DECRYPT
         const uchar *iv,        // pointer to the 12-byte initialization vector
@@ -1060,7 +1060,7 @@ int gcm_crypt_and_tag(
  *  and authentication tag generation.
  *
  ******************************************************************************/
-int gcm_auth_decrypt(
+static int gcm_auth_decrypt(
         gcm_context *ctx,       // gcm context with key already setup
         const uchar *iv,        // pointer to the 12-byte initialization vector
         size_t iv_len,          // byte length if the IV. should always be 12
@@ -1103,7 +1103,7 @@ int gcm_auth_decrypt(
  *  sensitive, so it MUST be zeroed after use. This function does that.
  *
  ******************************************************************************/
-void gcm_zero_ctx( gcm_context *ctx )
+static void gcm_zero_ctx( gcm_context *ctx )
 {
     // zero the context originally provided to us
     memset( ctx, 0, sizeof( gcm_context ) );
