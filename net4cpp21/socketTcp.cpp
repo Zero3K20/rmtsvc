@@ -140,8 +140,270 @@ SOCKSRESULT socketTcp::Connect(time_t lWaitout,int bindport,const char *bindip)
 
 #include "include/cCoder.h"
 #include <vector>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+
+// ---------------------------------------------------------------------------
+// DER / ASN.1 builder helpers for runtime self-signed cert generation
+// ---------------------------------------------------------------------------
+
+static void cb_der_len(std::vector<unsigned char> &b, size_t n)
+{
+    if (n < 128) {
+        b.push_back((unsigned char)n);
+    } else if (n < 256) {
+        b.push_back(0x81); b.push_back((unsigned char)n);
+    } else {
+        b.push_back(0x82);
+        b.push_back((unsigned char)(n >> 8));
+        b.push_back((unsigned char)(n & 0xFF));
+    }
+}
+static void cb_der_tlv(std::vector<unsigned char> &b, unsigned char tag,
+                        const unsigned char *data, size_t n)
+{
+    b.push_back(tag); cb_der_len(b, n);
+    if (data && n) b.insert(b.end(), data, data + n);
+}
+static void cb_der_tlv(std::vector<unsigned char> &b, unsigned char tag,
+                        const std::vector<unsigned char> &v)
+{ cb_der_tlv(b, tag, v.data(), v.size()); }
+static std::vector<unsigned char> cb_der_seq(const std::vector<unsigned char> &v)
+{ std::vector<unsigned char> o; cb_der_tlv(o, 0x30, v); return o; }
+static std::vector<unsigned char> cb_der_oid(const unsigned char *p, size_t n)
+{ std::vector<unsigned char> o; cb_der_tlv(o, 0x06, p, n); return o; }
+static std::vector<unsigned char> cb_der_int(const unsigned char *p, size_t n)
+{
+    while (n > 1 && p[0] == 0) { ++p; --n; }
+    std::vector<unsigned char> v;
+    if (p[0] & 0x80) v.push_back(0x00);
+    v.insert(v.end(), p, p + n);
+    std::vector<unsigned char> o; cb_der_tlv(o, 0x02, v); return o;
+}
+static std::vector<unsigned char> cb_ecdsa_sig_to_der(const unsigned char s[64])
+{
+    auto r = cb_der_int(s, 32); auto ss = cb_der_int(s+32, 32);
+    std::vector<unsigned char> v; v.insert(v.end(),r.begin(),r.end());
+    v.insert(v.end(),ss.begin(),ss.end()); return cb_der_seq(v);
+}
+static void cb_utctime(std::vector<unsigned char> &b, time_t t)
+{
+    struct tm *u = gmtime(&t); char s[14];
+    snprintf(s, sizeof(s), "%02d%02d%02d%02d%02d%02dZ",
+             u->tm_year%100, u->tm_mon+1, u->tm_mday,
+             u->tm_hour, u->tm_min, u->tm_sec);
+    cb_der_tlv(b, 0x17, (const unsigned char *)s, 13);
+}
+
+static const unsigned char CB_OID_EC[]        = {0x2a,0x86,0x48,0xce,0x3d,0x02,0x01};
+static const unsigned char CB_OID_P256[]      = {0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07};
+static const unsigned char CB_OID_ECSHA256[]  = {0x2a,0x86,0x48,0xce,0x3d,0x04,0x03,0x02};
+static const unsigned char CB_OID_CN[]        = {0x55,0x04,0x03};
+static const unsigned char CB_OID_SAN[]       = {0x55,0x1d,0x11}; // 2.5.29.17
+static const unsigned char CB_OID_BC[]        = {0x55,0x1d,0x13}; // 2.5.29.19
+
+// Generate a self-signed P-256 TLS certificate at runtime containing the
+// machine's DNS hostname (and 'localhost' / 127.0.0.1) in the Subject
+// Alternative Name extension so that modern browsers accept it.
+// On success fills cert_der and privkey[32] and returns true.
+static bool gen_self_signed_cert(const char *hostname,
+                                  std::vector<unsigned char> &cert_der,
+                                  unsigned char privkey[32])
+{
+    BCRYPT_ALG_HANDLE hAlg = NULL;
+    BCRYPT_KEY_HANDLE hKey = NULL;
+    bool ok = false;
+    if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&hAlg,
+            BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0)))
+        return false;
+    do {
+        if (!BCRYPT_SUCCESS(BCryptGenerateKeyPair(hAlg, &hKey, 256, 0))) break;
+        if (!BCRYPT_SUCCESS(BCryptFinalizeKeyPair(hKey, 0)))             break;
+
+        ULONG pubSz = 0;
+        if (!BCRYPT_SUCCESS(BCryptExportKey(hKey, NULL, BCRYPT_ECCPUBLIC_BLOB,
+                NULL, 0, &pubSz, 0))) break;
+        std::vector<unsigned char> pub((size_t)pubSz);
+        if (!BCRYPT_SUCCESS(BCryptExportKey(hKey, NULL, BCRYPT_ECCPUBLIC_BLOB,
+                pub.data(), pubSz, &pubSz, 0))) break;
+        if (pubSz < 72) break;
+
+        ULONG prvSz = 0;
+        if (!BCRYPT_SUCCESS(BCryptExportKey(hKey, NULL, BCRYPT_ECCPRIVATE_BLOB,
+                NULL, 0, &prvSz, 0))) break;
+        std::vector<unsigned char> prv((size_t)prvSz);
+        if (!BCRYPT_SUCCESS(BCryptExportKey(hKey, NULL, BCRYPT_ECCPRIVATE_BLOB,
+                prv.data(), prvSz, &prvSz, 0))) break;
+        if (prvSz < 104) break;
+        memcpy(privkey, prv.data() + 72, 32);
+
+        const unsigned char *pubX = pub.data() + 8;
+        const unsigned char *pubY = pub.data() + 40;
+
+        // version [0] { INTEGER 2 }
+        std::vector<unsigned char> verIn = {0x02,0x01,0x02};
+        std::vector<unsigned char> version; cb_der_tlv(version, 0xA0, verIn);
+
+        time_t now = time(NULL);
+        unsigned char ser[4] = {
+            (unsigned char)((now>>24)&0xFF),(unsigned char)((now>>16)&0xFF),
+            (unsigned char)((now>> 8)&0xFF),(unsigned char)( now     &0xFF) };
+        auto serial = cb_der_int(ser, 4);
+        auto sigAlg = cb_der_seq(cb_der_oid(CB_OID_ECSHA256, sizeof(CB_OID_ECSHA256)));
+
+        // name = SEQUENCE { SET { SEQUENCE { OID CN, UTF8String(hostname) } } }
+        auto cnOid = cb_der_oid(CB_OID_CN, sizeof(CB_OID_CN));
+        std::vector<unsigned char> cnV;
+        cb_der_tlv(cnV, 0x0C, (const unsigned char *)hostname, strlen(hostname));
+        std::vector<unsigned char> attrI; attrI.insert(attrI.end(),cnOid.begin(),cnOid.end());
+        attrI.insert(attrI.end(),cnV.begin(),cnV.end());
+        std::vector<unsigned char> rdnS; cb_der_tlv(rdnS, 0x31, cb_der_seq(attrI));
+        auto name = cb_der_seq(rdnS);
+
+        std::vector<unsigned char> val;
+        cb_utctime(val, now);
+        cb_utctime(val, now + 10L*365*24*3600);
+        auto validity = cb_der_seq(val);
+
+        // SubjectPublicKeyInfo
+        std::vector<unsigned char> algoI;
+        auto ecOid = cb_der_oid(CB_OID_EC, sizeof(CB_OID_EC));
+        auto p256   = cb_der_oid(CB_OID_P256, sizeof(CB_OID_P256));
+        algoI.insert(algoI.end(),ecOid.begin(),ecOid.end());
+        algoI.insert(algoI.end(),p256.begin(),p256.end());
+        std::vector<unsigned char> pkB = {0x00,0x04};
+        pkB.insert(pkB.end(),pubX,pubX+32); pkB.insert(pkB.end(),pubY,pubY+32);
+        std::vector<unsigned char> pkBs; cb_der_tlv(pkBs,0x03,pkB);
+        std::vector<unsigned char> spkiI;
+        spkiI.insert(spkiI.end(),cb_der_seq(algoI).begin(),cb_der_seq(algoI).end());
+        spkiI.insert(spkiI.end(),pkBs.begin(),pkBs.end());
+        auto spki = cb_der_seq(spkiI);
+
+        // subjectAltName: dNSName(hostname), dNSName(localhost), iPAddress(127.0.0.1)
+        std::vector<unsigned char> sanSeq;
+        cb_der_tlv(sanSeq, 0x82, (const unsigned char *)hostname, strlen(hostname));
+        if (strcmp(hostname,"localhost") != 0)
+            cb_der_tlv(sanSeq, 0x82, (const unsigned char *)"localhost", 9);
+        unsigned char lo[4]={127,0,0,1}; cb_der_tlv(sanSeq,0x87,lo,4);
+        auto sanVal = cb_der_seq(sanSeq);
+        std::vector<unsigned char> sanOct; cb_der_tlv(sanOct,0x04,sanVal);
+        std::vector<unsigned char> sanExtI;
+        sanExtI.insert(sanExtI.end(),cb_der_oid(CB_OID_SAN,sizeof(CB_OID_SAN)).begin(),
+                                     cb_der_oid(CB_OID_SAN,sizeof(CB_OID_SAN)).end());
+        sanExtI.insert(sanExtI.end(),sanOct.begin(),sanOct.end());
+        auto sanExt = cb_der_seq(sanExtI);
+
+        // basicConstraints critical CA:TRUE
+        std::vector<unsigned char> bcSeq = {0x01,0x01,0xff};
+        auto bcVal = cb_der_seq(bcSeq);
+        std::vector<unsigned char> bcOct; cb_der_tlv(bcOct,0x04,bcVal);
+        std::vector<unsigned char> bcCrit={0x01,0x01,0xff};
+        std::vector<unsigned char> bcExtI;
+        bcExtI.insert(bcExtI.end(),cb_der_oid(CB_OID_BC,sizeof(CB_OID_BC)).begin(),
+                                   cb_der_oid(CB_OID_BC,sizeof(CB_OID_BC)).end());
+        bcExtI.insert(bcExtI.end(),bcCrit.begin(),bcCrit.end());
+        bcExtI.insert(bcExtI.end(),bcOct.begin(),bcOct.end());
+        auto bcExt = cb_der_seq(bcExtI);
+
+        std::vector<unsigned char> extL;
+        extL.insert(extL.end(),sanExt.begin(),sanExt.end());
+        extL.insert(extL.end(),bcExt.begin(),bcExt.end());
+        std::vector<unsigned char> extTag; cb_der_tlv(extTag,0xA3,cb_der_seq(extL));
+
+        std::vector<unsigned char> tbsI;
+        tbsI.insert(tbsI.end(),version.begin(),version.end());
+        tbsI.insert(tbsI.end(),serial.begin(),serial.end());
+        tbsI.insert(tbsI.end(),sigAlg.begin(),sigAlg.end());
+        tbsI.insert(tbsI.end(),name.begin(),name.end());
+        tbsI.insert(tbsI.end(),validity.begin(),validity.end());
+        tbsI.insert(tbsI.end(),name.begin(),name.end());
+        tbsI.insert(tbsI.end(),spki.begin(),spki.end());
+        tbsI.insert(tbsI.end(),extTag.begin(),extTag.end());
+        auto tbs = cb_der_seq(tbsI);
+
+        unsigned char hash[32]={};
+        bool hok=false;
+        { BCRYPT_ALG_HANDLE hS=NULL; BCRYPT_HASH_HANDLE hH=NULL;
+          if(BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&hS,BCRYPT_SHA256_ALGORITHM,NULL,0))){
+            if(BCRYPT_SUCCESS(BCryptCreateHash(hS,&hH,NULL,0,NULL,0,0))){
+              if(BCRYPT_SUCCESS(BCryptHashData(hH,(PUCHAR)tbs.data(),(ULONG)tbs.size(),0))&&
+                 BCRYPT_SUCCESS(BCryptFinishHash(hH,hash,32,0))) hok=true;
+              BCryptDestroyHash(hH); }
+            BCryptCloseAlgorithmProvider(hS,0); } }
+        if(!hok) break;
+
+        ULONG sigSz=0;
+        if(!BCRYPT_SUCCESS(BCryptSignHash(hKey,NULL,hash,32,NULL,0,&sigSz,0))) break;
+        std::vector<unsigned char> sig((size_t)sigSz);
+        if(!BCRYPT_SUCCESS(BCryptSignHash(hKey,NULL,hash,32,sig.data(),sigSz,&sigSz,0))) break;
+        if(sigSz!=64) break;
+
+        auto sigDer = cb_ecdsa_sig_to_der(sig.data());
+        std::vector<unsigned char> sigBs={0x00};
+        sigBs.insert(sigBs.end(),sigDer.begin(),sigDer.end());
+        std::vector<unsigned char> sigBsW; cb_der_tlv(sigBsW,0x03,sigBs);
+
+        std::vector<unsigned char> certI;
+        certI.insert(certI.end(),tbs.begin(),tbs.end());
+        certI.insert(certI.end(),sigAlg.begin(),sigAlg.end());
+        certI.insert(certI.end(),sigBsW.begin(),sigBsW.end());
+        cert_der = cb_der_seq(certI);
+        ok = true;
+    } while(0);
+    if(hKey) BCryptDestroyKey(hKey);
+    BCryptCloseAlgorithmProvider(hAlg,0);
+    return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: parse ALL certificates from a PEM chain file and return the
+// intermediate certs (certs 2..N) concatenated with 3-byte BE length prefixes,
+// ready to be appended verbatim to the TLS Certificate message.
+// ---------------------------------------------------------------------------
+static std::vector<unsigned char> pem_chain_extra(const char *pem)
+{
+    std::vector<unsigned char> result;
+    const char *p = pem;
+    int idx = 0;
+    while ((p = strstr(p, "-----BEGIN CERTIFICATE-----")) != nullptr)
+    {
+        p += 27;
+        const char *end = strstr(p, "-----END CERTIFICATE-----");
+        if (!end) break;
+        if (idx > 0) // skip the leaf cert (first one)
+        {
+            std::string b64;
+            for (const char *q = p; q < end; q++)
+            {
+                char c = *q;
+                if (c != '\n' && c != '\r' && c != ' ' && c != '\t') b64 += c;
+            }
+            int dlen = net4cpp21::cCoder::Base64DecodeSize((int)b64.size());
+            if (dlen > 0)
+            {
+                std::vector<unsigned char> der((size_t)dlen);
+                int actual = net4cpp21::cCoder::base64_decode(
+                    (char *)b64.data(), (unsigned int)b64.size(),
+                    (char *)der.data());
+                if (actual > 0)
+                {
+                    der.resize((size_t)actual);
+                    // 3-byte big-endian length prefix
+                    result.push_back((unsigned char)(actual >> 16));
+                    result.push_back((unsigned char)((actual >> 8) & 0xFF));
+                    result.push_back((unsigned char)(actual & 0xFF));
+                    result.insert(result.end(), der.begin(), der.end());
+                }
+            }
+        }
+        idx++;
+        p = end + 25; // advance past "-----END CERTIFICATE-----"
+    }
+    return result;
+}
 
 // Default self-signed P-256 ECDSA certificate (DER-encoded X.509).
+// Kept as a last-resort fallback in case BCrypt keygen fails at runtime.
 // Generated with: openssl ecparam -name prime256v1 -genkey -noout -out k.key &&
 //   openssl req -new -x509 -key k.key -days 3650 -subj "/CN=rmtsvc" -outform DER -out c.der
 static const unsigned char default_cert_der[] = {
@@ -328,9 +590,10 @@ return extract_ec_raw_key((unsigned char*)buf.data(), (int)sz, raw);
 
 socketSSL :: socketSSL():
 m_ssltype(SSL_INIT_NONE), m_tls_client(NULL), m_tls_server(NULL),
-m_has_cert(false), m_peeklen(0)
+m_has_cert(false), m_has_fallback(false), m_peeklen(0)
 {
 memset(m_privkey, 0, 32);
+memset(m_fallback_privkey, 0, 32);
 }
 
 socketSSL :: socketSSL(socketSSL &sockSSL) : socketTcp(sockSSL)
@@ -341,6 +604,11 @@ m_tls_server= sockSSL.m_tls_server;
 m_cert_der  = sockSSL.m_cert_der;
 memcpy(m_privkey, sockSSL.m_privkey, 32);
 m_has_cert  = sockSSL.m_has_cert;
+m_chain_der = sockSSL.m_chain_der;
+m_acme_domain = sockSSL.m_acme_domain;
+m_fallback_cert_der = sockSSL.m_fallback_cert_der;
+memcpy(m_fallback_privkey, sockSSL.m_fallback_privkey, 32);
+m_has_fallback = sockSSL.m_has_fallback;
 m_sni_host  = sockSSL.m_sni_host;
 m_peeklen   = 0;
 
@@ -358,6 +626,11 @@ m_tls_server= sockSSL.m_tls_server;
 m_cert_der  = sockSSL.m_cert_der;
 memcpy(m_privkey, sockSSL.m_privkey, 32);
 m_has_cert  = sockSSL.m_has_cert;
+m_chain_der = sockSSL.m_chain_der;
+m_acme_domain = sockSSL.m_acme_domain;
+m_fallback_cert_der = sockSSL.m_fallback_cert_der;
+memcpy(m_fallback_privkey, sockSSL.m_fallback_privkey, 32);
+m_has_fallback = sockSSL.m_has_fallback;
 m_sni_host  = sockSSL.m_sni_host;
 m_peeklen   = 0;
 
@@ -382,9 +655,24 @@ if(bNotfile &&
    (strCaCert == NULL || strCaCert[0] == 0 ||
     strCaKey  == NULL || strCaKey[0]  == 0))
 {
-// Use built-in default P-256 certificate
-m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
-memcpy(m_privkey, default_privkey, 32);
+// Use built-in default P-256 certificate — generated at runtime so the
+// machine's hostname is included in the Subject Alternative Name.
+char hostname[256] = "localhost";
+DWORD hsz = (DWORD)sizeof(hostname);
+GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+std::vector<unsigned char> rtcert;
+unsigned char rtkey[32] = {};
+if(gen_self_signed_cert(hostname, rtcert, rtkey)){
+    m_cert_der = rtcert;
+    memcpy(m_privkey, rtkey, 32);
+} else {
+    m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+    memcpy(m_privkey, default_privkey, 32);
+}
+m_chain_der.clear();
+m_acme_domain.clear();
+m_fallback_cert_der.clear();
+m_has_fallback = false;
 m_has_cert = true;
 return;
 }
@@ -396,15 +684,62 @@ unsigned char key[32];
 bool cert_ok = (strCaCert && strCaCert[0]) ? load_cert_file(strCaCert, cert) : false;
 bool key_ok  = (strCaKey  && strCaKey[0])  ? load_key_file(strCaKey, key)   : false;
 if(cert_ok && key_ok){
-m_cert_der = cert;
-memcpy(m_privkey, key, 32);
-m_has_cert = true;
+    m_cert_der = cert;
+    memcpy(m_privkey, key, 32);
+    m_has_cert = true;
+    m_acme_domain.clear(); // caller (e.g. websvr) will set via setAcmeDomain() if needed
+    // Extract intermediate chain certs from PEM file (for LE full-chain serving)
+    m_chain_der.clear();
+    if(strCaCert && strCaCert[0])
+    {
+        FILE *fc = fopen(strCaCert, "rb");
+        if(fc){
+            fseek(fc,0,SEEK_END); long fsz=ftell(fc); fseek(fc,0,SEEK_SET);
+            if(fsz>0){
+                std::vector<char> pbuf((size_t)(fsz+1),0);
+                fread(pbuf.data(),1,(size_t)fsz,fc);
+                if(strstr(pbuf.data(),"-----BEGIN"))
+                    m_chain_der = pem_chain_extra(pbuf.data());
+            }
+            fclose(fc);
+        }
+    }
+    // Also generate a self-signed fallback cert with the local machine hostname
+    // so that LAN clients connecting via a hostname different from the ACME domain
+    // get a cert that matches their SNI (avoiding ERR_CERT_COMMON_NAME_INVALID).
+    char hostname[256] = "localhost";
+    DWORD hsz = (DWORD)sizeof(hostname);
+    GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+    std::vector<unsigned char> fbcert;
+    unsigned char fbkey[32] = {};
+    if(gen_self_signed_cert(hostname, fbcert, fbkey)){
+        m_fallback_cert_der = fbcert;
+        memcpy(m_fallback_privkey, fbkey, 32);
+        m_has_fallback = true;
+    } else {
+        m_fallback_cert_der.clear();
+        m_has_fallback = false;
+    }
 } else {
-RW_LOG_PRINT(LOGLEVEL_ERROR, 0, "[setCacert] Failed to load cert/key files.\r\n");
-// Fall back to default
-m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
-memcpy(m_privkey, default_privkey, 32);
-m_has_cert = true;
+    RW_LOG_PRINT(LOGLEVEL_ERROR, 0, "[setCacert] Failed to load cert/key files.\r\n");
+    // Fall back to runtime-generated cert with local hostname
+    char hostname[256] = "localhost";
+    DWORD hsz = (DWORD)sizeof(hostname);
+    GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+    std::vector<unsigned char> rtcert;
+    unsigned char rtkey[32] = {};
+    if(gen_self_signed_cert(hostname, rtcert, rtkey)){
+        m_cert_der = rtcert;
+        memcpy(m_privkey, rtkey, 32);
+    } else {
+        m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+        memcpy(m_privkey, default_privkey, 32);
+    }
+    m_chain_der.clear();
+    m_acme_domain.clear();
+    m_fallback_cert_der.clear();
+    m_has_fallback = false;
+    m_has_cert = true;
 }
 return;
 }
@@ -436,9 +771,22 @@ m_cert_der = cert;
 memcpy(m_privkey, key, 32);
 m_has_cert = true;
 } else {
-// Fall back to default
-m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
-memcpy(m_privkey, default_privkey, 32);
+// Fall back to runtime-generated cert with local hostname
+char hostname[256] = "localhost";
+DWORD hsz = (DWORD)sizeof(hostname);
+GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+std::vector<unsigned char> rtcert;
+unsigned char rtkey[32] = {};
+if(gen_self_signed_cert(hostname, rtcert, rtkey)){
+    m_cert_der = rtcert; memcpy(m_privkey, rtkey, 32);
+} else {
+    m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+    memcpy(m_privkey, default_privkey, 32);
+}
+m_chain_der.clear();
+m_acme_domain.clear();
+m_fallback_cert_der.clear();
+m_has_fallback = false;
 m_has_cert = true;
 }
 }
@@ -446,9 +794,14 @@ m_has_cert = true;
 void socketSSL :: setCacert(socketSSL *psock, bool /*bOnlyCopyCert*/)
 {
 if(psock == NULL) return;
-m_cert_der = psock->m_cert_der;
+m_cert_der  = psock->m_cert_der;
 memcpy(m_privkey, psock->m_privkey, 32);
-m_has_cert = psock->m_has_cert;
+m_has_cert  = psock->m_has_cert;
+m_chain_der = psock->m_chain_der;
+m_acme_domain = psock->m_acme_domain;
+m_fallback_cert_der = psock->m_fallback_cert_der;
+memcpy(m_fallback_privkey, psock->m_fallback_privkey, 32);
+m_has_fallback = psock->m_has_fallback;
 }
 
 void socketSSL :: Close()
@@ -485,15 +838,34 @@ else if(m_ssltype == SSL_INIT_SERV)
 {
 // Server-side: perform TLS handshake on the accepted socket
 if(!m_has_cert){
-// Load default certificate
-m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
-memcpy(m_privkey, default_privkey, 32);
+// Fall back to runtime-generated cert with local hostname
+char hostname[256] = "localhost";
+DWORD hsz = (DWORD)sizeof(hostname);
+GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+std::vector<unsigned char> rtcert;
+unsigned char rtkey[32] = {};
+if(gen_self_signed_cert(hostname, rtcert, rtkey)){
+    m_cert_der = rtcert; memcpy(m_privkey, rtkey, 32);
+} else {
+    m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+    memcpy(m_privkey, default_privkey, 32);
+}
+m_chain_der.clear();
+m_fallback_cert_der.clear();
+m_has_fallback = false;
 m_has_cert = true;
 }
 tls_server_conn *srv = new tls_server_conn;
 srv->init(m_sockfd,
           m_cert_der.data(), (int)m_cert_der.size(),
           m_privkey);
+// Pass full certificate chain (leaf + intermediates) if available
+if(!m_chain_der.empty())
+    srv->set_chain(m_chain_der.data(), (int)m_chain_der.size());
+// Pass the fallback self-signed cert for SNI-based cert selection
+if(m_has_fallback && !m_acme_domain.empty())
+    srv->set_fallback_cert(m_fallback_cert_der.data(), (int)m_fallback_cert_der.size(),
+                           m_fallback_privkey, m_acme_domain.c_str());
 const char *err = srv->handshake();
 if(err != NULL)
 {
@@ -590,9 +962,18 @@ setCacert(psock, false); // copy certificate from parent socket
 
 if(bInitServer){
 if(!m_has_cert){
-// Use default certificate if none configured
-m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
-memcpy(m_privkey, default_privkey, 32);
+// Generate runtime cert with machine hostname in SAN as fallback
+char hostname[256] = "localhost";
+DWORD hsz = (DWORD)sizeof(hostname);
+GetComputerNameExA(ComputerNameDnsHostname, hostname, &hsz);
+std::vector<unsigned char> rtcert;
+unsigned char rtkey[32] = {};
+if(gen_self_signed_cert(hostname, rtcert, rtkey)){
+    m_cert_der = rtcert; memcpy(m_privkey, rtkey, 32);
+} else {
+    m_cert_der.assign(default_cert_der, default_cert_der + default_cert_der_len);
+    memcpy(m_privkey, default_privkey, 32);
+}
 m_has_cert = true;
 }
 m_ssltype = SSL_INIT_SERV;

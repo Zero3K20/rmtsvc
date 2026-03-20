@@ -109,9 +109,25 @@ class tls_server_conn
     SOCKET          s               = INVALID_SOCKET;
     tls_cipher      crypto;
 
-    const unsigned char *cert_der       = nullptr; // DER-encoded X.509 certificate
+    const unsigned char *cert_der       = nullptr; // DER-encoded X.509 certificate (leaf)
     int                  cert_der_len   = 0;
     const unsigned char *privkey        = nullptr; // 32-byte raw P-256 private key
+
+    // Full certificate chain: intermediate cert(s) to append after the leaf.
+    // Each entry is prefixed with a 3-byte big-endian length, concatenated.
+    const unsigned char *chain_der      = nullptr;
+    int                  chain_der_len  = 0;
+
+    // Optional fallback cert+key used when the SNI hostname does not match
+    // the primary certificate's domain (e.g. internal LAN hostname vs. ACME domain).
+    const unsigned char *fallback_cert_der     = nullptr;
+    int                  fallback_cert_der_len = 0;
+    const unsigned char *fallback_privkey      = nullptr;
+    // Primary cert domain: compared against the SNI name to decide which cert to use.
+    const char          *cert_domain           = nullptr;
+
+    // SNI hostname parsed from ClientHello (NUL-terminated, empty if not present).
+    char sni_name[256]  = {};
 
     tlsbuf  send_buf;
     tlsbuf  recv_buf;
@@ -410,14 +426,22 @@ class tls_server_conn
         int hs_size_idx = send_buf.append_size(3);
 
         // Certificate list total length (3 bytes).
-        int list_len = 3 + cert_der_len;            // one cert: 3-byte len + DER
+        // Includes the leaf cert (3-byte length prefix + DER) plus any chain certs
+        // that are already stored with their 3-byte length prefixes.
+        int list_len = 3 + cert_der_len;
+        if(chain_der && chain_der_len > 0)
+            list_len += chain_der_len;
         send_buf.append((char)(list_len >> 16));
         send_buf.append((short)htons((u_short)(list_len & 0xFFFF)));
 
-        // Individual certificate length (3 bytes) + DER bytes.
+        // Leaf certificate length (3 bytes) + DER bytes.
         send_buf.append((char)(cert_der_len >> 16));
         send_buf.append((short)htons((u_short)(cert_der_len & 0xFFFF)));
         send_buf.append(cert_der, cert_der_len);
+
+        // Intermediate / chain certificates (already prefixed with 3-byte lengths).
+        if(chain_der && chain_der_len > 0)
+            send_buf.append((char*)chain_der, chain_der_len);
 
         int body = send_buf.size - hs_size_idx - 3;
         send_buf.buf[hs_size_idx]     = 0;
@@ -601,8 +625,9 @@ class tls_server_conn
         if(r.buf_size - r.readed < comp_len) return nullptr;
         r.readed += comp_len;
 
-        // Parse extensions to detect extended_master_secret (RFC 7627) and
-        // supported_versions (RFC 8446 §4.2.1).  Both fields are optional.
+        // Parse extensions to detect extended_master_secret (RFC 7627),
+        // supported_versions (RFC 8446 §4.2.1), and server_name (SNI, RFC 6066).
+        // All fields are optional.
         if(r.buf_size - r.readed >= 2)
         {
             int ext_total = (int)(unsigned short)ntohs(r.read<short>());
@@ -612,7 +637,35 @@ class tls_server_conn
                 int ext_type = (int)(unsigned short)ntohs(r.read<short>());
                 int ext_len  = (int)(unsigned short)ntohs(r.read<short>());
                 int ext_data_end = r.readed + ext_len;
-                if(ext_type == 0x0017 /* extended_master_secret */ && ext_len == 0)
+                if(ext_type == 0x0000 /* server_name (SNI) */ && ext_len >= 5)
+                {
+                    // ServerNameList: list_len(2) name_type(1) hostname_len(2) hostname
+                    // We only care about name_type 0 (host_name).
+                    int off = r.readed;
+                    if(off + 2 <= r.buf_size)
+                    {
+                        int list_len = ((int)(unsigned char)r.buf[off] << 8) |
+                                        (int)(unsigned char)r.buf[off+1];
+                        off += 2;
+                        if(off + list_len <= ext_data_end && off + 3 <= r.buf_size)
+                        {
+                            int name_type = (int)(unsigned char)r.buf[off];
+                            if(name_type == 0 /* host_name */)
+                            {
+                                int hlen = ((int)(unsigned char)r.buf[off+1] << 8) |
+                                            (int)(unsigned char)r.buf[off+2];
+                                off += 3;
+                                if(hlen > 0 && off + hlen <= ext_data_end &&
+                                   hlen < (int)sizeof(sni_name) - 1)
+                                {
+                                    memcpy(sni_name, r.buf + off, hlen);
+                                    sni_name[hlen] = '\0';
+                                }
+                            }
+                        }
+                    }
+                }
+                else if(ext_type == 0x0017 /* extended_master_secret */ && ext_len == 0)
                 {
                     use_ems = true;
                 }
@@ -789,6 +842,29 @@ public:
         privkey      = privkey_buf;
     }
 
+    // Set intermediate/chain certificates to send after the leaf cert.
+    // chain_buf must remain valid for the lifetime of this connection.
+    // Each cert in chain_buf must be prefixed with a 3-byte big-endian length.
+    void set_chain(const unsigned char *chain_buf, int chain_len)
+    {
+        chain_der     = chain_buf;
+        chain_der_len = chain_len;
+    }
+
+    // Set a fallback certificate and key used when the SNI hostname from the
+    // client does not match cert_domain (the primary certificate's domain).
+    // This allows serving a self-signed cert with the local hostname in its SAN
+    // for LAN clients while still serving the Let's Encrypt cert to external clients.
+    void set_fallback_cert(const unsigned char *cert_buf, int cert_len,
+                           const unsigned char *key_buf,
+                           const char *domain)
+    {
+        fallback_cert_der     = cert_buf;
+        fallback_cert_der_len = cert_len;
+        fallback_privkey      = key_buf;
+        cert_domain           = domain;
+    }
+
     // Perform the TLS 1.2 server handshake.
     // Returns nullptr on success, or an error string on failure.
     const char *handshake()
@@ -824,6 +900,35 @@ public:
                                      client_rand, chosen_cipher,
                                      session_id, session_id_len);
             if(ret) throw ret;
+
+            // If a fallback cert is configured, select the right cert based on SNI.
+            // When the client connects with a hostname that differs from the primary
+            // cert's domain (e.g. a LAN hostname instead of the ACME/LE domain),
+            // switch to the fallback cert so the hostname in the cert SAN matches.
+            if(fallback_cert_der && fallback_privkey && cert_domain)
+            {
+                bool sni_matches_primary = (sni_name[0] != '\0' &&
+                                            strcmp(sni_name, cert_domain) == 0);
+                if(!sni_matches_primary)
+                {
+                    // Use the fallback cert (self-signed with local hostname SAN).
+                    // Clear the chain: the fallback is self-signed so there are no
+                    // intermediates to send.
+                    cert_der     = fallback_cert_der;
+                    cert_der_len = fallback_cert_der_len;
+                    privkey      = fallback_privkey;
+                    chain_der     = nullptr;
+                    chain_der_len = 0;
+                    TLS_SERVER_DEBUG("[SSL] server: SNI='%s' != domain='%s', "
+                                     "using fallback self-signed cert\r\n",
+                                     sni_name, cert_domain);
+                }
+                else
+                {
+                    TLS_SERVER_DEBUG("[SSL] server: SNI='%s' matches primary cert domain, "
+                                     "using LE/ACME cert\r\n", sni_name);
+                }
+            }
 
             // If the client sent supported_versions but did NOT include TLS 1.2,
             // we cannot serve this client.  Fail fast rather than sending a TLS 1.2

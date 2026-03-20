@@ -120,6 +120,11 @@ bool webServer :: Start()
 				    "[ACME] Loading certificate from: %s\r\n", m_acme.certFile().c_str());
 				setCacert(m_acme.certFile().c_str(), m_acme.keyFile().c_str(),
 				          "", false, NULL, NULL);
+				// Store the ACME domain so the TLS server can use SNI to select the
+				// right certificate: serve the LE cert for external connections using
+				// this domain, and the self-signed fallback cert for LAN connections
+				// using the machine's local hostname.
+				setAcmeDomain(g_acme_domain.c_str());
 				acmeLoaded = true;
 				startAcmeRenewal();
 			}
@@ -184,6 +189,7 @@ DWORD WINAPI webServer::acmeRenewalThread(LPVOID param)
 				self->setCacert(self->m_acme.certFile().c_str(),
 				                self->m_acme.keyFile().c_str(),
 				                "", false, NULL, NULL);
+				self->setAcmeDomain(g_acme_domain.c_str());
 				self->initSSL(true, NULL);
 #endif
 				RW_LOG_PRINT(LOGLEVEL_INFO, "[ACME] Certificate renewed successfully.\r\n");

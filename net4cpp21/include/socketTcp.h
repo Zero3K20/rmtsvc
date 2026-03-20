@@ -80,6 +80,11 @@ namespace net4cpp21
 		void setCacert(const char *strCaCert,const char *strCaKey,const char *strCaKeypwd,bool bNotfile,
 					   const char *strCaRootFile=NULL,const char *strCRLfile=NULL);
 		void setCacert(socketSSL *psock,bool bOnlyCopyCert);
+		// Set the ACME/LE domain used for SNI-based cert selection.
+		// When a client connects with an SNI hostname matching this domain the
+		// primary (LE) certificate is served; for any other hostname the
+		// self-signed fallback cert (with the local machine hostname in SAN) is used.
+		void setAcmeDomain(const char *domain) { if(domain) m_acme_domain.assign(domain); }
 		//Perform TLS handshake after connecting or accepting a connection; returns true on success
 		bool SSL_Associate();
 		//Initialize SSL; bInitServer specifies whether to initialize server or client side
@@ -101,6 +106,11 @@ namespace net4cpp21
 				psock->m_cert_der=this->m_cert_der;
 				memcpy(psock->m_privkey,this->m_privkey,32);
 				psock->m_has_cert=this->m_has_cert;
+				psock->m_chain_der=this->m_chain_der;
+				psock->m_acme_domain=this->m_acme_domain;
+				psock->m_fallback_cert_der=this->m_fallback_cert_der;
+				memcpy(psock->m_fallback_privkey,this->m_fallback_privkey,32);
+				psock->m_has_fallback=this->m_has_fallback;
 			}
 			return sr;
 		}
@@ -115,9 +125,18 @@ namespace net4cpp21
 		tls_client      *m_tls_client; //client-side TLS connection
 		tls_server_conn *m_tls_server; //server-side TLS connection
 		//Certificate and key storage (server-side)
-		std::vector<unsigned char> m_cert_der; //DER-encoded X.509 certificate
+		std::vector<unsigned char> m_cert_der; //DER-encoded X.509 leaf certificate
 		unsigned char m_privkey[32];           //raw 32-byte P-256 private key
 		bool m_has_cert;                       //true if cert/key have been loaded
+		// Intermediate certificate chain (each cert preceded by 3-byte BE length).
+		// Built from a multi-cert PEM file; sent after the leaf cert in the TLS handshake.
+		std::vector<unsigned char> m_chain_der;
+		// ACME domain string: used as the SNI match key for primary cert selection.
+		std::string m_acme_domain;
+		// Fallback cert (self-signed, local hostname SAN) for non-ACME-domain SNI.
+		std::vector<unsigned char> m_fallback_cert_der;
+		unsigned char m_fallback_privkey[32];
+		bool m_has_fallback;
 		//Peek buffer for v_peek implementation
 		char m_peekbuf[4096];
 		int  m_peeklen;
