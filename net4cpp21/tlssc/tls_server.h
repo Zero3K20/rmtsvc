@@ -32,6 +32,7 @@
 #endif
 #include <WinSock2.h>
 #include <windows.h>
+#include <wincrypt.h>
 #include <stdarg.h>
 #include "tlsclient.cpp"
 
@@ -121,6 +122,7 @@ class tls_server_conn
     bool    handshake_done          = false;
     bool    received_close_notify   = false;
     bool    use_ems                 = false;   // extended_master_secret (RFC 7627)
+    bool    client_tls12_not_offered = false;  // true if supported_versions excludes TLS 1.2
     const char *m_step              = "";      // current handshake step (for diagnostics)
 
     // -- private helpers ------------------------------------------------------
@@ -592,8 +594,6 @@ class tls_server_conn
                              " (%d suite(s) offered)\r\n", cs_len / 2);
             return "no supported cipher suite offered by client";
         }
-        TLS_SERVER_DEBUG("[SSL] server: chosen cipher=0x%04X, EMS=%d\r\n",
-                         (int)chosen_cipher_out, (int)use_ems);
 
         // Parse compression methods.
         if(r.buf_size - r.readed < 1) return nullptr;
@@ -601,19 +601,58 @@ class tls_server_conn
         if(r.buf_size - r.readed < comp_len) return nullptr;
         r.readed += comp_len;
 
-        // Parse extensions to detect extended_master_secret (RFC 7627).
-        if(r.buf_size - r.readed < 2) return nullptr;
-        int ext_total = (int)(unsigned short)ntohs(r.read<short>());
-        int ext_end   = r.readed + ext_total;
-        while(r.readed + 4 <= ext_end && r.readed + 4 <= r.buf_size)
+        // Parse extensions to detect extended_master_secret (RFC 7627) and
+        // supported_versions (RFC 8446 §4.2.1).  Both fields are optional.
+        if(r.buf_size - r.readed >= 2)
         {
-            int ext_type = (int)(unsigned short)ntohs(r.read<short>());
-            int ext_len  = (int)(unsigned short)ntohs(r.read<short>());
-            if(ext_type == 0x0017 /* extended_master_secret */ && ext_len == 0)
-                use_ems = true;
-            if(r.readed + ext_len > ext_end || r.readed + ext_len > r.buf_size) break;
-            r.readed += ext_len;
+            int ext_total = (int)(unsigned short)ntohs(r.read<short>());
+            int ext_end   = r.readed + ext_total;
+            while(r.readed + 4 <= ext_end && r.readed + 4 <= r.buf_size)
+            {
+                int ext_type = (int)(unsigned short)ntohs(r.read<short>());
+                int ext_len  = (int)(unsigned short)ntohs(r.read<short>());
+                int ext_data_end = r.readed + ext_len;
+                if(ext_type == 0x0017 /* extended_master_secret */ && ext_len == 0)
+                {
+                    use_ems = true;
+                }
+                else if(ext_type == 0x002B /* supported_versions */ && ext_len >= 1)
+                {
+                    // The supported_versions list: one-byte count + two-byte version
+                    // entries (RFC 8446 §4.2.1).  Read directly from the buffer
+                    // without advancing r.readed; line 641 handles the skip.
+                    int sv_off = 0;
+                    if(r.readed + sv_off < r.buf_size)
+                    {
+                        int sv_list_len = (int)(unsigned char)r.buf[r.readed + sv_off];
+                        sv_off++;
+                        // Bounds: sv_list_len must fit within the remaining ext data.
+                        if(sv_off + sv_list_len <= ext_len)
+                        {
+                            bool found_tls12 = false;
+                            for(int sv_i = 0; sv_i + 1 < sv_list_len; sv_i += 2)
+                            {
+                                int pos = r.readed + sv_off + sv_i;
+                                if(pos + 1 >= r.buf_size) break;
+                                int ver = ((int)(unsigned char)r.buf[pos]     << 8) |
+                                           (int)(unsigned char)r.buf[pos + 1];
+                                if(ver == 0x0303) found_tls12 = true;
+                            }
+                            // If the extension is present but TLS 1.2 is not listed,
+                            // the client did not offer TLS 1.2 via supported_versions.
+                            if(!found_tls12)
+                                client_tls12_not_offered = true;
+                        }
+                    }
+                    // r.readed is NOT advanced here; the assignment below sets it to ext_data_end.
+                }
+                if(ext_data_end > ext_end || ext_data_end > r.buf_size) break;
+                r.readed = ext_data_end;
+            }
         }
+
+        TLS_SERVER_DEBUG("[SSL] server: chosen cipher=0x%04X, EMS=%d\r\n",
+                         (int)chosen_cipher_out, (int)use_ems);
 
         return nullptr;
     }
@@ -786,13 +825,33 @@ public:
                                      session_id, session_id_len);
             if(ret) throw ret;
 
+            // If the client sent supported_versions but did NOT include TLS 1.2,
+            // we cannot serve this client.  Fail fast rather than sending a TLS 1.2
+            // ServerHello that the client will reject (which would result in a
+            // mid-handshake WSAECONNABORTED on our side).
+            if(client_tls12_not_offered)
+                throw "TLS 1.2 not offered in client supported_versions";
+
             // Update transcript hash with ClientHello.
             crypto.update_hash(payload.buf, payload.size);
 
             // ---- Prepare cipher and randoms --------------------------------
+            // Generate a cryptographically random server_rand using CryptGenRandom.
+            // Using rand() is not appropriate here: it is not cryptographically
+            // secure and its output is predictable, which could weaken the handshake.
             unsigned char server_rand[RAND_SIZE];
-            for(int i = 0; i < RAND_SIZE; ++i)
-                server_rand[i] = (unsigned char)(rand() & 0xFF);
+            {
+                HCRYPTPROV hprov = 0;
+                bool ok = false;
+                if(CryptAcquireContext(&hprov, NULL, NULL, PROV_RSA_FULL,
+                                       CRYPT_VERIFYCONTEXT))
+                {
+                    ok = (CryptGenRandom(hprov, RAND_SIZE, server_rand) != FALSE);
+                    CryptReleaseContext(hprov, 0);
+                }
+                if(!ok)
+                    throw "CryptGenRandom failed for server random";
+            }
 
             // update_server_info sets the cipher index, creates the encoder,
             // and stores server_rand in crypto.data12.server_rand.
@@ -805,8 +864,13 @@ public:
             // ---- Send ServerHello ------------------------------------------
             m_step = "ServerHello";
             TLS_SERVER_DEBUG("[SSL] server: sending ServerHello\r\n");
-            ret = send_server_hello(chosen_cipher, server_rand,
-                                    session_id, session_id_len);
+            // Do not echo the client's session_id back.  This server does not
+            // implement TLS 1.2 session resumption; echoing the client's
+            // session_id would signal resumption to the client, which would then
+            // expect an abbreviated handshake and reject the full handshake we send.
+            // Sending an empty session_id correctly tells the client to start a
+            // new full-handshake session.
+            ret = send_server_hello(chosen_cipher, server_rand, nullptr, 0);
             if(ret) throw ret;
 
             // ---- Send Certificate ------------------------------------------
@@ -995,9 +1059,10 @@ public:
 
     void close()
     {
-        handshake_done        = false;
-        received_close_notify = false;
-        use_ems               = false;
+        handshake_done           = false;
+        received_close_notify    = false;
+        use_ems                  = false;
+        client_tls12_not_offered = false;
         recv_buf.clear();
         recv_channel.clear();
         recv_channel_readed = 0;
