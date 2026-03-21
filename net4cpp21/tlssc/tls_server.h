@@ -902,14 +902,18 @@ public:
             if(ret) throw ret;
 
             // If a fallback cert is configured, select the right cert based on SNI.
-            // When the client connects with a hostname that differs from the primary
-            // cert's domain (e.g. a LAN hostname instead of the ACME/LE domain),
-            // switch to the fallback cert so the hostname in the cert SAN matches.
+            // Rules:
+            //   - No SNI (IP-based access): serve the primary LE cert so the browser
+            //     sees a CA-trusted certificate rather than an untrusted self-signed one.
+            //   - SNI matches the ACME domain: serve the primary LE cert.
+            //   - SNI is a different hostname (e.g. a LAN hostname like "Bryan-PC"):
+            //     serve the fallback self-signed cert whose SAN covers that hostname,
+            //     avoiding ERR_CERT_COMMON_NAME_INVALID for LAN hostname access.
             if(fallback_cert_der && fallback_privkey && cert_domain)
             {
-                bool sni_matches_primary = (sni_name[0] != '\0' &&
-                                            strcmp(sni_name, cert_domain) == 0);
-                if(!sni_matches_primary)
+                bool use_fallback = (sni_name[0] != '\0' &&
+                                     strcmp(sni_name, cert_domain) != 0);
+                if(use_fallback)
                 {
                     // Use the fallback cert (self-signed with local hostname SAN).
                     // Clear the chain: the fallback is self-signed so there are no
@@ -925,8 +929,8 @@ public:
                 }
                 else
                 {
-                    TLS_SERVER_DEBUG("[SSL] server: SNI='%s' matches primary cert domain, "
-                                     "using LE/ACME cert\r\n", sni_name);
+                    TLS_SERVER_DEBUG("[SSL] server: SNI='%s' (domain='%s'), "
+                                     "using LE/ACME cert\r\n", sni_name, cert_domain);
                 }
             }
 
