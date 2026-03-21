@@ -278,7 +278,8 @@ static bool gen_self_signed_cert(const char *hostname,
         pkB.insert(pkB.end(),pubX,pubX+32); pkB.insert(pkB.end(),pubY,pubY+32);
         std::vector<unsigned char> pkBs; cb_der_tlv(pkBs,0x03,pkB);
         std::vector<unsigned char> spkiI;
-        spkiI.insert(spkiI.end(),cb_der_seq(algoI).begin(),cb_der_seq(algoI).end());
+        auto algoSeq = cb_der_seq(algoI);
+        spkiI.insert(spkiI.end(),algoSeq.begin(),algoSeq.end());
         spkiI.insert(spkiI.end(),pkBs.begin(),pkBs.end());
         auto spki = cb_der_seq(spkiI);
 
@@ -291,8 +292,8 @@ static bool gen_self_signed_cert(const char *hostname,
         auto sanVal = cb_der_seq(sanSeq);
         std::vector<unsigned char> sanOct; cb_der_tlv(sanOct,0x04,sanVal);
         std::vector<unsigned char> sanExtI;
-        sanExtI.insert(sanExtI.end(),cb_der_oid(CB_OID_SAN,sizeof(CB_OID_SAN)).begin(),
-                                     cb_der_oid(CB_OID_SAN,sizeof(CB_OID_SAN)).end());
+        auto sanOid = cb_der_oid(CB_OID_SAN,sizeof(CB_OID_SAN));
+        sanExtI.insert(sanExtI.end(),sanOid.begin(),sanOid.end());
         sanExtI.insert(sanExtI.end(),sanOct.begin(),sanOct.end());
         auto sanExt = cb_der_seq(sanExtI);
 
@@ -302,8 +303,8 @@ static bool gen_self_signed_cert(const char *hostname,
         std::vector<unsigned char> bcOct; cb_der_tlv(bcOct,0x04,bcVal);
         std::vector<unsigned char> bcCrit={0x01,0x01,0xff};
         std::vector<unsigned char> bcExtI;
-        bcExtI.insert(bcExtI.end(),cb_der_oid(CB_OID_BC,sizeof(CB_OID_BC)).begin(),
-                                   cb_der_oid(CB_OID_BC,sizeof(CB_OID_BC)).end());
+        auto bcOid = cb_der_oid(CB_OID_BC,sizeof(CB_OID_BC));
+        bcExtI.insert(bcExtI.end(),bcOid.begin(),bcOid.end());
         bcExtI.insert(bcExtI.end(),bcCrit.begin(),bcCrit.end());
         bcExtI.insert(bcExtI.end(),bcOct.begin(),bcOct.end());
         auto bcExt = cb_der_seq(bcExtI);
