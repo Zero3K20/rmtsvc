@@ -906,7 +906,7 @@ public:
             //   - No SNI (IP-based access): serve the primary LE cert so the browser
             //     sees a CA-trusted certificate rather than an untrusted self-signed one.
             //   - SNI matches the ACME domain: serve the primary LE cert.
-            //   - SNI is a different hostname (e.g. a LAN hostname like "Bryan-PC"):
+            //   - SNI is a different hostname (e.g. a LAN machine name like "MyPC"):
             //     serve the fallback self-signed cert whose SAN covers that hostname,
             //     avoiding ERR_CERT_COMMON_NAME_INVALID for LAN hostname access.
             if(fallback_cert_der && fallback_privkey && cert_domain)
