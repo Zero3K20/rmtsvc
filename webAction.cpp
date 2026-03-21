@@ -667,7 +667,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		"Pragma: no-cache\r\n"
 		"Connection: close\r\n"
 		"\r\n");
-	if (psock->Send(hlen, hdr, -1) < 0) return true;
+	if (psock->Send(hlen, hdr, -1) <= 0) return true;
 
 	WORD w    = LOWORD(m_dwImgSize);
 	WORD h    = HIWORD(m_dwImgSize);
@@ -740,7 +740,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 			: (const char *)lpToCompress;
 
 		SOCKSRESULT sr = psock->Send(sizeof(fhdr), (const char *)&fhdr, HTTP_MAX_RESPTIMEOUT);
-		if (sr >= 0)
+		if (sr > 0)
 			sr = psock->Send(fhdr.compSize, lpSend, HTTP_MAX_RESPTIMEOUT);
 
 		if (lpCompBuf) ::free(lpCompBuf);
@@ -751,7 +751,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		lpPrevFrame = lpCurrFrame;
 		prevW = currW; prevH = currH;
 
-		if (sr < 0) break;
+		if (sr <= 0) break;
 		Sleep(100); // ~10 fps
 	}
 
