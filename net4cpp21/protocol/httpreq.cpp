@@ -50,7 +50,7 @@ bool httpRequest::bKeepAlive()
 {
 	std::map<std::string,std::string>::iterator it=m_httpreq_HEADER.find("Connection");
 	if(it!=m_httpreq_HEADER.end())
-		if(strcmp((*it).second.c_str(),"Keep-Alive")==0)	return true;
+		if(strcasecmp((*it).second.c_str(),"Keep-Alive")==0)	return true;
 	return false;
 }
 
