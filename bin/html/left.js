@@ -428,6 +428,7 @@ var audioCtx = null;
 var nextAudioTime = 0;
 var audioChainRunning = false;
 var audioRestored = false;
+var onScreenViewPage = false;
 
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
@@ -663,7 +664,7 @@ function toggleAudio()
 			// early while the context was still paused.
 			audioCtx.onstatechange = function()
 			{
-				if (audioCtx.state === 'running' && audioEnabled)
+				if (audioCtx.state === 'running' && audioEnabled && onScreenViewPage)
 				{
 					// Reset scheduled-ahead time so new chunks play from "now"
 					// rather than from wherever the scheduler had advanced to
@@ -682,7 +683,7 @@ function toggleAudio()
 		// without invoking the callback, and onstatechange never fires because
 		// there is no state transition.  Starting here directly guarantees the
 		// chain begins regardless of Promise or event delivery timing.
-		if (audioCtx.state === 'running')
+		if (audioCtx.state === 'running' && onScreenViewPage)
 		{
 			nextAudioTime = audioCtx.currentTime;
 			if (!audioChainRunning) fetchAudioChunk();
@@ -693,7 +694,7 @@ function toggleAudio()
 		// already running and the chain was started above.
 		audioCtx.resume().then(function()
 		{
-			if (audioEnabled && !audioChainRunning)
+			if (audioEnabled && onScreenViewPage && !audioChainRunning)
 			{
 				nextAudioTime = audioCtx.currentTime;
 				fetchAudioChunk();
@@ -708,9 +709,44 @@ function toggleAudio()
 	}
 }
 
+function notifyViewUrl(url)
+{
+	var wasOnScreenPage = onScreenViewPage;
+	onScreenViewPage = /viewScreen\.htm/i.test(url) || /viewCtrl\.htm/i.test(url);
+	if (audioEnabled)
+	{
+		if (onScreenViewPage && !wasOnScreenPage)
+		{
+			// Navigated to a screen view page — resume/start audio
+			if (audioCtx && audioCtx.state !== 'running')
+			{
+				audioCtx.resume().then(function()
+				{
+					if (audioEnabled && onScreenViewPage && !audioChainRunning)
+					{
+						nextAudioTime = audioCtx.currentTime;
+						fetchAudioChunk();
+					}
+				});
+			}
+			else if (audioCtx && !audioChainRunning)
+			{
+				nextAudioTime = audioCtx.currentTime;
+				fetchAudioChunk();
+			}
+		}
+		else if (!onScreenViewPage && wasOnScreenPage)
+		{
+			// Navigated away from a screen view page — pause audio
+			audioChainRunning = false;
+			if (audioCtx) audioCtx.suspend();
+		}
+	}
+}
+
 function fetchAudioChunk()
 {
-	if (!audioEnabled) { audioChainRunning = false; return; }
+	if (!audioEnabled || !onScreenViewPage) { audioChainRunning = false; return; }
 	audioChainRunning = true;
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", "/capAudio", true);
