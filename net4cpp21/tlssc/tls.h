@@ -15,6 +15,11 @@ typedef unsigned int uint;
 #define SSL_VERSION_MINOR3  3
 
 
+// RFC 5246 §6.2.1: maximum TLS 1.2 record plaintext payload is 2^14 bytes.
+// Sending records larger than this causes clients to reject them with a
+// fatal record_overflow alert (ERR_SSL_PROTOCOL_ERROR in Chrome).
+#define TLS_MAX_RECORD_PAYLOAD      16384
+
 // The following defines SSL 3.0 content types
 #define CONTENT_CHANGECIPHERSPEC    0x14
 #define CONTENT_ALERT               0x15

@@ -1581,8 +1581,8 @@ public:
 		send_buf.clear();
 		for(int i = 0; i < size;)
 		{
-			int send_size = min(size-i, 60000);
-			send_buf.set_size(size);
+			int send_size = min(size-i, TLS_MAX_RECORD_PAYLOAD);
+			send_buf.set_size(send_size);
 			memcpy(send_buf.buf, buf+i, send_size);
 			const char *ret = send_packet(CONTENT_APPLICATION_DATA, 0x303, send_buf);
 			if(ret)
