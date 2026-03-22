@@ -626,6 +626,9 @@ bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 
 DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits);
 DWORD capDesktopRaw(HWND hWnd,WORD w,WORD h,WORD &actual_w,WORD &actual_h,LPBYTE &lpbits);
+static DWORD capDesktopRawInto(HWND hWnd,WORD w,WORD h,WORD &actual_w,WORD &actual_h,
+                                LPBYTE *ppDibBuf,DWORD *pDibBufSz,
+                                LPBYTE *ppRgbBuf,DWORD *pRgbBufSz);
 bool webServer:: httprsp_capDesktop(socketTCP *psock,httpResponse &httprsp,httpSession &session)
 {
 	bool ifCapCursor=true;
@@ -673,8 +676,14 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 	WORD h    = HIWORD(m_dwImgSize);
 	HWND hwnd = (HWND)atol(session["cap_hwnd"].c_str());
 
-	LPBYTE lpPrevFrame = NULL; // previous top-down RGB frame
-	WORD   prevW = 0, prevH = 0;
+	// Pre-allocated reusable buffers grown as needed, never per-frame malloc/free.
+	LPBYTE lpDibBuf  = NULL; DWORD szDibBuf  = 0; // scratch DIB (bottom-up BGR)
+	LPBYTE lpRgbCurr = NULL; DWORD szRgbCurr = 0; // current  frame (top-down RGB)
+	LPBYTE lpRgbPrev = NULL; DWORD szRgbPrev = 0; // previous frame (top-down RGB)
+	LPBYTE lpDiffBuf = NULL; DWORD szDiffBuf = 0; // XOR diff buffer
+	LPBYTE lpCompBuf = NULL; DWORD szCompBuf = 0; // RLE output buffer
+
+	WORD prevW = 0, prevH = 0;
 
 	while (psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
 	{
@@ -688,46 +697,51 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 		Wutils::selectDesktop();
 
-		LPBYTE lpCurrFrame = NULL;
-		WORD   currW = 0, currH = 0;
-		DWORD  rawSize = capDesktopRaw(hwnd, w, h, currW, currH, lpCurrFrame);
+		WORD  currW = 0, currH = 0;
+		DWORD rawSize = capDesktopRawInto(hwnd, w, h, currW, currH,
+		                                  &lpDibBuf, &szDibBuf,
+		                                  &lpRgbCurr, &szRgbCurr);
 
-		if (rawSize == 0 || !lpCurrFrame)
+		if (rawSize == 0)
 		{
-			if (lpCurrFrame) ::free(lpCurrFrame);
 			Sleep(33);
 			continue;
 		}
 
-		bool bFull = (lpPrevFrame == NULL || prevW != currW || prevH != currH);
+		bool bFull = (lpRgbPrev == NULL || prevW != currW || prevH != currH);
 
 		// Build the data to compress: full frame or XOR diff
-		LPBYTE lpToCompress = lpCurrFrame;
-		LPBYTE lpDiff       = NULL;
+		LPBYTE lpToCompress = lpRgbCurr;
 		if (!bFull)
 		{
-			lpDiff = (LPBYTE)::malloc(rawSize);
-			if (lpDiff)
+			// Grow diff buffer if needed
+			if (rawSize > szDiffBuf)
+			{
+				LPBYTE lpNew = (LPBYTE)::realloc(lpDiffBuf, rawSize);
+				if (lpNew) { lpDiffBuf = lpNew; szDiffBuf = rawSize; }
+				else       { bFull = true; } // fall back to full frame on alloc failure
+			}
+			if (!bFull)
 			{
 				for (DWORD i = 0; i < rawSize; i++)
-					lpDiff[i] = lpCurrFrame[i] ^ lpPrevFrame[i];
-				lpToCompress = lpDiff;
-			}
-			else
-			{
-				bFull = true; // fall back to full frame on alloc failure
+					lpDiffBuf[i] = lpRgbCurr[i] ^ lpRgbPrev[i];
+				lpToCompress = lpDiffBuf;
 			}
 		}
 
 		// Attempt RLE compression.
 		// Worst-case expansion: 1 extra control byte per 128 literal bytes (~0.8%).
-		DWORD  compBufSize = rawSize + (rawSize >> 7) + 64;
-		LPBYTE lpCompBuf   = (LPBYTE)::malloc(compBufSize);
-		DWORD  compSize    = 0;
-		bool   bCompressed = false;
+		DWORD neededComp = rawSize + (rawSize >> 7) + 64;
+		if (neededComp > szCompBuf)
+		{
+			LPBYTE lpNew = (LPBYTE)::realloc(lpCompBuf, neededComp);
+			if (lpNew) { lpCompBuf = lpNew; szCompBuf = neededComp; }
+		}
+		DWORD compSize    = 0;
+		bool  bCompressed = false;
 		if (lpCompBuf)
 		{
-			compSize = rleCompress(lpToCompress, rawSize, lpCompBuf, compBufSize);
+			compSize = rleCompress(lpToCompress, rawSize, lpCompBuf, szCompBuf);
 			if (compSize > 0 && compSize < rawSize)
 				bCompressed = true;
 			else
@@ -751,12 +765,10 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		if (sr > 0)
 			sr = psock->Send(fhdr.compSize, lpSend, HTTP_MAX_RESPTIMEOUT);
 
-		if (lpCompBuf) ::free(lpCompBuf);
-		if (lpDiff)    ::free(lpDiff);
-
-		// Current frame becomes previous frame
-		if (lpPrevFrame) ::free(lpPrevFrame);
-		lpPrevFrame = lpCurrFrame;
+		// Swap current and previous frame buffers so the just-sent frame
+		// becomes the reference for the next XOR diff without any copy.
+		{ LPBYTE t = lpRgbPrev; lpRgbPrev = lpRgbCurr; lpRgbCurr = t; }
+		{ DWORD  t = szRgbPrev; szRgbPrev = szRgbCurr; szRgbCurr = t; }
 		prevW = currW; prevH = currH;
 
 		if (sr <= 0) break;
@@ -768,7 +780,11 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 			Sleep((DWORD)(33 - elapsed));
 	}
 
-	if (lpPrevFrame) ::free(lpPrevFrame);
+	if (lpDibBuf)  ::free(lpDibBuf);
+	if (lpRgbCurr) ::free(lpRgbCurr);
+	if (lpRgbPrev) ::free(lpRgbPrev);
+	if (lpDiffBuf) ::free(lpDiffBuf);
+	if (lpCompBuf) ::free(lpCompBuf);
 	return true;
 }
 
@@ -988,15 +1004,27 @@ DWORD usageImage(LPBITMAPINFOHEADER lpbih,LPBYTE lpbits)
 }
 
 // ---------------------------------------------------------------------------
-// capDesktopRaw – capture desktop as top-down 24-bit RGB.
-// The returned buffer (lpbits) is allocated with malloc() and must be freed
-// by the caller.  actual_w / actual_h receive the output dimensions.
-// Returns total byte count of lpbits, or 0 on failure.
+// capDesktopRawInto – capture desktop as top-down 24-bit RGB.
+//
+// Reusable-buffer variant: the caller provides two grow-only scratch buffers
+// that are reused across frames to avoid per-frame malloc/free overhead.
+//
+//   *ppDibBuf / *pDibBufSz : scratch buffer for the raw bottom-up BGR DIB.
+//   *ppRgbBuf / *pRgbBufSz : output buffer for the top-down RGB result.
+//
+// Both pointer/size pairs MUST be zero-initialised before the first call.
+// They are grown (via realloc) as needed but never shrunk.
+// The caller owns all allocations and must free them when done.
+//
+// On success fills *ppRgbBuf and sets actual_w/actual_h; returns byte count.
+// On failure returns 0 (buffers are left in a valid but undefined state).
 // ---------------------------------------------------------------------------
-DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
-                    WORD &actual_w, WORD &actual_h, LPBYTE &lpbits)
+static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
+                                WORD &actual_w, WORD &actual_h,
+                                LPBYTE *ppDibBuf, DWORD *pDibBufSz,
+                                LPBYTE *ppRgbBuf, DWORD *pRgbBufSz)
 {
-	lpbits = NULL; actual_w = 0; actual_h = 0;
+	actual_w = 0; actual_h = 0;
 
 	if (hWnd == NULL) hWnd = ::GetDesktopWindow();
 	RECT rect;
@@ -1012,11 +1040,19 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 	bih.biWidth       = rect.right  - rect.left;
 	bih.biSizeImage   = DIBSCANLINE_WIDTHBYTES(bih.biWidth * bih.biBitCount) * bih.biHeight;
 
-	LPBYTE lpbuffer = (LPBYTE)::malloc(bih.biSizeImage);
-	if (!lpbuffer) return 0;
+	// Grow DIB scratch buffer only when the screen size increases.
+	// *pDibBufSz must be zero-initialised by the caller.
+	if (bih.biSizeImage > *pDibBufSz)
+	{
+		LPBYTE lpNew = (LPBYTE)::realloc(*ppDibBuf, bih.biSizeImage);
+		if (!lpNew) return 0; // GDI objects not yet created; safe early return
+		*ppDibBuf  = lpNew;
+		*pDibBufSz = bih.biSizeImage;
+	}
+	LPBYTE lpbuffer = *ppDibBuf;
 
-	HDC     hWndDC = ::GetDCEx(hWnd, NULL, DCX_WINDOW);
-	HDC     hMemDC = ::CreateCompatibleDC(hWndDC);
+	HDC     hWndDC  = ::GetDCEx(hWnd, NULL, DCX_WINDOW);
+	HDC     hMemDC  = ::CreateCompatibleDC(hWndDC);
 	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hWndDC, bih.biWidth, bih.biHeight);
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
 	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, 0, 0, SRCCOPY);
@@ -1025,8 +1061,8 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 	if (::GetDIBits(hWndDC, hMemBmp, 0, bih.biHeight, lpbuffer,
 	                (LPBITMAPINFO)&bih, DIB_RGB_COLORS))
 	{
-		// Scale down if requested (same logic as capDesktop).
-		// In-place rewrite is safe here: the output stride (lEffwidth_dst = w*3)
+		// Scale down if requested.
+		// In-place rewrite is safe: the output stride (lEffwidth_dst = w*3)
 		// is strictly less than the source stride (lEffwidth_src), so each
 		// destination pixel is always at a lower address than its source pixel.
 		if (w != 0 && h != 0)
@@ -1058,14 +1094,32 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 			}
 		}
 
-		// DIB is bottom-up BGR; convert to top-down RGB for the browser
+		// DIB is bottom-up BGR; convert to top-down RGB for the browser.
 		WORD  outW      = (WORD)bih.biWidth;
 		WORD  outH      = (WORD)bih.biHeight;
-		DWORD dibStride = DIBSCANLINE_WIDTHBYTES(outW * bih.biBitCount); // row stride with DWORD padding
-		DWORD outStride = outW * 3;                          // no padding
-		LPBYTE rgbBuf   = (LPBYTE)::malloc((DWORD)outW * outH * 3);
-		if (rgbBuf)
+		DWORD dibStride = DIBSCANLINE_WIDTHBYTES(outW * bih.biBitCount); // with DWORD padding
+		DWORD outStride = outW * 3;                                       // no padding
+		DWORD needed    = (DWORD)outW * outH * 3;
+
+		// Grow RGB output buffer only when the frame size increases.
+		// *pRgbBufSz must be zero-initialised by the caller.
+		if (needed > *pRgbBufSz)
 		{
+			LPBYTE lpNew = (LPBYTE)::realloc(*ppRgbBuf, needed);
+			if (!lpNew)
+			{
+				// Allocation failed: release GDI objects and return failure.
+				::SelectObject(hMemDC, hOldBmp);
+				::DeleteObject(hMemBmp);
+				::DeleteDC(hMemDC);
+				::ReleaseDC(hWnd, hWndDC);
+				return 0;
+			}
+			*ppRgbBuf  = lpNew;
+			*pRgbBufSz = needed;
+		}
+		{
+			LPBYTE rgbBuf = *ppRgbBuf;
 			for (WORD row = 0; row < outH; row++)
 			{
 				// Row 0 of DIB is the bottom row of the image
@@ -1078,20 +1132,10 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 					dst[col*3+2] = src[col*3+0]; // B <- R
 				}
 			}
-			::free(lpbuffer);
-			lpbits   = rgbBuf;
 			actual_w = outW;
 			actual_h = outH;
-			dwret    = (DWORD)outW * outH * 3;
+			dwret    = needed;
 		}
-		else
-		{
-			::free(lpbuffer);
-		}
-	}
-	else
-	{
-		::free(lpbuffer);
 	}
 
 	::SelectObject(hMemDC, hOldBmp);
@@ -1099,6 +1143,28 @@ DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
 	::DeleteDC(hMemDC);
 	::ReleaseDC(hWnd, hWndDC);
 	return dwret;
+}
+
+// ---------------------------------------------------------------------------
+// capDesktopRaw – capture desktop as top-down 24-bit RGB.
+// The returned buffer (lpbits) is allocated with malloc() and must be freed
+// by the caller.  actual_w / actual_h receive the output dimensions.
+// Returns total byte count of lpbits, or 0 on failure.
+// ---------------------------------------------------------------------------
+DWORD capDesktopRaw(HWND hWnd, WORD w, WORD h,
+                    WORD &actual_w, WORD &actual_h, LPBYTE &lpbits)
+{
+	lpbits = NULL;
+	LPBYTE lpDib = NULL; DWORD szDib = 0;
+	LPBYTE lpRgb = NULL; DWORD szRgb = 0;
+	DWORD r = capDesktopRawInto(hWnd, w, h, actual_w, actual_h,
+	                             &lpDib, &szDib, &lpRgb, &szRgb);
+	if (lpDib) ::free(lpDib);
+	if (r > 0)
+		lpbits = lpRgb;
+	else if (lpRgb)
+		::free(lpRgb);
+	return r;
 }
 
 DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)

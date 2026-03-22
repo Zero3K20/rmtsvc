@@ -118,11 +118,14 @@ var _diffCanvasH      = 0;     // last rendered canvas content height
 // Control byte encoding:
 //   0x00..0x7F  literal run:  next (ctrl+1) bytes are copied verbatim (1..128)
 //   0x80..0xFF  repeat run:   next byte is repeated (ctrl-0x80+2) times   (2..129)
-function rleDecompress(src)
+// dstSize must equal the uncompressed frame size (rawSize from the frame header)
+// so that the output Uint8Array can be pre-allocated without a resize pass.
+function rleDecompress(src, dstSize)
 {
-	var out = [];
-	var pos = 0;
-	while (pos < src.length)
+	var out    = new Uint8Array(dstSize);
+	var pos    = 0;
+	var outPos = 0;
+	while (pos < src.length && outPos < dstSize)
 	{
 		var ctrl = src[pos++];
 		if (ctrl & 0x80)
@@ -130,19 +133,22 @@ function rleDecompress(src)
 			// Repeat run
 			var count = (ctrl & 0x7F) + 2;
 			if (pos >= src.length) break;
-			var b = src[pos++];
-			for (var i = 0; i < count; i++)
-				out.push(b);
+			var b   = src[pos++];
+			var end = outPos + count;
+			if (end > dstSize) end = dstSize;
+			while (outPos < end) out[outPos++] = b;
 		}
 		else
 		{
 			// Literal run
 			var count = ctrl + 1;
-			for (var i = 0; i < count && pos < src.length; i++)
-				out.push(src[pos++]);
+			var end   = outPos + count;
+			if (end > dstSize) end = dstSize;
+			while (outPos < end && pos < src.length)
+				out[outPos++] = src[pos++];
 		}
 	}
-	return new Uint8Array(out);
+	return out;
 }
 
 // Append newly received bytes to the accumulation buffer
@@ -180,7 +186,7 @@ function _diffParseFrames()
 		var flags    = b[p+4];
 		var width    = b[p+5] | (b[p+6] << 8);
 		var height   = b[p+7] | (b[p+8] << 8);
-		// rawSize at p+9 (4 bytes) – not needed client-side after decompress
+		var rawSize  = (b[p+9]  | (b[p+10]<<8) | (b[p+11]<<16) | (b[p+12]<<24)) >>> 0;
 		var compSize = (b[p+13] | (b[p+14]<<8) | (b[p+15]<<16) | (b[p+16]<<24)) >>> 0;
 
 		if (avail < DIFF_HEADER_SIZE + compSize) break; // incomplete frame
@@ -188,7 +194,7 @@ function _diffParseFrames()
 		var payload  = b.subarray(p + DIFF_HEADER_SIZE, p + DIFF_HEADER_SIZE + compSize);
 		var isDiff   = (flags & 1) !== 0;
 		var isRle    = (flags & 2) !== 0;
-		var raw      = isRle ? rleDecompress(payload) : payload;
+		var raw      = isRle ? rleDecompress(payload, rawSize) : payload;
 
 		_diffRenderFrame(isDiff, width, height, raw);
 		_diffPos = p + DIFF_HEADER_SIZE + compSize;
