@@ -2,6 +2,17 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>R&V 2.5.X</title>
+<SCRIPT language=javascript>
+function onFrmViewLoad(frm)
+{
+	try
+	{
+		var href = frm.contentWindow.location.href;
+		if (window.frmLeft && frmLeft.notifyViewUrl) frmLeft.notifyViewUrl(href);
+	}
+	catch(e) {}
+}
+</SCRIPT>
 </head>
 
 <frameset id=myFrames name=myFrames cols="180,12,0,*" BORDER=0 >
@@ -16,7 +27,7 @@
   </frameset>
   <frame name="frmMiddle" src="middle.htm" scrolling="no" MARGINHEIGHT="0" MARGINWIDTH="0" noresize>
   <frame name="frmHide" scrolling="no" MARGINHEIGHT="0" MARGINWIDTH="0" noresize>
-  <frame name="frmView" src="view.htm" MARGINHEIGHT="0" MARGINWIDTH="0" >
+  <frame name="frmView" src="view.htm" MARGINHEIGHT="0" MARGINWIDTH="0" onload="onFrmViewLoad(this)">
   
   <noframes>
   <body>
