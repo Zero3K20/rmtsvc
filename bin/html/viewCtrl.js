@@ -4,6 +4,12 @@ var timerID_key=0;
 var timerID_click=0;
 var timerID_move=0;
 var txtKeyEvent="";
+// Double-click detection state.  msdown records the time of each left-button
+// press; when a second press arrives within the double-click window we set
+// isDblClickSecond so that msclick can send act=2 even if the browser does not
+// fire ondblclick (which some browsers suppress when mousedown is preventDefault-ed).
+var lastMousedownTime=0;
+var isDblClickSecond=false;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -152,6 +158,19 @@ var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
+if(isDblClickSecond)
+{
+// This click event is the second of a double-click sequence detected in msdown.
+// Set a short fallback timer to send act=2 in case the browser does not fire
+// ondblclick (e.g. because mousedown's preventDefault suppressed it).
+// msdblclick will cancel this timer and send act=2 directly if it does fire.
+isDblClickSecond=false;
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+var dblParam="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
+timerID_click=window.setTimeout(function(){timerID_click=0;sendEvent("/msevent",dblParam);},50);
+return;
+}
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
 if(timerID_click!=0) window.clearTimeout(timerID_click);
 if(timerID_move!=0) window.clearTimeout(timerID_move);
@@ -159,6 +178,7 @@ timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },200);
 }
 function msdblclick(e)
 {
+isDblClickSecond=false;
 if(timerID_click!=0)
 {
 window.clearTimeout(timerID_click);
@@ -175,6 +195,9 @@ sendEvent("/msevent",param);
 }
 
 // Get mouse down event, record drag start point. Prevents browser native drag/text-selection.
+// Also performs double-click detection: if two left-button presses arrive within 500 ms we
+// set isDblClickSecond=true and cancel any pending single-click timer immediately, so that
+// msclick can send act=2 as a fallback even when the browser suppresses ondblclick.
 function msdown(e)
 {
 e=e||window.event;
@@ -183,6 +206,19 @@ if(isLeftButton(e.button))
 msPosition(e);
 ptX_drag=ptX;
 ptY_drag=ptY;
+var now=Date.now ? Date.now() : new Date().getTime();
+if(lastMousedownTime>0 && (now-lastMousedownTime)<500)
+{
+isDblClickSecond=true;
+// Cancel any pending single-click timer so it cannot fire before
+// ondblclick (or the fallback in msclick) handles the double-click.
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+}
+else
+{
+isDblClickSecond=false;
+}
+lastMousedownTime=now;
 }
 if(e.preventDefault) e.preventDefault();
 }
