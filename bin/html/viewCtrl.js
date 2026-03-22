@@ -14,6 +14,11 @@ var isDblClickSecond=false;
 // the spurious click event that browsers fire after a mouse drag, which would
 // otherwise deselect the text that was just selected on the remote PC.
 var wasDrag=false;
+// Position of the most recent left-button mousedown, used to decide whether a
+// subsequent mousedown within the double-click time window is at the same spot
+// (a true double-click) or at a different location (two separate single clicks,
+// e.g. selecting different files in Explorer).
+var ptX_last_down, ptY_last_down;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -190,6 +195,14 @@ timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },200);
 }
 function msdblclick(e)
 {
+// The browser fires ondblclick whenever two clicks on the same element occur
+// within the system double-click time, regardless of position.  When the user
+// clicks on two different items (e.g. two different files in Explorer) within
+// that window isDblClickSecond will be false because msdown detected the two
+// presses were at different positions.  In that case do not send act=2; let
+// the pending single-click timer from msclick fire instead.
+if(!isDblClickSecond)
+return;
 isDblClickSecond=false;
 if(timerID_click!=0)
 {
@@ -222,6 +235,15 @@ wasDrag=false;
 var now=Date.now ? Date.now() : new Date().getTime();
 if(lastMousedownTime>0 && (now-lastMousedownTime)<500)
 {
+// Only treat as a double-click when the second press is at
+// approximately the same position as the first (within the
+// standard Windows double-click area of ~4 pixels).  If the
+// two presses are far apart the user is clicking on different
+// items (e.g. different files in Explorer) and each should
+// be treated as an independent single click.
+var ddx=ptX-(ptX_last_down||ptX), ddy=ptY-(ptY_last_down||ptY);
+if((ddx*ddx+ddy*ddy)<=16)
+{
 isDblClickSecond=true;
 // Cancel any pending single-click timer so it cannot fire before
 // ondblclick (or the fallback in msclick) handles the double-click.
@@ -231,6 +253,13 @@ else
 {
 isDblClickSecond=false;
 }
+}
+else
+{
+isDblClickSecond=false;
+}
+ptX_last_down=ptX;
+ptY_last_down=ptY;
 lastMousedownTime=now;
 }
 if(e.preventDefault) e.preventDefault();
