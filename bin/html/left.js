@@ -413,6 +413,20 @@ var audioCtx = null;
 var nextAudioTime = 0;
 var audioChainRunning = false;
 
+// When audio is auto-enabled from a saved setting (no prior user gesture),
+// browsers (e.g. Chrome) block AudioContext from starting until there is a
+// real user interaction.  Calling resume() from inside a user-gesture handler
+// satisfies that requirement and allows the context to transition to 'running',
+// which in turn fires the onstatechange handler and starts the audio chain.
+function resumeAudioOnInteraction()
+{
+	if (audioEnabled && audioCtx && audioCtx.state === 'suspended')
+		audioCtx.resume();
+}
+document.addEventListener('click', resumeAudioOnInteraction);
+document.addEventListener('keydown', resumeAudioOnInteraction);
+document.addEventListener('touchstart', resumeAudioOnInteraction);
+
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
 
