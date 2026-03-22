@@ -10,6 +10,10 @@ var txtKeyEvent="";
 // fire ondblclick (which some browsers suppress when mousedown is preventDefault-ed).
 var lastMousedownTime=0;
 var isDblClickSecond=false;
+// Set to true by msup when a drag event is sent so that msclick can suppress
+// the spurious click event that browsers fire after a mouse drag, which would
+// otherwise deselect the text that was just selected on the remote PC.
+var wasDrag=false;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -158,6 +162,14 @@ var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
+// Suppress the spurious click that browsers fire after a mouse drag.  msup
+// already sent the drag event and text is selected on the remote PC; sending
+// another click here would immediately deselect that text.
+if(wasDrag)
+{
+wasDrag=false;
+return;
+}
 if(isDblClickSecond)
 {
 // This click event is the second of a double-click sequence detected in msdown.
@@ -206,6 +218,7 @@ if(isLeftButton(e.button))
 msPosition(e);
 ptX_drag=ptX;
 ptY_drag=ptY;
+wasDrag=false;
 var now=Date.now ? Date.now() : new Date().getTime();
 if(lastMousedownTime>0 && (now-lastMousedownTime)<500)
 {
@@ -237,7 +250,11 @@ if(isLeftButton(b))
 var dx=ptX-ptX_drag, dy=ptY-ptY_drag;
 if(ptX_drag!==undefined && (dx*dx+dy*dy)>4)
 {
-// Mouse moved enough to be a drag — send drag event instead of click
+// Mouse moved enough to be a drag — send drag event instead of click.
+// Set wasDrag so that the subsequent browser click event (which some
+// browsers fire even after a mouse drag) is ignored in msclick and does
+// not send a spurious single-click that would deselect the remote text.
+wasDrag=true;
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
 sendEvent("/msevent",param);
 }
