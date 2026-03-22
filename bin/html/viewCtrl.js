@@ -121,6 +121,16 @@ startScreenStream();
 // Poll server cursor shape every 200 ms so the client cursor stays in sync
 fetchCursor();
 window.setInterval(fetchCursor, 200);
+// Resume audio in the left panel when the user interacts with the screen.
+// The AudioContext lives in frmLeft (left.htm), but after navigating here
+// all user gestures occur in this frame.  Browsers do not propagate user
+// activation across sibling frames, so we forward the gesture explicitly.
+document.addEventListener('click', function() {
+try {
+if (parent && parent.frmLeft && typeof parent.frmLeft.tryResumeAudio === 'function')
+parent.frmLeft.tryResumeAudio();
+} catch(e) {}
+}, false);
 }
 
 function processRequest() 

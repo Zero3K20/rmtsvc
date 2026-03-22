@@ -219,6 +219,12 @@ function window_onload()
 	xmlHttp.open("GET", "/capSetting", true);
 	xmlHttp.onreadystatechange = processRequest;
     	xmlHttp.send(null);
+	// Resume audio on any user gesture in this frame.  Browsers with
+	// autoplay restrictions (Chrome, Safari, Firefox) suspend AudioContext
+	// when it is created without a prior user interaction.  Calling resume()
+	// inside a genuine click handler (rather than from an XHR callback)
+	// satisfies the user-activation requirement and allows audio to start.
+	document.addEventListener('click', tryResumeAudio, false);
 }
 
 function sendKey()
@@ -640,6 +646,25 @@ function unwrapAudioFrame(bytes)
 		}
 	}
 	return bytes; // no AUDF wrapper: treat as plain WAV (backward compat)
+}
+
+// Resume the audio context if audio is enabled but the context has been
+// suspended by the browser's autoplay policy.  Call this from any user
+// gesture handler (e.g. a click event) so that the browser allows the
+// AudioContext to transition from 'suspended' to 'running'.
+function tryResumeAudio()
+{
+	if (audioEnabled && audioCtx && audioCtx.state !== 'running')
+	{
+		audioCtx.resume().then(function()
+		{
+			if (audioEnabled && !audioChainRunning)
+			{
+				nextAudioTime = audioCtx.currentTime;
+				fetchAudioChunk();
+			}
+		});
+	}
 }
 
 function toggleAudio()
