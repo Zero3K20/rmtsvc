@@ -678,6 +678,12 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 	while (psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
 	{
+		// Detect client disconnect early: when the client closes the connection,
+		// the socket becomes read-ready (FIN or RST).  Checking this before the
+		// expensive screen capture avoids wasting CPU on frames that cannot be
+		// delivered.
+		if (psock->checkSocket(0, SOCKS_OP_READ) > 0) break;
+
 		Wutils::selectDesktop();
 
 		LPBYTE lpCurrFrame = NULL;
@@ -1509,6 +1515,10 @@ static DWORD WINAPI audioRingThread(LPVOID)
 	IAudioClient        *pClient  = NULL;
 	IAudioCaptureClient *pCapture = NULL;
 	WAVEFORMATEX        *pDevFmt  = NULL;
+	// Event handle that WASAPI signals whenever a new audio buffer is ready.
+	// Using event-driven mode instead of Sleep(10) polling eliminates the 100
+	// wakeups/second that the polling approach incurs when no audio is playing.
+	HANDLE              hAudioReady = NULL;
 
 	HRESULT hrCom  = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	bool    bNeedCo = (hrCom == S_OK);
@@ -1526,9 +1536,25 @@ static DWORD WINAPI audioRingThread(LPVOID)
 	hr = pClient->GetMixFormat(&pDevFmt);
 	if (FAILED(hr)) goto done;
 
+	// Create the ready event and enable event-driven buffering.  WASAPI will
+	// signal hAudioReady each time a new capture buffer period is available,
+	// so the thread can block in WaitForSingleObject instead of polling.
+	hAudioReady = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (!hAudioReady)
+	{
+		RW_LOG_PRINT(LOGLEVEL_WARN, 0,
+		    "[audioRingThread] CreateEvent failed (err=%lu); falling back to polling\r\n",
+		    (unsigned long)GetLastError());
+		goto done;
+	}
+
 	hr = pClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-	                         AUDCLNT_STREAMFLAGS_LOOPBACK,
+	                         AUDCLNT_STREAMFLAGS_LOOPBACK |
+	                         AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
 	                         5000000, 0, pDevFmt, NULL); // 500 ms engine buffer
+	if (FAILED(hr)) goto done;
+
+	hr = pClient->SetEventHandle(hAudioReady);
 	if (FAILED(hr)) goto done;
 
 	hr = pClient->GetService(__uuidof(IAudioCaptureClient), (void **)&pCapture);
@@ -1566,7 +1592,11 @@ static DWORD WINAPI audioRingThread(LPVOID)
 			LeaveCriticalSection(&g_ar.cs);
 			if (GetTickCount64() - ullLast > 10000) break;
 
-			Sleep(10);
+			// Wait for WASAPI to signal that a new buffer period is ready
+			// (or up to 20 ms as a fallback).  This replaces the former
+			// Sleep(10) busy-poll, which woke the thread 100 times/second
+			// regardless of whether any audio data was available.
+			if (WaitForSingleObject(hAudioReady, 20) == WAIT_FAILED) break;
 
 			UINT32  nPktLen = 0;
 			HRESULT hrPkt   = S_OK;
@@ -1628,12 +1658,13 @@ static DWORD WINAPI audioRingThread(LPVOID)
 	}
 
 done:
-	if (pCapture) pCapture->Release();
-	if (pClient)  pClient->Release();
-	if (pDevFmt)  CoTaskMemFree(pDevFmt);
-	if (pDev)     pDev->Release();
-	if (pEnum)    pEnum->Release();
-	if (bNeedCo)  CoUninitialize();
+	if (pCapture)    pCapture->Release();
+	if (pClient)     pClient->Release();
+	if (pDevFmt)     CoTaskMemFree(pDevFmt);
+	if (pDev)        pDev->Release();
+	if (pEnum)       pEnum->Release();
+	if (hAudioReady) CloseHandle(hAudioReady);
+	if (bNeedCo)     CoUninitialize();
 
 	// Clear the thread handle (under the lock) so the next request can restart.
 	EnterCriticalSection(&g_ar.cs);
