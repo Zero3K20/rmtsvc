@@ -262,6 +262,7 @@ Cleanup:
 //						3 drag
 //						4 drop
 //						5 wheel
+//						6 button up (released after separate button-down, e.g. right-click on taskbar)
 //      low 3 bits of low 2 bytes represent whether Ctrl Shift Alt are pressed
 //          bit 0 represents whether Ctrl key is pressed: 0=no, 1=yes
 //          bit 1 represents whether Shift key is pressed: 0=no, 1=yes
@@ -276,6 +277,7 @@ Cleanup:
 #define MSEVENT_EVENT_DRAG 0x30
 #define MSEVENT_EVENT_DROP 0x40
 #define MSEVENT_EVENT_WHEEL 0x50
+#define MSEVENT_EVENT_BUTTONUP 0x60
 #define MSEVENT_EVENT_ALL 0xf0
 #define MSEVENT_CTRL 0x0100
 #define MSEVENT_SHIFT 0x0200
@@ -347,6 +349,10 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_WHEEL)
 	{//simulate mouse wheel event
 		Mouse_Event(MOUSEEVENTF_WHEEL,0,0,dwData);
+	}
+	else if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_BUTTONUP)
+	{//button released after a separately-sent button-down (e.g. right/middle click on taskbar)
+		Mouse_Event(fUp, 0, 0,0);
 	}
 	else //not mouse drag-drop
 	{

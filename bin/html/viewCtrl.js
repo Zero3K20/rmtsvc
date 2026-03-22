@@ -32,6 +32,19 @@ else if(window.ActiveXObject) xmlHttpKey = new ActiveXObject("Microsoft.XMLHTTP"
 return xmlHttpKey;
 }
 
+// Dedicated XHR for right/middle button-down events so the down request is not
+// aborted by the subsequent button-up request which reuses the shared xmlHttp object.
+var xmlHttpButtonDown = false;
+function getButtonDownXHR()
+{
+if(!xmlHttpButtonDown)
+{
+if(window.XMLHttpRequest) xmlHttpButtonDown = new XMLHttpRequest();
+else if(window.ActiveXObject) xmlHttpButtonDown = new ActiveXObject("Microsoft.XMLHTTP");
+}
+return xmlHttpButtonDown;
+}
+
 // Detect Internet Explorer (pre-Edge) which uses different button/event conventions
 var isIE = !!(window.ActiveXObject || (navigator.userAgent.indexOf("Trident") !== -1));
 
@@ -228,6 +241,9 @@ sendEvent("/msevent",param);
 // Also performs double-click detection: if two left-button presses arrive within 500 ms we
 // set isDblClickSecond=true and cancel any pending single-click timer immediately, so that
 // msclick can send act=2 as a fallback even when the browser suppresses ondblclick.
+// For right/middle buttons a button-down event is forwarded immediately to the server so
+// that Windows can process WM_RBUTTONDOWN before WM_RBUTTONUP arrives (required for the
+// Windows 7 taskbar context menu to appear).
 function msdown(e)
 {
 e=e||window.event;
@@ -266,10 +282,34 @@ isDblClickSecond=false;
 ptX_last_down=ptX;
 ptY_last_down=ptY;
 lastMousedownTime=now;
-}
 if(e.preventDefault) e.preventDefault();
 }
-// Handle mouse up: detect left-button drag vs click; forward right/middle button clicks
+else
+{
+// Right or middle button: send a button-down event immediately so the server
+// injects WM_RBUTTONDOWN before the WM_RBUTTONUP that follows on mouseup.
+// This is necessary for context menus on the Windows 7 taskbar to appear.
+// A dedicated XHR is used so this request is not aborted by the msup request.
+msPosition(e);
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var serverBtn=normalizeButton(e.button);
+var bdxhr=getButtonDownXHR();
+if(bdxhr)
+{
+bdxhr.open("POST", "/msevent", true);
+bdxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+bdxhr.send("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=3");
+}
+}
+}
+// Handle mouse up: detect left-button drag vs click; forward right/middle button releases.
+// Right/middle button-up uses act=6 (button-up only) because the matching button-down was
+// already sent via a dedicated XHR in msdown, giving the remote OS time to process
+// WM_RBUTTONDOWN before WM_RBUTTONUP — which is required for context menus on the
+// Windows 7 taskbar to appear correctly.
 function msup(e)
 {
 e=e||window.event;
@@ -297,7 +337,7 @@ sendEvent("/msevent",param);
 return;
 }
 var serverBtn=normalizeButton(b);
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=1";
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=6";
 sendEvent("/msevent",param);
 }
 
