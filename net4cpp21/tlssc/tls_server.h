@@ -100,7 +100,7 @@ static int tls_server_ecdsa_raw_to_der(const uint8_t *sig, int ecc_bytes,
 // RFC 5246 §6.2.1: maximum TLS record plaintext payload is 2^14 bytes.
 // Encrypted records may carry up to 2048 bytes of additional overhead
 // (IV, MAC, padding), so accept up to this ceiling before rejecting.
-static const int TLS_MAX_RECORD_PAYLOAD  = 16384;
+// TLS_MAX_RECORD_PAYLOAD is now defined in tls.h (shared with tlsclient.cpp).
 static const int TLS_MAX_ENCRYPTED_OVERHEAD = 2048;
 
 class tls_server_conn
@@ -1112,7 +1112,7 @@ public:
         send_buf.clear();
         for(int i = 0; i < size; )
         {
-            int chunk = min(size - i, 60000);
+            int chunk = min(size - i, TLS_MAX_RECORD_PAYLOAD);
             send_buf.set_size(chunk);
             memcpy(send_buf.buf, buf + i, chunk);
             const char *ret = send_packet(CONTENT_APPLICATION_DATA, 0x0303, send_buf);
