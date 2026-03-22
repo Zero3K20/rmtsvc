@@ -177,13 +177,17 @@ function processRequest()
 			var userAgent=xmlobj.getElementsByTagName("userAgent");
 			strUserAgent=userAgent[0].firstChild.data;
 			setButtonStatus();
-			var savedAudio = localStorage.getItem("audioEnabled");
-			if (savedAudio === "1")
+			if (!audioRestored)
 			{
-				var o = document.getElementById("fAudio");
-				if (o && !o.disabled)
+				audioRestored = true;
+				var savedAudio = localStorage.getItem("audioEnabled");
+				if (savedAudio === "1")
 				{
-					toggleAudio();
+					var o = document.getElementById("fAudio");
+					if (o && !o.disabled)
+					{
+						toggleAudio();
+					}
 				}
 			}
             	}
@@ -412,20 +416,7 @@ var audioEnabled = false;
 var audioCtx = null;
 var nextAudioTime = 0;
 var audioChainRunning = false;
-
-// When audio is auto-enabled from a saved setting (no prior user gesture),
-// browsers (e.g. Chrome) block AudioContext from starting until there is a
-// real user interaction.  Calling resume() from inside a user-gesture handler
-// satisfies that requirement and allows the context to transition to 'running',
-// which in turn fires the onstatechange handler and starts the audio chain.
-function resumeAudioOnInteraction()
-{
-	if (audioEnabled && audioCtx && audioCtx.state === 'suspended')
-		audioCtx.resume();
-}
-document.addEventListener('click', resumeAudioOnInteraction);
-document.addEventListener('keydown', resumeAudioOnInteraction);
-document.addEventListener('touchstart', resumeAudioOnInteraction);
+var audioRestored = false;
 
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
@@ -672,12 +663,29 @@ function toggleAudio()
 			};
 		}
 		if (o) o.innerText = "Audio: ON";
+		// If the context is already in the 'running' state (e.g., restored
+		// from a saved setting on page load where the browser does not apply
+		// an autoplay restriction), start the audio chain immediately.
+		// Do not rely solely on audioCtx.resume().then() in this case because
+		// some browsers resolve the Promise for an already-running context
+		// without invoking the callback, and onstatechange never fires because
+		// there is no state transition.  Starting here directly guarantees the
+		// chain begins regardless of Promise or event delivery timing.
+		if (audioCtx.state === 'running')
+		{
+			nextAudioTime = audioCtx.currentTime;
+			if (!audioChainRunning) fetchAudioChunk();
+		}
+		// resume() handles contexts that are in 'suspended' state (e.g. due
+		// to an autoplay policy or a previous suspend() call).  The
+		// audioChainRunning guard prevents a double start if the context was
+		// already running and the chain was started above.
 		audioCtx.resume().then(function()
 		{
-			if (audioEnabled)
+			if (audioEnabled && !audioChainRunning)
 			{
 				nextAudioTime = audioCtx.currentTime;
-				if (!audioChainRunning) fetchAudioChunk();
+				fetchAudioChunk();
 			}
 		});
 	}
