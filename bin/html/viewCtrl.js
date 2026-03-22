@@ -295,6 +295,13 @@ console.log("[viewCtrl] keyevent: could not create XHR object");
 }
 
 
+function keydown(e)
+{
+e=e||window.event;
+if(e.preventDefault) e.preventDefault();
+return false;
+}
+
 function keyup(e)
 {
 e=e||window.event;
