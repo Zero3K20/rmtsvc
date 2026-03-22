@@ -311,7 +311,7 @@ function _startBmpPoll()
 				}
 				canvas.getContext("2d").drawImage(img, 0, 0);
 			}
-			setTimeout(poll, 100);
+			setTimeout(poll, 33);
 		};
 		img.onerror = function() { setTimeout(poll, 1000); };
 		img.src = "/capDesktop?" + new Date().getTime();

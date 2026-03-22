@@ -678,6 +678,8 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 	while (psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
 	{
+		ULONGLONG tFrameStart = GetTickCount64();
+
 		// Detect client disconnect early: when the client closes the connection,
 		// the socket becomes read-ready (FIN or RST).  Checking this before the
 		// expensive screen capture avoids wasting CPU on frames that cannot be
@@ -693,7 +695,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		if (rawSize == 0 || !lpCurrFrame)
 		{
 			if (lpCurrFrame) ::free(lpCurrFrame);
-			Sleep(100);
+			Sleep(33);
 			continue;
 		}
 
@@ -758,7 +760,12 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		prevW = currW; prevH = currH;
 
 		if (sr <= 0) break;
-		Sleep(100); // ~10 fps
+
+		// Frame-time compensation: sleep only the remaining time to target ~30 fps.
+		// This accounts for the time spent capturing, compressing, and sending.
+		ULONGLONG elapsed = GetTickCount64() - tFrameStart;
+		if (elapsed < 33)
+			Sleep((DWORD)(33 - elapsed));
 	}
 
 	if (lpPrevFrame) ::free(lpPrevFrame);
