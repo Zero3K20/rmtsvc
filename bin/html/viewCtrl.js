@@ -134,11 +134,6 @@ if(timerID_move!=0)
 window.clearTimeout(timerID_move);
 timerID_move=0;
 }
-if(timerID_click!=0)
-{
-window.clearTimeout(timerID_click);
-timerID_click=0;
-}
 console.log("[viewCtrl] sendEvent: "+strurl+" "+param);
 xmlHttp.open("POST", strurl, true);
 xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
@@ -283,7 +278,9 @@ if(ptX_drag!==undefined && (dx*dx+dy*dy)>4)
 // Set wasDrag so that the subsequent browser click event (which some
 // browsers fire even after a mouse drag) is ignored in msclick and does
 // not send a spurious single-click that would deselect the remote text.
+// Also cancel any pending click timer: a drag replaces a pending click.
 wasDrag=true;
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
 sendEvent("/msevent",param);
 }
