@@ -232,6 +232,7 @@ function sendKey()
 
 
 var _clipOverlayCopyHandler = null;
+var _clipOverlayPasteHandler = null;
 
 function _removeClipboardOverlay()
 {
@@ -242,6 +243,11 @@ function _removeClipboardOverlay()
 	{
 		pdoc.removeEventListener('copy', _clipOverlayCopyHandler);
 		_clipOverlayCopyHandler = null;
+	}
+	if (_clipOverlayPasteHandler)
+	{
+		pdoc.removeEventListener('paste', _clipOverlayPasteHandler);
+		_clipOverlayPasteHandler = null;
 	}
 }
 
@@ -321,9 +327,9 @@ function SetClipBoard()
 		{
 			text = parent.document.selection.createRange().text;
 		}
+		_removeClipboardOverlay();
 		if (text)
 		{
-			_removeClipboardOverlay();
 			var strEncode = "val=" + encodeURIComponent(text);
 			xmlHttp.open("POST", "/SetClipBoard", true);
 			xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
@@ -372,6 +378,11 @@ function GetClipBoard()
 				'Press CTRL+V (CMD+V on Mac)<br><br>or<br><br>right-click and select Paste',
 				_removeClipboardOverlay
 			);
+			_clipOverlayPasteHandler = function(e)
+			{
+				_removeClipboardOverlay();
+			};
+			parent.document.addEventListener('paste', _clipOverlayPasteHandler);
 		}
 	};
 	req.send(null);
