@@ -1051,14 +1051,17 @@ static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
 	}
 	LPBYTE lpbuffer = *ppDibBuf;
 
-	HDC     hWndDC  = ::GetDCEx(hWnd, NULL, DCX_WINDOW);
-	HDC     hMemDC  = ::CreateCompatibleDC(hWndDC);
-	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hWndDC, bih.biWidth, bih.biHeight);
+	// Use the screen DC (GetDC(NULL)) so that CAPTUREBLT includes layered/overlay
+	// windows (WS_EX_LAYERED) such as floating toolbars.  BitBlt source coordinates
+	// are screen-absolute because the screen DC uses screen coordinates.
+	HDC     hScrDC  = ::GetDC(NULL);
+	HDC     hMemDC  = ::CreateCompatibleDC(hScrDC);
+	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hScrDC, bih.biWidth, bih.biHeight);
 	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
-	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, 0, 0, SRCCOPY);
+	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hScrDC, rect.left, rect.top, SRCCOPY | CAPTUREBLT);
 
 	DWORD dwret = 0;
-	if (::GetDIBits(hWndDC, hMemBmp, 0, bih.biHeight, lpbuffer,
+	if (::GetDIBits(hScrDC, hMemBmp, 0, bih.biHeight, lpbuffer,
 	                (LPBITMAPINFO)&bih, DIB_RGB_COLORS))
 	{
 		// Scale down if requested.
@@ -1112,7 +1115,7 @@ static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
 				::SelectObject(hMemDC, hOldBmp);
 				::DeleteObject(hMemBmp);
 				::DeleteDC(hMemDC);
-				::ReleaseDC(hWnd, hWndDC);
+				::ReleaseDC(NULL, hScrDC);
 				return 0;
 			}
 			*ppRgbBuf  = lpNew;
@@ -1141,7 +1144,7 @@ static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
 	::SelectObject(hMemDC, hOldBmp);
 	::DeleteObject(hMemBmp);
 	::DeleteDC(hMemDC);
-	::ReleaseDC(hWnd, hWndDC);
+	::ReleaseDC(NULL, hScrDC);
 	return dwret;
 }
 
@@ -1197,11 +1200,13 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 	HDC hMemDC = NULL;
 	HBITMAP hMemBmp = NULL;
 	HBITMAP hOldBmp = NULL;
-	hWndDC = ::GetDCEx(hWnd,NULL,DCX_WINDOW); //::GetDC(hWnd);
+	// Use the screen DC (GetDC(NULL)) with CAPTUREBLT so that layered/overlay
+	// windows (WS_EX_LAYERED) such as floating toolbars are included.
+	hWndDC = ::GetDC(NULL);
 	hMemDC = ::CreateCompatibleDC(hWndDC);
 	hMemBmp = ::CreateCompatibleBitmap(hWndDC, bih.biWidth, bih.biHeight);
 	hOldBmp = (HBITMAP)::SelectObject(hMemDC, hMemBmp);
-	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, 0, 0, SRCCOPY);
+	::BitBlt(hMemDC, 0, 0, bih.biWidth, bih.biHeight, hWndDC, rect.left, rect.top, SRCCOPY | CAPTUREBLT);
 	
 	if(ifCapCursor) //capture mouse cursor
 	{
@@ -1304,7 +1309,7 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 	::SelectObject(hMemDC, hOldBmp);
 	::DeleteObject(hMemBmp);
 	::DeleteDC(hMemDC);
-	::ReleaseDC(hWnd, hWndDC);
+	::ReleaseDC(NULL, hWndDC);
 	return dwret;
 }
 
