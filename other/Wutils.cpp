@@ -23,6 +23,16 @@ using namespace net4cpp21;
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
+// Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
+// keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
+static inline void ApplyModifiers(short flags, bool bDown)
+{
+	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
+	if (flags & MSEVENT_CTRL)  Keybd_Event(VK_CONTROL, 0, upFlag);
+	if (flags & MSEVENT_SHIFT) Keybd_Event(VK_SHIFT,   0, upFlag);
+	if (flags & MSEVENT_ALT)   Keybd_Event(VK_MENU,    0, upFlag);
+}
+
 inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
   DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
@@ -41,6 +51,46 @@ inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
 			dwFlags, dx, dy, dwData, (unsigned long)GetLastError());
 	return ret;
 }
+// Minimum milliseconds to hold a mouse button down before releasing it.
+// This brief hold allows the target process's message pump to process the
+// button-down event before it receives the button-up, improving click
+// reliability in MFC controls (e.g. TortoiseGit list/tree views).
+// Matches the 5 ms delay used by DWService's windowsinputs.cpp.
+#define MOUSE_BUTTON_HOLD_MS 5
+
+// Returns true for virtual keys that must be sent with KEYEVENTF_EXTENDEDKEY
+// so that the Windows input system routes them to the correct scan-code prefix
+// (0xE0). Without this flag, navigation keys (arrows, Delete, Home/End, etc.)
+// are silently misrouted in many applications (including MFC controls used by
+// TortoiseGit).  List derived from the Windows SDK and DWService agent.
+static inline bool IsExtendedKey(BYTE bVk)
+{
+	switch (bVk)
+	{
+	case VK_RCONTROL:  // 0xA3 Right Ctrl
+	case VK_RMENU:     // 0xA5 Right Alt
+	case VK_INSERT:    // 0x2D
+	case VK_DELETE:    // 0x2E
+	case VK_HOME:      // 0x24
+	case VK_END:       // 0x23
+	case VK_PRIOR:     // 0x21 Page Up
+	case VK_NEXT:      // 0x22 Page Down
+	case VK_LEFT:      // 0x25
+	case VK_RIGHT:     // 0x27
+	case VK_UP:        // 0x26
+	case VK_DOWN:      // 0x28
+	case VK_NUMLOCK:   // 0x90
+	case VK_SNAPSHOT:  // 0x2C Print Screen
+	case VK_DIVIDE:    // 0x6F Numpad /
+	case VK_LWIN:      // 0x5B
+	case VK_RWIN:      // 0x5C
+	case VK_APPS:      // 0x5D Application key
+		return true;
+	default:
+		return false;
+	}
+}
+
 inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
   BYTE /*bScan*/,         // hardware scan code (derived from bVk via MapVirtualKey)
   DWORD dwFlags )         // function options
@@ -49,6 +99,8 @@ inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wVk        = bVk;
 	inp.ki.wScan      = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
+	if (IsExtendedKey(bVk))
+		dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	inp.ki.dwFlags    = dwFlags;
 	inp.ki.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
 	UINT ret = SendInput(1, &inp, sizeof(INPUT));
@@ -245,44 +297,6 @@ Cleanup:
 	if (hdesk) CloseDesktop(hdesk);
 	return bRet;
 }
-// ---------------------------------------------------------------------------
-// PostMessage-based input injection
-//
-// Windows sets the LLKHF_INJECTED / LLMHF_INJECTED flag on every event that
-// is synthesised via SendInput.  Any application that installs a low-level
-// WH_KEYBOARD_LL or WH_MOUSE_LL hook can inspect this flag and choose to
-// ignore the event (VirtualBox does exactly this via VBoxHook.dll to prevent
-// host-injected events from leaking into the guest VM, but other software may
-// do the same).
-//
-// PostMessage bypasses all low-level hooks: it places messages directly into
-// the target window's message queue, so they reach the application's message
-// loop indistinguishable from real hardware input.
-//
-// Mouse cursor movement is still done via SendInput (MOUSEEVENTF_ABSOLUTE |
-// MOUSEEVENTF_MOVE) because that is the only way to update the host cursor
-// position — PostMessage WM_MOUSEMOVE does not move the actual cursor.
-// ---------------------------------------------------------------------------
-
-// Post a single key-down or key-up message directly into a window's message
-// queue, bypassing any WH_KEYBOARD_LL hook.
-static void postKey(HWND hwnd, BYTE bVk, bool bDown)
-{
-	WORD  scan = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
-	// Build lParam for WM_KEYDOWN / WM_KEYUP:
-	//   bits  0-15: repeat count (always 1)
-	//   bits 16-23: OEM scan code
-	//   bit    30:  previous key-state (1 = key was already down, set for key-up)
-	//   bit    31:  transition state   (0 = key pressed, 1 = key released)
-	LPARAM lp = 1 | ((LPARAM)scan << 16);
-	if (!bDown)
-		lp |= ((LPARAM)1 << 30) | ((LPARAM)1 << 31); // prev-down + releasing
-	bool isAlt = (bVk == VK_MENU || bVk == VK_LMENU || bVk == VK_RMENU);
-	UINT msg;
-	if (bDown) msg = isAlt ? WM_SYSKEYDOWN : WM_KEYDOWN;
-	else       msg = isAlt ? WM_SYSKEYUP   : WM_KEYUP;
-	PostMessage(hwnd, msg, (WPARAM)bVk, lp);
-}
 
 //flags - mouse button status
 //flag meaning: lowest 4 bits represent mouse buttons
@@ -352,113 +366,77 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	}
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//only move cursor
 
-	// Use PostMessage to deliver button/wheel events directly into the foreground
-	// window's message queue, bypassing any WH_MOUSE_LL hook that might drop
-	// events carrying the LLMHF_INJECTED flag (set on all SendInput events).
+	int evType   = (flags & MSEVENT_EVENT_ALL);
+	int btnFlags = (flags & 0x0f);
+
+	ApplyModifiers(flags, true);
+
+	if (evType == MSEVENT_EVENT_WHEEL)
 	{
-		HWND hwndFG = GetForegroundWindow();
-		if (hwndFG == NULL) hwndFG = GetDesktopWindow();
-
-		// Find the exact child window at the click position so that the target
-		// application dispatches the event to the correct widget.
-		POINT pt; pt.x = x; pt.y = y;
-		HWND hwndTarget = WindowFromPoint(pt);
-		// Fall back to the foreground window if the hit window belongs to a
-		// different process (e.g. an overlay from another application).
-		if (hwndTarget)
+		// mouseData for MOUSEEVENTF_WHEEL is a signed wheel delta stored in a
+		// DWORD field.  Use the negative WHEEL_DELTA pattern Windows expects.
+		DWORD delta = ((LONG)dwData > 0) ? (DWORD)WHEEL_DELTA : (DWORD)(-(LONG)WHEEL_DELTA);
+		Mouse_Event(MOUSEEVENTF_WHEEL, 0, 0, delta);
+	}
+	else if (evType == MSEVENT_EVENT_DRAG)
+	{//button down at drag-start position (cursor already moved there above)
+		if (btnFlags & MSEVENT_BUTTON_LEFT)
+			Mouse_Event(MOUSEEVENTF_LEFTDOWN,   0, 0, 0);
+		if (btnFlags & MSEVENT_BUTTON_RIGHT)
+			Mouse_Event(MOUSEEVENTF_RIGHTDOWN,  0, 0, 0);
+		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+			Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+	}
+	else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
+	{//button up at drop/release position
+		if (btnFlags & MSEVENT_BUTTON_LEFT)
+			Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
+		if (btnFlags & MSEVENT_BUTTON_RIGHT)
+			Mouse_Event(MOUSEEVENTF_RIGHTUP,  0, 0, 0);
+		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+			Mouse_Event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0);
+	}
+	else
+	{//click or double-click
+		if (btnFlags & MSEVENT_BUTTON_LEFT)
 		{
-			DWORD tpid = 0, fpid = 0;
-			GetWindowThreadProcessId(hwndTarget, &tpid);
-			GetWindowThreadProcessId(hwndFG,     &fpid);
-			if (tpid != fpid) hwndTarget = hwndFG;
-		}
-		else
-		{
-			hwndTarget = hwndFG;
-		}
-
-		// Convert screen coordinates to client coordinates for the target window.
-		// MAKELPARAM casts to WORD; receivers read back with (short)LOWORD /
-		// GET_X_LPARAM which sign-extends the 16-bit value, so negative client
-		// coordinates (e.g. when clicking on the window border) are handled correctly.
-		POINT clientPt = pt;
-		ScreenToClient(hwndTarget, &clientPt);
-		LPARAM lpPos = MAKELPARAM(clientPt.x, clientPt.y);
-		// Modifier key flags for wParam of mouse messages.
-		WPARAM wMods = 0;
-		if (flags & MSEVENT_CTRL)  wMods |= MK_CONTROL;
-		if (flags & MSEVENT_SHIFT) wMods |= MK_SHIFT;
-		int evType   = (flags & MSEVENT_EVENT_ALL);
-		int btnFlags = (flags & 0x0f);
-
-		// Always send a WM_MOUSEMOVE first so the target application updates its
-		// internal cursor position before processing the event.
-		PostMessage(hwndTarget, WM_MOUSEMOVE, wMods, lpPos);
-
-		if (evType == MSEVENT_EVENT_WHEEL)
-		{
-			// WM_MOUSEWHEEL wParam: high word = signed wheel delta (positive=forward),
-			// low word = virtual-key flags.  lParam = screen coordinates.
-			// dwData carries the raw wheel delta; positive = scroll forward.
-			// Cast through short to preserve the two's-complement sign bit when
-			// the value is placed in the high word via MAKEWPARAM.
-			short wDelta = ((LONG)dwData > 0) ? (short)WHEEL_DELTA : (short)(-WHEEL_DELTA);
-			PostMessage(hwndTarget, WM_MOUSEWHEEL,
-				MAKEWPARAM((WORD)wMods, (WORD)wDelta),
-				MAKELPARAM(x, y));
-		}
-		else if (evType == MSEVENT_EVENT_DRAG)
-		{//button down at drag-start position (cursor already moved there above)
-			if (btnFlags & MSEVENT_BUTTON_LEFT)
-				PostMessage(hwndTarget, WM_LBUTTONDOWN, MK_LBUTTON | wMods, lpPos);
-			if (btnFlags & MSEVENT_BUTTON_RIGHT)
-				PostMessage(hwndTarget, WM_RBUTTONDOWN, MK_RBUTTON | wMods, lpPos);
-			if (btnFlags & MSEVENT_BUTTON_MIDDLE)
-				PostMessage(hwndTarget, WM_MBUTTONDOWN, MK_MBUTTON | wMods, lpPos);
-		}
-		else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
-		{//button up at drop/release position
-			if (btnFlags & MSEVENT_BUTTON_LEFT)
-				PostMessage(hwndTarget, WM_LBUTTONUP, wMods, lpPos);
-			if (btnFlags & MSEVENT_BUTTON_RIGHT)
-				PostMessage(hwndTarget, WM_RBUTTONUP, wMods, lpPos);
-			if (btnFlags & MSEVENT_BUTTON_MIDDLE)
-				PostMessage(hwndTarget, WM_MBUTTONUP, wMods, lpPos);
-		}
-		else
-		{//click or double-click
-			if (btnFlags & MSEVENT_BUTTON_LEFT)
+			Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
+			Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
+			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				PostMessage(hwndTarget, WM_LBUTTONDOWN, MK_LBUTTON | wMods, lpPos);
-				PostMessage(hwndTarget, WM_LBUTTONUP,   wMods,             lpPos);
-				if (evType == MSEVENT_EVENT_DBLCLICK)
-				{
-					PostMessage(hwndTarget, WM_LBUTTONDBLCLK, MK_LBUTTON | wMods, lpPos);
-					PostMessage(hwndTarget, WM_LBUTTONUP,     wMods,             lpPos);
-				}
+				Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
+				Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
 			}
-			if (btnFlags & MSEVENT_BUTTON_RIGHT)
+		}
+		if (btnFlags & MSEVENT_BUTTON_RIGHT)
+		{
+			Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
+			Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
+			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				PostMessage(hwndTarget, WM_RBUTTONDOWN, MK_RBUTTON | wMods, lpPos);
-				PostMessage(hwndTarget, WM_RBUTTONUP,   wMods,             lpPos);
-				if (evType == MSEVENT_EVENT_DBLCLICK)
-				{
-					PostMessage(hwndTarget, WM_RBUTTONDBLCLK, MK_RBUTTON | wMods, lpPos);
-					PostMessage(hwndTarget, WM_RBUTTONUP,     wMods,             lpPos);
-				}
+				Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
+				Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
 			}
-			if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+		}
+		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+		{
+			Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
+			Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
+			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				PostMessage(hwndTarget, WM_MBUTTONDOWN, MK_MBUTTON | wMods, lpPos);
-				PostMessage(hwndTarget, WM_MBUTTONUP,   wMods,             lpPos);
-				if (evType == MSEVENT_EVENT_DBLCLICK)
-				{
-					PostMessage(hwndTarget, WM_MBUTTONDBLCLK, MK_MBUTTON | wMods, lpPos);
-					PostMessage(hwndTarget, WM_MBUTTONUP,     wMods,             lpPos);
-				}
+				Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
+				Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
 			}
 		}
 	}
+
+	ApplyModifiers(flags, false);
 	return TRUE;
 }
 //send virtual key press
@@ -481,34 +459,17 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
 
-	// Use PostMessage to deliver key events directly into the focused window's
-	// message queue, bypassing any WH_KEYBOARD_LL hook that might drop events
-	// carrying the LLKHF_INJECTED flag (set on all SendInput events).
+	if ((vkey & 0x0100) != 0) Keybd_Event(VK_CONTROL, 0, 0);
+	if ((vkey & 0x0200) != 0) Keybd_Event(VK_SHIFT,   0, 0);
+	if ((vkey & 0x0400) != 0) Keybd_Event(VK_MENU,    0, 0);
+	if ((vkey & 0x0ff)  != 0)
 	{
-		HWND hwndFG = GetForegroundWindow();
-		if (hwndFG == NULL) hwndFG = GetDesktopWindow();
-
-		// Find the window that currently holds keyboard focus in the foreground
-		// thread so that the key messages land in the right widget.
-		DWORD tid = GetWindowThreadProcessId(hwndFG, NULL);
-		GUITHREADINFO gti;
-		gti.cbSize = sizeof(gti);
-		HWND hwndTarget = hwndFG;
-		if (GetGUIThreadInfo(tid, &gti) && gti.hwndFocus)
-			hwndTarget = gti.hwndFocus;
-
-		if ((vkey & 0x0100) != 0) postKey(hwndTarget, VK_CONTROL, true);
-		if ((vkey & 0x0200) != 0) postKey(hwndTarget, VK_SHIFT,   true);
-		if ((vkey & 0x0400) != 0) postKey(hwndTarget, VK_MENU,    true);
-		if ((vkey & 0x0ff)  != 0)
-		{
-			postKey(hwndTarget, (BYTE)(vkey & 0x0ff), true);
-			postKey(hwndTarget, (BYTE)(vkey & 0x0ff), false);
-		}
-		if ((vkey & 0x0100) != 0) postKey(hwndTarget, VK_CONTROL, false);
-		if ((vkey & 0x0200) != 0) postKey(hwndTarget, VK_SHIFT,   false);
-		if ((vkey & 0x0400) != 0) postKey(hwndTarget, VK_MENU,    false);
+		Keybd_Event((BYTE)(vkey & 0x0ff), 0, 0);
+		Keybd_Event((BYTE)(vkey & 0x0ff), 0, KEYEVENTF_KEYUP);
 	}
+	if ((vkey & 0x0100) != 0) Keybd_Event(VK_CONTROL, 0, KEYEVENTF_KEYUP);
+	if ((vkey & 0x0200) != 0) Keybd_Event(VK_SHIFT,   0, KEYEVENTF_KEYUP);
+	if ((vkey & 0x0400) != 0) Keybd_Event(VK_MENU,    0, KEYEVENTF_KEYUP);
 	return TRUE;
 }
 
