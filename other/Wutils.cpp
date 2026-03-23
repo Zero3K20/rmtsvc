@@ -23,6 +23,16 @@ using namespace net4cpp21;
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
+// Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
+// keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
+static inline void ApplyModifiers(short flags, bool bDown)
+{
+	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
+	if (flags & MSEVENT_CTRL)  Keybd_Event(VK_CONTROL, 0, upFlag);
+	if (flags & MSEVENT_SHIFT) Keybd_Event(VK_SHIFT,   0, upFlag);
+	if (flags & MSEVENT_ALT)   Keybd_Event(VK_MENU,    0, upFlag);
+}
+
 inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
   DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
@@ -317,13 +327,14 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	int evType   = (flags & MSEVENT_EVENT_ALL);
 	int btnFlags = (flags & 0x0f);
 
-	if (flags & MSEVENT_CTRL)  { Keybd_Event(VK_CONTROL, 0, 0); }
-	if (flags & MSEVENT_SHIFT) { Keybd_Event(VK_SHIFT,   0, 0); }
+	ApplyModifiers(flags, true);
 
 	if (evType == MSEVENT_EVENT_WHEEL)
 	{
-		LONG delta = ((LONG)dwData > 0) ? WHEEL_DELTA : -WHEEL_DELTA;
-		Mouse_Event(MOUSEEVENTF_WHEEL, 0, 0, (DWORD)delta);
+		// mouseData for MOUSEEVENTF_WHEEL is a signed wheel delta stored in a
+		// DWORD field.  Use the negative WHEEL_DELTA pattern Windows expects.
+		DWORD delta = ((LONG)dwData > 0) ? (DWORD)WHEEL_DELTA : (DWORD)(-(LONG)WHEEL_DELTA);
+		Mouse_Event(MOUSEEVENTF_WHEEL, 0, 0, delta);
 	}
 	else if (evType == MSEVENT_EVENT_DRAG)
 	{//button down at drag-start position (cursor already moved there above)
@@ -377,8 +388,7 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		}
 	}
 
-	if (flags & MSEVENT_CTRL)  { Keybd_Event(VK_CONTROL, 0, KEYEVENTF_KEYUP); }
-	if (flags & MSEVENT_SHIFT) { Keybd_Event(VK_SHIFT,   0, KEYEVENTF_KEYUP); }
+	ApplyModifiers(flags, false);
 	return TRUE;
 }
 //send virtual key press
