@@ -245,6 +245,89 @@ Cleanup:
 	if (hdesk) CloseDesktop(hdesk);
 	return bRet;
 }
+// ---------------------------------------------------------------------------
+// VirtualBox input bypass helpers
+//
+// VirtualBox installs WH_KEYBOARD_LL and WH_MOUSE_LL hooks (via VBoxHook.dll).
+// These hooks check the LLKHF_INJECTED / LLMHF_INJECTED flag that Windows sets
+// on every SendInput-generated event and skip forwarding such events to the
+// guest VM.  This means rmtsvc's SendInput calls reach the VirtualBox host
+// window but are never forwarded to the guest.
+//
+// The workaround: when the foreground window belongs to a VirtualBox process,
+// use PostMessage to inject keyboard/mouse messages directly into the window's
+// message queue.  PostMessage bypasses the low-level hooks entirely, so
+// VirtualBox's Qt event loop sees the messages and forwards them to the guest
+// as if they were natural input.  Cursor movement is still done via SendInput
+// (MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE) so the visible cursor stays in the
+// right place on the host screen.
+// ---------------------------------------------------------------------------
+
+// Cache the last foreground-window check to avoid a TH32CS_SNAPPROCESS
+// enumeration on every event (mouse clicks / keystrokes can arrive rapidly).
+// NULL is a valid sentinel: GetForegroundWindow() returning NULL means there is
+// no foreground window, which correctly produces a NULL (non-VirtualBox) result.
+static HWND  s_vboxCachedFG     = NULL;
+static HWND  s_vboxCachedResult = NULL;
+
+// If the current foreground window belongs to VirtualBoxVM.exe or
+// VirtualBox.exe, return its HWND; otherwise return NULL.
+static HWND getVBoxForegroundWindow()
+{
+	HWND hwndFG = GetForegroundWindow();
+	if (hwndFG == s_vboxCachedFG)
+		return s_vboxCachedResult;
+
+	s_vboxCachedFG     = hwndFG;
+	s_vboxCachedResult = NULL;
+	if (!hwndFG) return NULL;
+
+	DWORD pid = 0;
+	GetWindowThreadProcessId(hwndFG, &pid);
+	if (!pid) return NULL;
+
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnap == INVALID_HANDLE_VALUE) return NULL;
+
+	PROCESSENTRY32 pe;
+	pe.dwSize = sizeof(pe);
+	if (Process32First(hSnap, &pe))
+	{
+		do
+		{
+			if (pe.th32ProcessID == pid)
+			{
+				if (_stricmp(pe.szExeFile, "VirtualBoxVM.exe") == 0 ||
+				    _stricmp(pe.szExeFile, "VirtualBox.exe")   == 0)
+					s_vboxCachedResult = hwndFG;
+				break;
+			}
+		} while (Process32Next(hSnap, &pe));
+	}
+	CloseHandle(hSnap);
+	return s_vboxCachedResult;
+}
+
+// Post a single key-down or key-up message to a VirtualBox window, bypassing
+// the WH_KEYBOARD_LL hook that would otherwise drop the injected event.
+static void postVBoxKey(HWND hwnd, BYTE bVk, bool bDown)
+{
+	WORD  scan = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
+	// Build lParam for WM_KEYDOWN / WM_KEYUP:
+	//   bits  0-15: repeat count (always 1)
+	//   bits 16-23: OEM scan code
+	//   bit    30:  previous key-state (1 = key was already down, set for key-up)
+	//   bit    31:  transition state   (0 = key pressed, 1 = key released)
+	LPARAM lp = 1 | ((LPARAM)scan << 16);
+	if (!bDown)
+		lp |= ((LPARAM)1 << 30) | ((LPARAM)1 << 31); // prev-down + releasing
+	bool isAlt = (bVk == VK_MENU || bVk == VK_LMENU || bVk == VK_RMENU);
+	UINT msg;
+	if (bDown) msg = isAlt ? WM_SYSKEYDOWN : WM_KEYDOWN;
+	else       msg = isAlt ? WM_SYSKEYUP   : WM_KEYUP;
+	PostMessage(hwnd, msg, (WPARAM)bVk, lp);
+}
+
 //flags - mouse button status
 //flag meaning: lowest 4 bits represent mouse buttons
 //						0 Default. No button is pressed. 
@@ -312,6 +395,119 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		            (DWORD)nx, (DWORD)ny, 0);
 	}
 	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//only move cursor
+
+	// VirtualBox bypass: when the foreground window belongs to VirtualBox, use
+	// PostMessage instead of SendInput.  VirtualBox's WH_MOUSE_LL hook skips
+	// events with the LLMHF_INJECTED flag (set by SendInput) and therefore
+	// never forwards them to the guest VM.  PostMessage goes directly into the
+	// window's message queue, bypassing the hook entirely.
+	{
+		HWND hwndVBox = getVBoxForegroundWindow();
+		if (hwndVBox != NULL)
+		{
+			RW_LOG_DEBUG("sendMouseEvent: VirtualBox foreground detected, using PostMessage\r\n");
+			// Find the exact child window at the click position so that Qt
+			// dispatches the event to the correct widget (the VM display area).
+			POINT pt; pt.x = x; pt.y = y;
+			HWND hwndTarget = WindowFromPoint(pt);
+			// Fall back to the main VirtualBox window if the hit window belongs
+			// to a different process (e.g. an overlay from another application).
+			if (hwndTarget)
+			{
+				DWORD tpid = 0, vpid = 0;
+				GetWindowThreadProcessId(hwndTarget, &tpid);
+				GetWindowThreadProcessId(hwndVBox,   &vpid);
+				if (tpid != vpid) hwndTarget = hwndVBox;
+			}
+			else
+			{
+				hwndTarget = hwndVBox;
+			}
+
+			// Convert screen coordinates to client coordinates for the target window.
+			// MAKELPARAM casts to WORD; receivers read back with (short)LOWORD / GET_X_LPARAM
+			// which sign-extends the 16-bit value, so negative client coordinates
+			// (e.g. when clicking on the window border) are handled correctly.
+			POINT clientPt = pt;
+			ScreenToClient(hwndTarget, &clientPt);
+			LPARAM lpPos     = MAKELPARAM(clientPt.x, clientPt.y);
+			// Modifier key flags for wParam of mouse messages.
+			WPARAM wMods = 0;
+			if (flags & MSEVENT_CTRL)  wMods |= MK_CONTROL;
+			if (flags & MSEVENT_SHIFT) wMods |= MK_SHIFT;
+			int evType   = (flags & MSEVENT_EVENT_ALL);
+			int btnFlags = (flags & 0x0f);
+
+			// Always send a WM_MOUSEMOVE first so VirtualBox updates the guest
+			// cursor to the correct absolute position before processing the event.
+			PostMessage(hwndTarget, WM_MOUSEMOVE, wMods, lpPos);
+
+			if (evType == MSEVENT_EVENT_WHEEL)
+			{
+				// WM_MOUSEWHEEL wParam: high word = signed wheel delta (positive=forward),
+				// low word = virtual-key flags.  lParam = screen coordinates.
+				// dwData (DWORD) carries the raw wheel delta; positive = scroll forward.
+				// Cast through short to preserve the two's-complement sign bit when
+				// the value is placed in the high word via MAKEWPARAM.
+				short wDelta = ((long)dwData > 0) ? (short)WHEEL_DELTA : (short)(-WHEEL_DELTA);
+				PostMessage(hwndTarget, WM_MOUSEWHEEL,
+					MAKEWPARAM((WORD)wMods, (WORD)wDelta),
+					MAKELPARAM(x, y));
+			}
+			else if (evType == MSEVENT_EVENT_DRAG)
+			{//button down at drag-start position (cursor already moved there above)
+				if (btnFlags & MSEVENT_BUTTON_LEFT)
+					PostMessage(hwndTarget, WM_LBUTTONDOWN, MK_LBUTTON | wMods, lpPos);
+				if (btnFlags & MSEVENT_BUTTON_RIGHT)
+					PostMessage(hwndTarget, WM_RBUTTONDOWN, MK_RBUTTON | wMods, lpPos);
+				if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+					PostMessage(hwndTarget, WM_MBUTTONDOWN, MK_MBUTTON | wMods, lpPos);
+			}
+			else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
+			{//button up at drop/release position
+				if (btnFlags & MSEVENT_BUTTON_LEFT)
+					PostMessage(hwndTarget, WM_LBUTTONUP, wMods, lpPos);
+				if (btnFlags & MSEVENT_BUTTON_RIGHT)
+					PostMessage(hwndTarget, WM_RBUTTONUP, wMods, lpPos);
+				if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+					PostMessage(hwndTarget, WM_MBUTTONUP, wMods, lpPos);
+			}
+			else
+			{//click or double-click
+				if (btnFlags & MSEVENT_BUTTON_LEFT)
+				{
+					PostMessage(hwndTarget, WM_LBUTTONDOWN, MK_LBUTTON | wMods, lpPos);
+					PostMessage(hwndTarget, WM_LBUTTONUP,   wMods,             lpPos);
+					if (evType == MSEVENT_EVENT_DBLCLICK)
+					{
+						PostMessage(hwndTarget, WM_LBUTTONDBLCLK, MK_LBUTTON | wMods, lpPos);
+						PostMessage(hwndTarget, WM_LBUTTONUP,     wMods,             lpPos);
+					}
+				}
+				if (btnFlags & MSEVENT_BUTTON_RIGHT)
+				{
+					PostMessage(hwndTarget, WM_RBUTTONDOWN, MK_RBUTTON | wMods, lpPos);
+					PostMessage(hwndTarget, WM_RBUTTONUP,   wMods,             lpPos);
+					if (evType == MSEVENT_EVENT_DBLCLICK)
+					{
+						PostMessage(hwndTarget, WM_RBUTTONDBLCLK, MK_RBUTTON | wMods, lpPos);
+						PostMessage(hwndTarget, WM_RBUTTONUP,     wMods,             lpPos);
+					}
+				}
+				if (btnFlags & MSEVENT_BUTTON_MIDDLE)
+				{
+					PostMessage(hwndTarget, WM_MBUTTONDOWN, MK_MBUTTON | wMods, lpPos);
+					PostMessage(hwndTarget, WM_MBUTTONUP,   wMods,             lpPos);
+					if (evType == MSEVENT_EVENT_DBLCLICK)
+					{
+						PostMessage(hwndTarget, WM_MBUTTONDBLCLK, MK_MBUTTON | wMods, lpPos);
+						PostMessage(hwndTarget, WM_MBUTTONUP,     wMods,             lpPos);
+					}
+				}
+			}
+			return TRUE;
+		}
+	}
 
 	if((flags&MSEVENT_CTRL)!=0) //Ctrl pressed
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL,0);
@@ -392,6 +588,41 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 		else
 			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
+
+	// VirtualBox bypass: when the foreground window belongs to VirtualBox, use
+	// PostMessage instead of SendInput so that VirtualBox's WH_KEYBOARD_LL hook
+	// (which drops injected events flagged with LLKHF_INJECTED) does not prevent
+	// the keystrokes from reaching the guest VM.  PostMessage puts messages
+	// directly into the window's message queue, bypassing the low-level hook.
+	{
+		HWND hwndVBox = getVBoxForegroundWindow();
+		if (hwndVBox != NULL)
+		{
+			RW_LOG_DEBUG("sendKeyEvent: VirtualBox foreground detected, using PostMessage\r\n");
+			// Find the window that currently holds keyboard focus in VirtualBox's
+			// thread (this is the Qt widget that will process key messages).
+			DWORD tid = GetWindowThreadProcessId(hwndVBox, NULL);
+			GUITHREADINFO gti;
+			gti.cbSize = sizeof(gti);
+			HWND hwndTarget = hwndVBox;
+			if (GetGUIThreadInfo(tid, &gti) && gti.hwndFocus)
+				hwndTarget = gti.hwndFocus;
+
+			if ((vkey & 0x0100) != 0) postVBoxKey(hwndTarget, VK_CONTROL, true);
+			if ((vkey & 0x0200) != 0) postVBoxKey(hwndTarget, VK_SHIFT,   true);
+			if ((vkey & 0x0400) != 0) postVBoxKey(hwndTarget, VK_MENU,    true);
+			if ((vkey & 0x0ff)  != 0)
+			{
+				postVBoxKey(hwndTarget, (BYTE)(vkey & 0x0ff), true);
+				postVBoxKey(hwndTarget, (BYTE)(vkey & 0x0ff), false);
+			}
+			if ((vkey & 0x0100) != 0) postVBoxKey(hwndTarget, VK_CONTROL, false);
+			if ((vkey & 0x0200) != 0) postVBoxKey(hwndTarget, VK_SHIFT,   false);
+			if ((vkey & 0x0400) != 0) postVBoxKey(hwndTarget, VK_MENU,    false);
+			return TRUE;
+		}
+	}
+
 	if((vkey&0x0100)!=0) //Ctrl press
 		Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL,0);
 	if((vkey&0x0200)!=0) //SHIFT pressed
