@@ -122,7 +122,7 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	POINT ptOrigin = {0, 0};
 	::ClientToScreen(hWnd, &ptOrigin);
 
-	//starting point coordinates and width/height of the original image area to save
+	//width/height of the original image area to save (starting point is ptOrigin in screen coords)
 	long lWidth=rect.right - rect.left;
 	long lHeight=rect.bottom - rect.top ;
 
@@ -144,8 +144,9 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 	HDC hMemDC = NULL;
 	HBITMAP hMemBmp = NULL;
 	HBITMAP hOldBmp = NULL;
-	// Use the screen DC (GetDC(NULL)) with CAPTUREBLT so that layered/overlay
-	// windows (WS_EX_LAYERED) such as floating toolbars are included.
+	// Use the screen DC (GetDC(NULL)) with CAPTUREBLT so that all overlay windows
+	// rendered above the captured area are included: WS_POPUP tool windows
+	// (WS_EX_TOOLWINDOW, e.g. floating toolbars) as well as WS_EX_LAYERED windows.
 	hWndDC = ::GetDC(NULL);
 	hMemDC = ::CreateCompatibleDC(hWndDC);
 	hMemBmp = ::CreateCompatibleBitmap(hWndDC, lWidth, lHeight);

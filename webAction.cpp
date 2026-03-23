@@ -1051,9 +1051,11 @@ static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
 	}
 	LPBYTE lpbuffer = *ppDibBuf;
 
-	// Use the screen DC (GetDC(NULL)) so that CAPTUREBLT includes layered/overlay
-	// windows (WS_EX_LAYERED) such as floating toolbars.  BitBlt source coordinates
-	// are screen-absolute because the screen DC uses screen coordinates.
+	// Use the screen DC (GetDC(NULL)) so that CAPTUREBLT includes all overlay
+	// windows rendered above the captured area, including WS_POPUP tool windows
+	// (e.g. floating toolbars with WS_EX_TOOLWINDOW) and WS_EX_LAYERED windows.
+	// BitBlt source coordinates are screen-absolute because the screen DC uses
+	// screen coordinates.
 	HDC     hScrDC  = ::GetDC(NULL);
 	HDC     hMemDC  = ::CreateCompatibleDC(hScrDC);
 	HBITMAP hMemBmp = ::CreateCompatibleBitmap(hScrDC, bih.biWidth, bih.biHeight);
@@ -1200,8 +1202,10 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 	HDC hMemDC = NULL;
 	HBITMAP hMemBmp = NULL;
 	HBITMAP hOldBmp = NULL;
-	// Use the screen DC (GetDC(NULL)) with CAPTUREBLT so that layered/overlay
-	// windows (WS_EX_LAYERED) such as floating toolbars are included.
+	// Use the screen DC (GetDC(NULL)) with CAPTUREBLT so that all overlay windows
+	// rendered above the captured area are included: WS_POPUP tool windows
+	// (WS_EX_TOOLWINDOW, e.g. the MuMuPlayer Screen Recorder toolbar) as well as
+	// WS_EX_LAYERED windows.
 	hWndDC = ::GetDC(NULL);
 	hMemDC = ::CreateCompatibleDC(hWndDC);
 	hMemBmp = ::CreateCompatibleBitmap(hWndDC, bih.biWidth, bih.biHeight);
