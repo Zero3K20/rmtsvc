@@ -51,6 +51,46 @@ inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
 			dwFlags, dx, dy, dwData, (unsigned long)GetLastError());
 	return ret;
 }
+// Minimum milliseconds to hold a mouse button down before releasing it.
+// This brief hold allows the target process's message pump to process the
+// button-down event before it receives the button-up, improving click
+// reliability in MFC controls (e.g. TortoiseGit list/tree views).
+// Matches the 5 ms delay used by DWService's windowsinputs.cpp.
+#define MOUSE_BUTTON_HOLD_MS 5
+
+// Returns true for virtual keys that must be sent with KEYEVENTF_EXTENDEDKEY
+// so that the Windows input system routes them to the correct scan-code prefix
+// (0xE0). Without this flag, navigation keys (arrows, Delete, Home/End, etc.)
+// are silently misrouted in many applications (including MFC controls used by
+// TortoiseGit).  List derived from the Windows SDK and DWService agent.
+static inline bool IsExtendedKey(BYTE bVk)
+{
+	switch (bVk)
+	{
+	case VK_RCONTROL:  // 0xA3 Right Ctrl
+	case VK_RMENU:     // 0xA5 Right Alt
+	case VK_INSERT:    // 0x2D
+	case VK_DELETE:    // 0x2E
+	case VK_HOME:      // 0x24
+	case VK_END:       // 0x23
+	case VK_PRIOR:     // 0x21 Page Up
+	case VK_NEXT:      // 0x22 Page Down
+	case VK_LEFT:      // 0x25
+	case VK_RIGHT:     // 0x27
+	case VK_UP:        // 0x26
+	case VK_DOWN:      // 0x28
+	case VK_NUMLOCK:   // 0x90
+	case VK_SNAPSHOT:  // 0x2C Print Screen
+	case VK_DIVIDE:    // 0x6F Numpad /
+	case VK_LWIN:      // 0x5B
+	case VK_RWIN:      // 0x5C
+	case VK_APPS:      // 0x5D Application key
+		return true;
+	default:
+		return false;
+	}
+}
+
 inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
   BYTE /*bScan*/,         // hardware scan code (derived from bVk via MapVirtualKey)
   DWORD dwFlags )         // function options
@@ -59,6 +99,8 @@ inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wVk        = bVk;
 	inp.ki.wScan      = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
+	if (IsExtendedKey(bVk))
+		dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	inp.ki.dwFlags    = dwFlags;
 	inp.ki.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
 	UINT ret = SendInput(1, &inp, sizeof(INPUT));
@@ -359,30 +401,36 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		if (btnFlags & MSEVENT_BUTTON_LEFT)
 		{
 			Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
 			Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
 				Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
 				Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
 			}
 		}
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)
 		{
 			Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
 			Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
 				Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
 				Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
 			}
 		}
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
 		{
 			Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+			Sleep(MOUSE_BUTTON_HOLD_MS);
 			Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
 				Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+				Sleep(MOUSE_BUTTON_HOLD_MS);
 				Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
 			}
 		}
