@@ -318,20 +318,16 @@ function SetClipBoard()
 {
 	_createClipboardOverlay(
 		'Write clipboard',
-		'Press CTRL+C (CMD+C on Mac)<br><br>or<br><br>right-click and select Copy',
+		'Press CTRL+V (CMD+V on Mac)<br><br>or<br><br>right-click and select Paste',
 		_removeClipboardOverlay
 	);
 
-	_clipOverlayCopyHandler = function(e)
+	_clipOverlayPasteHandler = function(e)
 	{
 		var text = '';
-		if (parent.getSelection)
+		if (e.clipboardData && e.clipboardData.getData)
 		{
-			text = parent.getSelection().toString();
-		}
-		else if (parent.document.selection && parent.document.selection.createRange)
-		{
-			text = parent.document.selection.createRange().text;
+			text = e.clipboardData.getData('text/plain');
 		}
 		_removeClipboardOverlay();
 		if (text)
@@ -339,11 +335,11 @@ function SetClipBoard()
 			var strEncode = "val=" + encodeURIComponent(text);
 			xmlHttp.open("POST", "/SetClipBoard", true);
 			xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
-			xmlHttp.onreadystatechange = processRequest;
+			xmlHttp.onreadystatechange = null;
 			xmlHttp.send(strEncode);
 		}
 	};
-	parent.document.addEventListener('copy', _clipOverlayCopyHandler);
+	parent.document.addEventListener('paste', _clipOverlayPasteHandler);
 }
 
 function _fallbackWriteClipboard(text)
@@ -368,27 +364,21 @@ function GetClipBoard()
 		if (req.readyState == 4 && req.status == 200)
 		{
 			var text = req.responseText;
-			if (navigator.clipboard && navigator.clipboard.writeText)
-			{
-				navigator.clipboard.writeText(text)['catch'](function()
-				{
-					_fallbackWriteClipboard(text);
-				});
-			}
-			else
-			{
-				_fallbackWriteClipboard(text);
-			}
 			_createClipboardOverlay(
 				'Read clipboard',
-				'Press CTRL+V (CMD+V on Mac)<br><br>or<br><br>right-click and select Paste',
+				'Press CTRL+C (CMD+C on Mac)<br><br>or<br><br>right-click and select Copy<br><br>then paste on your machine',
 				_removeClipboardOverlay
 			);
-			_clipOverlayPasteHandler = function(e)
+			_clipOverlayCopyHandler = function(e)
 			{
+				if (e.clipboardData && e.clipboardData.setData)
+				{
+					e.clipboardData.setData('text/plain', text);
+					e.preventDefault();
+				}
 				_removeClipboardOverlay();
 			};
-			parent.document.addEventListener('paste', _clipOverlayPasteHandler);
+			parent.document.addEventListener('copy', _clipOverlayCopyHandler);
 		}
 	};
 	req.send(null);
