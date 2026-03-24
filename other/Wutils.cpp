@@ -352,19 +352,21 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		else
 			RW_LOG_DEBUG("sendMouseEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
-	// All inputs for this event are collected into a single array and dispatched
-	// in one SendInput() call.  This makes the injection atomic: no foreign
-	// process can interleave its own input between the modifier key-down, the
-	// button event, and the modifier key-up, which is essential for combinations
-	// such as Ctrl+Click or Shift+Click to work correctly in every application.
+	// Modifier keys (Ctrl/Shift/Alt) are sent in dedicated SendInput() calls that
+	// bracket the mouse event rather than being batched together with it.
+	// Sending them separately allows the OS to fully update GetKeyState() between
+	// calls, so that applications such as Windows Explorer correctly see the
+	// modifier as held when they process WM_LBUTTONDOWN and apply Shift/Ctrl
+	// multi-selection logic.  An atomic single-call batch causes those apps to
+	// miss the modifier state because the entire sequence (key-down, click,
+	// key-up) is collapsed into one burst before the application's message pump
+	// has a chance to run.
 	//
-	// Maximum entries needed:
+	// Maximum entries for the mouse batch:
 	//   1  cursor MOVE
-	//   3  modifier keys down  (Ctrl, Shift, Alt)
-	//  12  button events       (3 buttons × down+up×2 for double-click)
-	//   3  modifier keys up
-	// ---- total 19, so 20 is a safe upper bound.
-	INPUT inputs[20];
+	//  12  button events  (3 buttons × down+up × 2 for double-click)
+	// ---- total 13, so 14 is a safe upper bound.
+	INPUT inputs[14];
 	int count = 0;
 
 	// --- 1. Move cursor using absolute virtual-screen coordinates ---
@@ -389,8 +391,18 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	int evType   = (flags & MSEVENT_EVENT_ALL);
 	int btnFlags = (flags & 0x0f);
 
-	// --- 2. Modifier keys down ---
-	count += AppendModifiers(inputs, count, flags, true);
+	// --- 2. Modifier keys down (separate SendInput call) ---
+	{
+		INPUT modInputs[3];
+		int modCount = AppendModifiers(modInputs, 0, flags, true);
+		if (modCount > 0)
+		{
+			UINT ret = SendInput((UINT)modCount, modInputs, sizeof(INPUT));
+			if (ret != (UINT)modCount)
+				RW_LOG_DEBUG("sendMouseEvent: modifier-down SendInput sent %u of %d, err=%lu\r\n",
+					ret, modCount, (unsigned long)GetLastError());
+		}
+	}
 
 	// --- 3. Mouse button / wheel event ---
 	if (evType == MSEVENT_EVENT_WHEEL)
@@ -444,13 +456,25 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		}
 	}
 
-	// --- 4. Modifier keys up (released in reverse order) ---
-	count += AppendModifiers(inputs, count, flags, false);
+	{
+		UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
+		if(ret != (UINT)count)
+			RW_LOG_DEBUG("sendMouseEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
+				ret, count, (unsigned long)GetLastError());
+	}
 
-	UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
-	if(ret != (UINT)count)
-		RW_LOG_DEBUG("sendMouseEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
-			ret, count, (unsigned long)GetLastError());
+	// --- 4. Modifier keys up (separate SendInput call, released in reverse order) ---
+	{
+		INPUT modInputs[3];
+		int modCount = AppendModifiers(modInputs, 0, flags, false);
+		if (modCount > 0)
+		{
+			UINT ret = SendInput((UINT)modCount, modInputs, sizeof(INPUT));
+			if (ret != (UINT)modCount)
+				RW_LOG_DEBUG("sendMouseEvent: modifier-up SendInput sent %u of %d, err=%lu\r\n",
+					ret, modCount, (unsigned long)GetLastError());
+		}
+	}
 	return TRUE;
 }
 //send virtual key press
