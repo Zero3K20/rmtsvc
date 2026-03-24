@@ -24,6 +24,11 @@ var ptX_last_down, ptY_last_down;
 // fire it immediately.  This ensures rapid Ctrl/Shift+Click sequences (e.g.
 // selecting multiple files in Explorer) send every individual click to the server.
 var pendingClickParam = null;
+// Pointer Lock state.  When the browser has captured the mouse pointer inside the
+// canvas, pointerLocked is true, and remoteX/remoteY track the accumulated cursor
+// position on the remote screen using movementX/movementY deltas.
+var pointerLocked = false;
+var remoteX = 0, remoteY = 0;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -68,6 +73,22 @@ return b;
 function isLeftButton(b)
 {
 return isIE ? (b===1) : (b===0);
+}
+
+// Called when the browser's pointer lock state changes.  Updates pointerLocked and
+// initialises remoteX/remoteY from the last known cursor position so the first
+// mouse move after lock is applied at the correct spot.
+function onPointerLockChange()
+{
+var canvas=document.getElementById("screenimage");
+pointerLocked=(document.pointerLockElement===canvas||document.mozPointerLockElement===canvas);
+if(pointerLocked)
+{
+remoteX=ptX||0;
+remoteY=ptY||0;
+}
+var overlay=document.getElementById("pointerLockOverlay");
+if(overlay) overlay.style.display=pointerLocked?"none":"";
 }
 
 // Scale display coordinates back to actual screen coordinates when the canvas
@@ -117,8 +138,17 @@ xhr.send();
 
 // Compute the mouse position relative to the screen image using getBoundingClientRect()
 // so the result is accurate regardless of scroll, CSS transforms, or frame nesting.
+// When the Pointer Lock API has captured the mouse, clientX/Y no longer change, so
+// we use the tracked remoteX/remoteY instead.
 function msPosition(e) 
 { 
+if(pointerLocked)
+{
+ptX=remoteX;
+ptY=remoteY;
+document.getElementById("txtHide").focus();
+return;
+}
 var img=document.getElementById("screenimage");
 var rect=img.getBoundingClientRect();
 var cx=(e.clientX !== undefined ? e.clientX : e.x);
@@ -149,6 +179,22 @@ if (parent && parent.frmLeft && typeof parent.frmLeft.tryResumeAudio === 'functi
 parent.frmLeft.tryResumeAudio();
 } catch(e) {}
 }, false);
+// Set up Pointer Lock API listeners (standard + Firefox-prefixed).
+document.addEventListener('pointerlockchange', onPointerLockChange, false);
+document.addEventListener('mozpointerlockchange', onPointerLockChange, false);
+// Add an overlay that prompts the user to click to capture the mouse.  It is
+// shown when pointer lock is inactive and hidden while it is active.
+var canvas=document.getElementById("screenimage");
+var divScreen=document.getElementById("divScreen");
+if(divScreen && (canvas.requestPointerLock||canvas.mozRequestPointerLock))
+{
+divScreen.style.position="relative";
+var overlay=document.createElement("div");
+overlay.id="pointerLockOverlay";
+overlay.style.cssText="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:sans-serif;pointer-events:none;z-index:10;";
+overlay.innerHTML="<span style=\"background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:4px;\">Click to capture mouse \u2014 Esc to release</span>";
+divScreen.appendChild(overlay);
+}
 }
 
 function processRequest() 
@@ -172,7 +218,26 @@ xmlHttp.send(param);
 function msmove(e)
 {
 e=e||window.event;
+if(pointerLocked && e.movementX !== undefined)
+{
+// While the pointer is locked clientX/Y do not change; use the relative
+// movement deltas and scale them to remote-screen pixel space.
+var canvas=document.getElementById("screenimage");
+var rect=canvas.getBoundingClientRect();
+var rw=rect.width||canvas.clientWidth;
+var rh=rect.height||canvas.clientHeight;
+var nw=parseInt(canvas.getAttribute("data-nw")||"0")||canvas.width;
+var nh=parseInt(canvas.getAttribute("data-nh")||"0")||canvas.height;
+remoteX+=((nw && rw) ? Math.round(e.movementX*nw/rw) : e.movementX);
+remoteY+=((nh && rh) ? Math.round(e.movementY*nh/rh) : e.movementY);
+if(nw) remoteX=Math.max(0,Math.min(nw-1,remoteX));
+if(nh) remoteY=Math.max(0,Math.min(nh-1,remoteY));
+ptX=remoteX; ptY=remoteY;
+}
+else
+{
 msPosition(e);
+}
 var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
 if(timerID_move!=0)
 {
@@ -267,11 +332,20 @@ sendEvent("/msevent",param);
 // For right/middle buttons a button-down event is forwarded immediately to the server so
 // that Windows can process WM_RBUTTONDOWN before WM_RBUTTONUP arrives (required for the
 // Windows 7 taskbar context menu to appear).
+// On left button down, if the Pointer Lock API is supported and not yet active, we request
+// pointer lock so subsequent mouse movement is captured as relative deltas.
 function msdown(e)
 {
 e=e||window.event;
 if(isLeftButton(e.button))
 {
+// Request pointer lock on left-button press if not already active.
+if(!pointerLocked)
+{
+var canvas=document.getElementById("screenimage");
+if(canvas.requestPointerLock) canvas.requestPointerLock();
+else if(canvas.mozRequestPointerLock) canvas.mozRequestPointerLock();
+}
 msPosition(e);
 ptX_drag=ptX;
 ptY_drag=ptY;
@@ -348,7 +422,7 @@ if(e.altKey) altk=altk | 4;
 if(isLeftButton(b))
 {
 var dx=ptX-ptX_drag, dy=ptY-ptY_drag;
-if(ptX_drag!==undefined && (dx*dx+dy*dy)>4)
+if(ptX_drag!==undefined && (dx*dx+dy*dy)>16)
 {
 // Mouse moved enough to be a drag — send drag event instead of click.
 // Set wasDrag so that the subsequent browser click event (which some
@@ -417,6 +491,27 @@ console.log("[viewCtrl] keyevent: could not create XHR object");
 function keydown(e)
 {
 e=e||window.event;
+// When a key is held the browser fires repeated keydown events with e.repeat===true.
+// Forward these as key events so the held key repeats on the remote PC.
+// The initial press (e.repeat===false) is handled by keyup to avoid double-sending.
+// Modifier keys (Shift=16, Ctrl=17, Alt=18) are encoded in the altk field and must
+// not be queued as separate repeat events.
+if(e.repeat)
+{
+var altk=0;
+if(e.ctrlKey) altk=altk|1;
+if(e.shiftKey) altk=altk|2;
+if(e.altKey) altk=altk|4;
+var kc=(e.keyCode||e.which);
+if(kc!==16 && kc!==17 && kc!==18)
+{
+var kevent=altk*256+kc;
+console.log("[viewCtrl] keyrepeat: keyCode="+kc+" altk="+altk+" kevent="+kevent);
+txtKeyEvent=txtKeyEvent+kevent+",";
+if(timerID_key==0)
+timerID_key=window.setInterval(Kevent,50);
+}
+}
 if(e.preventDefault) e.preventDefault();
 return false;
 }
