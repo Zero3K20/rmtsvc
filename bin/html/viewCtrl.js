@@ -19,6 +19,11 @@ var wasDrag=false;
 // (a true double-click) or at a different location (two separate single clicks,
 // e.g. selecting different files in Explorer).
 var ptX_last_down, ptY_last_down;
+// Stores the query string for the pending single-click timer so that when a new
+// click at a different position arrives and would otherwise cancel it, we can
+// fire it immediately.  This ensures rapid Ctrl/Shift+Click sequences (e.g.
+// selecting multiple files in Explorer) send every individual click to the server.
+var pendingClickParam = null;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -199,17 +204,35 @@ if(isDblClickSecond)
 // Set a short fallback timer to send act=2 in case the browser does not fire
 // ondblclick (e.g. because mousedown's preventDefault suppressed it).
 // msdblclick will cancel this timer and send act=2 directly if it does fire.
+// pendingClickParam was already cleared in msdown, so the first click of the
+// double-click is not sent separately.
 isDblClickSecond=false;
 if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
 if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
 var dblParam="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
 timerID_click=window.setTimeout(function(){timerID_click=0;sendEvent("/msevent",dblParam);},50);
 return;
 }
 var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
-if(timerID_click!=0) window.clearTimeout(timerID_click);
+if(timerID_click!=0)
+{
+// A pending single-click timer is still running (the previous click was at a
+// different position and cannot be part of a double-click).  Fire it immediately
+// so that, for example, a rapid Ctrl/Shift+Click sequence in Windows Explorer
+// sends every individual click to the server rather than discarding the first.
+window.clearTimeout(timerID_click);
+timerID_click=0;
+if(pendingClickParam)
+{
+(function(p){window.setTimeout(function(){sendEvent("/msevent",p);},0);})(pendingClickParam);
+pendingClickParam=null;
+}
+}
 if(timerID_move!=0) window.clearTimeout(timerID_move);
-timerID_click=window.setTimeout(function(){ sendEvent("/msevent",param); },200);
+timerID_move=0;
+pendingClickParam=param;
+timerID_click=window.setTimeout(function(){ timerID_click=0; pendingClickParam=null; sendEvent("/msevent",param); },200);
 }
 function msdblclick(e)
 {
@@ -268,7 +291,10 @@ if((ddx*ddx+ddy*ddy)<=16)
 isDblClickSecond=true;
 // Cancel any pending single-click timer so it cannot fire before
 // ondblclick (or the fallback in msclick) handles the double-click.
+// Also clear pendingClickParam so the first click of the double-click
+// is not replayed when the double-click event arrives.
 if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
 }
 else
 {
