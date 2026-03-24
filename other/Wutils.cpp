@@ -23,16 +23,6 @@ using namespace net4cpp21;
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
-// Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
-// keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
-static inline void ApplyModifiers(short flags, bool bDown)
-{
-	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
-	if (flags & MSEVENT_CTRL)  Keybd_Event(VK_CONTROL, 0, upFlag);
-	if (flags & MSEVENT_SHIFT) Keybd_Event(VK_SHIFT,   0, upFlag);
-	if (flags & MSEVENT_ALT)   Keybd_Event(VK_MENU,    0, upFlag);
-}
-
 inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
   DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
   DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
@@ -335,6 +325,15 @@ Cleanup:
 #define MSEVENT_CTRL 0x0100
 #define MSEVENT_SHIFT 0x0200
 #define MSEVENT_ALT 0x0400
+// Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
+// keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
+static inline void ApplyModifiers(short flags, bool bDown)
+{
+	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
+	if (flags & MSEVENT_CTRL)  Keybd_Event(VK_CONTROL, 0, upFlag);
+	if (flags & MSEVENT_SHIFT) Keybd_Event(VK_SHIFT,   0, upFlag);
+	if (flags & MSEVENT_ALT)   Keybd_Event(VK_MENU,    0, upFlag);
+}
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
