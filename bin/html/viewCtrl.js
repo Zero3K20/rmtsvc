@@ -24,6 +24,12 @@ var ptX_last_down, ptY_last_down;
 // fire it immediately.  This ensures rapid Ctrl/Shift+Click sequences (e.g.
 // selecting multiple files in Explorer) send every individual click to the server.
 var pendingClickParam = null;
+// Modifier state (Ctrl/Shift/Alt bits) captured at the most recent left-button
+// mousedown.  Used as a fallback in msclick/msdblclick: on Chrome on ChromeOS,
+// calling preventDefault() on modifier keydowns can cause the browser to clear
+// e.shiftKey/e.ctrlKey by the time the deferred click event fires, so we save
+// the state early (at mousedown, where it is always reliable) and OR it in.
+var lastDownAltk = 0;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -186,7 +192,11 @@ function msclick(e)
 {
 e=e||window.event;
 msPosition(e);
-var altk=0;
+// Seed altk from the modifier state saved at mousedown time.  On Chrome on
+// ChromeOS, e.ctrlKey/e.shiftKey can be false by the time the deferred click
+// event fires because the browser clears modifier state when preventDefault()
+// was called on the modifier's keydown.  The mousedown state is always reliable.
+var altk=lastDownAltk;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
@@ -252,7 +262,7 @@ timerID_click=0;
 }
 e=e||window.event;
 msPosition(e);
-var altk=0;
+var altk=lastDownAltk;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
@@ -276,6 +286,7 @@ msPosition(e);
 ptX_drag=ptX;
 ptY_drag=ptY;
 wasDrag=false;
+lastDownAltk=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0);
 var now=Date.now ? Date.now() : new Date().getTime();
 if(lastMousedownTime>0 && (now-lastMousedownTime)<500)
 {
@@ -417,6 +428,13 @@ console.log("[viewCtrl] keyevent: could not create XHR object");
 function keydown(e)
 {
 e=e||window.event;
+var kc=e.keyCode||e.which;
+// Do not call preventDefault() for standalone modifier-key presses
+// (Shift=16, Ctrl=17, Alt=18, Meta/Search=91/92/93).  On Chrome on ChromeOS,
+// doing so suppresses the browser's own modifier-state tracking so that
+// e.shiftKey / e.ctrlKey are reported as false on subsequent mouse events,
+// breaking Shift/Ctrl+Click multi-selection in Windows Explorer.
+if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93) return false;
 if(e.preventDefault) e.preventDefault();
 return false;
 }
