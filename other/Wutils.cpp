@@ -23,31 +23,6 @@ using namespace net4cpp21;
 char Wutils::m_buffer[MAX_PATH]={0};
 DWORD Wutils::mskbEvent_dwExtraInfo=0x3456;
 
-inline UINT Mouse_Event(DWORD dwFlags, // motion and click options
-  DWORD dx,              // horizontal position or change (absolute when MOUSEEVENTF_ABSOLUTE is set)
-  DWORD dy,              // vertical position or change  (absolute when MOUSEEVENTF_ABSOLUTE is set)
-  DWORD dwData)         // wheel movement
-{
-	INPUT inp = {0};
-	inp.type = INPUT_MOUSE;
-	inp.mi.dx          = (LONG)dx;
-	inp.mi.dy          = (LONG)dy;
-	inp.mi.mouseData   = dwData;
-	inp.mi.dwFlags     = dwFlags;
-	inp.mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
-	UINT ret = SendInput(1, &inp, sizeof(INPUT));
-	if(ret == 0)
-		RW_LOG_DEBUG("Mouse_Event SendInput failed: flags=0x%lx dx=%lu dy=%lu dwData=%lu err=%lu\r\n",
-			dwFlags, dx, dy, dwData, (unsigned long)GetLastError());
-	return ret;
-}
-// Minimum milliseconds to hold a mouse button down before releasing it.
-// This brief hold allows the target process's message pump to process the
-// button-down event before it receives the button-up, improving click
-// reliability in MFC controls (e.g. TortoiseGit list/tree views).
-// Matches the 5 ms delay used by DWService's windowsinputs.cpp.
-#define MOUSE_BUTTON_HOLD_MS 5
-
 // Returns true for virtual keys that must be sent with KEYEVENTF_EXTENDEDKEY
 // so that the Windows input system routes them to the correct scan-code prefix
 // (0xE0). Without this flag, navigation keys (arrows, Delete, Home/End, etc.)
@@ -81,11 +56,10 @@ static inline bool IsExtendedKey(BYTE bVk)
 	}
 }
 
-inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
-  BYTE /*bScan*/,         // hardware scan code (derived from bVk via MapVirtualKey)
-  DWORD dwFlags )         // function options
+// Fill one INPUT slot for a keyboard event and advance the count.
+static inline void AppendKeyInput(INPUT &inp, BYTE bVk, DWORD dwFlags)
 {
-	INPUT inp = {0};
+	memset(&inp, 0, sizeof(INPUT));
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wVk        = bVk;
 	inp.ki.wScan      = (WORD)MapVirtualKey(bVk, MAPVK_VK_TO_VSC);
@@ -93,11 +67,31 @@ inline UINT Keybd_Event(BYTE bVk,               // virtual-key code
 		dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	inp.ki.dwFlags    = dwFlags;
 	inp.ki.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
-	UINT ret = SendInput(1, &inp, sizeof(INPUT));
-	if(ret == 0)
-		RW_LOG_DEBUG("Keybd_Event SendInput failed: vk=0x%02x flags=0x%lx err=%lu\r\n",
-			(unsigned)bVk, dwFlags, (unsigned long)GetLastError());
-	return ret;
+}
+
+// Fill one INPUT slot for a mouse button or wheel event (no position data).
+static inline void AppendMouseInput(INPUT &inp, DWORD dwFlags, DWORD mouseData = 0)
+{
+	memset(&inp, 0, sizeof(INPUT));
+	inp.type = INPUT_MOUSE;
+	inp.mi.dwFlags     = dwFlags;
+	inp.mi.mouseData   = mouseData;
+	inp.mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
+}
+
+// Normalize a virtual-screen pixel coordinate pair (in, in) to the 0-65535
+// range that MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK requires.
+// Coordinates are clamped to the virtual-screen rectangle before normalising.
+static inline void NormalizeToVirtualScreen(int x, int y, LONG &nx, LONG &ny)
+{
+	int screenLeft   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+	int screenTop    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+	int screenWidth  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	int cx = x < screenLeft ? screenLeft : (x >= screenLeft + screenWidth  ? screenLeft + screenWidth  - 1 : x);
+	int cy = y < screenTop  ? screenTop  : (y >= screenTop  + screenHeight ? screenTop  + screenHeight - 1 : y);
+	nx = (screenWidth  > 0) ? (LONG)((double)(cx - screenLeft) * 65535.0 / screenWidth  + 0.5) : 0;
+	ny = (screenHeight > 0) ? (LONG)((double)(cy - screenTop)  * 65535.0 / screenHeight + 0.5) : 0;
 }
 
 //return local machine name
@@ -327,12 +321,23 @@ Cleanup:
 #define MSEVENT_ALT 0x0400
 // Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
 // keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
-static inline void ApplyModifiers(short flags, bool bDown)
+// Appends the corresponding INPUT entries to arr starting at index idx.
+// Returns the number of entries appended.
+static inline int AppendModifiers(INPUT *arr, int idx, short flags, bool bDown)
 {
 	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
-	if (flags & MSEVENT_CTRL)  Keybd_Event(VK_CONTROL, 0, upFlag);
-	if (flags & MSEVENT_SHIFT) Keybd_Event(VK_SHIFT,   0, upFlag);
-	if (flags & MSEVENT_ALT)   Keybd_Event(VK_MENU,    0, upFlag);
+	int count = 0;
+	if (bDown) {
+		if (flags & MSEVENT_CTRL)  { AppendKeyInput(arr[idx+count], VK_CONTROL, upFlag); count++; }
+		if (flags & MSEVENT_SHIFT) { AppendKeyInput(arr[idx+count], VK_SHIFT,   upFlag); count++; }
+		if (flags & MSEVENT_ALT)   { AppendKeyInput(arr[idx+count], VK_MENU,    upFlag); count++; }
+	} else {
+		// Release in reverse order to match how they were pressed
+		if (flags & MSEVENT_ALT)   { AppendKeyInput(arr[idx+count], VK_MENU,    upFlag); count++; }
+		if (flags & MSEVENT_SHIFT) { AppendKeyInput(arr[idx+count], VK_SHIFT,   upFlag); count++; }
+		if (flags & MSEVENT_CTRL)  { AppendKeyInput(arr[idx+count], VK_CONTROL, upFlag); count++; }
+	}
+	return count;
 }
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
@@ -347,95 +352,105 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		else
 			RW_LOG_DEBUG("sendMouseEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
-	// Move the cursor using SendInput with absolute virtual-screen coordinates.
-	// This is more reliable than SetCursorPos (which can silently fail in a service
-	// context) and works correctly across multiple monitors.
+	// All inputs for this event are collected into a single array and dispatched
+	// in one SendInput() call.  This makes the injection atomic: no foreign
+	// process can interleave its own input between the modifier key-down, the
+	// button event, and the modifier key-up, which is essential for combinations
+	// such as Ctrl+Click or Shift+Click to work correctly in every application.
+	//
+	// Maximum entries needed:
+	//   1  cursor MOVE
+	//   3  modifier keys down  (Ctrl, Shift, Alt)
+	//  12  button events       (3 buttons × down+up×2 for double-click)
+	//   3  modifier keys up
+	// ---- total 19, so 20 is a safe upper bound.
+	INPUT inputs[20];
+	int count = 0;
+
+	// --- 1. Move cursor using absolute virtual-screen coordinates ---
 	{
-		int screenLeft   = GetSystemMetrics(SM_XVIRTUALSCREEN);
-		int screenTop    = GetSystemMetrics(SM_YVIRTUALSCREEN);
-		int screenWidth  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-		int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		// Clamp input coordinates to the virtual-screen rectangle before normalising.
-		int cx = x < screenLeft ? screenLeft : (x >= screenLeft + screenWidth  ? screenLeft + screenWidth  - 1 : x);
-		int cy = y < screenTop  ? screenTop  : (y >= screenTop  + screenHeight ? screenTop  + screenHeight - 1 : y);
-		LONG nx = (screenWidth  > 0) ? (LONG)((double)(cx - screenLeft) * 65535.0 / screenWidth  + 0.5) : 0;
-		LONG ny = (screenHeight > 0) ? (LONG)((double)(cy - screenTop)  * 65535.0 / screenHeight + 0.5) : 0;
-		Mouse_Event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_MOVE,
-		            (DWORD)nx, (DWORD)ny, 0);
+		LONG nx, ny;
+		NormalizeToVirtualScreen(x, y, nx, ny);
+		memset(&inputs[count], 0, sizeof(INPUT));
+		inputs[count].type = INPUT_MOUSE;
+		inputs[count].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_MOVE;
+		inputs[count].mi.dx = nx;
+		inputs[count].mi.dy = ny;
+		inputs[count].mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
+		count++;
 	}
-	if((flags&MSEVENT_EVENT_ALL)==MSEVENT_EVENT_NONE) return TRUE;//only move cursor
+
+	if((flags & MSEVENT_EVENT_ALL) == MSEVENT_EVENT_NONE)
+	{
+		SendInput((UINT)count, inputs, sizeof(INPUT));
+		return TRUE; // cursor-move only
+	}
 
 	int evType   = (flags & MSEVENT_EVENT_ALL);
 	int btnFlags = (flags & 0x0f);
 
-	ApplyModifiers(flags, true);
+	// --- 2. Modifier keys down ---
+	count += AppendModifiers(inputs, count, flags, true);
 
+	// --- 3. Mouse button / wheel event ---
 	if (evType == MSEVENT_EVENT_WHEEL)
 	{
-		// mouseData for MOUSEEVENTF_WHEEL is a signed wheel delta stored in a
-		// DWORD field.  Use the negative WHEEL_DELTA pattern Windows expects.
 		DWORD delta = ((LONG)dwData > 0) ? (DWORD)WHEEL_DELTA : (DWORD)(-(LONG)WHEEL_DELTA);
-		Mouse_Event(MOUSEEVENTF_WHEEL, 0, 0, delta);
+		AppendMouseInput(inputs[count], MOUSEEVENTF_WHEEL, delta); count++;
 	}
 	else if (evType == MSEVENT_EVENT_DRAG)
-	{//button down at drag-start position (cursor already moved there above)
-		if (btnFlags & MSEVENT_BUTTON_LEFT)
-			Mouse_Event(MOUSEEVENTF_LEFTDOWN,   0, 0, 0);
-		if (btnFlags & MSEVENT_BUTTON_RIGHT)
-			Mouse_Event(MOUSEEVENTF_RIGHTDOWN,  0, 0, 0);
-		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
-			Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
+	{
+		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTDOWN);   count++; }
+		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTDOWN);  count++; }
+		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEDOWN); count++; }
 	}
 	else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
-	{//button up at drop/release position
-		if (btnFlags & MSEVENT_BUTTON_LEFT)
-			Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
-		if (btnFlags & MSEVENT_BUTTON_RIGHT)
-			Mouse_Event(MOUSEEVENTF_RIGHTUP,  0, 0, 0);
-		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
-			Mouse_Event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0);
+	{
+		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++; }
+		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);  count++; }
+		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP); count++; }
 	}
-	else
-	{//click or double-click
+	else // click or double-click
+	{
 		if (btnFlags & MSEVENT_BUTTON_LEFT)
 		{
-			Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
-			Sleep(MOUSE_BUTTON_HOLD_MS);
-			Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
+			AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTDOWN); count++;
+			AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++;
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				Mouse_Event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
-				Sleep(MOUSE_BUTTON_HOLD_MS);
-				Mouse_Event(MOUSEEVENTF_LEFTUP,   0, 0, 0);
+				AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTDOWN); count++;
+				AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++;
 			}
 		}
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)
 		{
-			Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
-			Sleep(MOUSE_BUTTON_HOLD_MS);
-			Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
+			AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTDOWN); count++;
+			AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);   count++;
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				Mouse_Event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
-				Sleep(MOUSE_BUTTON_HOLD_MS);
-				Mouse_Event(MOUSEEVENTF_RIGHTUP,   0, 0, 0);
+				AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTDOWN); count++;
+				AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);   count++;
 			}
 		}
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE)
 		{
-			Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
-			Sleep(MOUSE_BUTTON_HOLD_MS);
-			Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
+			AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEDOWN); count++;
+			AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP);   count++;
 			if (evType == MSEVENT_EVENT_DBLCLICK)
 			{
-				Mouse_Event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
-				Sleep(MOUSE_BUTTON_HOLD_MS);
-				Mouse_Event(MOUSEEVENTF_MIDDLEUP,   0, 0, 0);
+				AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEDOWN); count++;
+				AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP);   count++;
 			}
 		}
 	}
 
-	ApplyModifiers(flags, false);
+	// --- 4. Modifier keys up (released in reverse order) ---
+	count += AppendModifiers(inputs, count, flags, false);
+
+	UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
+	if(ret != (UINT)count)
+		RW_LOG_DEBUG("sendMouseEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
+			ret, count, (unsigned long)GetLastError());
 	return TRUE;
 }
 //send virtual key press
@@ -457,18 +472,37 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 		else
 			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
+	// Build the complete sequence as one batch:
+	//   modifiers down  → key down → key up → modifiers up
+	// Sending everything in a single SendInput() call makes the injection
+	// atomic, preventing other processes from interleaving input between
+	// the modifier presses and the key stroke.  This is required for
+	// combinations such as Ctrl+C, Alt+Tab, Shift+Delete, etc. to work
+	// reliably in every application.
+	// Maximum entries: 3 mod down + 1 key down + 1 key up + 3 mod up = 8.
+	INPUT inputs[8];
+	int count = 0;
 
-	if ((vkey & 0x0100) != 0) Keybd_Event(VK_CONTROL, 0, 0);
-	if ((vkey & 0x0200) != 0) Keybd_Event(VK_SHIFT,   0, 0);
-	if ((vkey & 0x0400) != 0) Keybd_Event(VK_MENU,    0, 0);
+	if ((vkey & 0x0100) != 0) { AppendKeyInput(inputs[count], VK_CONTROL, 0); count++; }
+	if ((vkey & 0x0200) != 0) { AppendKeyInput(inputs[count], VK_SHIFT,   0); count++; }
+	if ((vkey & 0x0400) != 0) { AppendKeyInput(inputs[count], VK_MENU,    0); count++; }
 	if ((vkey & 0x0ff)  != 0)
 	{
-		Keybd_Event((BYTE)(vkey & 0x0ff), 0, 0);
-		Keybd_Event((BYTE)(vkey & 0x0ff), 0, KEYEVENTF_KEYUP);
+		AppendKeyInput(inputs[count], (BYTE)(vkey & 0x0ff), 0);            count++;
+		AppendKeyInput(inputs[count], (BYTE)(vkey & 0x0ff), KEYEVENTF_KEYUP); count++;
 	}
-	if ((vkey & 0x0100) != 0) Keybd_Event(VK_CONTROL, 0, KEYEVENTF_KEYUP);
-	if ((vkey & 0x0200) != 0) Keybd_Event(VK_SHIFT,   0, KEYEVENTF_KEYUP);
-	if ((vkey & 0x0400) != 0) Keybd_Event(VK_MENU,    0, KEYEVENTF_KEYUP);
+	// Release modifiers in reverse order
+	if ((vkey & 0x0400) != 0) { AppendKeyInput(inputs[count], VK_MENU,    KEYEVENTF_KEYUP); count++; }
+	if ((vkey & 0x0200) != 0) { AppendKeyInput(inputs[count], VK_SHIFT,   KEYEVENTF_KEYUP); count++; }
+	if ((vkey & 0x0100) != 0) { AppendKeyInput(inputs[count], VK_CONTROL, KEYEVENTF_KEYUP); count++; }
+
+	if(count > 0)
+	{
+		UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
+		if(ret != (UINT)count)
+			RW_LOG_DEBUG("sendKeyEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
+				ret, count, (unsigned long)GetLastError());
+	}
 	return TRUE;
 }
 
@@ -479,14 +513,20 @@ BOOL Wutils :: sendText(const char *strTxt)
 	if(!Wutils::inputDesktopSelected())
 		Wutils::selectInputDesktop();
 	const char *ptr=strTxt;
+	INPUT inp[4]; // reused for each character: [shift-down,] key-down, key-up, [shift-up]
 	while(*ptr)
 	{
 		if(*ptr=='\n'){ ptr++; continue; }
 		SHORT VkKey=VkKeyScan(*ptr);
-		if(HIBYTE(VkKey)&1) Keybd_Event(VK_SHIFT,VK_SHIFT,0);
-		Keybd_Event(LOBYTE(VkKey),LOBYTE(VkKey),0);
-		Keybd_Event(LOBYTE(VkKey),LOBYTE(VkKey),KEYEVENTF_KEYUP);
-		if(HIBYTE(VkKey)&1) Keybd_Event(VK_SHIFT,VK_SHIFT,KEYEVENTF_KEYUP);
+		BYTE vk = LOBYTE(VkKey);
+		bool needShift = (HIBYTE(VkKey) & 1) != 0;
+		// Batch shift (if needed) + key-down + key-up into one SendInput call
+		int cnt = 0;
+		if (needShift) { AppendKeyInput(inp[cnt], VK_SHIFT, 0); cnt++; }
+		AppendKeyInput(inp[cnt], vk, 0);            cnt++;
+		AppendKeyInput(inp[cnt], vk, KEYEVENTF_KEYUP); cnt++;
+		if (needShift) { AppendKeyInput(inp[cnt], VK_SHIFT, KEYEVENTF_KEYUP); cnt++; }
+		SendInput((UINT)cnt, inp, sizeof(INPUT));
         ptr++;
 	}//?while(*ptr)
 	return TRUE;
@@ -533,18 +573,35 @@ BOOL Wutils :: sendTextbyClipboard(const char *strTxt)
 		{//if input window is console window, simulate right mouse click at console window
 			int x=rt.left+(rt.right-rt.left)/2;
 			int y=rt.top+(rt.bottom -rt.top)/2;
-			::SetCursorPos(x, y);//move mouse cursor to specified position
-			Mouse_Event(MOUSEEVENTF_RIGHTDOWN,0,0,0);
-			Mouse_Event(MOUSEEVENTF_RIGHTUP,0,0,0);
+			// Use absolute-position SendInput so the move and click are injected
+			// through the same input mechanism as all other events.
+			{
+				LONG nx, ny;
+				NormalizeToVirtualScreen(x, y, nx, ny);
+				INPUT inp[3];
+				memset(inp, 0, sizeof(inp));
+				inp[0].type = INPUT_MOUSE;
+				inp[0].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_MOVE;
+				inp[0].mi.dx = nx;
+				inp[0].mi.dy = ny;
+				inp[0].mi.dwExtraInfo = Wutils::mskbEvent_dwExtraInfo;
+				AppendMouseInput(inp[1], MOUSEEVENTF_RIGHTDOWN);
+				AppendMouseInput(inp[2], MOUSEEVENTF_RIGHTUP);
+				SendInput(3, inp, sizeof(INPUT));
+			}
 			return TRUE;
 		}//
 	}//?if(hWnd)
 	//otherwise simulate Ctrl+V key press
 	#define VK_V 0x56
-	Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL, 0);
-	Keybd_Event((BYTE)VK_V, (BYTE)VK_V, 0);
-	Keybd_Event((BYTE)VK_V, (BYTE)VK_V, KEYEVENTF_KEYUP);
-	Keybd_Event((BYTE)VK_CONTROL, (BYTE)VK_CONTROL, KEYEVENTF_KEYUP);
+	{
+		INPUT inp[4];
+		AppendKeyInput(inp[0], VK_CONTROL, 0);
+		AppendKeyInput(inp[1], VK_V,       0);
+		AppendKeyInput(inp[2], VK_V,       KEYEVENTF_KEYUP);
+		AppendKeyInput(inp[3], VK_CONTROL, KEYEVENTF_KEYUP);
+		SendInput(4, inp, sizeof(INPUT));
+	}
 	return TRUE;
 }
 
