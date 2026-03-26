@@ -333,7 +333,7 @@ function _scheduleReconnect()
 	{
 		_reconnectTimer = 0;
 		_startDiffStream();
-	}, 2000);
+	}, 100);
 }
 
 // Call from window_onload() in each screen-viewer page.
