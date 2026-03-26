@@ -1,0 +1,31 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release (Win32)
+        run: msbuild rmtsvc.sln /p:Configuration=Release /p:Platform=Win32 /m
+
+      - name: Archive bin folder
+        run: Compress-Archive -Path bin\* -DestinationPath rmtsvc-${{ github.ref_name }}-x86.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rmtsvc-${{ github.ref_name }}-x86.zip
