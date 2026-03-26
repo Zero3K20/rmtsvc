@@ -571,23 +571,36 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 }
 
 // Returns the current server cursor shape as a JSON CSS cursor name string.
-// Uses the same thread-attachment technique as capDesktop to retrieve the active cursor.
+// Uses GetCursorInfo to retrieve the cursor the OS is actually displaying.
 bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 {
 	Wutils::selectDesktop();
-	POINT ptCursor;
-	::GetCursorPos(&ptCursor);
-	HWND hw = ::WindowFromPoint(ptCursor);
-	if(hw == NULL) hw = ::GetDesktopWindow();
-	DWORD hdl = ::GetWindowThreadProcessId(hw, NULL);
+
 	HCURSOR hCursor = NULL;
-	if(::AttachThreadInput(::GetCurrentThreadId(), hdl, TRUE))
+	// GetCursorInfo returns the global cursor that the OS is visually showing.
+	// AttachThreadInput+GetCursor() can return IDC_APPSTARTING for console
+	// windows (conhost.exe) even when the on-screen cursor is a normal arrow,
+	// because conhost sets that cursor on its own thread during app startup.
+	CURSORINFO ci;
+	ci.cbSize = sizeof(CURSORINFO);
+	if (::GetCursorInfo(&ci))
+		hCursor = ci.hCursor;
+
+	if (hCursor == NULL)
 	{
-		hCursor = ::GetCursor();
-		::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
+		POINT ptCursor;
+		::GetCursorPos(&ptCursor);
+		HWND hw = ::WindowFromPoint(ptCursor);
+		if(hw == NULL) hw = ::GetDesktopWindow();
+		DWORD hdl = ::GetWindowThreadProcessId(hw, NULL);
+		if(::AttachThreadInput(::GetCurrentThreadId(), hdl, TRUE))
+		{
+			hCursor = ::GetCursor();
+			::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
+		}
+		if(hCursor == NULL)
+			hCursor = (HCURSOR)::GetClassLongPtr(hw, GCLP_HCURSOR);
 	}
-	if(hCursor == NULL)
-		hCursor = (HCURSOR)::GetClassLongPtr(hw, GCLP_HCURSOR);
 
 	// Map Windows system cursor handles to CSS cursor names
 	struct CursorMapping { LPTSTR id; const char *css; };
