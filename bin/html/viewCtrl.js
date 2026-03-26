@@ -6,29 +6,22 @@ var timerID_move=0;
 var txtKeyEvent="";
 // Double-click detection state.  msdown records the time of each left-button
 // press; when a second press arrives within the double-click window we set
-// isDblClickSecond so that msclick can send act=2 even if the browser does not
-// fire ondblclick (which some browsers suppress when mousedown is preventDefault-ed).
+// isDblClickSecond (currently unused — kept for future reference).
 var lastMousedownTime=0;
 var isDblClickSecond=false;
-// Set to true by msup when a drag event is sent so that msclick can suppress
-// the spurious click event that browsers fire after a mouse drag, which would
-// otherwise deselect the text that was just selected on the remote PC.
+// Unused since button events are now forwarded immediately in msdown/msup;
+// kept to avoid reference errors in any stale timer callbacks.
 var wasDrag=false;
 // Position of the most recent left-button mousedown, used to decide whether a
 // subsequent mousedown within the double-click time window is at the same spot
 // (a true double-click) or at a different location (two separate single clicks,
 // e.g. selecting different files in Explorer).
 var ptX_last_down, ptY_last_down;
-// Stores the query string for the pending single-click timer so that when a new
-// click at a different position arrives and would otherwise cancel it, we can
-// fire it immediately.  This ensures rapid Ctrl/Shift+Click sequences (e.g.
-// selecting multiple files in Explorer) send every individual click to the server.
+// Unused since click events are no longer batched via a timer; kept to avoid
+// reference errors in cleanup code inside msup.
 var pendingClickParam = null;
 // Modifier state (Ctrl/Shift/Alt bits) captured at the most recent left-button
-// mousedown.  Used as a fallback in msclick/msdblclick: on Chrome on ChromeOS,
-// calling preventDefault() on modifier keydowns can cause the browser to clear
-// e.shiftKey/e.ctrlKey by the time the deferred click event fires, so we save
-// the state early (at mousedown, where it is always reliable) and OR it in.
+// mousedown.  Used when sending the immediate button-down (act=3) from msdown.
 var lastDownAltk = 0;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
@@ -194,93 +187,26 @@ timerID_move=window.setTimeout(function(){ sendEvent("/msevent",param); },50);
 
 function msclick(e)
 {
-e=e||window.event;
-msPosition(e);
-// Seed altk from the modifier state saved at mousedown time.  On Chrome on
-// ChromeOS, e.ctrlKey/e.shiftKey can be false by the time the deferred click
-// event fires because the browser clears modifier state when preventDefault()
-// was called on the modifier's keydown.  The mousedown state is always reliable.
-var altk=lastDownAltk;
-if(e.ctrlKey) altk=altk | 1;
-if(e.shiftKey) altk=altk | 2;
-if(e.altKey) altk=altk | 4;
-// Suppress the spurious click that browsers fire after a mouse drag.  msup
-// already sent the drag event and text is selected on the remote PC; sending
-// another click here would immediately deselect that text.
-if(wasDrag)
-{
-wasDrag=false;
-return;
-}
-if(isDblClickSecond)
-{
-// This click event is the second of a double-click sequence detected in msdown.
-// Set a short fallback timer to send act=2 in case the browser does not fire
-// ondblclick (e.g. because mousedown's preventDefault suppressed it).
-// msdblclick will cancel this timer and send act=2 directly if it does fire.
-// pendingClickParam was already cleared in msdown, so the first click of the
-// double-click is not sent separately.
-isDblClickSecond=false;
-if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
-pendingClickParam=null;
-if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
-var dblParam="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
-timerID_click=window.setTimeout(function(){timerID_click=0;sendEvent("/msevent",dblParam);},50);
-return;
-}
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=1";
-if(timerID_click!=0)
-{
-// A pending single-click timer is still running (the previous click was at a
-// different position and cannot be part of a double-click).  Fire it immediately
-// so that, for example, a rapid Ctrl/Shift+Click sequence in Windows Explorer
-// sends every individual click to the server rather than discarding the first.
-window.clearTimeout(timerID_click);
-timerID_click=0;
-if(pendingClickParam)
-{
-(function(p){window.setTimeout(function(){sendEvent("/msevent",p);},0);})(pendingClickParam);
-pendingClickParam=null;
-}
-}
-if(timerID_move!=0) window.clearTimeout(timerID_move);
-timerID_move=0;
-pendingClickParam=param;
-timerID_click=window.setTimeout(function(){ timerID_click=0; pendingClickParam=null; sendEvent("/msevent",param); },200);
+// Left-button down and up are now forwarded immediately from msdown and msup
+// respectively, so no separate click event needs to be sent from here.
+// The remote OS registers a click when it receives the button-down followed
+// by the button-up that was already delivered.
 }
 function msdblclick(e)
 {
-// The browser fires ondblclick whenever two clicks on the same element occur
-// within the system double-click time, regardless of position.  When the user
-// clicks on two different items (e.g. two different files in Explorer) within
-// that window isDblClickSecond will be false because msdown detected the two
-// presses were at different positions.  In that case do not send act=2; let
-// the pending single-click timer from msclick fire instead.
-if(!isDblClickSecond)
-return;
-isDblClickSecond=false;
-if(timerID_click!=0)
-{
-window.clearTimeout(timerID_click);
-timerID_click=0;
-}
-e=e||window.event;
-msPosition(e);
-var altk=lastDownAltk;
-if(e.ctrlKey) altk=altk | 1;
-if(e.shiftKey) altk=altk | 2;
-if(e.altKey) altk=altk | 4;
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=2";
-sendEvent("/msevent",param);
+// Double-click is recognised by the remote OS when it sees two consecutive
+// button-down/button-up sequences within its double-click time window.
+// Both sequences are already sent via msdown/msup, so nothing extra is
+// needed here.
 }
 
 // Get mouse down event, record drag start point. Prevents browser native drag/text-selection.
-// Also performs double-click detection: if two left-button presses arrive within 500 ms we
-// set isDblClickSecond=true and cancel any pending single-click timer immediately, so that
-// msclick can send act=2 as a fallback even when the browser suppresses ondblclick.
-// For right/middle buttons a button-down event is forwarded immediately to the server so
-// that Windows can process WM_RBUTTONDOWN before WM_RBUTTONUP arrives (required for the
-// Windows 7 taskbar context menu to appear).
+// For all buttons a button-down event (act=3) is forwarded immediately to the server.
+// Left-button button-up is sent from msup; the remote OS detects double-clicks when it
+// receives two button-down/up sequences within its double-click time window.
+// Right/middle button-down uses a dedicated XHR so the down request is not
+// aborted by the subsequent button-up request (required for context menus on the
+// Windows 7 taskbar to appear).
 function msdown(e)
 {
 e=e||window.event;
@@ -323,6 +249,17 @@ isDblClickSecond=false;
 ptX_last_down=ptX;
 ptY_last_down=ptY;
 lastMousedownTime=now;
+// Send left button-down immediately so that holding the button is felt on
+// the remote host (e.g. scrollbar buttons, game input, UI hold-to-repeat).
+// Button-up is sent from msup; msclick/msdblclick no longer send click
+// events for the left button.
+var bdxhr=getButtonDownXHR();
+if(bdxhr)
+{
+bdxhr.open("POST", "/msevent", true);
+bdxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+bdxhr.send("x="+ptX+"&y="+ptY+"&altk="+lastDownAltk+"&button=1&act=3");
+}
 if(e.preventDefault) e.preventDefault();
 }
 else
@@ -346,11 +283,12 @@ bdxhr.send("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=3");
 }
 }
 }
-// Handle mouse up: detect left-button drag vs click; forward right/middle button releases.
-// Right/middle button-up uses act=6 (button-up only) because the matching button-down was
-// already sent via a dedicated XHR in msdown, giving the remote OS time to process
-// WM_RBUTTONDOWN before WM_RBUTTONUP — which is required for context menus on the
-// Windows 7 taskbar to appear correctly.
+// Handle mouse up: forward button-up for all buttons.
+// The matching button-down was already sent via a dedicated XHR in msdown for
+// all buttons (left, right, middle), giving the remote OS time to process
+// WM_LBUTTONDOWN/WM_RBUTTONDOWN before WM_LBUTTONUP/WM_RBUTTONUP arrives.
+// Cursor movement while holding the button (drag) is conveyed by the msmove
+// events already dispatched; no separate act=4 drag event is needed.
 function msup(e)
 {
 e=e||window.event;
@@ -362,19 +300,12 @@ if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
 if(isLeftButton(b))
 {
-var dx=ptX-ptX_drag, dy=ptY-ptY_drag;
-if(ptX_drag!==undefined && (dx*dx+dy*dy)>4)
-{
-// Mouse moved enough to be a drag — send drag event instead of click.
-// Set wasDrag so that the subsequent browser click event (which some
-// browsers fire even after a mouse drag) is ignored in msclick and does
-// not send a spurious single-click that would deselect the remote text.
-// Also cancel any pending click timer: a drag replaces a pending click.
-wasDrag=true;
+// Cancel any pending click timer left over from earlier code paths.
 if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=4&dragx="+ptX_drag+"&dragy="+ptY_drag;
+pendingClickParam=null;
+// Send button-up; button-down was already sent from msdown.
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=6";
 sendEvent("/msevent",param);
-}
 return;
 }
 var serverBtn=normalizeButton(b);
@@ -438,7 +369,21 @@ var kc=e.keyCode||e.which;
 // doing so suppresses the browser's own modifier-state tracking so that
 // e.shiftKey / e.ctrlKey are reported as false on subsequent mouse events,
 // breaking Shift/Ctrl+Click multi-selection in Windows Explorer.
+// Modifier keys are forwarded from keyup instead so that bare modifier
+// presses (e.g. Alt to focus the menu bar) are still sent to the server.
 if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93) return false;
+// Send the key event on keydown rather than keyup.  The browser fires
+// keydown repeatedly while a key is held (auto-repeat), so sending here
+// means a held key will trigger repeated keystrokes on the remote host.
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var kevent=altk*256+kc;
+console.log("[viewCtrl] keydown: keyCode="+kc+" altk="+altk+" kevent="+kevent);
+txtKeyEvent=txtKeyEvent+kevent+",";
+if(timerID_key==0)
+timerID_key=window.setInterval(Kevent,50);
 if(e.preventDefault) e.preventDefault();
 return false;
 }
@@ -446,15 +391,23 @@ return false;
 function keyup(e)
 {
 e=e||window.event;
+var kc=e.keyCode||e.which;
+// Non-modifier keys are sent on keydown (above) to support auto-repeat.
+// Only standalone modifier-key events are forwarded here so that
+// applications that respond to bare modifier presses (e.g. Alt to focus
+// the Windows menu bar) continue to work correctly.
+if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93)
+{
 var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
-var kevent=altk*256+(e.keyCode||e.which);
-console.log("[viewCtrl] keyup: keyCode="+(e.keyCode||e.which)+" altk="+altk+" kevent="+kevent);
+var kevent=altk*256+kc;
+console.log("[viewCtrl] keyup (modifier): keyCode="+kc+" altk="+altk+" kevent="+kevent);
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
 timerID_key=window.setInterval(Kevent,50);
+}
 if(e.preventDefault) e.preventDefault();
 return false;
 }
