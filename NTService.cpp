@@ -313,7 +313,7 @@ BOOL CNTService :: DebugService(int argc, char ** argv)
 #endif
 	
 	m_bDebug = TRUE;
-	_tprintf(TEXT("Debugging %s - %s.\nPress Ctrl+c to end program.\n"), 
+	_tprintf(TEXT("Debugging %s - %s.\nPress Ctrl+C to end program.\n"), 
 			m_lpServiceName,(m_lpServiceDesc)?m_lpServiceDesc:m_lpDisplayName);
 	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
