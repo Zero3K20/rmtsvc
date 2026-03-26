@@ -122,7 +122,7 @@ void httpServer :: onAccept(socketTCP *psock)
 			std::map<std::string,httpSession *>::iterator it=m_sessions.find(strSessionID);
 			if(it!=m_sessions.end()) psession=(*it).second; else psession=NULL;
 		}else psession=NULL;
-		if(psession==NULL){ //set新的sessionID
+		if(psession==NULL){ //set a new session ID
 			if( (psession=new httpSession)==NULL ) return;
 			m_sessions[psession->sessionID()]=psession;	
 			httprsp.SetCookie(httpSession::SESSION_IDNAME,psession->sessionID(),"/");
@@ -170,12 +170,12 @@ void httpServer :: onAccept(socketTCP *psock)
 							t1=ct1.Gettime()+_timezone;//apply timezone adjustment						 
 						}
 					}//?if(p)
-					if(t1<=t0) //file没有被modify过
+					if(t1<=t0) //file has not been modified
 						httprsp_NotModify(psock,httprsp);
 					else
-					//判断filewhether被modify--------------  end ---------------------
+					//check whether file has been modified--------------  end ---------------------
 					{
-						long lstartpos,lendpos;//getfile的范围
+						long lstartpos,lendpos;//get file range
 						int iRangeNums=httpreq.get_requestRange(&lstartpos,&lendpos,0);
 						if(iRangeNums>1){
 							long *lppos=new long[iRangeNums*2];
@@ -187,22 +187,22 @@ void httpServer :: onAccept(socketTCP *psock)
 							if(iRangeNums==0) { lstartpos=0; lendpos=-1; }
 							httprsp.sendfile(psock,vpath.c_str(),MIMETYPE_UNKNOWED,lstartpos,lendpos);
 						}//?if(iRangeNums>1)
-					}//?file被modify过
+					}//?file has been modified
 				} //specified path is a file
 			} else httprsp_accessDenied(psock,httprsp);
 		}//?if(!onHttpReq(psock,httpreq,*psession,m_application,httprsp))
 
-		psession->m_lastTime=time(NULL); //setsession的last访问time
+		psession->m_lastTime=time(NULL); //set session last access time
 		if(!httpreq.bKeepAlive()) break;
 	}//?while(true)
 }
 
-//将绝对虚pathconvert为绝对实path(!!!虚pathnot区分size写)
-//return对current实path的可操作permissions
-//vpath -- [in|out] input绝对虚path，output绝对实path
+//convert absolute virtual path to absolute real path (!!!virtual path is NOT case-sensitive)
+//return the operable permissions for the current real path
+//vpath -- [in|out] input absolute virtual path, output absolute real path
 long httpServer :: cvtVPath2RPath(std::string &vpath)
 {
-	if(vpath=="" || vpath[0]!='/') return HTTP_ACCESS_NONE; //异常保护
+	if(vpath=="" || vpath[0]!='/') return HTTP_ACCESS_NONE; //abnormal protection
 	::_strlwr((char *)vpath.c_str());
 	std::map<std::string,std::pair<std::string,long> >::iterator it=m_dirAccess.end();
 	const char *ptr=vpath.c_str();

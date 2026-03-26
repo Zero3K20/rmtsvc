@@ -31,7 +31,7 @@ mapServer :: mapServer()
 mapServer :: ~mapServer()
 {
 	Close();
-	//service析构前要保证thread都end，因为thread中访问了mapServerclass的object
+	//all threads must be ended before the service destructor runs, since threads access the mapServer class object
 	m_threadpool.join(); 
 }
 
@@ -55,7 +55,7 @@ socketTCP * mapServer :: connect_mapped(std::pair<std::string,int>* &p)
 	int n=m_mappedApp.size();
 	if(n==1) 
 		p=&m_mappedApp[0];
-	else if(n>0) //随机get一个application service得info
+	else if(n>0) //randomly get info of one application service
 		p=&m_mappedApp[rand()%n];
 	else return NULL;
 	socketTCP *psock=new socketTCP;
@@ -78,7 +78,7 @@ void mapServer :: onAccept(socketTCP *psock)
 		return;
 	}else ppeer->setParent(psock);
 	
-	onData((char *)1,0,psock,ppeer); //用于分析handledata，start一个connect
+	onData((char *)1,0,psock,ppeer); //used to analyze/handle data, start a connection
 	if( m_threadpool.addTask((THREAD_CALLBACK *)&transThread,(void *)ppeer,THREADLIVETIME)==0 )
 	{
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");
@@ -100,7 +100,7 @@ void mapServer :: onAccept(socketTCP *psock)
 	}//?while
 	ppeer->Close(); onData(NULL,0,psock,ppeer);
 	while(ppeer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-	onData(NULL,0,ppeer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关resource
+	onData(NULL,0,ppeer,psock); //notify protocol analyzer that connection has closed, release related resources
 	delete ppeer; return;
 }
 

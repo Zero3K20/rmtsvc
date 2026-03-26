@@ -23,7 +23,7 @@ static char *UPNP_SEARCH_NAME[] =
 	"urn:schemas-upnp-org:service:WANIPConnection:2",   //IGDv2 (e.g. AT&T BGW320)
 	"urn:schemas-upnp-org:device:InternetGatewayDevice:1", //search by device name
 	"urn:schemas-upnp-org:device:InternetGatewayDevice:2"  //IGDv2 device name
-}; //因为有些设备支持以service name查找，有些支持设备名查找
+}; //because some devices support searching by service name, while others support searching by device name
 bool GetProperty(const char *xml,const char *name,string &strret);
 
 // Case-insensitive substring search (replaces multiple strstr calls for HTTP headers)
@@ -71,7 +71,7 @@ bool upnp :: Search()
 		return false;
 	}
 	
-	char packet[256]; //组播message
+	char packet[256]; //multicast message
 	int l,len=sprintf(packet, "M-SEARCH * HTTP/1.1\r\n"
 							"HOST: %s:%d\r\n"
 							"MAN: \"ssdp:discover\"\r\n"
@@ -94,7 +94,7 @@ void upnp :: onData()
 	if(buflen<=0) return; else buf[buflen]=0;
 	RW_LOG_DEBUG("[UPnP] Received response ,len=%d\r\n%s",buflen,buf);
 	
-	// D-Link 504 竟然is not HTTP/*.* 而yes HTTP*.*
+	// D-Link 504 surprisingly uses HTTP*.* instead of HTTP/*.*
 	UINT32 maj_ver, min_ver, status_code;
 	if (::sscanf(buf, "HTTP/%u.%u %u", &maj_ver, &min_ver, &status_code) != 3 &&
 		::sscanf(buf, "HTTP%u.%u %u", &maj_ver, &min_ver, &status_code) != 3)
@@ -108,7 +108,7 @@ void upnp :: onData()
 	if(ptr_end==NULL) return;
 	m_strLocation.assign(ptr_beg,ptr_end-ptr_beg);
 	RW_LOG_DEBUG("[UPnP] Found Loaction: %s\r\n",m_strLocation.c_str());
-	//getST的值
+	//get the ST value
 	if( (ptr_beg=stristr_hdr(buf,"\r\nST:")) ){
 		ptr_beg+=5;
 		while( *ptr_beg==' ') ptr_beg++; //remove spaces
@@ -116,9 +116,9 @@ void upnp :: onData()
 			m_targetName.assign(ptr_beg,ptr_end-ptr_beg);
 	}else m_targetName="";
 	
-	std::string strXml; //get设备descriptionxml
+	std::string strXml; //get device description xml
 	if(!GetDevXML(strXml)) return;
-	//get控制urladdress
+	//get control url address
 	string sverviceType=string("<serviceType>")+m_targetName+string("</serviceType>");
 	ptr_beg=strstr(strXml.c_str(),sverviceType.c_str());
 	if(ptr_beg){
@@ -155,7 +155,7 @@ void upnp :: onData()
 	RW_LOG_DEBUG("[UPnP] friendlyName: %s\r\n",m_friendlyName.c_str());
 	RW_LOG_DEBUG("[UPnP] manufacturer: %s\r\n",m_manufacturer.c_str());
 	
-	//查foundUPnP device后，进行map
+	//after finding a UPnP device, perform mapping
 	std::vector<UPnPInfo *> ::iterator it=m_upnpsets.begin();
 	for(;it!=m_upnpsets.end();it++){
 		UPnPInfo *p=*it;
@@ -166,12 +166,12 @@ void upnp :: onData()
 
 bool upnp :: GetDevXML(std::string &strXml)
 {
-	//getLocationspecified的xmlfile
+	//get the xml file specified by Location
 	httpClient httpsock; int iret;
 TRANS302:
 	httpsock.cls_httpreq();
 	iret=httpsock.send_httpreq(m_strLocation.c_str());
-	if(iret==302) //转向
+	if(iret==302) //redirect
 	{
 		httpResponse & resp=httpsock.Response();
 		const char *ptr=resp.Header("Location");
@@ -182,10 +182,10 @@ TRANS302:
 	else if(iret==200) //responsesuccess
 	{
 		httpResponse & resp=httpsock.Response();
-		resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
+		resp.recv_remainder(&httpsock,-1);//receive complete HTTP response body
 //		RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 //				resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-		if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完
+		if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//not fully received
 //		if(resp.get_mimetype()!=MIMETYPE_XML) return false;
 		
 		strXml.assign(resp.szReceivedContent(),resp.lReceivedContent());
@@ -336,15 +336,15 @@ bool upnp :: invoke_command(std::string &strCmd,std::map<std::string,std::string
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
+	resp.recv_remainder(&httpsock,-1);//receive complete HTTP response body
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-//	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完
+//	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//not fully received
 
 	strCmd.assign(resp.szReceivedContent(),resp.lReceivedContent());
 	return (sr==200);
 }
-//attributeget ,reqName : requestattribute名  rspName: responsename
+//attribute get, reqName: request attribute name  rspName: response name
 bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 {
 	if(!m_bFound || m_control_url=="") return false;
@@ -366,10 +366,10 @@ bool upnp :: invoke_property(std::string &reqName,std::string &rspName)
 	SOCKSRESULT sr=httpsock.send_httpreq(m_control_url.c_str());
 	if(sr!=200) return false;
 	httpResponse & resp=httpsock.Response();
-	resp.recv_remainder(&httpsock,-1);//receivecompleteHTTP response体
+	resp.recv_remainder(&httpsock,-1);//receive complete HTTP response body
 	RW_LOG_DEBUG("[UPnP] Receive XML: %d / %d\r\n%s\r\n",
 		resp.lReceivedContent(),resp.lContentLength(),resp.szReceivedContent());
-	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//未receive完
+	if(!resp.ifReceivedAll() || resp.lContentLength()==0 ) return false;//not fully received
 	
 	return GetProperty(resp.szReceivedContent(),rspName.c_str(),rspName);
 }

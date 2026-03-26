@@ -396,9 +396,9 @@ bool ParseMonth(char* pszToken, int& nMonth)
 }
 
 //parse date/time format, supports the following datetime formats e.g. RFC 1123, RFC 850 etc.
-//[Week,] Mmm DD YY/YYYY HH:mm:ss		例如: Sat, Sep 11 2006 12:58:20
-//[Week,] DD Mmm/MM YY/YYYY HH:mm:ss	例如: Sat, 14 Mar 98 23:13:43 +0800
-//YYYY MM DD HH:mm:ss					例如: 2009 09 18 12:01:01
+//[Week,] Mmm DD YY/YYYY HH:mm:ss		e.g.: Sat, Sep 11 2006 12:58:20
+//[Week,] DD Mmm/MM YY/YYYY HH:mm:ss	e.g.: Sat, 14 Mar 98 23:13:43 +0800
+//YYYY MM DD HH:mm:ss					e.g.: 2009 09 18 12:01:01
 bool cTime::parseDate(const char *strDate)
 {
 	int lDateLen=(strDate)?strlen(strDate):0;

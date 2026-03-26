@@ -138,7 +138,7 @@ void smtpClient :: setSMTPAuth(SMTPAUTH_TYPE authType,
 }
 
 //****************************************
-// function功能：direct mail delivery. Returns SOCKSERR_OK on success
+// function: direct mail delivery. Returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dnsport)
 {
@@ -190,12 +190,12 @@ SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dn
 			}else RW_LOG_DEBUG("[smtpclnt] Failed to send email to %s\r\n",(*it).first.c_str());
 		}//?for(;it!=pvec->end();it++) 
 	}//?while(true)
-//	if(errCount>0) sr=SOCKSERR_SMTP_FAILED; //邮件未完全sendsuccess
+//	if(errCount>0) sr=SOCKSERR_SMTP_FAILED; //emails not all sent successfully
 	return (okCount>0)?SOCKSERR_OK:SOCKSERR_SMTP_FAILED;
 }
 
 //****************************************
-// function功能：direct mail delivery. Returns SOCKSERR_OK on success
+// function: direct mail delivery. Returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT smtpClient :: sendMail_MX(const char *emlfile,const char *dnssvr,int dnsport)
 {
@@ -205,7 +205,7 @@ SOCKSRESULT smtpClient :: sendMail_MX(const char *emlfile,const char *dnssvr,int
 	return sendMail_MX(mms,dnssvr,dnsport);
 }
 //****************************************
-// function功能：connect to SMTP server and send the specified email. Returns SOCKSERR_OK on success
+// function: connect to SMTP server and send the specified email. Returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT smtpClient :: sendMail(const char *emlfile,const char *smtpsvr,int smtpport,const char *from)
 {
@@ -224,7 +224,7 @@ SOCKSRESULT smtpClient :: sendMail(mailMessage &mms,const char *smtpsvr,int smtp
 }
 
 //****************************************
-// function功能：sendspecified邮件。returns SOCKSERR_OK on success
+// function: send the specified email. Returns SOCKSERR_OK on success
 //toemail -- if toemail is not null, send to the mailbox specified by toemail; otherwise send to the email recipient specified by mms
 //****************************************
 SOCKSRESULT smtpClient :: _sendMail(mailMessage &mms,const char *toemail)
@@ -306,7 +306,7 @@ SOCKSRESULT smtpClient :: _sendMail(mailMessage &mms,const char *toemail)
 
 
 //****************************************
-// function功能：connectsmtpserver returns SOCKSERR_OK on success
+// function: connect to smtp server. Returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT smtpClient :: ConnectSvr(const char *smtpsvr,int smtpport)
 {
@@ -331,7 +331,7 @@ SOCKSRESULT smtpClient :: ConnectSvr(const char *smtpsvr,int smtpport)
 }
 
 //****************************************
-// function功能：serverauthentication returns SOCKSERR_OK on success
+// function: server authentication. Returns SOCKSERR_OK on success
 //****************************************
 SOCKSRESULT smtpClient::Auth_LOGIN()
 {	
@@ -468,17 +468,17 @@ SOCKSRESULT mailMessage :: initFromemlfile(const char *emlfile)
 				if(ptr==NULL) break; else *ptr=',';
 				pline=ptr+1;while(*pline==' ') pline++;
 			}//?while(true)
-		}else if(emltype==1) continue; //Base64 encoding的邮件，其余partialno longerparse
-		////未经base64 encodingeml邮件，parse其余partial
+		}else if(emltype==1) continue; //Base64 encoded email, no longer parse the remaining parts
+		////non-Base64-encoded eml email, parse remaining parts
 		else if(strncasecmp(pline,"Attachs: ",9)==0) 	
-		{//邮件attachment，multipleattachment之间用逗号分割
+		{//email attachment; multiple attachments are separated by commas
 			pline+=9; while(*pline==' ') pline++;//delete leading spaces
 			while(true){
 				char *ptr=strchr(pline,',');
 				if(ptr) *ptr='\0'; //format: <contentID>aaa.jpg or aaa.jpg
 				std::string strContentID,strFilename(pline); 
-				parseEmail(strFilename,strContentID); //拆分，<>中的yescontentID
-				if(strContentID!="")//parseEmailparseyes反的，借用此function而已
+				parseEmail(strFilename,strContentID); //split; the part inside <> is the contentID
+				if(strContentID!="")//parseEmail parses in reverse order; this function is just reused
 					 this->AddAtach(strContentID.c_str(),emlfile,strFilename.c_str());
 				else this->AddAtach(strFilename.c_str(),emlfile,NULL);
 				if(ptr==NULL) break; else *ptr=',';
@@ -489,7 +489,7 @@ SOCKSRESULT mailMessage :: initFromemlfile(const char *emlfile)
 			pline+=10; while(*pline==' ') pline++;//delete leading spaces
 			bt=(strcasecmp(pline,"HTML")==0)?mailMessage::HTML_BODY:mailMessage::TEXT_BODY;
 		}else if(strncasecmp(pline,"Charsets: ",10)==0)	
-		{//email bodytype采用的character集encoding
+		{//character set encoding used by the email body type
 			pline+=10; while(*pline==' ') pline++;//delete leading spaces
 			if(pline[0]!=0) this->m_strBodyCharset.assign(pline);
 		}else if(strncasecmp(pline,"Subject: ",9)==0)	
@@ -499,25 +499,25 @@ SOCKSRESULT mailMessage :: initFromemlfile(const char *emlfile)
 		}	
 	}//?while
 	this->m_contentType=bt; //setemail bodytype
-	if( emltype==0 ){ //非Base64 encoding的邮件
+	if( emltype==0 ){ //non-Base64-encoded email
 		m_strMailFile="";
 		while(true){
 			size_t l=::fread((void *)sline,sizeof(char),READ_BUFFER_SIZE-1,fp);
 			sline[l]=0; this->body().append(sline);
-			if(l<(READ_BUFFER_SIZE-1)) break; //已读完毕
+			if(l<(READ_BUFFER_SIZE-1)) break; //reading complete
 		} 
 	}else this->setBody(emlfile,::ftell(fp));
 	::fclose(fp); return SOCKSERR_OK;
 }
 
-//add attachment,filepathspecifiedattachment的相对path
-//contentID - specifiedcontentID，ifspecified了则为html正文中的imagefile //yyc add 2006-07-20
+//add attachment; filepath specifies the relative path of the attachment
+//contentID - specifies contentID; if specified, it is an image file embedded in the HTML body //yyc add 2006-07-20
 #include <io.h>
 bool mailMessage::AddAtach(const char *filename,const char *filepath,const char *contentID)
 {
 	if(filename==NULL || filename[0]==0) return false;
 	std::string strfile;
-	if(filepath!=NULL && filename[1]!=':') //iffilenamepointer to的is not绝对path
+	if(filepath!=NULL && filename[1]!=':') //if the filename does not point to an absolute path
 	{
 		const char *ptr=strrchr(filepath,'\\');
 		if(ptr) strfile.assign(filepath,ptr-filepath+1);
@@ -547,14 +547,14 @@ bool mailMessage::AddRecipient(const char *email,const char *nick,RECIPIENT_TYPE
 }
 
 const char MAILBOUNDARY_STRING[]="#yycnet.yeah.net#";
-//对specified的file进行base64 encoding，并writespecified的流
-//contentID - specifiedcontentID，ifspecified了则为html正文中的imagefile //yyc add 2006-07-20
+//base64-encode the specified file and write to the specified stream
+//contentID - specifies contentID; if specified, it is an image file embedded in the HTML body //yyc add 2006-07-20
 bool base64File(const char *filename,ofstream &out,const char *contentID)
 {
 	FILE *fp=::fopen(filename,"rb");
 	if(fp==NULL) return false;
 	long len=strlen(filename);
-	const char *fname=filename;//get filename称
+	const char *fname=filename;//get filename
 	for(int i=len-1;i>=0;i--)
 	{
 		if(*(filename+i)=='\\' || *(filename+i)=='/'){ fname=filename+i+1; break; }
@@ -598,20 +598,20 @@ bool base64File(const char *filename,ofstream &out,const char *contentID)
 	}
 	
 	out.write(srcbuf,len);
-	//startbase64 encodingspecified的file
+	//start base64 encoding the specified file
 	while(true)
-	{ //每次读3的辈数byte，看base64 encoding
+	{ //read bytes in multiples of 3 each time for base64 encoding
 		len=::fread(srcbuf,sizeof(char),1020,fp);
 		if(len<=0) break;
 		len=cCoder::base64_encode(srcbuf,len,dstbuf);
 		out.write(dstbuf,len); out.write("\r\n",2);
 	}//?while
-	out.write("\r\n",2);//加一个null行表示attachmentbase64 encodingend
+	out.write("\r\n",2);//add an empty line to indicate end of attachment base64 encoding
 	::fclose(fp); return true;
 }
-//生成Base64 encoding的邮件体file
-//bDelete -- 指示whenmailMessageobjectrelease时whetherdelete生成的file
-//successreturn生成的filename
+//generate the Base64-encoded email body file
+//bDelete -- specifies whether to delete the generated file when the mailMessage object is released
+//on success return the generated filename
 const char * mailMessage::createMailFile(const char *file,bool bDelete)
 {
 	if(file==NULL || file[0]==0)
@@ -687,20 +687,20 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 	char *ptr_encodeBody=NULL;
 	if(strcasecmp(m_strBodyCharset.c_str(),"utf-8")==0)
 	{
-		//对email body进行utf8andBase64 encoding
+		//perform utf8 and Base64 encoding on the email body
 		long encode_bodylen=cCoder::Utf8EncodeSize(m_strBody.length());
 		ptr_encodeBody=new char[encode_bodylen+1];
 		if(ptr_encodeBody){
 			encode_bodylen=cCoder::utf8_encode(m_strBody.c_str(),m_strBody.length(),ptr_encodeBody);
 			char *ptr_utf8=ptr_encodeBody;
-			//then对utf8进行base64 encoding
+			//then perform base64 encoding on the utf8
 			if( (ptr_encodeBody=new char[cCoder::Base64EncodeSize(encode_bodylen)+1]) )
 				cCoder::base64_encode(ptr_utf8,encode_bodylen,ptr_encodeBody);
 			delete[] ptr_utf8;
 		}//?if(ptr_encodeBody)
 	}
-	//multi-part的firstpartial邮件可选正文
-	//文本正文-----------------
+	//optional body of the first part of a multi-part email
+	//text body-----------------
 	out << "--" << MAILBOUNDARY_STRING << "_001\r\n";
 	out << "Content-type: text/plain;\r\n";
 	if(m_contentType!=HTML_BODY)
@@ -715,10 +715,10 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 		}
 	}else{
 		out << "\tCharset=\"gb2312\"\r\nContent-Transfer-Encoding: 8bit\r\n\r\n";
-		out << "The email is HTML format!\r\n这is aHTMLformat邮件!";
+		out << "The email is HTML format!\r\nThis is an HTML format email!";
 	}
 	out <<"\r\n\r\n";
-	//HTML正文-----------------
+	//HTML body-----------------
 	if(m_contentType==HTML_BODY){
 		out << "--" << MAILBOUNDARY_STRING << "_001\r\n";
 		out << "Content-type: text/html;\r\n";
@@ -734,13 +734,13 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 	}
 	if(ptr_encodeBody) delete[] ptr_encodeBody;
 	out <<"--" << MAILBOUNDARY_STRING <<"_001--\r\n\r\n";
-	//multi-part的firstpartial邮件可选正文handleend
+	//end of optional body handling for the first part of a multi-part email
 	
-	//start进行邮件attachment的handle
-	int fileAttachs=0;//validattachment数
+	//start handling email attachments
+	int fileAttachs=0;//valid attachment count
 	int i;
 	for(i=0; i<(int)m_attachs.size();i++)
-	{//ifattachmentfilename的开头为<>,则<>中的class容代表contentID
+	{//if the attachment filename starts with <>, the content inside <> represents the contentID
 		const char *ptr=m_attachs[i].c_str();
 		const char *contentID=NULL;
 		if(*ptr=='<'){
@@ -757,10 +757,10 @@ const char * mailMessage::createMailFile(const char *file,bool bDelete)
 
 /*
 //get MX mailbox name
-//return0 failure return1 从MXcachegetMX mailbox domain namesuccess 2 DNS resolutiongetMX mailbox domain name
+//return 0 failure; return 1 got MX mailbox domain name from MX cache; return 2 got MX mailbox domain name via DNS resolution
 int dnsMX(const char *dnssvr,int dnsport,const char *domainMX,std::string &mxname)
 {
-	mxname="";//先通过mx_hostsgetMXmailbox名
+	mxname="";//first try to get MX mailbox name via mx_hosts
 	FILE *fp=::fopen("mx_hosts","rb");
 	if(fp)
 	{
@@ -772,7 +772,7 @@ int dnsMX(const char *dnssvr,int dnsport,const char *domainMX,std::string &mxnam
 			{ *(char *)pline=0; pline--; }
 			pline=sline; while(*pline==' ') pline++; //remove leading spaces
 			if(pline[0]==0 || pline[0]=='!') continue; //empty line or comment line	
-			if(strncasecmp(pline,domainMX,n)) continue; //is not所查找的域
+			if(strncasecmp(pline,domainMX,n)) continue; //not the domain being searched
 			else pline+=n;
 			if(*pline!=' ' && *pline!='\t') continue; //invalid line
 			while(*pline==' ' || *pline=='\t') pline++; //skip delimiter
@@ -836,8 +836,8 @@ SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dn
 					(*it).first.c_str(),strDomainMX.c_str());
 
 				if(strDomainMX!="")//MX domain name parsecomplete
-				{//准备send email
-					//strDomainMXyes","号分割的multipledomain namestring,循环getMXdomain name
+				{//prepare to send email
+					//strDomainMX is a comma-separated multiple domain name string; loop to get each MX domain name
 					const char *ptrDomainMX=strDomainMX.c_str();
 					while(ptrDomainMX[0]!=0)
 					{
@@ -892,7 +892,7 @@ SOCKSRESULT smtpClient :: sendMail_MX(mailMessage &mms,const char *dnssvr,int dn
 			}
 		}//?for(;it!=pvec->end();it++)
 	}//?while
-	if(errCount>0) sr=SOCKSERR_SMTP_FAILED; //邮件未完全sendsuccess
+	if(errCount>0) sr=SOCKSERR_SMTP_FAILED; //emails not all sent successfully
 	return sr;
 }
 */

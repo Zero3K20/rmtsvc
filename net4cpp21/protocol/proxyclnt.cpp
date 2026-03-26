@@ -80,7 +80,7 @@ SOCKSRESULT socketProxy :: Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
 	if(m_proxytype!=PROXY_SOCKS4 && m_proxytype!=PROXY_SOCKS5) 
 		return SOCKSERR_NOTSUPPORT;
-	//先connectproxy service器
+	//first connect to the proxy server
 	SOCKSRESULT sr=socketTCP::Connect(m_proxyhost.c_str(),m_proxyport,lWaitout);
 	if(sr<0){
 		RW_LOG_DEBUG("Failed to connect proxy server(%s:%d),error=%d\r\n"
@@ -94,14 +94,14 @@ SOCKSRESULT socketProxy :: Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 	}
 	return svrPort;
 }
-//sendUDP代理negotiaterequest (UDP proxy is only supported by the SOCKS5 proxy protocol)
-//successreturn开立的UDPport>0 otherwisefailure
+//send UDP proxy negotiate request (UDP proxy is only supported by the SOCKS5 proxy protocol)
+//on success return the opened UDP port >0, otherwise failure
 //[in] svrIP/svrPort localUDPportandIP
 //[out] svrIP/svrPort returns the port and IP address opened by the SOCKS service
 SOCKSRESULT socketProxy :: UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
 	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSUPPORT;
-	//先connectproxy service器
+	//first connect to the proxy server
 	SOCKSRESULT sr=socketTCP::Connect(m_proxyhost.c_str(),m_proxyport,lWaitout);
 	if(sr<0){
 		RW_LOG_DEBUG("Failed to connect proxy server(%s:%d),error=%d\r\n"
@@ -116,18 +116,18 @@ SOCKSRESULT socketProxy :: UdpAssociate(std::string &svrIP,int &svrPort,time_t l
 	return svrPort;
 }
 
-//send代理BINDrequest，returns SOCKSERR_OK on success(0)
-//atSOCKS Server上开一个侦听service,svrIP/svrPortreturnsocksservice开的portandIPaddress
+//send proxy BIND request, returns SOCKSERR_OK on success (0)
+//open a listening service on the SOCKS Server; svrIP/svrPort returns the port and IP address opened by the socks service
 //[in] svrIP, tells the SOCKS service which source IP is allowed to connect to the opened port; svrPort is meaningless
 SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
 	SOCKSRESULT sr=SOCKSERR_OK;
 	unsigned long ipAddr=INADDR_NONE;
 	if(!m_ipv6) ipAddr=socketBase::Host2IP(svrIP.c_str());
-	if(ipAddr==INADDR_NONE) return SOCKSERR_HOST;//必须yesvalid的IPv4address
+	if(ipAddr==INADDR_NONE) return SOCKSERR_HOST;//must be a valid IPv4 address
 	char buf[256]; int buflen=0;
 	if(m_proxytype==PROXY_SOCKS4)
-	{//填充sock4reqstructure
+	{//fill sock4req structure
 		buf[0]=0x04; buf[1]=0x02; //BIND
 		unsigned short rp=htons((unsigned short)svrPort);
 		::memcpy((void *)(buf+2),(const void *)&rp,sizeof(rp));
@@ -139,8 +139,8 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 	else if(m_proxytype==PROXY_SOCKS5)
 	{
 		if( !socks5_Negotiation(lWaitout) ) return SOCKSERR_PROXY_AUTH;
-		buf[0]=0x05; buf[1]=0x02; //填充sock5reqstructure BIND
-		buf[2]=0x0; buf[3]=0x1; //specifiesyesipv4的address
+		buf[0]=0x05; buf[1]=0x02; //fill sock5req structure BIND
+		buf[2]=0x0; buf[3]=0x1; //specifies an IPv4 address
 		::memcpy((void *)(buf+4),(const void *)&ipAddr,sizeof(ipAddr));
 		buflen=4+sizeof(ipAddr);
 		unsigned short rp=htons((unsigned short)svrPort);
@@ -156,7 +156,7 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 		if(buf[1]==90) //==0x5A
 		{
 			sr=SOCKSERR_OK;
-			//getservicereturn的开立的侦听portandIP
+			//get the listening port and IP opened by the service response
 			svrPort=htons(*(unsigned short *)(buf+2));
 			ipAddr=*(unsigned long *)(buf+2+sizeof(unsigned short));
 			if(ipAddr==INADDR_ANY) ipAddr=this->m_remoteAddr.sin_addr.s_addr;
@@ -171,7 +171,7 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 			sr=SOCKSERR_OK;
 			char atyp=buf[3];
 			if(atyp!=0x01) return SOCKSERR_PROXY_ATYP;
-			//getservicereturn的开立的侦听portandIP
+			//get the listening port and IP opened by the service response
 			ipAddr=*(unsigned long *)(buf+4);
 			if(ipAddr==INADDR_ANY) ipAddr=this->m_remoteAddr.sin_addr.s_addr;
 			svrIP.assign(socketBase::IP2A(ipAddr));
@@ -181,8 +181,8 @@ SOCKSRESULT socketProxy :: sendReq_Bind(std::string &svrIP,int &svrPort,time_t l
 	}
 	return sr;
 }
-//sendsocks Bindrequest后waitingconnect到达(即第二个Bindresponse)
-//bool BindedEventwhether采用onBindedeventnotification方式
+//after sending socks Bind request, wait for the connection to arrive (i.e. the second Bind response)
+//bool BindedEvent: whether to use onBinded event notification
 bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 {
 //	if(BindedEvent) //startwaitingconnectthread
@@ -199,15 +199,15 @@ bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 	{
 		char buf[262];
 		if( this->Receive(buf,5,lWaitout)==5 && buf[1]==0)
-		{//先receive5byte判断addresstype
+		{//first receive 5 bytes to determine address type
 			int len=0;
 			if(buf[3]=0x01) //ipv4
 				len=10; //4+4+2
 			else if(buf[3]==0x04) //ipv6
 				len=22; //4+16+2
-			else if(buf[3]==0x03) //全称domain name
+			else if(buf[3]==0x03) //full domain name
 				len=7+(unsigned char)buf[4];//4+1+buf[4]+2;
-			//实际还未receive完的byte
+			//bytes not yet fully received
 			if( (len-=5)>0 && this->Receive(buf+5,len,-1)>0)
 				bAccept=true;
 		}
@@ -215,10 +215,10 @@ bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 	return bAccept;
 }
 
-//sendsocks Bindrequest后start的waitingconnect到达的thread(即第二个Bindresponse)
-//sendBindrequest后if有一个合法userconnect到socksservice上则产生onBindedevent
-//at this point可进行data交互，就好像user直接连到localservice的port上而is notsocksservice开的port上一样
-//bAccept --- bindrequest的第二个responseyesreject还yes同意
+//thread started after sending socks Bind request to wait for connection arrival (i.e. the second Bind response)
+//after sending Bind request, if a valid user connects to the socks service, an onBinded event is generated
+//at this point data exchange is possible, as if the user connected directly to the local service port rather than the port opened by the socks service
+//bAccept --- whether the second response to the bind request is reject or accept
 //void socketProxy :: bindThread(socketProxy *psock)
 //{
 //	if(psock==NULL) return;
@@ -226,7 +226,7 @@ bool socketProxy :: WaitForBinded(time_t lWaitout,bool BindedEvent)
 //	return;
 //}
 
-//send proxy connect request，returns SOCKSERR_OK on success(0)
+//send proxy connect request, returns SOCKSERR_OK on success (0)
 SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWaitout)
 {
 	SOCKSRESULT sr=SOCKSERR_OK;
@@ -235,14 +235,14 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 	{
 		unsigned long ipAddr=INADDR_NONE;
 		if(!m_ipv6) ipAddr=socketBase::Host2IP(host);
-		//if要求localparse
+		//if local parsing is required
 		if(ipAddr==INADDR_NONE && m_dnsType==1 ) return SOCKSERR_HOST;
 		if( !socks5_Negotiation(lWaitout) ) return SOCKSERR_PROXY_AUTH;
 		buf[0]=0x05; buf[1]=0x01;
 		buf[2]=0x00; buflen=3;
 		if(ipAddr==INADDR_NONE){
 			buf[3]=0x03;
-			buf[4]=sprintf(buf+5,"%s",host)+1; //containsNULLend符号
+			buf[4]=sprintf(buf+5,"%s",host)+1; //includes the NULL terminator
 			buflen=5+buf[4]; buf[buflen-1]=0;
 		}
 		else{
@@ -262,7 +262,7 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 			if(cCoder::Base64EncodeSize(strAuth.length())>=256)
 			{
 				strAuth="";
-				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"proxy service的account无法base64 encoding，超过bufferlength\r\n");
+				RW_LOG_PRINT(LOGLEVEL_ERROR,0,"proxy service account cannot be base64 encoded, buffer length exceeded\r\n");
 			}
 			else
 			{
@@ -276,18 +276,18 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 	}//?else if(m_proxytype==PROXY_HTTPS)
 	else //PROXY_SOCKS4
 	{
-		//sendsocks4 CONNECTrequest，requestconnectspecified的主机
-		//socks4Aprotocol可以specifiedremoteconnect主机的domain name而not necessary toyesip
-		//format如下：(原sock4protocolIPaddresspartial填入0.0.0.x),即buf[4]=buf[5]=buf[6]=0,buf[7]=x
+		//send socks4 CONNECT request, request to connect to the specified host
+		//socks4A protocol can specify the domain name of the remote host to connect to instead of the IP
+		//format is: (original sock4 protocol IP address part filled with 0.0.0.x), i.e. buf[4]=buf[5]=buf[6]=0, buf[7]=x
 		//[version] [command] [port] [0.0.0.1] [0] [hostdomain] [0]
 		
-		buf[0]=0x04; buf[1]=0x01; //填充sock4reqstructure
+		buf[0]=0x04; buf[1]=0x01; //fill sock4req structure
 		unsigned short rp=htons((unsigned short)port);
 		::memcpy((void *)(buf+2),(const void *)&rp,sizeof(rp));
 		buflen=2+sizeof(rp);
 		unsigned long ipAddr=INADDR_NONE;
 		if(!m_ipv6) ipAddr=socketBase::Host2IP(host);
-		if(ipAddr==INADDR_NONE) //也许resolve hostnameinvalid，交给server端parse
+		if(ipAddr==INADDR_NONE) //hostname resolution may be invalid, let the server side resolve it
 		{
 			ipAddr=0x01000000;
 			::memcpy((void *)(buf+buflen),(const void *)&ipAddr,sizeof(ipAddr));
@@ -304,7 +304,7 @@ SOCKSRESULT socketProxy :: sendReq_Connect(const char *host,int port,time_t lWai
 	if( (sr=this->Receive(buf,256,lWaitout))<0 ) return sr;
 	
 	if(m_proxytype==PROXY_SOCKS5)
-		sr=buf[1]; //ifreturn success则buf[1]应为0
+		sr=buf[1]; //if successful, buf[1] should be 0
 	else if(m_proxytype==PROXY_HTTPS)
 	{
 		if(strncmp(buf,"HTTP/1.",7)==0 && strncmp(buf+9,"200",3)==0) 
@@ -325,34 +325,34 @@ bool socketProxy :: socks5_Negotiation(time_t lWaitout)
 	buf[2]=0x0; buf[3]=0x02;
 	SOCKSRESULT sr=this->Send(4,(const char *)buf,-1);
 	if(sr<0) return false;
-	//receive2byte的responsedata
+	//receive 2 bytes of response data
 	sr=this->Receive(buf,2,lWaitout);
 	if(sr!=2) return false;
 	if(buf[1]==0x02)
-	{//service方要求authentication
+	{//the service requires authentication
 		int len=m_proxyuser.length()+m_proxypwd.length()+3;
-		if(len>=128) return false; //超出了sendbuffersize
+		if(len>=128) return false; //exceeds send buffer size
 		buf[0]=0x01; buf[1]=(unsigned char)m_proxyuser.length();
 		strncpy((buf+2),m_proxyuser.c_str(),m_proxyuser.length());
 		
 		buf[2+m_proxyuser.length()]=(unsigned char)m_proxypwd.length();//passwordlength
 		strncpy( (buf+3+m_proxyuser.length()),m_proxypwd.c_str(),m_proxypwd.length() );
 		if( (sr=this->Send(len,(const char *)buf,-1))<0) return false;
-		//receive2byte的responsedata
+		//receive 2 bytes of response data
 		sr=this->Receive(buf,2,lWaitout);
 		if(sr!=2) return false;
 		if(buf[1]!=0) return false; //authenticationfailure
 	}//?if(buf[1]==0x02)
-	else if(buf[1]!=0) //not supported要求的authentication方式
+	else if(buf[1]!=0) //the requested authentication method is not supported
 	{
 		RW_LOG_PRINT(LOGLEVEL_WARN,"not support Authentication (%d).\r\n",buf[1]);
 		return false;
-	} //buf[1]==0则do not求authentication
+	} //buf[1]==0 means no authentication required
 	return true;
 }
 
-//sendUDPproxy request，returns SOCKSERR_OK on success(0) (UDP proxy is only supported by the SOCKS5 proxy protocol)
-//atSOCKS Server上开一个侦听service,svrIP/svrPortreturnsocksservice开的portandIPaddress
+//send UDP proxy request, returns SOCKSERR_OK on success (0) (UDP proxy is only supported by the SOCKS5 proxy protocol)
+//open a listening service on the SOCKS Server; svrIP/svrPort returns the port and IP address opened by the socks service
 //[in] svrIP/svrPort localUDPportandIP
 SOCKSRESULT socketProxy :: sendReq_UdpAssociate(std::string &svrIP,int &svrPort,time_t lWaitout)
 {
@@ -360,8 +360,8 @@ SOCKSRESULT socketProxy :: sendReq_UdpAssociate(std::string &svrIP,int &svrPort,
 //	if(m_proxytype!=PROXY_SOCKS5) return SOCKSERR_NOTSUPPORT;
 	if( !socks5_Negotiation(lWaitout) ) return SOCKSERR_PROXY_AUTH;
 	char buf[256]; int buflen=10;
-	buf[0]=0x05; buf[1]=0x03; //填充sock5reqstructure BIND
-	buf[2]=0x0; buf[3]=0x1; //specifiesyesipv4的address
+	buf[0]=0x05; buf[1]=0x03; //fill sock5req structure BIND
+	buf[2]=0x0; buf[3]=0x1; //specifies an IPv4 address
 	unsigned long ipAddr=INADDR_NONE;
 	if(svrIP!="") ipAddr=socketBase::Host2IP(svrIP.c_str());
 	if(ipAddr==INADDR_NONE) ipAddr=INADDR_ANY;
@@ -377,7 +377,7 @@ SOCKSRESULT socketProxy :: sendReq_UdpAssociate(std::string &svrIP,int &svrPort,
 		sr=SOCKSERR_OK;
 		char atyp=buf[3];
 		if(atyp!=0x01) return SOCKSERR_PROXY_ATYP; //unsupported address type
-		//getservicereturn的开立的侦听portandIP
+		//get the listening port and IP opened by the service response
 		unsigned long ipAddr=*(unsigned long *)(buf+4);
 		if(ipAddr==INADDR_ANY) ipAddr=this->m_remoteAddr.sin_addr.s_addr;
 		svrIP.assign(socketBase::IP2A(ipAddr));

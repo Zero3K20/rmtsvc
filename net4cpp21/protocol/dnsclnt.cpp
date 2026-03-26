@@ -83,7 +83,7 @@ inline int LenOfDnsStr(unsigned char *buf)
 	ptr++; //skip the trailing '\0' or the Position byte after 0xc0
 	return (ptr-buf);
 }
-//将domain name/IPstring conversion为dns支持的name组合形式
+//convert domain name/IP string to the name combination format supported by DNS
 int cvtString2DnsStr(unsigned char *buf,const char *names)
 {
 	if(names==NULL) { buf[0]=0; return 1; }
@@ -102,8 +102,8 @@ int cvtString2DnsStr(unsigned char *buf,const char *names)
 	}
 	return len;
 }
-//将dns支持的name组合形式 convert为 domain name/IPstring
-//packageStart --- 整个DNSpacket的起始position，因为0xC0pointer to的偏移positionyes相对整个packet的
+//convert the DNS name combination format to domain name/IP string
+//packageStart --- start position of the entire DNS packet; the offset pointed to by 0xC0 is relative to the entire packet
 inline int cvtDnsStr2String(unsigned char *buf,std::string &names,
 							unsigned char *packageStart)
 {
@@ -131,7 +131,7 @@ inline int cvtDnsStr2String(unsigned char *buf,std::string &names,
 	return names.length();
 }
 
-//encodingDNSprotocolquery域
+//encode the DNS protocol query section
 inline int encodeDNSQ(unsigned char *buf,DNS_QUERY &dnsq)
 {
 	int len=cvtString2DnsStr(buf,dnsq.name);
@@ -144,7 +144,7 @@ inline int encodeDNSQ(unsigned char *buf,DNS_QUERY &dnsq)
 }
 
 //domain namequery domain name--->IP,returnDNS_RCODE_ERR_OK(0)success
-//otherwise发生error
+//otherwise an error occurred
 SOCKSRESULT dnsClient :: Query(const char *names,const char *dnssvr,int dnsport)
 {
 	if(this->status()!=SOCKS_OPENED) return SOCKSERR_INVALID;
@@ -156,17 +156,17 @@ SOCKSRESULT dnsClient :: Query(const char *names,const char *dnssvr,int dnsport)
 	::memset((void *)&m_dnsq,0,sizeof(DNS_QUERY));
 	::memset((void *)&m_dnsr,0,sizeof(DNS_RESPONSE));
 
-	//组织要send的querydata
+	//organize the query data to send
 	char *buffer=m_buffer;
 	m_dnsh.id=++m_msgID;
 	m_dnsh.flags=DNS_OPCODE_QUERY;
 	m_dnsh.quests=0x01;
 	int buflen=encodeDNSH(buffer,m_dnsh);
-	//填充querystructuredata
+	//fill in the query structure data
 	m_dnsq.name=names;
 	m_dnsq.type=T_A; m_dnsq.classes=C_IN;
 	buflen+=encodeDNSQ((unsigned char *)buffer+buflen,m_dnsq);
-	//setsend目的info
+	//set the send destination info
 	this->setRemoteInfo(dnssvr,dnsport);
 	//sendDNS querydatapacket
 	SOCKSRESULT sr=Send(buflen,buffer,-1);
@@ -176,11 +176,11 @@ SOCKSRESULT dnsClient :: Query(const char *names,const char *dnssvr,int dnsport)
 	if(sr<0) return sr;
 	if(sr==0) return SOCKSERR_ZEROLEN;
 	RW_LOG_PRINTBINARY(buffer,sr);
-	//parsereturn的data
+	//parse the returned data
 	decodeDNSH(buffer,m_dnsh);
 	return (m_dnsh.flags & DNS_FLAGS_OPCODE);
 }
-//反向domain nameparse
+//reverse domain name lookup
 SOCKSRESULT dnsClient :: IQuery(const char *ip,const char *dnssvr,int dnsport)
 {
 	if(this->status()!=SOCKS_OPENED) return SOCKSERR_INVALID;
@@ -192,17 +192,17 @@ SOCKSRESULT dnsClient :: IQuery(const char *ip,const char *dnssvr,int dnsport)
 	::memset((void *)&m_dnsq,0,sizeof(DNS_QUERY));
 	::memset((void *)&m_dnsr,0,sizeof(DNS_RESPONSE));
 
-	//组织要send的querydata
+	//organize the query data to send
 	char *buffer=m_buffer;
 	m_dnsh.id=++m_msgID;
 	m_dnsh.flags=DNS_OPCODE_IQUERY;
 	m_dnsh.quests=0x01;
 	int buflen=encodeDNSH(buffer,m_dnsh);
-	//填充querystructuredata
+	//fill in the query structure data
 	m_dnsq.name=ip;
 	m_dnsq.type=T_A; m_dnsq.classes=C_IN;
 	buflen+=encodeDNSQ((unsigned char *)buffer+buflen,m_dnsq);
-	//setsend目的info
+	//set the send destination info
 	this->setRemoteInfo(dnssvr,dnsport);
 	//sendDNS querydatapacket
 	SOCKSRESULT sr=Send(buflen,buffer,-1);
@@ -212,13 +212,13 @@ SOCKSRESULT dnsClient :: IQuery(const char *ip,const char *dnssvr,int dnsport)
 	if(sr<0) return sr;
 	if(sr==0) return SOCKSERR_ZEROLEN;
 	RW_LOG_PRINTBINARY(buffer,sr);
-	//parsereturn的data
+	//parse the returned data
 	decodeDNSH(buffer,m_dnsh);
 	return (m_dnsh.flags & DNS_FLAGS_OPCODE);
 
 }
 
-//邮件交换器query
+//mail exchanger query
 SOCKSRESULT dnsClient :: Query_MX(const char *names,const char *dnssvr,int dnsport)
 {
 	if(this->status()!=SOCKS_OPENED) return SOCKSERR_INVALID;
@@ -230,17 +230,17 @@ SOCKSRESULT dnsClient :: Query_MX(const char *names,const char *dnssvr,int dnspo
 	::memset((void *)&m_dnsq,0,sizeof(DNS_QUERY));
 	::memset((void *)&m_dnsr,0,sizeof(DNS_RESPONSE));
 
-	//组织要send的querydata
+	//organize the query data to send
 	char *buffer=m_buffer;
 	m_dnsh.id=++m_msgID;
 	m_dnsh.flags=DNS_OPCODE_QUERY;
 	m_dnsh.quests=0x01;
 	int buflen=encodeDNSH(buffer,m_dnsh);
-	//填充querystructuredata
+	//fill in the query structure data
 	m_dnsq.name=names;
 	m_dnsq.type=T_MX; m_dnsq.classes=C_IN;
 	buflen+=encodeDNSQ((unsigned char *)buffer+buflen,m_dnsq);
-	//setsend目的info
+	//set the send destination info
 	this->setRemoteInfo(dnssvr,dnsport);
 	//sendDNS querydatapacket
 	SOCKSRESULT sr=this->Send(buflen,buffer,-1);
@@ -250,24 +250,24 @@ SOCKSRESULT dnsClient :: Query_MX(const char *names,const char *dnssvr,int dnspo
 	if(sr<0) return sr;
 	if(sr==0) return SOCKSERR_ZEROLEN;
 //	RW_LOG_PRINTBINARY(buffer,sr);
-	//parsereturn的data
+	//parse the returned data
 	decodeDNSH(buffer,m_dnsh);
 	return (m_dnsh.flags & DNS_FLAGS_OPCODE);
 }
 
 
-//getqueryreturn的dns 第index个queryinfo
+//get the index-th query info from the DNS query response
 PDNS_QUERY dnsClient :: resp_dnsq(unsigned short index)
 {
-	if(index>=m_dnsh.quests) return NULL;//下标超界
-	//定bitreturninfo中的first个querycondition记录
+	if(index>=m_dnsh.quests) return NULL;//index out of bounds
+	//locate the first query condition record in the returned info
 	unsigned char *buffer=(unsigned char *)m_buffer+sizeof(DNS_HEADER);
 	for(int i=0;i<index;i++)
 	{
 		buffer+=LenOfDnsStr(buffer);
-		buffer+=2*sizeof(unsigned short); //加上typeandclasses的length
+		buffer+=2*sizeof(unsigned short); //add the length of type and class fields
 	}//?for(int i=0;i<index;i++)
-	//at this pointbuffer定bit到要get的第index个querystructure起始position
+	//at this point buffer points to the start of the index-th query structure
 	
 	m_strnames="";
 	cvtDnsStr2String(buffer,m_strnames,(unsigned char *)m_buffer);
@@ -280,29 +280,29 @@ PDNS_QUERY dnsClient :: resp_dnsq(unsigned short index)
 	return &m_dnsq;
 }
 
-//getqueryreturn的第index结果
+//get the index-th result from the query response
 PDNS_RESPONSE dnsClient :: resp_dnsr(unsigned short index)
 {
-	if(index>=m_dnsh.answers) return NULL;//下标超界
+	if(index>=m_dnsh.answers) return NULL;//index out of bounds
 
-	//定bitreturninfo中的first个回复记录的起始position
+	//locate the start position of the first reply record in the returned info
 	unsigned char *buffer=(unsigned char *)m_buffer+sizeof(DNS_HEADER);
 	for(int i=0;i<m_dnsh.quests;i++)
 	{
 		buffer+=LenOfDnsStr(buffer);
-		buffer+=2*sizeof(unsigned short); //加上typeandclasses的length
+		buffer+=2*sizeof(unsigned short); //add the length of type and class fields
 	}//?for(int i=0;i<index;i++)
-	//at this pointbuffer定bit到first个回复记录的起始position
-	//定bit第index记录的起始position
+	//at this point buffer points to the start of the first reply record
+	//locate the start position of the index-th record
 	for(int j=0;j<index;j++)
 	{
 		buffer+=LenOfDnsStr(buffer);
-		buffer+=2*sizeof(unsigned short); //加上typeandclasses的length
+		buffer+=2*sizeof(unsigned short); //add the length of type and class fields
 		buffer+=sizeof(unsigned long);
 		unsigned short length=ntohs(*(unsigned short *)buffer);
 		buffer+=(sizeof(unsigned short)+length);
 	}//?for(int i=0;i<index;i++)
-	//at this pointbuffer定bit到要get的第index个回复记录起始position
+	//at this point buffer points to the start of the index-th reply record
 
 	m_strnames="";
 	cvtDnsStr2String(buffer,m_strnames,(unsigned char *)m_buffer);
@@ -321,7 +321,7 @@ PDNS_RESPONSE dnsClient :: resp_dnsr(unsigned short index)
 	return &m_dnsr;
 }
 
-//parseDNS_RESPONSE的rdata域的data
+//parse the rdata field data of DNS_RESPONSE
 unsigned long dnsClient :: parse_rdata_Q(PDNS_RESPONSE pdnsr)
 {
 	if(pdnsr==NULL) pdnsr=&m_dnsr;

@@ -145,12 +145,12 @@ namespace net4cpp21
 	}
 
   //bubble sort
-//最简单的排序methodyes冒泡排序method。这种method的基本思想yes，将待排序的元素看作yes竖着排列的“气泡”，
-//较小的元素比较轻，从而要往上浮。at冒泡排序算法中我们要对这个“气泡”序列handle若干遍。
+//The simplest sorting method is bubble sort. The basic idea is to treat elements as vertically arranged "bubbles",
+//smaller elements are lighter and float upward. In bubble sort, this "bubble" sequence is processed multiple times.
 //One pass means checking the sequence from bottom to top, paying attention to whether two adjacent elements are in the correct order.
-//if发现两个相邻元素的顺序not对，即“轻”的元素at下面，就交换它们的position。显然，handle
-//一遍after，“最轻”的元素就浮到了最高position；handle二遍after，“次轻”的元素就浮到了次高position。
-//at作第二遍handle时，由于最高position上的元素已yes“最轻”元素，所以not necessary tocheck。一般地，第i遍handle时，
+//If two adjacent elements are in wrong order (lighter below), swap them. After
+//one pass the lightest element reaches the top; after two passes the second lightest reaches the second position.
+//On the second pass, the top position already holds the lightest element, so no need to check it. In general, on the i-th pass,
 //no need to check elements above the i-th highest position, because after i-1 passes they are already correctly sorted	
 template <class X>
 void Sort(X iArray[],size_t lbound,size_t ubound)

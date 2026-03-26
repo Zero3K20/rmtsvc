@@ -268,7 +268,7 @@ SOCKSRESULT httpResponse::recv_rspH(socketTCP *psock,time_t timeout)
 	return m_respcode;
 }
 
-//send HTTP response头
+//send HTTP response header
 SOCKSRESULT httpResponse::send_rspH(socketTCP *psock,int respcode,const char *respDesc)
 {
 	cBuffer outbuf(1024);
@@ -279,9 +279,9 @@ SOCKSRESULT httpResponse::send_rspH(socketTCP *psock,int respcode,const char *re
 		sprintf(outbuf.str()+outbuf.len(),"%d",m_httprsp_lContentlen);
 		m_httprsp_HEADER["Content-Length"]=std::string(outbuf.str()+outbuf.len());
 	}
-	if(m_httprsp_lContentlen!=0) //有response content
+	if(m_httprsp_lContentlen!=0) //there is response content
 	{
-		//206specifiestransfer的yespartialdata，atresponse头里必须contains Content-Range: bytes %d-%d/%d,但not necessary tocontainsAccept-Ranges
+		//206 specifies transfer of partial data; the response header must include Content-Range: bytes %d-%d/%d, but does not need to include Accept-Ranges
 		if(respcode!=206) m_httprsp_HEADER["Accept-Ranges"]="bytes";
 		if(m_httprsp_HEADER.count("Content-Type")<1) 
 			m_httprsp_HEADER["Content-Type"]=MIMETYPE_STR[MIMETYPE_HTML];
@@ -363,7 +363,7 @@ MIMETYPE_ENUM httpResponse::MimeType(const char *filename)
 	}
 	return MIMETYPE_OCTET;
 }
-//根据扩展名判断要transferfile的type
+//determine the file type to transfer based on file extension
 inline MIMETYPE_ENUM getMimeType(const char *filename,FILE *fp)
 {
 	const char *ptr=strrchr(filename,'.');
@@ -407,7 +407,7 @@ inline MIMETYPE_ENUM getMimeType(const char *filename,FILE *fp)
 		return MIMETYPE_MHT;
 	}
 	if(fp==NULL) return MIMETYPE_OCTET;
-	//read前128个bytecheck whether为纯文本file
+	//read the first 128 bytes to check whether it is a plain text file
 	unsigned char buf[128];
 	long oldpos=::ftell(fp);
 	int iret=::fread(buf,sizeof(unsigned char),128,fp);
@@ -435,13 +435,13 @@ void setLastModify(const char *filename,std::map<std::string,std::string> &HEADE
 	}//?if(hd!=INVALID_HANDLE_VALUE)
 	return;
 }
-//sendfile，returns SOCKSERR_OK on success
+//send file, returns SOCKSERR_OK on success
 SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYPE_ENUM mt,long startPos,long endPos)
 {
 	if(filename==NULL || filename[0]==0) return SOCKSERR_PARAM;
 	FILE *fp=::fopen(filename,"rb");
 	if(fp==NULL) return SOCKSERR_PARAM;
-	//根据扩展名判断要transferfile的type
+	//determine the file type to transfer based on file extension
 	if(mt==MIMETYPE_UNKNOWED) mt=getMimeType(filename,NULL);
 	if(mt!=MIMETYPE_NONE) set_mimetype(mt);
 	setLastModify(filename,m_httprsp_HEADER);
@@ -472,7 +472,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 	return SOCKSERR_OK;
 }
 
-//sendfilemultiple区间断的内容，returns SOCKSERR_OK on success
+//send multiple discontinuous ranges of a file, returns SOCKSERR_OK on success
 const char HTTPBOUNDARY_STRING[]="--#yycnet.yeah.net#";
 SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYPE_ENUM mt,long* lpstartPos,long* lpendPos,int iRangeNums)
 {
@@ -486,7 +486,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 
 	long i,l,filesize,lContentlen=0;
 	fseek(fp,0,SEEK_END); filesize=::ftell(fp);
-	//根据扩展名判断要transferfile的type
+	//determine the file type to transfer based on file extension
 	if(mt==MIMETYPE_UNKNOWED) mt=getMimeType(filename,NULL);
 	std::vector<std::pair<const char *,long> > v;
 	char *pbuf=buf;
@@ -500,7 +500,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 		v.push_back(p); pbuf+=(l+1);
 	}//?for(
 
-	m_httprsp_lContentlen=lContentlen + 2 * iRangeNums; //还要containseachdata块last的\r\n
+	m_httprsp_lContentlen=lContentlen + 2 * iRangeNums; //also needs to include the trailing \r\n of each data block
 	sr=send_rspH(psock,206,"Partial content");
 	if(sr<0) return sr;
 	char *readbuf=new char[SSENDBUFFERSIZE];
@@ -512,7 +512,7 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 		sr=psock->Send(p.second,p.first,-1);
 		if(sr<0) return sr;
 		::fseek(fp,lpstartPos[i],SEEK_SET);
-		//read并sendspecifiedsize的data
+		//read and send data of the specified size
 		long readlen=lpendPos[i]-lpstartPos[i]+1;
 		while(readlen>0)
 		{
@@ -523,14 +523,14 @@ SOCKSRESULT httpResponse::sendfile(socketTCP *psock,const char *filename,MIMETYP
 			if(psock->Send(iret,readbuf,-1)<0) break;
 			if(iret<l) break; else readlen-=iret;
 		}
-		psock->Send(2,"\r\n",-1); //data块last以\r\nend
+		psock->Send(2,"\r\n",-1); //each data block ends with \r\n
 	}
 	delete[] readbuf;
 	::fclose(fp);
 	return SOCKSERR_OK; 
 }
 
-//parse HTTP response头，returnresponse码
+//parse HTTP response header, return response code
 int httpResponse::ParseResponse(const char *httprspH)
 {
 	//handle each line of data
@@ -578,7 +578,7 @@ int httpResponse::ParseResponse(const char *httprspH)
 //					std::string strtmp(pvalue);
 //					parseParam((char *)strtmp.c_str(),';',m_httprsp_COOKIE);
 //				}
-				//新set的cookie，formatSet-Cookie: ssic=aaaa; expires=Thu, 13-Dec-2007 04:02:04 GMT; path=/
+				//newly set cookie, format: Set-Cookie: ssic=aaaa; expires=Thu, 13-Dec-2007 04:02:04 GMT; path=/
 				else if(strcmp(ptrLineStart,"Set-Cookie")==0)
 					parse_SetCookie(pvalue);
 				else
@@ -661,7 +661,7 @@ void httpResponse::parseParam(char *strParam,char delm,
 	{
 		*ptr=0;
 		cCoder::mime_decode(ptrStart,ptr-ptrStart,ptrStart);
-		ptr++; ptrEnd=ptr; //last一个parameter可能含有回车换行(Mozilla浏览器)
+		ptr++; ptrEnd=ptr; //last parameter may contain carriage return/newline (Mozilla browser)
 		while(*ptrEnd && *ptrEnd!='\r' && *ptrEnd!='\n') ptrEnd++;
 		cCoder::mime_decode(ptr,ptrEnd-ptr,ptr);
 		//name should be case-insensitive; convert all to lowercase

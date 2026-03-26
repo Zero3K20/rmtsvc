@@ -81,11 +81,11 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 	char resp[FTP_MAX_COMMAND_SIZE];
 	int len=0, count=0;//counting
 	long pswdmode=ftpa.lPswdMode();
-	char seed[16]; seed[0]=0; //种子maximum16byte只能contains字母and数字
+	char seed[16]; seed[0]=0; //seed is at most 16 bytes and can only contain letters and digits
 	if(pswdmode==OTP_MD4 || pswdmode==OTP_MD5)
 	{
-		seed[8]=0;//随机产生8bit只contains数字and字母的种子
-		//countcountingtotal为0，因为unknown道此parameter算法说明见OTP一次性口令说明
+		seed[8]=0;//randomly generate an 8-character seed containing only digits and letters
+		//count total is 0 because this parameter algorithm is unknown; see OTP one-time password specification
 		for(int i = 0; i < 8; i++ )
 		{
 				 seed[i]=(rand()*35)/RAND_MAX+48;
@@ -104,7 +104,7 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 	}
 	response(psock,resp,len);
 
-	//waiting对方sendpassword过来
+	//wait for the peer to send the password
 	len=psock->Receive(resp,FTP_MAX_COMMAND_SIZE-1,FTP_MAX_LOGINTIMEOUT);
 	if(len<0 || strncasecmp(resp,"PASS ",5)!=0)
 	{
@@ -113,10 +113,10 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 	}
 	resp[len]=0;
 	const char *strpwd=resp+5;
-	//去掉回车换行符号
+	//remove carriage return and newline characters
 	const char *ptr=strchr(strpwd,'\r'); if(ptr) *(char*)ptr=0;
 	bool bAccess=false;
-	if(ftpa.m_userpwd=="") //password设成null则无需password verification
+	if(ftpa.m_userpwd=="") //if password is empty, no password verification required
 		bAccess=true; 
 	else if(pswdmode==OTP_NONE)
 		bAccess=(strcmp(ftpa.m_userpwd.c_str(),strpwd)==0);
@@ -141,9 +141,9 @@ bool cFtpsvr :: docmd_user(socketTCP *psock,const char *strUser,
 						psock->getRemotePort(),RULETYPE_TCP) )
 				{
 					clientSession.m_paccount=&ftpa;
-					clientSession.setvpath("/"); //setcurrent虚directory
+					clientSession.setvpath("/"); //set current virtual directory
 					ftpa.m_loginusers++;
-					//setdata通道的流量限制
+					//set data channel bandwidth limit
 					clientSession.m_datasock.setSpeedRatio(ftpa.m_maxdwratio*1024,ftpa.m_maxupratio*1024);
 
 					len=sprintf(resp,"230 %s user logged in, %d users.\r\n",strUser,ftpa.m_loginusers);
@@ -171,7 +171,7 @@ void cFtpsvr :: docmd_type(socketTCP *psock,const char *strType,
 	char resp[64]; int len=0;
 	if(cType=='A'||cType=='a'||cType=='E'||cType=='e'||cType=='I'||cType=='i'||cType=='L'||cType=='l')
 	{
-		clientSession.m_dataType =(cType>=0x61)?(cType-0x20):cType;//convert为大写
+		clientSession.m_dataType =(cType>=0x61)?(cType-0x20):cType;//convert to uppercase
 		len=sprintf(resp,"200 Type set to %c.\r\n",clientSession.m_dataType);
 	}
 	else
@@ -192,9 +192,9 @@ void cFtpsvr :: docmd_rest(socketTCP *psock,const char *strRest,
 	return;
 }
 //PWD
-//	257 (251) "pathname"（“path名”）
-//	425 (451) random file system error（随机filesystemerror）
-//	506 (502) action not implemented（操作未执行）
+//	257 (251) "pathname" ("path name")
+//	425 (451) random file system error
+//	506 (502) action not implemented
 void cFtpsvr :: docmd_pwd(socketTCP *psock,cFtpSession &clientSession)
 {
 	char resp[FTP_MAX_COMMAND_SIZE];
@@ -203,7 +203,7 @@ void cFtpsvr :: docmd_pwd(socketTCP *psock,cFtpSession &clientSession)
 	response(psock,resp,len);
 	return;
 }
-//requestserver忽略previouscommand及relateddatatransfer操作
+//request server to ignore previous command and related data transfer operations
 void cFtpsvr :: docmd_abor(socketTCP *psock,cFtpSession &clientSession)
 {
 	clientSession.m_datasock.Close();
@@ -211,15 +211,15 @@ void cFtpsvr :: docmd_abor(socketTCP *psock,cFtpSession &clientSession)
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//XCUP                    改变directory到上一级directory
-//	      200 (200) working directory changed（workerdirectory已改变）
-//	      506 (502) action not implemented（操作未执行）
-//	      507 (551) no superior directory（无上一级directory）
-//	      521 (450) access denied（deny access）
-//	      425 (451) random file system error（随机filesystemerror）
+//XCUP                    change directory to the parent directory
+//	      200 (200) working directory changed
+//	      506 (502) action not implemented
+//	      507 (551) no superior directory
+//	      521 (450) access denied
+//	      425 (451) random file system error
 void cFtpsvr :: docmd_cdup(socketTCP *psock,cFtpSession &clientSession)
 {
-	if(strcmp(clientSession.getvpath(),"/")==0) //已经到头了
+	if(strcmp(clientSession.getvpath(),"/")==0) //already at the root
 	{
 		char resp[]="507 \"/\" is root directory.\r\n";
 		response(psock,resp,sizeof(resp)-1);
@@ -262,12 +262,12 @@ void cFtpsvr :: docmd_cwd(socketTCP *psock,const char *strDir,
 	return;
 }
 //XMKD               create directory
-//	      257 (251) "pathname" created（"pathname" 已create）
-//	      521 (450) "pathname" already exists（"pathname" 已exists）
-//	      506 (502) action not implemented（操作未执行）
-//	      521 (450) access denied（deny access）
-//	      550 (501) bad pathname syntax or ambiguous（errorornot明确的path名）
-//	      425 (451) random file system error（随机filesystemerror）
+//	      257 (251) "pathname" created
+//	      521 (450) "pathname" already exists
+//	      506 (502) action not implemented
+//	      521 (450) access denied
+//	      550 (501) bad pathname syntax or ambiguous
+//	      425 (451) random file system error
 void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 							 cFtpSession &clientSession)
 {
@@ -278,11 +278,11 @@ void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 	}
 	std::string vpath(strDir);
 	if(clientSession.ifvpath(vpath))
-	{//if要create的directoryis a已exists的虚directory
+	{//if the directory to create is an already existing virtual directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return;
 	}
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -311,11 +311,11 @@ void cFtpsvr :: docmd_mkd(socketTCP *psock,const char *strDir,
 	return;
 }
 //XRMD                    delete directory
-//	      224 (250) deleted ok（deletecomplete）
-//	      506 (502) action not implemented（操作未执行）
-//	      521 (450) access denied（deny access）
-//	      550 (501) bad pathname syntax or ambiguous（errorornot明确的path名）
-//	      425 (451) random file system error（随机filesystemerror）
+//	      224 (250) deleted ok
+//	      506 (502) action not implemented
+//	      521 (450) access denied
+//	      550 (501) bad pathname syntax or ambiguous
+//	      425 (451) random file system error
 unsigned long cFtpsvr :: docmd_rmd(socketTCP *psock,const char *strDir,
 							 cFtpSession &clientSession)
 {
@@ -326,11 +326,11 @@ unsigned long cFtpsvr :: docmd_rmd(socketTCP *psock,const char *strDir,
 	}
 	std::string vpath(strDir);
 	if(clientSession.ifvpath(vpath))
-	{//if要delete的directoryis a已exists的虚directory
+	{//if the directory to delete is an already existing virtual directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return 0;
 	}
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -355,7 +355,7 @@ unsigned long cFtpsvr :: docmd_rmd(socketTCP *psock,const char *strDir,
 	onLogEvent(FTP_LOGEVENT_RMD,clientSession);
 	return lsize;
 }
-//更改fileordirectory name字
+//rename file or directory
 void cFtpsvr :: docmd_rnfr(socketTCP *psock,const char *strfile,
 							 cFtpSession &clientSession)
 {
@@ -366,11 +366,11 @@ void cFtpsvr :: docmd_rnfr(socketTCP *psock,const char *strfile,
 	}
 	std::string vpath(strfile);
 	if(clientSession.ifvpath(vpath))
-	{//if要改名的directoryis a已exists的虚directory
+	{//if the directory to rename is an already existing virtual directory
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return;
 	}
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -415,7 +415,7 @@ void cFtpsvr :: docmd_rnto(socketTCP *psock,const char *strfile,
 		response(psock,RESPINFO_521VPATH,sizeof(RESPINFO_521VPATH)-1);
 		return;
 	}
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -443,7 +443,7 @@ void cFtpsvr :: docmd_rnto(socketTCP *psock,const char *strfile,
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//getspecifiedfile的size
+//get the size of the specified file
 void cFtpsvr :: docmd_size(socketTCP *psock,const char *strfile,
 							 cFtpSession &clientSession)
 {
@@ -453,7 +453,7 @@ void cFtpsvr :: docmd_size(socketTCP *psock,const char *strfile,
 		return;
 	}
 	std::string vpath(strfile);
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -476,7 +476,7 @@ void cFtpsvr :: docmd_size(socketTCP *psock,const char *strfile,
 	int len=sprintf(resp,"213 %d\r\n",lsize);
 	response(psock,resp,len);return;
 }
-//returndelete file的size KBytes
+//return the size in KBytes of the deleted file
 unsigned long cFtpsvr :: docmd_dele(socketTCP *psock,const char *strfile,
 							 cFtpSession &clientSession)
 {
@@ -486,7 +486,7 @@ unsigned long cFtpsvr :: docmd_dele(socketTCP *psock,const char *strfile,
 		return 0;
 	}
 	std::string vpath(strfile);
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -563,7 +563,7 @@ void cFtpsvr :: docmd_port(socketTCP *psock,char *strParam,
 	clientSession.m_dataconnMode=FTP_DATACONN_PORT;
 	if(clientSession.m_datasock.status()!=SOCKS_CLOSED)
 		clientSession.m_datasock.Close();
-	//get要connect的IPandport
+	//get the IP and port to connect
 	int i=0,iport=0; char *ptrIP=strParam;
 	while(*strParam)
 	{
@@ -595,7 +595,7 @@ void cFtpsvr :: docmd_port(socketTCP *psock,char *strParam,
 }
 
 //getspecifiedfiledirectorylist
-//strfile --- 可能pointer to一个fileordirectory
+//strfile --- may point to a file or directory
 void cFtpsvr :: docmd_list(socketTCP *psock,const char *strfile,
 							 cFtpSession &clientSession)
 {
@@ -608,7 +608,7 @@ void cFtpsvr :: docmd_list(socketTCP *psock,const char *strfile,
 	}
 	while(*strfile==' ') strfile++;//delete leading spaces
 	std::string vpath(strfile);
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -621,7 +621,7 @@ void cFtpsvr :: docmd_list(socketTCP *psock,const char *strfile,
 		return;	
 	}
 	if(strfile[0]==0)
-		clientSession.m_filename=""; //Listcurrentdirectory,还要list虚directory
+		clientSession.m_filename=""; //list current directory, also need to list virtual directories
 	else{
 		long iret=FILEIO::fileio_exist(vpath.c_str());
 		if(iret==-1)
@@ -629,7 +629,7 @@ void cFtpsvr :: docmd_list(socketTCP *psock,const char *strfile,
 			response(psock,RESPINFO_550EXIST,sizeof(RESPINFO_550EXIST)-1);
 			return;
 		}
-		if(iret==-2) vpath.append("\\*");//list的yesdirectory,仅仅list实directory
+		if(iret==-2) vpath.append("\\*");//listing a directory, only list real directories
 		clientSession.m_filename=vpath;
 	}
 	clientSession.m_startPoint=fr;
@@ -653,7 +653,7 @@ void cFtpsvr :: docmd_retr(socketTCP *psock,const char *strfile,
 		return;
 	}
 	std::string vpath(strfile);
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -681,7 +681,7 @@ void cFtpsvr :: docmd_retr(socketTCP *psock,const char *strfile,
 	return;
 }
 
-//上载file
+//upload file
 void cFtpsvr :: docmd_stor(socketTCP *psock,const char *strfile,
 							 cFtpSession &clientSession)
 {
@@ -691,7 +691,7 @@ void cFtpsvr :: docmd_stor(socketTCP *psock,const char *strfile,
 		return;
 	}
 	std::string vpath(strfile);
-	//convert为绝对实path
+	//convert to absolute real path
 	SOCKSRESULT fr=clientSession.getRealPath(vpath);
 	if(fr<SOCKSERR_OK)
 	{
@@ -714,7 +714,7 @@ void cFtpsvr :: docmd_stor(socketTCP *psock,const char *strfile,
 	return;
 }
 
-//modifypassword，format:<old password> <new password>
+//modify password, format: <old password> <new password>
 void cFtpsvr :: docmd_pswd(socketTCP *psock,const char *strpwd,
 							 cFtpSession &clientSession)
 {
@@ -779,7 +779,7 @@ void cFtpsvr :: docmd_sitelist(socketTCP *psock,cFtpSession &clientSession)
 	{
 		if(resplen>=960){
 			resplen+=sprintf(resp+resplen,"......\r\n");
-			break; //防止越界
+			break; //prevent out-of-bounds
 		}
 		if( clientSession.m_paccount->lRemoteAdmin()==ACCOUNT_ADMIN || 
 			( clientSession.m_paccount->lRemoteAdmin()==ACCOUNT_ROOT && 

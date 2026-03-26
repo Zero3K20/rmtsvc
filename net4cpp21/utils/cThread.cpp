@@ -136,7 +136,7 @@ void cThreadPool :: join(time_t timeout)
 //initialize number of worker threads
 //threadnum --- number of new threads to create
 //waittime --- new thread will auto-end if no task arrives within the specified sleep time
-//		if==-1则一直sleeping知道有specified的task要handle
+//		if ==-1 then keep sleeping until there is a specified task to handle
 //return current total number of worker threads
 long cThreadPool :: initWorkThreads(long threadnum,time_t waittime)
 {

@@ -32,7 +32,7 @@ smtpServer :: smtpServer()
 
 smtpServer :: ~smtpServer()
 {
-//本service没有thread，therefore无需进行下面的析构前handle
+//this service has no thread, therefore no need to perform the following pre-destructor handling
 //	Close();
 //	m_threadpool.join();
 }
@@ -45,7 +45,7 @@ void smtpServer :: onAccept(socketTCP *psock)
 	char buf[SMTP_MAX_PACKAGE_SIZE]; int buflen=0;
 	buflen=sprintf(buf,"220 SMTP Server[mailpost1.0] for ready\r\n");
 	psock->Send(buflen,buf,-1);
-//	someSMTPclientnot supported多行SMTPserviceconnect应答
+//	some SMTP clients do not support multi-line SMTP service connection replies
 /*	buflen=sprintf(buf,"220-SMTP Server[mailpost1.0] for ready\r\n"
 					   "220-copyright @yyc 2006. http://yycnet.yeah.net\r\n"
 					   "%s",m_helloTip.c_str());
@@ -60,9 +60,9 @@ void smtpServer :: onAccept(socketTCP *psock)
 	cSmtpSession clientSession; 
 	clientSession.m_tmLogin=time(NULL); //userconnecttime
 /*	ltime=localtime(&clientSession.m_tmLogin);
-	buflen=sprintf(buf,"220-目前server所at的timeyes%04d-%02d-%02d %02d:%02d:%02d\r\n"
-					   "220-current登陆usercount %d \r\n"
-					   "220-maximum允许connectuser数 %d \r\n"
+	buflen=sprintf(buf,"220-Current server time: %04d-%02d-%02d %02d:%02d:%02d\r\n"
+					   "220-Current logged-in user count: %d \r\n"
+					   "220-Maximum allowed connections: %d \r\n"
 					   "220 SMTP Server for ready...\r\n",
 					   (1900+ltime->tm_year), ltime->tm_mon+1, ltime->tm_mday, 
 					   ltime->tm_hour, ltime->tm_min, ltime->tm_sec,
@@ -74,7 +74,7 @@ void smtpServer :: onAccept(socketTCP *psock)
 	while(psock->status()==SOCKS_CONNECTED )
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
-		if(iret<0) break; //iflogin timeout则close connection
+		if(iret<0) break; //close connection if login timed out
 		if(!clientSession.m_bAccess && //check whetherlogin timeout
 			(time(NULL)-clientSession.m_tmLogin)>SMTP_MAX_RESPTIMEOUT) break;
 		if(iret==0) continue;
@@ -88,17 +88,17 @@ void smtpServer :: onAccept(socketTCP *psock)
 		while( (ptrCmd=strchr(ptrBegin,'\r')) )
 		{
 			*(char *)ptrCmd=0;//startparsecommand
-			if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
+			if(ptrBegin[0]==0) goto NextCMD; //do not handle empty line data
 		
 			parseCommand(clientSession,psock,ptrBegin);
 
-NextCMD:	//移动ptrBegin到nextcommanddata起始
+NextCMD:	//move ptrBegin to the start of the next command data
 			ptrBegin=ptrCmd+1; 
 			while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 		}//?while
-		//if有未receive完的command则移动
+		//if there is a partially received command, move forward
 		if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-		{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
+		{//if ptrBegin-buf==0 it indicates this is a malformed command data packet
 			buflen-=iret;
 			memmove((void *)buf,ptrBegin,buflen);
 		} else buflen=0;
@@ -160,10 +160,10 @@ inline void smtpServer :: resp_unknowed(socketTCP *psock)
 	response(psock,resp,sizeof(resp)-1);
 	return;
 }
-//注意smtpservice的多行data的response，ifis notlast一行则response行的response码anddescription之间要用-connect
+//note: for multi-line SMTP service responses, if not the last line, the response code and description must be connected with a dash (-)
 void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导spaces
+	//remove leading spaces from command parameter
 	while(*strParam==' ') strParam++;
 	clientSession.m_ehlo.assign(strParam);
 	const char resp[]="250-PIPELINING\r\n"
@@ -177,16 +177,16 @@ void smtpServer :: docmd_ehlo(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导spaces
+	//remove leading spaces from command parameter
 	while(*strParam==' ') strParam++;
 	int authType=SMTPAUTH_NONE;
 	if(strcasecmp(strParam,"LOGIN")==0)
 	{
 		authType=SMTPAUTH_LOGIN;
-		const char resp[]="334 VXNlcm5hbWU6\r\n"; //VXNlcm5hbWU6为Username:的base64 encoding
+		const char resp[]="334 VXNlcm5hbWU6\r\n"; //VXNlcm5hbWU6 is the base64 encoding of Username:
 		response(psock,resp,sizeof(resp)-1);
 	}
-	else if(strcasecmp(strParam,"PLAIN")==0) //明文transfer
+	else if(strcasecmp(strParam,"PLAIN")==0) //plaintext transfer
 	{
 		authType=SMTPAUTH_PLAIN;
 		const char resp[]="334 Username:\r\n";
@@ -195,12 +195,12 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	else if(strcasecmp(strParam,"8BITMIME")==0)
 	{
 		authType=SMTPAUTH_8BITMIME;
-		const char resp[]="334 Username%3A\r\n"; //Username%3A为Username:的Mimeencoding
+		const char resp[]="334 Username%3A\r\n"; //Username%3A is the MIME encoding of Username:
 		response(psock,resp,sizeof(resp)-1);
 	}
 	else
 	{
-		const char resp[]="504-commandparameternot可implementation\r\n"
+		const char resp[]="504-command parameter not implementable\r\n"
 						  "504 only Surpport LOGIN,8BITMIME\r\n";
 		response(psock,resp,sizeof(resp)-1);
 		psock->Close(); return;
@@ -212,7 +212,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strAccount.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//进行Base64 decoding
+	{//perform Base64 decoding
 		iret=cCoder::base64_decode((char *)strAccount.c_str(),strAccount.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strAccount.assign(buf);
@@ -237,7 +237,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 	if(iret<=0){ psock->Close(); return; }
 	buf[iret]=0; strPwd.assign(buf);
 	if(authType==SMTPAUTH_LOGIN)
-	{//进行Base64 decoding
+	{//perform Base64 decoding
 		iret=cCoder::base64_decode((char *)strPwd.c_str(),strPwd.length(),buf);
 		if(iret>=0) buf[iret]=0; 
 		strPwd.assign(buf);	
@@ -267,7 +267,7 @@ void smtpServer :: docmd_auth(cSmtpSession &clientSession,socketTCP *psock,const
 
 void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导spaces
+	//remove leading spaces from command parameter
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -284,7 +284,7 @@ void smtpServer :: docmd_mailfrom(cSmtpSession &clientSession,socketTCP *psock,c
 
 void smtpServer :: docmd_rcptto(cSmtpSession &clientSession,socketTCP *psock,const char *strParam)
 {
-	//去掉commandparameter的前导spaces
+	//remove leading spaces from command parameter
 	while(*strParam==' ') strParam++;
 	const char *ptrS=strchr(strParam,'<');
 	if(ptrS)
@@ -304,9 +304,9 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 
 	const char resp[]="354 End data with <CR><LF>.<CR><LF>\r\n";
 	response(psock,resp,sizeof(resp)-1);
-	//下面startreceive信体data,直到收到<CR><LF>.<CR><LF>
+	//start receiving message body data below, until <CR><LF>.<CR><LF> is received
 	char buf[4096]; int buflen=0;
-	std::string emlfile;//生成temporaryfilename
+	std::string emlfile;//generate temporary filename
 	time_t tNow=time(NULL);
 	srand( (unsigned)clock() );
 	struct tm * ltime=localtime(&tNow);
@@ -326,11 +326,11 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 				 "\t%s\r\n",clientSession.m_ehlo.c_str(),psock->getRemoteIP(),
 				 buf);
 
-	bool bRecvALL=false; //信体whether正常收完
+	bool bRecvALL=false; //whether the message body has been fully received
 	while( psock->status()==SOCKS_CONNECTED )
 	{
 		//read data sent by client
-		//if exceedsSMTP_MAX_RESPTIMEOUT仍没收到data可认为client异常
+		//if SMTP_MAX_RESPTIMEOUT is exceeded without receiving data, the client can be considered abnormal
 		buflen=psock->Receive(buf,4095,SMTP_MAX_RESPTIMEOUT);
 		if(buflen<0){
 			RW_LOG_PRINT(LOGLEVEL_WARN,"[smtpsvr] Failed to receive mail DATA,error=%d\r\n",buflen);
@@ -350,7 +350,7 @@ void smtpServer :: docmd_data(cSmtpSession &clientSession,socketTCP *psock)
 	if(bRecvALL)
 	{
 		buflen=sprintf(buf,"%s",emlfile.c_str());
-		//将扩展名改为eml
+		//change the file extension to eml
 		emlfile[buflen-3]='e';emlfile[buflen-2]='m';
 		emlfile[buflen-1]='l';emlfile[buflen]=0;
 		FILEIO::fileio_rename(buf,emlfile.c_str());

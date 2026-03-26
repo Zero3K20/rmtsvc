@@ -839,13 +839,13 @@ unsigned long cCoder::hex_atol(const char *str)
 }
 
 /*UTF-8 encoding principles: 
-Because a letter and some keyboard symbols together only need 7 binary bits to represent, and a byte is 8 bits, UTF-8 uses one byte to represent letters and some keyboard symbols. But how do we know the composition of an encoded byte?它有可能yes英文字母的一个byte，也有可能yes汉字的三个byte中的一个byte！所以，UTF8yes有flagbit的！ 
+Because a letter and some keyboard symbols together only need 7 binary bits to represent, and a byte is 8 bits, UTF-8 uses one byte to represent letters and some keyboard symbols. But how do we know the composition of an encoded byte? It could be one byte for an ASCII letter, or one of three bytes for a Chinese character! Therefore, UTF-8 uses flag bits! 
 
 When the content to represent is 7 bits, use one byte: 0******* the first 0 is a flag bit, the remaining space can represent ASCII 0-127. 
 
 When the content is 8 to 11 bits, use two bytes: 110***** 10****** the 110 of the first byte and the 10 of the second byte are flag bits. 
 
-When the content is 12 to 16 bits, use three bytes: 1110***** 10****** 10****** same as above, the 1110 of the first byte and the 10 of the second and third bytes are all flag bits, the remaining space is just enough可以表示汉字。 
+When the content is 12 to 16 bits, use three bytes: 1110***** 10****** 10****** same as above, the 1110 of the first byte and the 10 of the second and third bytes are all flag bits, the remaining space is just enough to represent Chinese characters. 
 
 By analogy: 
 Four bytes: 11110**** 10****** 10****** 10****** 
