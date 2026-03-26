@@ -179,7 +179,11 @@ function msmove(e)
 {
 e=e||window.event;
 msPosition(e);
-var param="x="+ptX+"&y="+ptY+"&altk=0&button=0&act=0";
+var altk=0;
+if(e.ctrlKey) altk=altk | 1;
+if(e.shiftKey) altk=altk | 2;
+if(e.altKey) altk=altk | 4;
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=0";
 if(timerID_move!=0)
 {
 window.clearTimeout(timerID_move);

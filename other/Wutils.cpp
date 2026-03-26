@@ -319,26 +319,14 @@ Cleanup:
 #define MSEVENT_CTRL 0x0100
 #define MSEVENT_SHIFT 0x0200
 #define MSEVENT_ALT 0x0400
-// Press (bDown=true) or release (bDown=false) the Ctrl/Shift/Alt modifier
-// keys encoded in the MSEVENT_CTRL / MSEVENT_SHIFT / MSEVENT_ALT flag bits.
-// Appends the corresponding INPUT entries to arr starting at index idx.
-// Returns the number of entries appended.
-static inline int AppendModifiers(INPUT *arr, int idx, short flags, bool bDown)
-{
-	DWORD upFlag = bDown ? 0 : KEYEVENTF_KEYUP;
-	int count = 0;
-	if (bDown) {
-		if (flags & MSEVENT_CTRL)  { AppendKeyInput(arr[idx+count], VK_CONTROL, upFlag); count++; }
-		if (flags & MSEVENT_SHIFT) { AppendKeyInput(arr[idx+count], VK_SHIFT,   upFlag); count++; }
-		if (flags & MSEVENT_ALT)   { AppendKeyInput(arr[idx+count], VK_MENU,    upFlag); count++; }
-	} else {
-		// Release in reverse order to match how they were pressed
-		if (flags & MSEVENT_ALT)   { AppendKeyInput(arr[idx+count], VK_MENU,    upFlag); count++; }
-		if (flags & MSEVENT_SHIFT) { AppendKeyInput(arr[idx+count], VK_SHIFT,   upFlag); count++; }
-		if (flags & MSEVENT_CTRL)  { AppendKeyInput(arr[idx+count], VK_CONTROL, upFlag); count++; }
-	}
-	return count;
-}
+// Tracks the Ctrl/Shift/Alt modifier keys that are currently held in the
+// injected input stream.  Maintained across sendMouseEvent calls so that
+// modifier keys stay pressed persistently while the client reports them
+// (e.g. during continuous mouse movement with Ctrl/Shift held), rather than
+// being press-released around every individual event.  sendKeyEvent resets
+// this to 0 because it always releases any modifiers it injected.
+static short s_injectedModifiers = 0;
+
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 {
@@ -352,16 +340,6 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		else
 			RW_LOG_DEBUG("sendMouseEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
-	// Modifier keys (Ctrl/Shift/Alt) are sent in dedicated SendInput() calls that
-	// bracket the mouse event rather than being batched together with it.
-	// Sending them separately allows the OS to fully update GetKeyState() between
-	// calls, so that applications such as Windows Explorer correctly see the
-	// modifier as held when they process WM_LBUTTONDOWN and apply Shift/Ctrl
-	// multi-selection logic.  An atomic single-call batch causes those apps to
-	// miss the modifier state because the entire sequence (key-down, click,
-	// key-up) is collapsed into one burst before the application's message pump
-	// has a chance to run.
-	//
 	// Maximum entries for the mouse batch:
 	//   1  cursor MOVE
 	//  12  button events  (3 buttons × down+up × 2 for double-click)
@@ -382,6 +360,37 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		count++;
 	}
 
+	// --- 2. Sync modifier key state ---
+	// Modifier keys are kept persistently held (or released) based on the
+	// altk flags reported by the client.  This means Ctrl/Shift/Alt stay
+	// injected across consecutive mouse-move events (hover, drag, etc.) so
+	// that applications like Windows Explorer can respond to
+	// Ctrl/Shift+hover-selection and multi-selection clicks correctly.
+	// Only the transitions (keys that changed state) are injected.
+	{
+		short newMods = (flags & (MSEVENT_CTRL | MSEVENT_SHIFT | MSEVENT_ALT));
+		short toRelease = s_injectedModifiers & ~newMods;
+		short toPress   = newMods & ~s_injectedModifiers;
+		if (toRelease || toPress)
+		{
+			INPUT modInputs[6]; // up to 3 releases + 3 presses
+			int modCount = 0;
+			// Release in reverse order: Alt, Shift, Ctrl
+			if (toRelease & MSEVENT_ALT)   { AppendKeyInput(modInputs[modCount], VK_MENU,    KEYEVENTF_KEYUP); modCount++; }
+			if (toRelease & MSEVENT_SHIFT) { AppendKeyInput(modInputs[modCount], VK_SHIFT,   KEYEVENTF_KEYUP); modCount++; }
+			if (toRelease & MSEVENT_CTRL)  { AppendKeyInput(modInputs[modCount], VK_CONTROL, KEYEVENTF_KEYUP); modCount++; }
+			// Press in order: Ctrl, Shift, Alt
+			if (toPress & MSEVENT_CTRL)  { AppendKeyInput(modInputs[modCount], VK_CONTROL, 0); modCount++; }
+			if (toPress & MSEVENT_SHIFT) { AppendKeyInput(modInputs[modCount], VK_SHIFT,   0); modCount++; }
+			if (toPress & MSEVENT_ALT)   { AppendKeyInput(modInputs[modCount], VK_MENU,    0); modCount++; }
+			UINT ret = SendInput((UINT)modCount, modInputs, sizeof(INPUT));
+			if (ret != (UINT)modCount)
+				RW_LOG_DEBUG("sendMouseEvent: modifier-sync SendInput sent %u of %d, err=%lu\r\n",
+					ret, modCount, (unsigned long)GetLastError());
+			s_injectedModifiers = newMods;
+		}
+	}
+
 	if((flags & MSEVENT_EVENT_ALL) == MSEVENT_EVENT_NONE)
 	{
 		SendInput((UINT)count, inputs, sizeof(INPUT));
@@ -391,20 +400,10 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	int evType   = (flags & MSEVENT_EVENT_ALL);
 	int btnFlags = (flags & 0x0f);
 
-	// --- 2. Modifier keys down (separate SendInput call) ---
-	{
-		INPUT modInputs[3];
-		int modCount = AppendModifiers(modInputs, 0, flags, true);
-		if (modCount > 0)
-		{
-			UINT ret = SendInput((UINT)modCount, modInputs, sizeof(INPUT));
-			if (ret != (UINT)modCount)
-				RW_LOG_DEBUG("sendMouseEvent: modifier-down SendInput sent %u of %d, err=%lu\r\n",
-					ret, modCount, (unsigned long)GetLastError());
-		}
-	}
-
 	// --- 3. Mouse button / wheel event ---
+	// Modifier state is already correct (set in step 2 above); the cursor
+	// move and button events are batched together so the OS sees them as
+	// a single atomic operation.
 	if (evType == MSEVENT_EVENT_WHEEL)
 	{
 		DWORD delta = ((LONG)dwData > 0) ? (DWORD)WHEEL_DELTA : (DWORD)(-(LONG)WHEEL_DELTA);
@@ -462,19 +461,6 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 			RW_LOG_DEBUG("sendMouseEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
 				ret, count, (unsigned long)GetLastError());
 	}
-
-	// --- 4. Modifier keys up (separate SendInput call, released in reverse order) ---
-	{
-		INPUT modInputs[3];
-		int modCount = AppendModifiers(modInputs, 0, flags, false);
-		if (modCount > 0)
-		{
-			UINT ret = SendInput((UINT)modCount, modInputs, sizeof(INPUT));
-			if (ret != (UINT)modCount)
-				RW_LOG_DEBUG("sendMouseEvent: modifier-up SendInput sent %u of %d, err=%lu\r\n",
-					ret, modCount, (unsigned long)GetLastError());
-		}
-	}
 	return TRUE;
 }
 //send virtual key press
@@ -526,6 +512,10 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 		if(ret != (UINT)count)
 			RW_LOG_DEBUG("sendKeyEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
 				ret, count, (unsigned long)GetLastError());
+		// sendKeyEvent always ends by releasing all of the modifier keys it
+		// pressed.  Reset the stateful modifier tracker so that the next
+		// mouse event correctly re-injects any modifiers the user still holds.
+		s_injectedModifiers = 0;
 	}
 	return TRUE;
 }
