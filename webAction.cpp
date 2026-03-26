@@ -1541,7 +1541,7 @@ static bool wfxIsFloat(const WAVEFORMATEX *pwfx)
 //
 // A dedicated background thread runs WASAPI loopback capture continuously and
 // writes 16-bit stereo PCM into a circular buffer.  Each /capAudio HTTP
-// request reads the next sequential 2-second window from the ring without
+// request reads the next sequential 500 ms window from the ring without
 // re-initialising WASAPI between requests.  This eliminates the ~20-50 ms
 // silence gap that per-request WASAPI initialisation would otherwise inject
 // at every chunk boundary.
@@ -1758,8 +1758,8 @@ done:
 	return 0;
 }
 
-// Read the next sequential 2-second chunk from the persistent ring buffer.
-// Ensures the background capture thread is running; blocks until 2 s of new
+// Read the next sequential 500 ms chunk from the persistent ring buffer.
+// Ensures the background capture thread is running; blocks until 500 ms of new
 // audio is available.  On success writes PCM into lpPCMOut, sets *pwfxOut,
 // and returns the byte count.  Returns 0 on failure (caller falls back to WinMM).
 static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwfxOut)
@@ -1802,8 +1802,8 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 		}
 	}
 
-	// How many PCM bytes make exactly 2 seconds at this device's rate?
-	DWORD dwChunkBytes = wfx.nAvgBytesPerSec * 2;
+	// How many PCM bytes make exactly 500 ms at this device's rate?
+	DWORD dwChunkBytes = wfx.nAvgBytesPerSec / 2;
 	if (dwChunkBytes > dwMaxBytes) dwChunkBytes = dwMaxBytes;
 
 	// Atomically claim the next sequential window so that concurrent requests
@@ -1825,9 +1825,9 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	g_ar.llNextChunk += (LONGLONG)dwChunkBytes;
 	LeaveCriticalSection(&g_ar.cs);
 
-	// Block until the ring has filled the claimed window (up to 3 s grace).
+	// Block until the ring has filled the claimed window (up to 1.5 s grace).
 	LONGLONG  llEnd  = llStart + (LONGLONG)dwChunkBytes;
-	ULONGLONG tLimit = GetTickCount64() + 3000;
+	ULONGLONG tLimit = GetTickCount64() + 1500;
 	for (;;)
 	{
 		EnterCriticalSection(&g_ar.cs);
@@ -1863,14 +1863,14 @@ static DWORD capAudioWASAPI(LPBYTE lpPCMOut, DWORD dwMaxBytes, WAVEFORMATEX *pwf
 	return dwChunkBytes;
 }
 
-// Capture ~2 s of system audio and return it as a WAV (RIFF/PCM) response.
+// Capture ~500 ms of system audio and return it as a WAV (RIFF/PCM) response.
 // Uses a persistent background capture thread (ring buffer) so WASAPI never
 // re-initialises between requests, eliminating the inter-chunk silence gap.
 // Falls back to WinMM loopback if WASAPI is unavailable.
 bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 {
-	// Maximum PCM buffer: 2 seconds at up to 96000 Hz / 16-bit / 2ch = 768 KB
-	const DWORD dwMaxPCM  = 96000 * 2 * 2 * 2;
+	// Maximum PCM buffer: 500 ms at up to 96000 Hz / 16-bit / 2ch = 192 KB
+	const DWORD dwMaxPCM  = 96000 * 2 * 2 / 2;
 	// WAV header is 44 bytes (RIFF chunk + fmt chunk + data chunk header)
 	const DWORD dwHdrSize = 44;
 	DWORD dwTotalSize = dwHdrSize + dwMaxPCM;
@@ -1905,8 +1905,8 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 		UINT nDevice = findLoopbackDevice(&wfx);
 		if (nDevice != WAVE_MAPPER) // only attempt capture if a loopback device was found
 		{
-			// 2000 ms worth of PCM samples
-			DWORD dwPCMSize = wfx.nAvgBytesPerSec * 2;
+			// 500 ms worth of PCM samples
+			DWORD dwPCMSize = wfx.nAvgBytesPerSec / 2;
 			if (dwPCMSize > dwMaxPCM) dwPCMSize = dwMaxPCM;
 
 			HANDLE  hEvent  = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -1924,8 +1924,8 @@ bool webServer::httprsp_capAudio(socketTCP *psock, httpResponse &httprsp)
 				{
 					waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
 					waveInStart(hWaveIn);
-					// Wait up to 3 s for the 2-second buffer to be filled
-					if (WaitForSingleObject(hEvent, 3000) == WAIT_OBJECT_0)
+					// Wait up to 1.5 s for the 500 ms buffer to be filled
+					if (WaitForSingleObject(hEvent, 1500) == WAIT_OBJECT_0)
 						dwCaptured = waveHdr.dwBytesRecorded;
 					waveInStop(hWaveIn);
 					waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
