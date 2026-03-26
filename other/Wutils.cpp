@@ -465,15 +465,21 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 }
 //send virtual key press
 //low 1 byte represents the key ASCII code
-//high byte represents Ctrl, Shift, Alt key status
-//          lowest bit represents whether Ctrl key is pressed
-//          second bit represents whether Shift key is pressed
-//          third bit represents whether Alt key is pressed
+//bits 8-10 of the value represent Ctrl, Shift, Alt key status (same encoding as mouse events):
+//          bit 8  (0x0100) represents whether Ctrl key is pressed
+//          bit 9  (0x0200) represents whether Shift key is pressed
+//          bit 10 (0x0400) represents whether Alt key is pressed
+//bit 11    (0x0800) is a special flag meaning "held-modifier release": the client
+//          was holding this modifier as part of key combinations and is now
+//          releasing it.  The low byte is the VK code of the modifier being
+//          released.  The server injects only a key-up for that modifier (no
+//          press+release), keeping it atomic with any prior held injections.
 BOOL Wutils :: sendKeyEvent(short vkey)
 {
-	RW_LOG_DEBUG("sendKeyEvent: vkey=0x%04x (key=0x%02x ctrl=%d shift=%d alt=%d)\r\n",
-		(unsigned)vkey, (unsigned)(vkey&0x0ff),
-		(vkey&0x0100)!=0, (vkey&0x0200)!=0, (vkey&0x0400)!=0);
+	RW_LOG_DEBUG("sendKeyEvent: vkey=0x%04x (key=0x%02x ctrl=%d shift=%d alt=%d heldrel=%d)\r\n",
+		(unsigned)(unsigned short)vkey, (unsigned)(vkey&0x0ff),
+		(vkey&0x0100)!=0, (vkey&0x0200)!=0, (vkey&0x0400)!=0,
+		((unsigned short)vkey&0x0800u)!=0);
 	if(!Wutils::inputDesktopSelected())
 	{
 		RW_LOG_DEBUG("sendKeyEvent: not on input desktop (%s), switching\r\n", Wutils::getLastInfo());
@@ -482,40 +488,124 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 		else
 			RW_LOG_DEBUG("sendKeyEvent: selectInputDesktop ok: %s\r\n", Wutils::getLastInfo());
 	}
-	// Build the complete sequence as one batch:
-	//   modifiers down  → key down → key up → modifiers up
-	// Sending everything in a single SendInput() call makes the injection
-	// atomic, preventing other processes from interleaving input between
-	// the modifier presses and the key stroke.  This is required for
-	// combinations such as Ctrl+C, Alt+Tab, Shift+Delete, etc. to work
-	// reliably in every application.
-	// Maximum entries: 3 mod down + 1 key down + 1 key up + 3 mod up = 8.
+
+	// Maximum entries: 3 mod transitions + 1 key down + 1 key up = 5; 8 is a safe bound.
 	INPUT inputs[8];
 	int count = 0;
 
-	if ((vkey & 0x0100) != 0) { AppendKeyInput(inputs[count], VK_CONTROL, 0); count++; }
-	if ((vkey & 0x0200) != 0) { AppendKeyInput(inputs[count], VK_SHIFT,   0); count++; }
-	if ((vkey & 0x0400) != 0) { AppendKeyInput(inputs[count], VK_MENU,    0); count++; }
-	if ((vkey & 0x0ff)  != 0)
+	// Bit 11 (0x0800): explicit held-modifier release sent by the client when a
+	// modifier key that was held for key combinations is released.  Inject only a
+	// key-up for the modifier; do not inject a press+release (bare-tap) sequence.
+	if (((unsigned short)vkey & 0x0800u) != 0)
 	{
-		AppendKeyInput(inputs[count], (BYTE)(vkey & 0x0ff), 0);            count++;
-		AppendKeyInput(inputs[count], (BYTE)(vkey & 0x0ff), KEYEVENTF_KEYUP); count++;
+		BYTE key = (BYTE)(vkey & 0x0ff);
+		if ((key == VK_SHIFT || key == VK_LSHIFT || key == VK_RSHIFT) &&
+		    (s_injectedModifiers & MSEVENT_SHIFT))
+		{
+			AppendKeyInput(inputs[count], VK_SHIFT, KEYEVENTF_KEYUP); count++;
+			s_injectedModifiers &= ~MSEVENT_SHIFT;
+		}
+		else if ((key == VK_CONTROL || key == VK_LCONTROL || key == VK_RCONTROL) &&
+		         (s_injectedModifiers & MSEVENT_CTRL))
+		{
+			AppendKeyInput(inputs[count], VK_CONTROL, KEYEVENTF_KEYUP); count++;
+			s_injectedModifiers &= ~MSEVENT_CTRL;
+		}
+		else if ((key == VK_MENU || key == VK_LMENU || key == VK_RMENU) &&
+		         (s_injectedModifiers & MSEVENT_ALT))
+		{
+			AppendKeyInput(inputs[count], VK_MENU, KEYEVENTF_KEYUP); count++;
+			s_injectedModifiers &= ~MSEVENT_ALT;
+		}
+		// If the modifier wasn't tracked as held (e.g. a mouse event already
+		// released it), skip the injection — a redundant key-up is harmless but
+		// the count=0 path below handles the no-op case gracefully.
+		if (count > 0)
+		{
+			UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
+			if (ret != (UINT)count)
+				RW_LOG_DEBUG("sendKeyEvent(heldrel): SendInput sent %u of %d, err=%lu\r\n",
+					ret, count, (unsigned long)GetLastError());
+		}
+		return TRUE;
 	}
-	// Release modifiers in reverse order
-	if ((vkey & 0x0400) != 0) { AppendKeyInput(inputs[count], VK_MENU,    KEYEVENTF_KEYUP); count++; }
-	if ((vkey & 0x0200) != 0) { AppendKeyInput(inputs[count], VK_SHIFT,   KEYEVENTF_KEYUP); count++; }
-	if ((vkey & 0x0100) != 0) { AppendKeyInput(inputs[count], VK_CONTROL, KEYEVENTF_KEYUP); count++; }
 
-	if(count > 0)
+	// Normal key event (or bare modifier tap from keyup).
+	// Instead of always injecting all modifier keys down then up (which releases
+	// and re-presses Shift between consecutive Shift+Arrow auto-repeat events and
+	// resets the selection anchor), we keep modifiers persistently held via
+	// s_injectedModifiers and only inject the transitions that are needed.
+	// This mirrors the approach already used by sendMouseEvent.
+
+	short eventMods = 0;
+	if ((vkey & 0x0100) != 0) eventMods |= MSEVENT_CTRL;
+	if ((vkey & 0x0200) != 0) eventMods |= MSEVENT_SHIFT;
+	if ((vkey & 0x0400) != 0) eventMods |= MSEVENT_ALT;
+
+	BYTE key = (BYTE)(vkey & 0x0ff);
+
+	// Sync modifier state: only inject the transitions (same logic as sendMouseEvent).
+	short toRelease = s_injectedModifiers & ~eventMods;
+	short toPress   = eventMods & ~s_injectedModifiers;
+	// Release in reverse order: Alt, Shift, Ctrl
+	if (toRelease & MSEVENT_ALT)   { AppendKeyInput(inputs[count], VK_MENU,    KEYEVENTF_KEYUP); count++; }
+	if (toRelease & MSEVENT_SHIFT) { AppendKeyInput(inputs[count], VK_SHIFT,   KEYEVENTF_KEYUP); count++; }
+	if (toRelease & MSEVENT_CTRL)  { AppendKeyInput(inputs[count], VK_CONTROL, KEYEVENTF_KEYUP); count++; }
+	// Press in order: Ctrl, Shift, Alt
+	if (toPress & MSEVENT_CTRL)  { AppendKeyInput(inputs[count], VK_CONTROL, 0); count++; }
+	if (toPress & MSEVENT_SHIFT) { AppendKeyInput(inputs[count], VK_SHIFT,   0); count++; }
+	if (toPress & MSEVENT_ALT)   { AppendKeyInput(inputs[count], VK_MENU,    0); count++; }
+	s_injectedModifiers = eventMods;
+
+	if (key != 0)
+	{
+		// Is the key itself a modifier VK?  (Sent from the client's keyup handler
+		// for standalone modifier presses, e.g. Alt to focus the menu bar.)
+		bool keyIsModifier =
+			(key == VK_SHIFT   || key == VK_LSHIFT   || key == VK_RSHIFT  ||
+			 key == VK_CONTROL || key == VK_LCONTROL || key == VK_RCONTROL||
+			 key == VK_MENU    || key == VK_LMENU    || key == VK_RMENU);
+
+		if (keyIsModifier)
+		{
+			// If the modifier sync step already released this key (it was held
+			// via prior key events and the client's altk bits no longer include
+			// it), the release has already been injected above — do not add
+			// another press+release.  If it was NOT held (bare modifier tap,
+			// e.g. Alt to open the Windows menu bar), inject a press+release.
+			bool wasReleasedBySync =
+				((key == VK_SHIFT   || key == VK_LSHIFT   || key == VK_RSHIFT)   && (toRelease & MSEVENT_SHIFT)) ||
+				((key == VK_CONTROL || key == VK_LCONTROL || key == VK_RCONTROL) && (toRelease & MSEVENT_CTRL))  ||
+				((key == VK_MENU    || key == VK_LMENU    || key == VK_RMENU)    && (toRelease & MSEVENT_ALT));
+			if (!wasReleasedBySync)
+			{
+				// Bare modifier tap — inject press+release.
+				AppendKeyInput(inputs[count], key, 0);               count++;
+				AppendKeyInput(inputs[count], key, KEYEVENTF_KEYUP); count++;
+			}
+		}
+		else
+		{
+			// Regular key: inject press and release.
+			// Modifiers are left held in s_injectedModifiers so that consecutive
+			// auto-repeat events (e.g. Shift+Down held for text selection) do not
+			// momentarily release and re-press the modifier between keystrokes,
+			// which would reset the selection anchor in apps like WinDbg.
+			AppendKeyInput(inputs[count], key, 0);               count++;
+			AppendKeyInput(inputs[count], key, KEYEVENTF_KEYUP); count++;
+		}
+	}
+
+	if (count > 0)
 	{
 		UINT ret = SendInput((UINT)count, inputs, sizeof(INPUT));
 		if(ret != (UINT)count)
 			RW_LOG_DEBUG("sendKeyEvent: SendInput sent %u of %d inputs, err=%lu\r\n",
 				ret, count, (unsigned long)GetLastError());
-		// sendKeyEvent always ends by releasing all of the modifier keys it
-		// pressed.  Reset the stateful modifier tracker so that the next
-		// mouse event correctly re-injects any modifiers the user still holds.
-		s_injectedModifiers = 0;
+		// s_injectedModifiers is maintained across calls so modifiers stay held
+		// between consecutive keystrokes with the same modifier bits.  It will be
+		// synced (and released if needed) by subsequent sendKeyEvent or
+		// sendMouseEvent calls.
 	}
 	return TRUE;
 }
