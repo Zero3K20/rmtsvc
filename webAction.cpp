@@ -1026,9 +1026,25 @@ static DWORD capDesktopRawInto(HWND hWnd, WORD w, WORD h,
 {
 	actual_w = 0; actual_h = 0;
 
-	if (hWnd == NULL) hWnd = ::GetDesktopWindow();
 	RECT rect;
-	::GetWindowRect(hWnd, &rect);
+	if (hWnd == NULL)
+	{
+		// Use GetSystemMetrics for the virtual screen bounds when capturing the full
+		// desktop.  GetWindowRect(GetDesktopWindow()) is thread-desktop-level: a
+		// service thread that was created before selectInputDesktop() switched the
+		// process to WinSta0 is still associated with Session 0's headless desktop,
+		// so GetWindowRect returns a zero rect and capture yields nothing.
+		// GetSystemMetrics reflects the physical display (process window station)
+		// and returns the correct dimensions regardless of the thread's desktop.
+		rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+		rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+		rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		rect.bottom = rect.top  + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	}
+	else
+	{
+		::GetWindowRect(hWnd, &rect);
+	}
 
 	BITMAPINFOHEADER bih;
 	::memset(&bih, 0, sizeof(bih));
@@ -1180,8 +1196,22 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 	DWORD dwbuffer_size=0;
 	BITMAPINFOHEADER bih;
 	RECT rect;//get screen size
-	if(hWnd==NULL) hWnd = ::GetDesktopWindow(); //getdesktophandle
-	::GetWindowRect(hWnd, &rect); //::GetClientRect(hWnd, &rect);
+	if(hWnd==NULL)
+	{
+		hWnd = ::GetDesktopWindow(); //getdesktophandle (used as cursor-capture fallback below)
+		// Use GetSystemMetrics for the capture rect: GetWindowRect(GetDesktopWindow())
+		// is thread-desktop-level and returns a zero rect when the calling service
+		// thread is on the Session 0 headless desktop.  GetSystemMetrics reflects
+		// the physical display and is correct regardless of the thread's desktop.
+		rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+		rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+		rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		rect.bottom = rect.top  + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	}
+	else
+	{
+		::GetWindowRect(hWnd, &rect); //::GetClientRect(hWnd, &rect);
+	}
 	::memset((void *)&bih,0,sizeof(bih));
 	bih.biSize = sizeof(BITMAPINFOHEADER);
 	bih.biPlanes = 1;
