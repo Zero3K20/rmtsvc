@@ -574,14 +574,20 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 // Uses the same thread-attachment technique as capDesktop to retrieve the active cursor.
 bool webServer::httprsp_getCursor(socketTCP *psock, httpResponse &httprsp)
 {
+	Wutils::selectDesktop();
 	POINT ptCursor;
 	::GetCursorPos(&ptCursor);
 	HWND hw = ::WindowFromPoint(ptCursor);
 	if(hw == NULL) hw = ::GetDesktopWindow();
 	DWORD hdl = ::GetWindowThreadProcessId(hw, NULL);
-	::AttachThreadInput(::GetCurrentThreadId(), hdl, TRUE);
-	HCURSOR hCursor = ::GetCursor();
-	::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
+	HCURSOR hCursor = NULL;
+	if(::AttachThreadInput(::GetCurrentThreadId(), hdl, TRUE))
+	{
+		hCursor = ::GetCursor();
+		::AttachThreadInput(::GetCurrentThreadId(), hdl, FALSE);
+	}
+	if(hCursor == NULL)
+		hCursor = (HCURSOR)::GetClassLongPtr(hw, GCLP_HCURSOR);
 
 	// Map Windows system cursor handles to CSS cursor names
 	struct CursorMapping { LPTSTR id; const char *css; };
@@ -1255,9 +1261,14 @@ DWORD capDesktop(HWND hWnd,WORD w,WORD h,bool ifCapCursor,LPBYTE &lpbits)
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=hWnd;
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
-		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
-		HCURSOR hCursor=::GetCursor();
-		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
+		HCURSOR hCursor=NULL;
+		if(::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE))
+		{
+			hCursor=::GetCursor();
+			::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
+		}
+		if(hCursor==NULL)
+			hCursor=(HCURSOR)::GetClassLongPtr(hw,GCLP_HCURSOR);
 		ICONINFO IconInfo;//cursor icon data 
 		if (::GetIconInfo(hCursor, &IconInfo))
 		{
