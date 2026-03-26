@@ -166,9 +166,14 @@ IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,in
 		HWND hw=::WindowFromPoint(ptCursor);
 		if(hw==NULL) hw=::GetDesktopWindow();
 		DWORD hdl=::GetWindowThreadProcessId(hw,NULL);
-		::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE);
-		HCURSOR hCursor=::GetCursor();
-		::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
+		HCURSOR hCursor=NULL;
+		if(::AttachThreadInput(::GetCurrentThreadId(),hdl,TRUE))
+		{
+			hCursor=::GetCursor();
+			::AttachThreadInput(::GetCurrentThreadId(),hdl,FALSE);
+		}
+		if(hCursor==NULL)
+			hCursor=(HCURSOR)::GetClassLongPtr(hw,GCLP_HCURSOR);
 		//get cursor icon data 
 		ICONINFO IconInfo;
 		if (::GetIconInfo(hCursor, &IconInfo))
