@@ -24,6 +24,13 @@ var pendingClickParam = null;
 // mousedown.  Used when sending the immediate button-down (act=3) from msdown.
 var lastDownAltk = 0;
 
+// Tracks which modifier keys are currently being held as part of key combinations.
+// Set when a non-modifier keydown event fires with a modifier held; cleared when
+// the modifier's keyup event is sent.  Used to distinguish "held modifier released"
+// (sends 0x0800|kc so the server injects only a VK-up) from "bare modifier tap"
+// (e.g. Alt to focus the menu bar, sends the normal altk*256+kc encoding).
+var heldModifiers = 0;
+
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
 function getKeyXHR()
@@ -376,9 +383,9 @@ if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93) return false;
 // keydown repeatedly while a key is held (auto-repeat), so sending here
 // means a held key will trigger repeated keystrokes on the remote host.
 var altk=0;
-if(e.ctrlKey) altk=altk | 1;
-if(e.shiftKey) altk=altk | 2;
-if(e.altKey) altk=altk | 4;
+if(e.ctrlKey) { altk=altk | 1; heldModifiers=heldModifiers | 1; }
+if(e.shiftKey) { altk=altk | 2; heldModifiers=heldModifiers | 2; }
+if(e.altKey) { altk=altk | 4; heldModifiers=heldModifiers | 4; }
 var kevent=altk*256+kc;
 console.log("[viewCtrl] keydown: keyCode="+kc+" altk="+altk+" kevent="+kevent);
 txtKeyEvent=txtKeyEvent+kevent+",";
@@ -398,12 +405,31 @@ var kc=e.keyCode||e.which;
 // the Windows menu bar) continue to work correctly.
 if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93)
 {
+// Determine whether this modifier was actually held as part of key
+// combinations during this press (tracked in heldModifiers).  If so,
+// send the special 0x0800 flag so the server injects only a VK key-up
+// (keeping the modifier persistently held until now) rather than a
+// press+release (bare-tap) sequence that would reset the selection
+// anchor in apps like WinDbg.
+var modBit=(kc===17?1:kc===16?2:kc===18?4:0);
+var kevent;
+if(modBit && (heldModifiers & modBit))
+{
+// Held modifier release: signal server to inject VK-up only.
+kevent=0x0800|kc;
+heldModifiers=heldModifiers & ~modBit;
+console.log("[viewCtrl] keyup (held modifier release): keyCode="+kc+" kevent=0x"+kevent.toString(16));
+}
+else
+{
+// Bare modifier tap (e.g. Alt alone to open menu bar).
 var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
-var kevent=altk*256+kc;
-console.log("[viewCtrl] keyup (modifier): keyCode="+kc+" altk="+altk+" kevent="+kevent);
+kevent=altk*256+kc;
+console.log("[viewCtrl] keyup (bare modifier tap): keyCode="+kc+" altk="+altk+" kevent="+kevent);
+}
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
 timerID_key=window.setInterval(Kevent,50);
