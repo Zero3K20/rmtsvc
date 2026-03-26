@@ -180,7 +180,7 @@ function loadImg()
 {
 	if(imgLoaded)
 	{
-		document.usageimage.src="/usageimage";
+		document.usageimage.src="/usageimage?t="+new Date().getTime();
 		imgLoaded=false;
 	}
 }
