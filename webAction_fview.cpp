@@ -43,7 +43,7 @@
 //....
 //</files>
 //</xmlroot>
-static char DRIVE_TYPE[][16]={"unknown type","NO_ROOT_DIR","removable disk","local disk","network drive",
+static char DRIVE_TYPE[][16]={"unknown type","NO_ROOT_DIR","removable disk","Local Disk","network drive",
 				"CD-ROM","RAM Disk",""};
 const char * getFileType(const char *filename);
 const char * getFileOpmode(const char *filename);
