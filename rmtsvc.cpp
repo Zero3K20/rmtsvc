@@ -294,7 +294,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	
 	//servicestartstart------------------------------
 	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print start run time
-	RW_LOG_PRINT(LOGLEVEL_INFO,0,"program starting up.\r\n");
+	RW_LOG_PRINT(LOGLEVEL_INFO,0,"Program starting up.\r\n");
 //*********************user other code start ****************************************	
 	if(!m_websvr.Start()) //start web service
 		RW_LOG_PRINT(LOGLEVEL_ERROR,"Can not start WWW server(%d).\r\n",m_websvr.m_svrport);
