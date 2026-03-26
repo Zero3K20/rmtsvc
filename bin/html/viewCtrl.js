@@ -43,17 +43,18 @@ else if(window.ActiveXObject) xmlHttpKey = new ActiveXObject("Microsoft.XMLHTTP"
 return xmlHttpKey;
 }
 
-// Dedicated XHR for right/middle button-down events so the down request is not
-// aborted by the subsequent button-up request which reuses the shared xmlHttp object.
-var xmlHttpButtonDown = false;
-function getButtonDownXHR()
+// Create a fresh XHR for each button event (down or up) so that rapid button
+// events — in particular the two down/up pairs of a double-click — are never
+// silently aborted by a subsequent event reusing the same XHR object.
+function sendButtonEvent(param)
 {
-if(!xmlHttpButtonDown)
-{
-if(window.XMLHttpRequest) xmlHttpButtonDown = new XMLHttpRequest();
-else if(window.ActiveXObject) xmlHttpButtonDown = new ActiveXObject("Microsoft.XMLHTTP");
-}
-return xmlHttpButtonDown;
+var xhr;
+if(window.XMLHttpRequest) xhr = new XMLHttpRequest();
+else if(window.ActiveXObject) xhr = new ActiveXObject("Microsoft.XMLHTTP");
+if(!xhr) return;
+xhr.open("POST", "/msevent", true);
+xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+xhr.send(param);
 }
 
 // Detect Internet Explorer (pre-Edge) which uses different button/event conventions
@@ -211,9 +212,8 @@ function msdblclick(e)
 // For all buttons a button-down event (act=3) is forwarded immediately to the server.
 // Left-button button-up is sent from msup; the remote OS detects double-clicks when it
 // receives two button-down/up sequences within its double-click time window.
-// Right/middle button-down uses a dedicated XHR so the down request is not
-// aborted by the subsequent button-up request (required for context menus on the
-// Windows 7 taskbar to appear).
+// Each button event uses a fresh XHR (sendButtonEvent) so that the two down/up pairs
+// of a double-click are never aborted by reusing the same XHR object.
 function msdown(e)
 {
 e=e||window.event;
@@ -260,13 +260,7 @@ lastMousedownTime=now;
 // the remote host (e.g. scrollbar buttons, game input, UI hold-to-repeat).
 // Button-up is sent from msup; msclick/msdblclick no longer send click
 // events for the left button.
-var bdxhr=getButtonDownXHR();
-if(bdxhr)
-{
-bdxhr.open("POST", "/msevent", true);
-bdxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-bdxhr.send("x="+ptX+"&y="+ptY+"&altk="+lastDownAltk+"&button=1&act=3");
-}
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+lastDownAltk+"&button=1&act=3");
 if(e.preventDefault) e.preventDefault();
 }
 else
@@ -274,24 +268,17 @@ else
 // Right or middle button: send a button-down event immediately so the server
 // injects WM_RBUTTONDOWN before the WM_RBUTTONUP that follows on mouseup.
 // This is necessary for context menus on the Windows 7 taskbar to appear.
-// A dedicated XHR is used so this request is not aborted by the msup request.
 msPosition(e);
 var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
 var serverBtn=normalizeButton(e.button);
-var bdxhr=getButtonDownXHR();
-if(bdxhr)
-{
-bdxhr.open("POST", "/msevent", true);
-bdxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-bdxhr.send("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=3");
-}
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=3");
 }
 }
 // Handle mouse up: forward button-up for all buttons.
-// The matching button-down was already sent via a dedicated XHR in msdown for
+// The matching button-down was already sent via sendButtonEvent in msdown for
 // all buttons (left, right, middle), giving the remote OS time to process
 // WM_LBUTTONDOWN/WM_RBUTTONDOWN before WM_LBUTTONUP/WM_RBUTTONUP arrives.
 // Cursor movement while holding the button (drag) is conveyed by the msmove
@@ -311,13 +298,11 @@ if(isLeftButton(b))
 if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
 pendingClickParam=null;
 // Send button-up; button-down was already sent from msdown.
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=6";
-sendEvent("/msevent",param);
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=6");
 return;
 }
 var serverBtn=normalizeButton(b);
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=6";
-sendEvent("/msevent",param);
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=6");
 }
 
 function mswheel(e)
