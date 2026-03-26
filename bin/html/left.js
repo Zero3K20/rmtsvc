@@ -312,6 +312,8 @@ function _createClipboardOverlay(title, message, onCancel)
 	dialog.appendChild(btnRow);
 	overlay.appendChild(dialog);
 	root.appendChild(overlay);
+	overlay.tabIndex = -1;
+	overlay.focus();
 }
 
 function SetClipBoard()
