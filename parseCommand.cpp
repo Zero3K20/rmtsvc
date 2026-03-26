@@ -157,12 +157,10 @@ void MyService::parseCommand(const char *strCommand)
 //log=<log output file> : set whether the program logs to file; if not specified, no output; otherwise output to the specified log file
 //opentype=APPEND : set whether the program appends or overwrites the log file on startup; default is overwrite
 //loglevel=DEBUG|INFO|WARN|ERROR : set the log output level; default is INFO
-//stop_pswd=<stop service password> : set the password to stop the service; if set, the service cannot be stopped without the password.
-//		if set, the user can only stop the service via '-e <password>' on the command line; cannot stop via SCM or 'net stop'.
-//		for example, if program name is xx.exe and stop password is 123, run: xx.exe -e 123
-//faceless=TRUE : if not started as a service and -d is not specified, run this program without a window
+//faceless=TRUE : run this program without a console window (same effect as -h command-line flag)
 //		e.g. when double-clicking to run the program, if this is set, run without a window; closing the console won't end the program
 //		otherwise run with a window; pressing Ctrl+C or closing the window will end the program
+//install=TRUE : install startup registry entry so the program starts at user login (same as running with -i)
 void MyService :: docmd_sets(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -193,17 +191,13 @@ void MyService :: docmd_sets(const char *strParam)
 			RW_LOG_SETLOGLEVEL(LOGLEVEL_ERROR)
 	}
 
-	if( (it=maps.find("stop_pswd"))!=maps.end())
-	{
-		if( (*it).second!="") CreateStopEvent((*it).second.c_str());
-	} 
 	if( (it=maps.find("faceless"))!=maps.end())
 	{
 		if( (*it).second=="TRUE" ) m_bFaceless=true;
 	}
 	if( (it=maps.find("install"))!=maps.end())
 	{
-		if( (*it).second=="TRUE") InstallService();
+		if( (*it).second=="TRUE") installStartup();
 	}
 }
 
