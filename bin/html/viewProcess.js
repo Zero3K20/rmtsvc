@@ -46,7 +46,7 @@ function processRequest()
 			nodes=xmlobj.getElementsByTagName("pid");
 			if(nodes.length>0) {
 				curPid=nodes[0].firstChild.data;
-				document.getElementById("lblProcess").innerText="pid:"+curPid;
+				document.getElementById("lblProcess").innerText="PID:"+curPid;
 				loadMlist(curPid);
 			}
 		} else alert("Request error");
@@ -223,7 +223,7 @@ function processClick(tblElement)
 	selectedProw.style.background="#cce8ff";
 	curPid=plistData[idx].pid;
 	curPname=plistData[idx].pname;
-	document.getElementById("lblProcess").innerText="pid:"+curPid+" - "+curPname;
+	document.getElementById("lblProcess").innerText="PID:"+curPid+" - "+curPname;
 	loadMlist(curPid);
 }
 
