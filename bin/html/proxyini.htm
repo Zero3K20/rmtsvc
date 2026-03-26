@@ -13,7 +13,7 @@ function processRequest()
 			var xmlobj = xmlHttp.responseXML;
 			var node=xmlobj.getElementsByTagName("settings");
 			if(node.length>0) 
-				document.getElementById("txtSetings").value=(node.item(0).textContent || node.item(0).text);
+				document.getElementById("txtSettings").value=(node.item(0).textContent || node.item(0).text);
 			
 			var retmsg=xmlobj.getElementsByTagName("retmsg");
     			if(retmsg.length>0)
@@ -39,9 +39,9 @@ function backOUT()
 
 function backIN()
 {
-	if(document.getElementById("txtSetings").value=="") return;
+	if(document.getElementById("txtSettings").value=="") return;
 	showPopup(250, 200, 150, 20);
-	var strEncode="ini="+document.getElementById("txtSetings").value;
+	var strEncode="ini="+document.getElementById("txtSettings").value;
 	strEncode=strEncode.replace(/&/g,"%26");
 	xmlHttp.open("POST", "/proxyini?cmd=in", true);
 	xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
@@ -62,7 +62,7 @@ function backIN()
 <table BORDER=0 CELLSPACING=0 CELLPADDING=0 align="center">
 <tr bgcolor="#e5e5e5" height=25px>
 <td width="500px">
-&nbsp;<B>Proxy Service Config:<B>
+&nbsp;<B>Proxy Service Config:</B>
 </td>
 <td width=100px>
 <input id=btnInput type="button" class="btnOff" onmouseout='javascript:this.className="btnOff";' 
@@ -73,7 +73,7 @@ function backIN()
 
 <tr>
 <td colspan=2>
-<TEXTAREA id=txtSetings class="txtInput_b" ROWS=25 style="width:600px;"></TEXTAREA>
+<TEXTAREA id=txtSettings class="txtInput_b" ROWS=25 style="width:600px;"></TEXTAREA>
 </td></tr>
 
 </table>
