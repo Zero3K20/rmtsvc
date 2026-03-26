@@ -106,24 +106,25 @@ bool webServer::sevent(const char *sname,const char *cmd)
 
 DWORD serviceList(cBuffer &buffer)
 {
-	//openSCMgetSCMhandle
+	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
+	//openSCMgetSCMhandle - use SC_MANAGER_ENUMERATE_SERVICE (no admin rights required on Vista/7+)
 	SC_HANDLE schSCManager =	OpenSCManager(
 			0,						// machine (NULL == local)
 			0,						// database (NULL == default)
-			SC_MANAGER_ALL_ACCESS	// access required
+			SC_MANAGER_ENUMERATE_SERVICE	// minimum access required for enumeration
 		);
-	if( schSCManager==NULL ) return 0;
+	if( schSCManager==NULL ){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>"); return 0; }
 	ENUM_SERVICE_STATUS service,*lpservice;
 	DWORD bytesNeeded,servicesReturned,resumeHandle=0;
 	BOOL rc=::EnumServicesStatus(schSCManager,SERVICE_WIN32,SERVICE_STATE_ALL,&service,
 		sizeof(service),&bytesNeeded,&servicesReturned,&resumeHandle);
 
-	if( rc==FALSE && ::GetLastError()!=ERROR_MORE_DATA ){ ::CloseServiceHandle(schSCManager); return 0; }
+	if( rc==FALSE && ::GetLastError()!=ERROR_MORE_DATA ){ ::CloseServiceHandle(schSCManager); buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>"); return 0; }
 
 	LPBYTE lpqsconfig_buffer=NULL;
 	DWORD bytes=bytesNeeded+sizeof(ENUM_SERVICE_STATUS);
 	ENUM_SERVICE_STATUS *lpservice_base;
-	if( (lpservice_base=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); return 0; }
+	if( (lpservice_base=(ENUM_SERVICE_STATUS *)::malloc(bytes))==NULL ){ ::CloseServiceHandle(schSCManager); buffer.len()+=sprintf(buffer.str()+buffer.len(),"</xmlroot>"); return 0; }
 	lpservice=lpservice_base;
 
 	resumeHandle=0; // Reset to enumerate all services from the beginning
@@ -131,7 +132,6 @@ DWORD serviceList(cBuffer &buffer)
 		bytes,&bytesNeeded,&servicesReturned,&resumeHandle);
 
 	DWORD dwret=0;
-	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"utf-8\" ?><xmlroot>");
 	while( servicesReturned-- >0 ) //lpservice->lpServiceName)
 	{
 		{
@@ -167,7 +167,7 @@ DWORD serviceList(cBuffer &buffer)
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>---</status>");
 				break;
 		}//?switch
-		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_ALL_ACCESS);
+		SC_HANDLE hService=OpenService(schSCManager,lpservice->lpServiceName,SERVICE_QUERY_CONFIG|SERVICE_QUERY_STATUS);
 		if(hService==NULL){ buffer.len()+=sprintf(buffer.str()+buffer.len(),"</service>"); lpservice++; continue; }
 		
 		bytesNeeded=0;// get further info

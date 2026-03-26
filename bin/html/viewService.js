@@ -43,6 +43,7 @@ function loadSlist(query)
 			if(xmlSlist.status==200) {
 				var xmlobj=xmlSlist.responseXML;
 				slistData=[];
+				if(xmlobj) {
 				var svcs=xmlobj.getElementsByTagName("service");
 				for(var i=0;i<svcs.length;i++) {
 					var s=svcs[i];
@@ -56,6 +57,7 @@ function loadSlist(query)
 						sdesc:getNodeText(s,"sdesc"),
 						spath:getNodeText(s,"spath")
 					});
+				}
 				}
 				renderSlist();
 			}
