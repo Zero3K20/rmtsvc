@@ -1,5 +1,5 @@
 How to Safely Remote Access/Control and Use SSL VPN
-rmtsvc 2.5.2 build20070110 and later versions support the features described in this document.
+rmtsvc 3.0 and later versions support the features described in this document.
 
 Reading this document requires a basic understanding of SSL. I'll skip the SSL basics here :)
 rmtsvc is a web-based remote access/control management tool. You can directly manage and control services on remote hosts via IE.
