@@ -27,6 +27,7 @@ CNTService :: CNTService( LPCTSTR lpServiceName, LPCTSTR lpDisplayName )
 	, m_dwStartType(SERVICE_AUTO_START)
 	, m_pszStartName(0)
 	, m_pszPassword(0)
+	, m_hRunCompleted(NULL)
 {
 	_ASSERTE( gpTheService==0);
 	gpTheService = this;
@@ -45,6 +46,7 @@ CNTService :: CNTService( LPCTSTR lpServiceName, LPCTSTR lpDisplayName )
 CNTService :: ~CNTService() {
 	_ASSERTE( gpTheService==0);
 	gpTheService = 0;
+	if( m_hRunCompleted ) { ::CloseHandle(m_hRunCompleted); m_hRunCompleted = NULL; }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -317,7 +319,9 @@ BOOL CNTService :: DebugService(int argc, char ** argv)
 			m_lpServiceName,(m_lpServiceDesc)?m_lpServiceDesc:m_lpDisplayName);
 	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
+	m_hRunCompleted = ::CreateEvent(NULL, TRUE, FALSE, NULL);
     Run(dwArgc, lpszArgv);
+	if( m_hRunCompleted ) ::SetEvent(m_hRunCompleted);
 	
 #ifdef UNICODE
 	::GlobalFree(HGLOBAL)lpszArgv);
@@ -453,6 +457,8 @@ BOOL WINAPI CNTService :: ControlHandler(DWORD dwCtrlType) {
 		case CTRL_C_EVENT:      // SERVICE_CONTROL_STOP in debug mode
 			_tprintf(TEXT("Stopping %s.\n"), gpTheService->m_lpDisplayName);
 			gpTheService->Stop();
+			if( gpTheService->m_hRunCompleted )
+				::WaitForSingleObject(gpTheService->m_hRunCompleted, 10000);
 			return TRUE;
 	}
 	return FALSE;

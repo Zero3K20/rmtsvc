@@ -55,6 +55,7 @@ protected:	// data members
 													// service will accept
 													// (dflt: SERVICE_ACCEPT_STOP)
 	BOOL					m_bWinNT;			// TRUE, if this is running on WinNT FALSE on Win95
+	HANDLE					m_hRunCompleted;	// signaled when Run() returns in debug mode
 
 	// parameters to the "CreateService()" function:
 	DWORD			m_dwDesiredAccess;		// default: SERVICE_ALL_ACCESS
