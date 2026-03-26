@@ -782,6 +782,11 @@ const char *Wutils::GetNameFromPID(DWORD pid)
 //**********************private function for this file************************
 //****************************** start ***************************************
 
+// Cached WinSta0 handle used when the process runs as a Windows service.
+// OpenInputDesktop fails in Session 0, so we open WinSta0 directly and keep
+// this handle open for the lifetime of the process (one handle per service).
+static HWINSTA s_hWinSta0 = NULL;
+
 // Determine whether the thread's current desktop is the input one
 bool Wutils::inputDesktopSelected() 
 {
@@ -792,6 +797,19 @@ bool Wutils::inputDesktopSelected()
         DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS |
         DESKTOP_SWITCHDESKTOP | GENERIC_WRITE);
   if (!input) {
+    // OpenInputDesktop fails when running as a Windows service in Session 0.
+    // If we have already switched the process to WinSta0 and the thread is on
+    // the "Default" desktop, we are correctly positioned on the interactive
+    // desktop – no further switch is needed.
+    if (s_hWinSta0 != NULL) {
+      DWORD size = 256;
+      char currentname[256]; currentname[0] = 0;
+      if (GetUserObjectInformation(current, UOI_NAME, currentname, 256, &size) &&
+          strcmp(currentname, "Default") == 0) {
+        sprintf(m_buffer, "service: already on WinSta0\\Default");
+        return true;
+      }
+    }
     sprintf(m_buffer,"unable to OpenInputDesktop(1):%u", GetLastError());
     return false;
   }
@@ -833,24 +851,55 @@ bool Wutils::switchToDesktop(HDESK desktop)
 // Switch the current thread into the input desktop
 bool Wutils::selectInputDesktop() 
 {
-  // - Open the input desktop
+  // - Try to open the input desktop the standard way.
   HDESK desktop = OpenInputDesktop(0, FALSE,
         DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW |
         DESKTOP_ENUMERATE | DESKTOP_HOOKCONTROL |
         DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS |
         DESKTOP_SWITCHDESKTOP | GENERIC_WRITE);
   if (!desktop) {
-    sprintf(m_buffer,"unable to OpenInputDesktop:%u", GetLastError());
-    return false;
+    // OpenInputDesktop fails when the process runs as a Windows service
+    // (Session 0 isolation on Windows Vista and later).  Fall back to opening
+    // WinSta0\Default directly so that screen capture functions such as
+    // GetDC(NULL) and BitBlt access the interactive user's desktop instead of
+    // the invisible Session 0 desktop.
+    if (!s_hWinSta0) {
+      s_hWinSta0 = OpenWindowStation("winsta0", FALSE,
+            WINSTA_ENUMDESKTOPS | WINSTA_READATTRIBUTES | WINSTA_ACCESSCLIPBOARD |
+            WINSTA_CREATEDESKTOP | WINSTA_WRITEATTRIBUTES | WINSTA_ACCESSGLOBALATOMS |
+            WINSTA_EXITWINDOWS | WINSTA_ENUMERATE | WINSTA_READSCREEN |
+            STANDARD_RIGHTS_REQUIRED);
+      if (!s_hWinSta0) {
+        sprintf(m_buffer, "unable to OpenWindowStation(winsta0):%u", GetLastError());
+        return false;
+      }
+      // Switch the process window station to WinSta0 so that GetDC(NULL)
+      // returns a DC for the interactive user's screen, not the Session 0
+      // desktop.  The handle is intentionally kept open for the lifetime of
+      // the process so the window station reference remains valid.
+      if (!SetProcessWindowStation(s_hWinSta0)) {
+        sprintf(m_buffer, "unable to SetProcessWindowStation:%u", GetLastError());
+        CloseWindowStation(s_hWinSta0);
+        s_hWinSta0 = NULL;
+        return false;
+      }
+    }
+    desktop = OpenDesktop("Default", 0, FALSE,
+          DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW |
+          DESKTOP_ENUMERATE | DESKTOP_HOOKCONTROL |
+          DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS);
+    if (!desktop) {
+      sprintf(m_buffer, "unable to OpenDesktop(Default):%u", GetLastError());
+      return false;
+    }
   }
 
-  // - Switch into it
+  // - Switch the current thread into the selected desktop.
   if (!switchToDesktop(desktop)) {
     CloseDesktop(desktop);
     return false;
   }
 
-  // ***
   DWORD size = 256;
   char currentname[256]; currentname[0]=0;
   GetUserObjectInformation(desktop, UOI_NAME, currentname, 256, &size);
