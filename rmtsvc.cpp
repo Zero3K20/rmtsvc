@@ -18,7 +18,6 @@ MyService :: MyService(LPCTSTR ServiceName, LPCTSTR ServiceDesc)
 	m_hStopEvent=NULL;
 	//change service default type to allow desktop interaction
 	m_dwServiceType|=SERVICE_INTERACTIVE_PROCESS;
-	m_bSpyself=true;//whether to monitor self for abnormal exit
 	m_bFaceless=false; //whether to run without console window by default when double-clicked
 }
 
@@ -295,14 +294,7 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	
 	//servicestartstart------------------------------
 	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print start run time
-	if(m_bSpyself) //start monitoring for self crash/abnormal exit
-	{
-		char commandline[MAX_PATH]; int len=0;
-		if(!m_bDebug) len=sprintf(commandline," -s");
-		for(int i=1;i<(int)argc;i++)
-			len+=sprintf(commandline+len," %s",argv[i]);
-		commandline[len]=0; AutoSpy(commandline);
-	} RW_LOG_PRINT(LOGLEVEL_INFO,0,"program starting up.\r\n");
+	RW_LOG_PRINT(LOGLEVEL_INFO,0,"program starting up.\r\n");
 //*********************user other code start ****************************************	
 	if(!m_websvr.Start()) //start web service
 		RW_LOG_PRINT(LOGLEVEL_ERROR,"Can not start WWW server(%d).\r\n",m_websvr.m_svrport);

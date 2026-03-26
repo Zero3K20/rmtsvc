@@ -113,8 +113,6 @@ public:
 	DWORD DeattachDLL(DWORD pid,HMODULE hmdl);
 
 //-------------------2005-01-25 monitor self for abnormal exit begin-------------
-	//monitor process itself; returns 0 on success, otherwise an error occurred
-	DWORD spySelf(HANDLE hEvent,DWORD dwCreationFlags,const char *commandline);
 //-------------------2005-01-25 monitor self for abnormal exit  end -------------
 };
 
