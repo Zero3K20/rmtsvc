@@ -253,7 +253,7 @@ function terminateProcess()
 	}
 }
 
-function deattach()
+function detach()
 {
 	if(curPid==0 || curHmdl=="") return;
 	if(loadcount<=0 || loadcount==65535)
