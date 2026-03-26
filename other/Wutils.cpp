@@ -111,14 +111,14 @@ int Wutils::cpuInfo(MSOSTYPE ostype)
 	if(ostype>=MSOS_TYPE_NT) //NT platform
 	{
 		if(sysi.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_INTEL)
-			ret=sprintf(m_buffer,"%d cpus (x86 Family %d)",sysi.dwNumberOfProcessors,
+			ret=sprintf(m_buffer,"%d CPUs (x86 Family %d)",sysi.dwNumberOfProcessors,
 					sysi.wProcessorLevel);
 		else
-			ret=sprintf(m_buffer,"%d cpus (other Family %d)",sysi.dwNumberOfProcessors,
+			ret=sprintf(m_buffer,"%d CPUs (other Family %d)",sysi.dwNumberOfProcessors,
 				sysi.wProcessorLevel);
 	}
 	else
-		ret=sprintf(m_buffer,"%d cpus (x86 Family %d)",
+		ret=sprintf(m_buffer,"%d CPUs (x86 Family %d)",
 			sysi.dwNumberOfProcessors,sysi.dwProcessorType);
 	m_buffer[ret]=0; return sysi.dwNumberOfProcessors;
 }
