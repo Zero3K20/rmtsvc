@@ -130,13 +130,13 @@ void vidcManager :: xml_info_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>the specified map %s does not exist</retmsg>",mapname);
 	}
 	return;
 }
 
 
-//startspecified的mapservice
+//start the specified map service
 void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -187,12 +187,12 @@ void vidcManager :: xml_start_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>the specified map %s does not exist</retmsg>",mapname);
 	}
 	return;
 }
 
-//stopspecified的mapservice
+//stop the specified map service
 void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 {
 	std::map<std::string,mportTCP *>::iterator it=m_tcpsets.find(mapname);
@@ -227,7 +227,7 @@ void vidcManager :: xml_stop_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>the specified map %s does not exist</retmsg>",mapname);
 	}
 	return;
 }
@@ -246,7 +246,7 @@ void vidcManager :: xml_dele_mtcp(cBuffer &buffer,const char *mapname)
 	}else{//error
 		if(buffer.Space()<128) buffer.Resize(buffer.size()+128);
 		if(buffer.str())
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的map %s notexists</retmsg>",mapname);
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>the specified map %s does not exist</retmsg>",mapname);
 	}
 	return;
 }

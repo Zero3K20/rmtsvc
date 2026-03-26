@@ -364,7 +364,7 @@ bool mportTCP :: AnalysePASV(mportTCP* &pftpDatasvr,char *buf,int len,socketTCP 
 	if(pftpDatasvr==NULL) //temporarily map an FTP data transfer service port
 		if( (pftpDatasvr=new mportTCP)==NULL) return false;
 
-	pftpDatasvr->m_appSvr.clear();//重新set the application service to be mapped
+	pftpDatasvr->m_appSvr.clear();//reset the application service to be mapped
 	std::pair<std::string,int> p(pasvbuf,iport);
 	pftpDatasvr->m_appSvr.push_back(p);
 	pftpDatasvr->m_apptype=MPORTTYPE_TCP;   //service type
@@ -762,7 +762,7 @@ bool HttpHeader :: URLRewrite(std::map<std::string,std::string> &URLRewriter)
 
 	std::map<std::string,std::string >::iterator it;
 	for(it=URLRewriter.begin();it!=URLRewriter.end();it++)
-	{//check whether匹配URL rewrite规则
+	{//check whether it matches URL rewrite rules
 		regexp reg((*it).first.c_str()); //URL matching regular expression
 		MatchResult rs=reg.Match(ptrbegin);
 		if(rs.IsMatched()!=0) break; //match success

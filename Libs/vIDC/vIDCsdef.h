@@ -57,8 +57,8 @@ namespace net4cpp21
 		
 		void parseCommand(const char *ptrCommand);
 		void Destroy(); //destroy and free resources
-		bool AddPipe(socketTCP *pipe); //add一个idle管道
-		bool DelPipe(socketTCP *pipe); //delete一个管道
+		bool AddPipe(socketTCP *pipe); //add an idle pipe
+		bool DelPipe(socketTCP *pipe); //delete a pipe
 		socketTCP *GetPipe();
 		
 		long docmd_sslc(const char *strSSLC,const char *received,long receivedByte);
@@ -73,13 +73,13 @@ namespace net4cpp21
 		void docmd_unknowed(const char *ptrCommand);
 		
 	private:
-		time_t m_tmConnected; //此vIDCcconnectstarttime
-		int m_vidccVer; //connect的vidcclientversion
+		time_t m_tmConnected; //start time of this vIDCc connection
+		int m_vidccVer; //version of the connected vIDC client
 		std::string m_strName;
-		std::string m_strDesc; //vIDCc的nameordescription
-		socketTCP * m_psock_command; //主socket，command通道socket
+		std::string m_strDesc; //vIDCc's name or description
+		socketTCP * m_psock_command; //main socket, command channel socket
 		std::map<std::string,mportTCP_vidcs *> m_tcpsets; //TCPservicemapset
-		std::vector<socketTCP *> m_pipes; //idle管道set
+		std::vector<socketTCP *> m_pipes; //set of idle pipes
 		cMutex m_mutex;
 	};
 }//?namespace net4cpp21

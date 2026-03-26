@@ -35,7 +35,7 @@ typedef enum
 {
 	VIDC_MAPTYPE_TCP=0,		//TCP mapping
 	VIDC_MAPTYPE_UDP,		//UDPmap
-	VIDC_MAPTYPE_PROXY		//内网代理map
+	VIDC_MAPTYPE_PROXY		//intranet proxy map
 }VIDC_MAPTYPE;
 
 

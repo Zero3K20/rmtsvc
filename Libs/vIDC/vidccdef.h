@@ -34,24 +34,24 @@ public:
 	std::string m_appdesc;
 	SSLTYPE m_ssltype;
 	bool m_sslverify;  //whether client certificate authentication is required; only valid when ssltype==TCPSVR_SSLSVR
-	int m_proxyType; //支持的代理type
+	int m_proxyType; //supported proxy type
 	std::string m_proxyuser;
 	std::string m_proxypswd;
-	bool m_proxyauth; //代理whether需要authentication
+	bool m_proxyauth; //whether proxy requires authentication
 	MPORTTYPE m_apptype;
-	int m_mportBegin;  //要求map port范围
+	int m_mportBegin;  //required map port range
 	int m_mportEnd;
-	char m_bindLocalIP[16]; //要求绑定的localIP
-	bool m_bAutoMap; //whenconnect上vIDCs后whetherautomap
+	char m_bindLocalIP[16]; //required local IP to bind
+	bool m_bAutoMap; //whether to auto-map after connecting to vIDCs
 	long m_ipaccess;
 	std::string m_ipRules;//IP access rules 
-	std::string m_clicert; //客户authenticationcertificateinfo
+	std::string m_clicert; //client authentication certificate info
 	std::string m_clikey;
 	std::string m_clikeypswd;
-	int m_mappedPort; //实际map的port
-	bool m_mappedSSLv; //map后的serviceportwhether需要进行客户certificateauthentication
+	int m_mappedPort; //actual mapped port
+	bool m_mappedSSLv; //whether the service port after mapping requires client certificate authentication
 	
-	unsigned long m_maxconn; //限制maximumconnect，limit maximum bandwidth kb/s
+	unsigned long m_maxconn; //limit maximum connections, limit maximum bandwidth kb/s
 	unsigned long m_maxratio;
 	std::vector<std::string> m_hrspRegCond;
 	std::vector<std::string> m_hreqRegCond;

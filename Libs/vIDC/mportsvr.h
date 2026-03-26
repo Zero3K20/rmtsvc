@@ -67,7 +67,7 @@ namespace net4cpp21
 			if(n==1) p=&m_appSvr[0];
 			else if(n>1){
 				srand(clock());
-				p=&m_appSvr[rand()%n]; //随机get一个application service得info
+				p=&m_appSvr[rand()%n]; //randomly get info for one application service
 			}
 			return p; 
 		}
@@ -80,20 +80,20 @@ namespace net4cpp21
 		//mapped application service
 		std::vector<std::pair<std::string,int> > m_appSvr;
 		MPORTTYPE m_apptype;//mapapplication servicetype
-		int m_mportBegin;  //要求map port范围
+		int m_mportBegin;  //required map port range
 		int m_mportEnd;
-		char m_bindLocalIP[16]; //要求绑定的localIP
+		char m_bindLocalIP[16]; //required local IP to bind
 		SSLTYPE m_ssltype; //SSLconverttype
-		bool m_bSSLVerify; //SSLservicewhether需要authenticationclientcertificate
-		long m_lUserTag; //用于自define的扩充flag,对于本class无意义
+		bool m_bSSLVerify; //whether SSL service requires client certificate authentication
+		long m_lUserTag; //user-defined extension flag, meaningless for this class
 		unsigned long m_maxratio; //limit maximum bandwidth kb/s
-		bool m_bLogdatafile; //whether记录proxy serviceforward的data到logfile
-		//modifyHTTPresponse头info int - HTTP response代码
+		bool m_bLogdatafile; //whether to log data forwarded by the proxy service to a log file
+		//modify HTTP response header info int - HTTP response code
 		std::map<int,std::vector<RegCond> > m_modRspHeader;
-		//modifyHTTPrequest头info string - 匹配HTTP requestURL
+		//modify HTTP request header info string - match HTTP request URL
 		std::map<std::string,std::vector<RegCond> > m_modReqHeader;
-		//yyc add 2010-02-13 增加对url重写支持
-		//first - 要匹配的url(支持Regexp) ，second - 替换为(Regexp)
+		//yyc add 2010-02-13 added support for URL rewriting
+		//first - URL to match (supports Regexp), second - replace with (Regexp)
 		std::map<std::string,std::string> m_modURLRewriter;
 	};
 }//?namespace net4cpp21

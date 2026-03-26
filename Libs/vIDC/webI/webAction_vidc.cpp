@@ -47,7 +47,7 @@ bool webServer::httprsp_mportl(socketTCP *psock,httpRequest &httpreq,httpRespons
 		if(bTcpType)
 			pvidc->xml_start_mtcp(buffer,ptr_mapname);
 		else 
-			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>此versiontemporarily not supportedUDPmap</retmsg>");
+			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>this version temporarily does not support UDP mapping</retmsg>");
 		//	pvidc->xml_start_mudp(buffer,ptr_mapname);
 	}
 	else if(strcasecmp(ptr_cmd,"stop")==0)
@@ -107,10 +107,10 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 	cBuffer buffer(1024);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 	
-	if(strcasecmp(ptr_cmd,"vidcclist")==0){ //returnlocalconfiguration的vidcclist
+	if(strcasecmp(ptr_cmd,"vidcclist")==0){ //return the local configuration vidcc list
 		vidccsets.xml_list_vidcc(buffer);
 	}else if(strcasecmp(ptr_cmd,"vidccmodi")==0)
-	{//addmodify一个vIDCcclientandvIDCs的对应
+	{//add or modify a vIDCc client and its vIDCs association
 		if(ptr_vname && ptr_vname[0]!=0){
 			if( (pvidcc=vidccsets.GetVidcClient(ptr_vname,true)) )
 			{
@@ -128,7 +128,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 		}//?if(ptr_req && ptr_req[0]!=0)
 		vidccsets.xml_list_vidcc(buffer);
 	}else if(strcasecmp(ptr_cmd,"vidccdele")==0) 
-	{//delete一个vIDCcclientandvIDCs的对应
+	{//delete a vIDCc client and its vIDCs association
 		if(ptr_vname && ptr_vname[0]!=0){
 			if( vidccsets.DelVidcClient(ptr_vname) )
 				 buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%s</retmsg>",errMsg_ok);
@@ -140,7 +140,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 		if(ptr_vname==NULL || !vidccsets.xml_info_vidcc(buffer,ptr_vname,maptype))
 			buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%s</retmsg>",errMsg_failed);
 	}else if(strcasecmp(ptr_cmd,"connect")==0)
-	{//connectspecified的vidcsservice
+	{//connect to the specified vIDCs service
 		pvidcc=(ptr_vname)?vidccsets.GetVidcClient(ptr_vname,false):NULL;
 		if(pvidcc){
 			SOCKSRESULT sr=pvidcc->ConnectSvr();
@@ -148,13 +148,13 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 				if(sr==SOCKSERR_VIDC_VER)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,version mismatch</retmsg>");
 				else if(sr==SOCKSERR_VIDC_PSWD)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,访问passworderror</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,access password error</retmsg>");
 				else if(sr==SOCKSERR_VIDC_RESP)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,responsetimeout</retmsg>");
 				else if(sr==SOCKSERR_THREAD)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>create threadfailure</retmsg>");
 				else if(sr==SOCKSERR_CONN)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,vIDCsaddressnot正确</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,vIDCs address is incorrect</retmsg>");
 				else if(sr==SOCKSERR_TIMEOUT)
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,connecttimeout</retmsg>");
 				else
@@ -163,7 +163,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 			vidccsets.xml_info_vidcc(buffer,ptr_vname,maptype);
 		}else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%s</retmsg>",errMsg_failed);
 	}else if(strcasecmp(ptr_cmd,"disconn")==0)
-	{//andspecified的vidcsservicedisconnect
+	{//disconnect from the specified vIDCs service
 		pvidcc=(ptr_vname)?vidccsets.GetVidcClient(ptr_vname,false):NULL;
 		if(pvidcc){
 			pvidcc->DisConnSvr();
@@ -277,7 +277,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 			vidccsets.xml_info_vidcc(buffer,ptr_vname,maptype);
 		}else buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>%s</retmsg>",errMsg_failed);
 	}else if( strcasecmp(ptr_cmd,"maped")==0 || //map the specified service
-			  strcasecmp(ptr_cmd,"unmap")==0 || //cancelspecified的map
+			  strcasecmp(ptr_cmd,"unmap")==0 || //cancel the specified map
 			  strcasecmp(ptr_cmd,"mapinfo")==0 )
 	{
 		pvidcc=(ptr_vname)?vidccsets.GetVidcClient(ptr_vname,false):NULL;
@@ -291,15 +291,15 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 					sr=pvidcc->Unmap(ptr_req,pinfo);
 				else if(strcasecmp(ptr_cmd,"maped")==0)
 					sr=pvidcc->Mapped(ptr_req,pinfo);
-				if(sr<0){ //有error发生
+				if(sr<0){ //an error has occurred
 					if(sr==SOCKSERR_VIDC_NAME)
-						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>specified的mapserviceinvalid</retmsg>");
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>the specified map service is invalid</retmsg>");
 					else if(sr==SOCKSERR_VIDC_MEMO)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>memory allocation failure</retmsg>");
 					else if(sr==SOCKSERR_VIDC_SUPPORT)
-						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>此versionthis feature is temporarily not supported</retmsg>");
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>this version does not support this feature</retmsg>");
 					else if(sr==SOCKSERR_VIDC_MAP)
-						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>mapping failed，确信map port没被占用</retmsg>");
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>mapping failed, make sure the map port is not occupied</retmsg>");
 					else
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>server-sideresponsetimeout</retmsg>");
 				}
@@ -425,10 +425,10 @@ bool webServer::httprsp_vidcsvr(socketTCP *psock,httpRequest &httpreq,httpRespon
 		if(ptr) vidcsvr.m_ipRules.assign(ptr);
 	}
 	
-	//getvIDCsservice的parametersetandstatus----start---------------------------------------------
+	//get vIDCs service parameter settings and status----start---------------------------------------------
 	struct tm * ltime=NULL; time_t t;
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<vidcs_status>");
-	if(vidcsvr.status()==SOCKS_LISTEN) //service已运行
+	if(vidcsvr.status()==SOCKS_LISTEN) //service is running
 	{
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<status>%d</status>",vidcsvr.getLocalPort());
 		t=vidcsvr.getStartTime(); ltime=localtime(&t);
@@ -445,7 +445,7 @@ bool webServer::httprsp_vidcsvr(socketTCP *psock,httpRequest &httpreq,httpRespon
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<autorun>%d</autorun>",(vidcsvr.m_autorun)?1:0);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<bauth>%d</bauth>",(vidcsvr.bAuthentication())?1:0);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<pswd>%s</pswd>",vidcsvr.accessPswd().c_str());
-	//绑定local machineIP
+	//bind local machine IP
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<bindip>%s</bindip><localip>",vidcsvr.m_bindip.c_str());
 	std::vector<std::string> vec;//get local machine IPs, returns the count of local machine IPs
 	long n=socketBase::getLocalHostIP(vec);
@@ -458,9 +458,9 @@ bool webServer::httprsp_vidcsvr(socketTCP *psock,httpRequest &httpreq,httpRespon
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<ipaddr>%s</ipaddr>",vidcsvr.m_ipRules.c_str());
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</ipfilter>");
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"</vidcs_status>");
-	//列出current已connect的vIDCcclient
+	//list currently connected vIDCc clients
 	vidcsvr.xml_list_vidcc(buffer);
-	//getproxy service的parametersetandstatus---- end ---------------------------------------------
+	//get proxy service parameter settings and status---- end ---------------------------------------------
 
 	if(buffer.Space()<16) buffer.Resize(buffer.size()+16);
 	if(buffer.str())
@@ -476,7 +476,7 @@ bool webServer::httprsp_vidcsvr(socketTCP *psock,httpRequest &httpreq,httpRespon
 	if(buffer.str()) psock->Send(buffer.len(),buffer.str(),-1);
 	return true;
 }
-//vIDCsservice已connectvIDCc管理
+//management of vIDCc connections to vIDCs service
 bool webServer::httprsp_vidccs(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -488,11 +488,11 @@ bool webServer::httprsp_vidccs(socketTCP *psock,httpRequest &httpreq,httpRespons
 	cBuffer buffer(1024);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	if(strcasecmp(ptr_cmd,"info")==0) //getspecified的connectvIDCc的info
+	if(strcasecmp(ptr_cmd,"info")==0) //get info for the specified connected vIDCc
 	{
 		vidcsvr.xml_info_vidcc(buffer,vidccID);
 	}
-	else if(strcasecmp(ptr_cmd,"dele")==0) //强制disconnect某vIDCcand本vIDCsservice的connect
+	else if(strcasecmp(ptr_cmd,"dele")==0) //forcibly disconnect a vIDCc from this vIDCs service
 	{
 		vidcsvr.DisConnect(vidccID);
 		vidcsvr.xml_list_vidcc(buffer);
@@ -520,7 +520,7 @@ bool webServer::httprsp_vidccs(socketTCP *psock,httpRequest &httpreq,httpRespons
 	return true;
 }
 
-//vidcconfiguration的导入导出
+//import and export of vIDC configuration
 bool webServer::httprsp_vidcini(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp)
 {
 	MyService *ptrService=MyService::GetService();
@@ -529,7 +529,7 @@ bool webServer::httprsp_vidcini(socketTCP *psock,httpRequest &httpreq,httpRespon
 	cBuffer buffer(512);
 	buffer.len()+=sprintf(buffer.str()+buffer.len(),"<?xml version=\"1.0\" encoding=\"gb2312\" ?><xmlroot>");
 
-	if(strcasecmp(ptr_cmd,"out")==0) //导出vidcconfiguration
+	if(strcasecmp(ptr_cmd,"out")==0) //export vIDC configuration
 	{
 		std::string strini;
 		pvidc->saveAsstring(strini);
@@ -537,7 +537,7 @@ bool webServer::httprsp_vidcini(socketTCP *psock,httpRequest &httpreq,httpRespon
 		if(buffer.str())
 		buffer.len()+=sprintf(buffer.str()+buffer.len(),"<settings><![CDATA[%s]]></settings>",strini.c_str());
 	}
-	else if(strcasecmp(ptr_cmd,"in")==0) //导入vidcconfiguration
+	else if(strcasecmp(ptr_cmd,"in")==0) //import vIDC configuration
 	{
 		const char *ptr=httpreq.Request("ini");
 		if(ptr){
