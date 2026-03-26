@@ -193,7 +193,6 @@ class MyService : public CNTService
 	HANDLE m_hStop; //service stopped event object handle
 	HANDLE m_hStopEvent; //event for whether to allow stopping service via SCM or console
 						//if set, stop password, then create a named event based on stop password
-	bool m_bSpyself;//whether to monitor for self crash/abnormal exit
 	bool m_bFaceless; //default double-click run: whether to show console window
 	std::vector<TaskTimer> m_tasklist; //scheduled task list
 	bool CreateTaskTime(const char *ptrAt,const char *strTask);
@@ -217,7 +216,6 @@ public:
 	virtual ~MyService(){}
 	
 	void SetStopEvent(const char *stop_pswd);
-	BOOL AutoSpy(const char *commandline);//start automatic monitoring
 	socketBase *GetSockEvent(){ return &m_hSockEvent; }
 private:
 	//create service stopped password protection event

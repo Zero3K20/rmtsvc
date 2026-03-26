@@ -12,7 +12,6 @@
 
 #include "rmtsvc.h"
 #include "shellCommandEx.h"
-#include "cInjectDll.h"
 
 //*********************define global user-defined certificate parameters start ****************************************
 std::string g_strMyCert="";
@@ -83,26 +82,6 @@ void docmd_acme(const char *strParam)
 		g_acme_domain.c_str(),
 		g_acme_staging?" (STAGING)":"",
 		g_acme_challenge_port);
-}
-//start automatic monitoring
-BOOL MyService::AutoSpy(const char *commandline)
-{
-	std::string strProcessname=(m_bDebug)?"explorer.exe":"winlogon.exe";
-	cInjectDll inject(strProcessname.c_str());	
-	DWORD dwret=inject.Inject(NULL);
-	if(dwret)
-	{
-		DWORD dwCreationFlags=(m_bDebug)?0:CREATE_NO_WINDOW;
-		dwret=inject.spySelf(m_hStop,dwCreationFlags,commandline);
-		if(dwret==0) 
-			RW_LOG_PRINT(LOGLEVEL_INFO,"Success to spy,injecting into %s.\r\n",strProcessname.c_str());
-		else
-			RW_LOG_PRINT(LOGLEVEL_INFO,"Failed to inject into %s, Error Code=%d.\r\n",
-										strProcessname.c_str(),(long)dwret);
-		return (dwret==0)?TRUE:FALSE;
-	}else
-		RW_LOG_PRINT(LOGLEVEL_INFO,"Failed to open %s for Injection.\r\n",strProcessname.c_str());
-	return FALSE;
 }
 //create scheduled task at=hh:mm/[t|d]
 bool MyService::CreateTaskTime(const char *ptrAt,const char *strTask)
@@ -214,10 +193,6 @@ void MyService :: docmd_sets(const char *strParam)
 			RW_LOG_SETLOGLEVEL(LOGLEVEL_ERROR)
 	}
 
-	if( (it=maps.find("spyself"))!=maps.end())
-	{
-		if((*it).second=="FALSE") m_bSpyself=false;
-	}
 	if( (it=maps.find("stop_pswd"))!=maps.end())
 	{
 		if( (*it).second!="") CreateStopEvent((*it).second.c_str());
