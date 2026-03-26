@@ -94,7 +94,7 @@ namespace net4cpp21
 		
 		//if file does not exist return -1
 		//if the specified path is a directory return -2
-		//otherwisereturnfile sizeBytes
+		//otherwise return file size in bytes
 		static long fileio_exist(const char *spath);
 		static bool fileio_exec(char *filename,bool ifHide);
 #endif

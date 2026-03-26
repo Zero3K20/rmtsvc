@@ -72,8 +72,8 @@ public:
 	//			if==NULL, only return the space size needed for image data
 	//quality --- reserved, not used
 	//lprc --- specifies the capture area of the window; ==NULL means the entire window area
-	//failurereturn0, otherwisereturnimagedatasize
-	//ifCapCursorwhethercapture mouse cursor
+	//failure return 0, otherwise return image data size
+	//ifCapCursor: whether to capture mouse cursor
 	static IPFRESULT capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor);
 
 	//get palette size of the specified DIB (in bytes)
