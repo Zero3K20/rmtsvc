@@ -191,8 +191,6 @@ class MyService : public CNTService
 {
 	sockEvent m_hSockEvent; //used to close all blocked sockets in time when program exits
 	HANDLE m_hStop; //service stopped event object handle
-	HANDLE m_hStopEvent; //event for whether to allow stopping service via SCM or console
-						//if set, stop password, then create a named event based on stop password
 	bool m_bFaceless; //default double-click run: whether to show console window
 	std::vector<TaskTimer> m_tasklist; //scheduled task list
 	bool CreateTaskTime(const char *ptrAt,const char *strTask);
@@ -215,15 +213,14 @@ public:
 	explicit MyService(LPCTSTR ServiceName, LPCTSTR ServiceDesc = 0);
 	virtual ~MyService(){}
 	
-	void SetStopEvent(const char *stop_pswd);
+	bool installStartup() const;  //add startup registry entry (HKCU Run key) with -h flag
+	void removeStartup() const;   //remove startup registry entry
+	bool isStartupInstalled() const; //check whether startup registry entry is present
 	socketBase *GetSockEvent(){ return &m_hSockEvent; }
 private:
-	//create service stopped password protection event
-	void CreateStopEvent(const char *stop_pswd);
 	//overloaded function
 	virtual void	Run(DWORD argc, LPTSTR *argv); //service/program execution body
 	virtual void	Stop();//service stopped handle
-	virtual void	Stop_Request();
 	virtual void	Shutdown(); //system shutdown handle
 
 };

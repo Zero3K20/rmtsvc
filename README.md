@@ -6,7 +6,7 @@ rmtsvc
 
 rmtsvc is the abbreviation for **ReMoTe SerViCe**. It is a web-based remote desktop &amp; control service for Windows. [yycnet](http://bbs.pediy.com/member.php?u=106711) open-sourced the 2.5.2 code of rmtsvc at http://bbs.pediy.com/showthread.php?t=184683. The current version is **v3.0**.
 
-rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You can install rmtsvc service in a Windows machine, and then use your web browser to control it, including **remote desktop, command execution, process monitoring**, etc. 
+rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You can use your web browser to remotely control a Windows machine, including **remote desktop, command execution, process monitoring**, etc.
 
 ## Build
 
@@ -15,8 +15,22 @@ rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You c
 ## Run
 
 1. Put `example\rmtsvc.ini` in the same folder with `rmtsvc.exe`.
-2. Run `rmtsvc.exe -i` and `rmtsvc.exe -s` to install and start the rmtsvc service.
+2. Double-click `rmtsvc.exe` to start it (a console window will appear). Alternatively, run `rmtsvc.exe -h` to start it with the console window hidden.
 3. Launch your web browser to `http://127.0.0.1:777`, username is `abc`, password is `123`, log on the portal and do your stuff.
+
+## Auto-start at login
+
+To have rmtsvc start automatically when you log in to Windows, run:
+
+```
+rmtsvc.exe -i
+```
+
+This adds a startup registry entry (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) so rmtsvc launches hidden (no console window) on login. To remove the startup entry, run:
+
+```
+rmtsvc.exe -u
+```
 
 ## Download
 

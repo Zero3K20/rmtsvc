@@ -15,55 +15,9 @@ MyService :: MyService(LPCTSTR ServiceName, LPCTSTR ServiceDesc)
 {
 	m_lpServiceDesc=ServiceDesc;
 	m_hStop=NULL;
-	m_hStopEvent=NULL;
-	//change service default type to allow desktop interaction
-	m_dwServiceType|=SERVICE_INTERACTIVE_PROCESS;
 	m_bFaceless=false; //whether to run without console window by default when double-clicked
 }
 
-//create stopEvent based on the stop password
-void MyService :: CreateStopEvent(const char *stop_pswd)
-{//objects created in service mode cannot be accessed by the application (debug mode)
-//therefore we must change the access permissions of the created event object so that the application can access this event
-	if(stop_pswd==NULL || stop_pswd[0]==0) return;
-	SECURITY_ATTRIBUTES sa;
-	SECURITY_DESCRIPTOR sd;
-	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-	sa.bInheritHandle = FALSE;
-	sa.lpSecurityDescriptor = &sd;
-	::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);	
-	//add a null security descriptor so that other programs can access it.
-	::SetSecurityDescriptorDacl(&sd, TRUE, (PACL)NULL, FALSE);
-	std::string strStopswd(m_lpServiceName); strStopswd.append(stop_pswd);
-	int nlen=cCoder::Base64EncodeSize(strStopswd.length());
-	char *tmpbuf=new char[nlen+1];//BASE64 encoding
-	if(tmpbuf==NULL) return;
-	nlen=cCoder::base64_encode((char *)strStopswd.c_str(),strStopswd.length(),tmpbuf);
-	tmpbuf[nlen]=0;
-	m_hStopEvent = ::CreateEvent(&sa, TRUE, FALSE, tmpbuf);
-	delete[] tmpbuf; return; 
-}
-void MyService :: SetStopEvent(const char *stop_pswd)
-{
-	if(stop_pswd==NULL || stop_pswd[0]==0) return;
-	std::string strStopswd(m_lpServiceName); strStopswd.append(stop_pswd);
-	int nlen=cCoder::Base64EncodeSize(strStopswd.length());
-	char *tmpbuf=new char[nlen+1];//BASE64 encoding
-	if(tmpbuf==NULL) return;
-	nlen=cCoder::base64_encode((char *)strStopswd.c_str(),strStopswd.length(),tmpbuf);
-	tmpbuf[nlen]=0;
-	HANDLE hStopEvent = ::OpenEvent(EVENT_MODIFY_STATE, TRUE, tmpbuf);
-	if(hStopEvent){ ::SetEvent(hStopEvent); ::CloseHandle(hStopEvent); }
-	delete[] tmpbuf; return; 
-}
-
-void MyService :: Stop_Request() //service stop request event
-{	
-	if(m_hStopEvent && WaitForSingleObject(m_hStopEvent, 100) != WAIT_OBJECT_0)
-		return; //otherwise allow receiving SERVICE_ACCEPT_STOP
-	m_dwControlsAccepted |=SERVICE_ACCEPT_STOP;
-	ReportStatus(SERVICE_RUNNING);
-}
 void MyService :: Stop() //service stopped event
 {	
 	if( m_hStop ) SetEvent(m_hStop);
@@ -77,6 +31,57 @@ void MyService :: Shutdown() //system shutdown handle
 	ReportStatus(SERVICE_STOP_PENDING,3000);
 	return;
 }
+
+//add startup registry entry so this program runs automatically at user login
+//the entry uses the -h flag to hide the console window
+bool MyService :: installStartup() const
+{
+	HKEY hKEY;
+	LPCTSTR lpRunPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+	if (::RegOpenKeyEx(HKEY_CURRENT_USER, lpRunPath, 0, KEY_WRITE, &hKEY) != ERROR_SUCCESS) {
+		printf("Failed to open startup registry key.\n");
+		return false;
+	}
+	char szPath[MAX_PATH];
+	::GetModuleFileName(NULL, szPath, MAX_PATH);
+	std::string regValue = "\"";
+	regValue += szPath;
+	regValue += "\" -h";
+	bool bRet = (::RegSetValueEx(hKEY, m_lpServiceName, NULL, REG_SZ,
+		(LPBYTE)regValue.c_str(), (DWORD)(regValue.length() + 1)) == ERROR_SUCCESS);
+	::RegCloseKey(hKEY);
+	if (bRet) printf("%s installed to startup registry.\n", m_lpServiceName);
+	else printf("Failed to install startup registry entry.\n");
+	return bRet;
+}
+
+//remove startup registry entry
+void MyService :: removeStartup() const
+{
+	HKEY hKEY;
+	LPCTSTR lpRunPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+	if (::RegOpenKeyEx(HKEY_CURRENT_USER, lpRunPath, 0, KEY_WRITE, &hKEY) != ERROR_SUCCESS) {
+		printf("Failed to open startup registry key.\n");
+		return;
+	}
+	::RegDeleteValue(hKEY, m_lpServiceName);
+	::RegCloseKey(hKEY);
+	printf("Startup registry entry removed.\n");
+}
+
+//check whether startup registry entry exists
+bool MyService :: isStartupInstalled() const
+{
+	HKEY hKEY;
+	LPCTSTR lpRunPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+	if (::RegOpenKeyEx(HKEY_CURRENT_USER, lpRunPath, 0, KEY_READ, &hKEY) != ERROR_SUCCESS)
+		return false;
+	DWORD dwType = REG_SZ;
+	bool bRet = (::RegQueryValueEx(hKEY, m_lpServiceName, NULL, &dwType, NULL, NULL) == ERROR_SUCCESS);
+	::RegCloseKey(hKEY);
+	return bRet;
+}
+
 
 //-----------------------------------------------------------------------
 
@@ -264,10 +269,13 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	while( ++Argv, --Argc ) {
 		if( Argv[0][0] == TEXT('-') ) {
 			switch( Argv[0][1] ) {
-				case TEXT('d'):	// debug the service
+				case TEXT('d'):	// force console window visible, set optional log level
 					m_bFaceless=false;
 					if(Argv[0][2]>='0' && Argv[0][2]<='4') 
 						RW_LOG_SETLOGLEVEL((LOGLEVEL)('4'-Argv[0][2]));
+					break;
+				case TEXT('h'):	// hide console window (used when started from startup registry)
+					m_bFaceless=true;
 					break;
 //*********************user additional code start ****************************************
 //*********************user additional code end  ****************************************
@@ -276,20 +284,16 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 	}//?while( ++Argv, --Argc )
 	}//?if(Argc>0){	
 	//getcommand-line arguments------------------------------------------
-	if(!m_bDebug) m_bFaceless=true;//running in service mode, no console window
 	//if no console and output to console is specified, cancel output
 	if(m_bFaceless) ::FreeConsole();
 	if(m_bFaceless){ if(RW_LOG_LOGTYPE()==LOGTYPE_STDOUT) RW_LOG_SETNONE();}
 	else RW_LOG_OUTSTDOUT(true);//if console interface exists, synchronize output to console
-	//createstop serviceevent
+	//create stop event
 	m_hStop = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 	if(m_hStop==NULL){
 		RW_LOG_PRINT(LOGLEVEL_ERROR,0,"[Fatal] Can not create Event object.\r\n");
 		ReportStatus(SERVICE_STOPPED,3000,0); return;
 	}
-	if(m_bDebug && m_hStopEvent){ ::CloseHandle(m_hStopEvent); m_hStopEvent=NULL; }
-	//whether to prohibit stopping the service via console
-	if(m_hStopEvent) m_dwControlsAccepted &=(~SERVICE_ACCEPT_STOP); // prohibit receiving STOP event
 	ReportStatus(SERVICE_START_PENDING);
 	
 	//servicestartstart------------------------------
@@ -379,17 +383,8 @@ void MyService :: Run(DWORD argc, LPTSTR *argv)
 
 	if(RW_LOG_CHECK(LOGLEVEL_INFO)) RW_LOG_PRINTTIME(); //print end run time
 	RW_LOG_PRINT(LOGLEVEL_INFO,0,"program end!\r\n");
-	//if set, password protection, check whether service is installed correctly on exit
-	if(m_hStopEvent)
-	{
-		QUERY_SERVICE_CONFIG sc;
-		if( !GetServiceConfig(&sc) ) InstallService(); //service may have been deleted, reinstall
-		else if(sc.dwStartType!=m_dwStartType || sc.dwServiceType!=m_dwServiceType) 
-			SetServiceConfig();//service start status has been modified
-	}//?if(m_hStopEvent)
-	//service has ended------------------------------
-	if(m_hStop) ::CloseHandle(m_hStop); //service/program exit
-	if(m_hStopEvent) ::CloseHandle(m_hStopEvent); //service/program exit
+	//program has ended------------------------------
+	if(m_hStop) ::CloseHandle(m_hStop); //program exit
 	ReportStatus(SERVICE_STOPPED,3000,0); 
 }
 
@@ -469,14 +464,13 @@ void delUpdateTmpfile()
 	::DeleteFile(buf);
 }
 //command-line arguments
-//-i dsplatName serverDesc --- install service
-//-u ---uninstall service
-//-s --- start service
-//-e --- stop service
-//-d --- run in debug mode
-//-n serverName ---- specifies the name of the service to install
-//		if not specified via -n, the default service name is the executable filename, otherwise the specified name
-//		if an install service name is specified, the program will record it to the registry, with the executable filename as the key
+//-i --- install startup registry entry (HKCU Run key) so the program starts at user login
+//-u --- remove startup registry entry
+//-h --- hide console window (used automatically when started via startup registry entry)
+//-d --- force console window visible (overrides -h or faceless=TRUE); optionally set log level with -d0..-d4
+//-n appName ---- specifies the application name (used as the startup registry entry key name)
+//		if not specified via -n, the default name is the executable filename
+//		if an app name is specified, the program will record it to the registry, with the executable filename as the key
 //-c saveasfile --- write current ini config parameters into the exe itself and save as the specified file
 //-C saveasfile --- write current ini config parameters into the exe itself and save as the specified file,
 //					simultaneously run the saved exe program which will not support ini config file
@@ -486,7 +480,7 @@ int main(int argc, char* argv[])
 	std::string saveasfile;
 	std::string svrname,svrkey;
 	getDefaultSvrname(svrkey);
-	char *ptr_stoppswd=NULL; //stop servicepassword
+	bool bInstall=false, bUninstall=false;
 	for(int i=1;i<argc;i++){
 		if(strcmp(argv[i],"-n")==0){
 			if(i<(argc-1) && argv[i+1][0]!='-'){
@@ -495,11 +489,12 @@ int main(int argc, char* argv[])
 			}
 		}else if(strcmp(argv[i],"-f")==0){
 			if(i<(argc-1) && argv[i+1][0]!='-') g_cfgfile.assign(argv[i+1]);
-		}else if(strcmp(argv[i],"-u")==0)
-			delreg(svrkey.c_str());
-		else if(strcmp(argv[i],"-e")==0)
+		}else if(strcmp(argv[i],"-i")==0)
+			bInstall=true;
+		else if(strcmp(argv[i],"-u")==0)
 		{
-			if(i<(argc-1) && argv[i+1][0]!='-') ptr_stoppswd=argv[i+1];
+			delreg(svrkey.c_str());
+			bUninstall=true;
 		}else if(strcasecmp(argv[i],"-c")==0)
 		{
 			if(i<(argc-1) && argv[i+1][0]!='-')
@@ -515,14 +510,14 @@ int main(int argc, char* argv[])
 	//configuration filename, default is ini file with same name as exe
 	if(g_cfgfile=="") 
 		getDefaultCfgfile(g_cfgfile);
-	else //if user input is a relative path, it may not be found when started as a service
+	else //if user input is a relative path, it may not be found when starting from registry
 		getAbsoluteFilePath(g_cfgfile);
 	//write parameters, save as new exe 
 	if(saveasfile!=""){ saveAsExe(saveasfile); return 0; }
 	delUpdateTmpfile();//delete temporary files after upgrade
 	MyService serv(svrname.c_str(),sServiceDesc);
-	//input stop service password, try this password to stop the service
-	if(ptr_stoppswd) serv.SetStopEvent(ptr_stoppswd);
+	if(bInstall) { serv.installStartup(); return 0; }
+	if(bUninstall) { serv.removeStartup(); return 0; }
 	serv.RegisterService(argc, argv);
 	return 0;
 }

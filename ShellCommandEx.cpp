@@ -145,9 +145,9 @@ BOOL sysStatus(std::string &strRet)
 
 	DWORD dwret=::GetModuleFileName(NULL,buf,MAX_PATH);
 	buf[dwret]=0;
-	if(ptrService && ptrService->GetServiceConfig(NULL))
-		buflen=sprintf(buf,"%s\r\nVersion: %s\r\nServer name: %s\r\n",buf,MyService::ServiceVers,ptrService->GetServiceName());
-	else buflen=sprintf(buf,"%s\r\nVersion: %s\r\nServer name: Not install service\r\n",buf,MyService::ServiceVers);
+	if(ptrService && ptrService->isStartupInstalled())
+		buflen=sprintf(buf,"%s\r\nVersion: %s\r\nServer name: %s (startup installed)\r\n",buf,MyService::ServiceVers,ptrService->GetServiceName());
+	else buflen=sprintf(buf,"%s\r\nVersion: %s\r\nServer name: %s\r\n",buf,MyService::ServiceVers,ptrService->GetServiceName());
 	strRet.append(buf,buflen);
 	return TRUE;
 }
