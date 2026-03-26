@@ -97,15 +97,24 @@ e=e||window.event;
 // --- Cursor sync ---
 // Fetch the current server cursor shape and apply it to the screen image element.
 // The /getCursor endpoint returns JSON {"cursor":"text"} with a CSS cursor name.
+// Only one request is allowed in-flight at a time: if the previous poll has not
+// yet completed the new one is skipped, ensuring fetchCursor never holds more
+// than one browser HTTP connection slot.
+var _cursorPending = false;
 function fetchCursor()
 {
+if(_cursorPending) return;
 var xhr;
 if(window.XMLHttpRequest) xhr=new XMLHttpRequest();
 else if(window.ActiveXObject) xhr=new ActiveXObject("Microsoft.XMLHTTP");
 if(!xhr) return;
+_cursorPending = true;
 xhr.open("GET","/getCursor",true);
 xhr.onreadystatechange=function(){
-if(xhr.readyState===4 && xhr.status===200)
+if(xhr.readyState===4)
+{
+_cursorPending = false;
+if(xhr.status===200)
 {
 try{
 var data=JSON.parse(xhr.responseText);
@@ -115,6 +124,7 @@ var img=document.getElementById("screenimage");
 if(img) img.style.cursor=data.cursor;
 }
 }catch(e){}
+}
 }
 };
 xhr.send();
