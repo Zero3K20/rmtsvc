@@ -777,12 +777,12 @@ function fetchAudioChunk()
 		fetchAudioChunk();
 	}
 
-	// Fire the next request exactly 2 s after this one starts.  The server-side
-	// ring buffer fills one 2-second sequential chunk per request, so 2000 ms
+	// Fire the next request exactly 500 ms after this one starts.  The server-side
+	// ring buffer fills one 500 ms sequential chunk per request, so 500 ms
 	// matches the server's capture window precisely and eliminates cumulative
 	// drift that would otherwise push each successive request further behind
-	// the ring's write position until the 3-second wait timeout is exceeded.
-	var prefetchTimer = setTimeout(startNext, 2000);
+	// the ring's write position until the 1.5-second wait timeout is exceeded.
+	var prefetchTimer = setTimeout(startNext, 500);
 
 	xhr.onload = function()
 	{
@@ -813,7 +813,7 @@ function fetchAudioChunk()
 		{
 			// Only retry if the prefetch chain has not already been started.
 			// Without this guard, a slow/failed server response (which takes
-			// longer than the 2000 ms prefetch timer) causes both the timer
+			// longer than the 500 ms prefetch timer) causes both the timer
 			// and this else-branch to call fetchAudioChunk(), doubling the
 			// number of concurrent request chains on every failure.  After a
 			// few failures the chains multiply exponentially, exhaust the
@@ -828,7 +828,7 @@ function fetchAudioChunk()
 				// the scheduler was ahead when the failure occurred), the new
 				// chunk would otherwise be silently queued seconds ahead,
 				// creating a perceived gap even though audio data is available.
-				if (audioCtx && nextAudioTime > audioCtx.currentTime + 2.5)
+				if (audioCtx && nextAudioTime > audioCtx.currentTime + 1.0)
 					nextAudioTime = audioCtx.currentTime;
 				setTimeout(fetchAudioChunk, 500);
 			}
@@ -839,7 +839,7 @@ function fetchAudioChunk()
 		clearTimeout(prefetchTimer);
 		if (!nextStarted)
 		{
-			if (audioCtx && nextAudioTime > audioCtx.currentTime + 2.5)
+			if (audioCtx && nextAudioTime > audioCtx.currentTime + 1.0)
 				nextAudioTime = audioCtx.currentTime;
 			setTimeout(fetchAudioChunk, 500);
 		}
