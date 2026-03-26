@@ -15,8 +15,8 @@
    
 using namespace net4cpp21;
    
-//encoding时候的每行的length
-unsigned int cCoder::m_LineWidth = 76; //80; yyc modify. smtp等default行length为76
+//line length during encoding
+unsigned int cCoder::m_LineWidth = 76; //80; yyc modify. default line length for smtp etc. is 76
 
 //Base64 decoding table
 const char cCoder::BASE64_ENCODE_TABLE[64] = {
@@ -108,7 +108,7 @@ int cCoder::Base64EncodeSize(int iSize,unsigned int nLineWidth)
 	if(nLineWidth==0) nLineWidth=m_LineWidth;
 	int nSize, nCR;
 	nSize = (iSize + 2) / 3 * 4 ;
-	nCR = nSize / nLineWidth; //count算回车count
+	nCR = nSize / nLineWidth; //calculate carriage return count
 	nSize+= nCR * 2;
 	return nSize;
 }
@@ -128,7 +128,7 @@ int cCoder::UUEncodeSize(int iSize)
 {
 	int nSize, nCR;
 	nSize = (iSize + 2) / 3 * 4 ;
-	nCR = nSize / m_LineWidth + 2; //count算回车count
+	nCR = nSize / m_LineWidth + 2; //calculate carriage return count
 	nSize+= nCR * 3 + 2;
 	return nSize;
 }
@@ -183,7 +183,7 @@ int cCoder::base64_encode(char *pSrc, unsigned int nSize, char *pDest,
 						
 			iB = iB | (unsigned char) *pInPtr++;
 						
-			//以4 byte倒序writeoutput buffer
+			//write to output buffer in reverse 4-byte order
 			OutPtr[3] = BASE64_ENCODE_TABLE[iB & 0x3F];
 			iB = iB >> 6;
 			OutPtr[2] = BASE64_ENCODE_TABLE[iB & 0x3F];
@@ -200,7 +200,7 @@ int cCoder::base64_encode(char *pSrc, unsigned int nSize, char *pDest,
 			*OutPtr++ = '\n';
 		}
 	}
-	//set尾部
+	//set the tail
 	switch (nSize - iInMax3)
 	{
 		case 1:
@@ -238,7 +238,7 @@ int cCoder::base64_decode(char *pSrc, unsigned int nSize, char *pDest)
 	if ((pSrc == NULL) || (pDest == NULL) || (nSize <= 0)) return 0;
 			
 	unsigned int lByteBuffer, lByteBufferSpace;
-	unsigned int C; //temporary阅读variable
+	unsigned int C; //temporary read variable
 	int reallen;
 	char *InPtr, *InLimitPtr;
 	char *OutPtr;
@@ -253,22 +253,22 @@ int cCoder::base64_decode(char *pSrc, unsigned int nSize, char *pDest)
 	{
 		C = BASE64_DECODE_TABLE[*InPtr]; // Read from InputBuffer.
 		InPtr++;
-		if (C == 0xFF) continue; //读到255非法character
+		if (C == 0xFF) continue; //read 0xFF which is an illegal character
 		lByteBuffer = lByteBuffer << 6 ;
 		lByteBuffer = lByteBuffer | C ;
 		lByteBufferSpace--;
-		if (lByteBufferSpace != 0) continue; //一次读入4个byte
-		//到序write3个byte到buffer
+		if (lByteBufferSpace != 0) continue; //read 4 bytes at a time
+		//write 3 bytes to buffer in order
 		OutPtr[2] = lByteBuffer;
 		lByteBuffer = lByteBuffer >> 8;
 		OutPtr[1] = lByteBuffer;
 		lByteBuffer = lByteBuffer >> 8;
 		OutPtr[0] = lByteBuffer;
-		//准备write后3bit
+		//prepare to write the last 3 bits
 		OutPtr+= 3; lByteBuffer = 0; lByteBufferSpace = 4;
 	}
 	reallen = (unsigned int)OutPtr - (unsigned int)pDest;
-	//handle尾部 return实际length
+	//handle tail and return actual length
 	switch (lByteBufferSpace)
 	{
 		case 1:
@@ -294,7 +294,7 @@ int cCoder::UU_encode(char *pSrc, unsigned int nSize, char *pDest)
 	if ((pSrc == NULL) || (pDest == NULL) || (nSize <= 0)) return 0;
 				
 	unsigned int lByteBufferSpace, Len;
-	unsigned char B[3]; //temporary阅读variable
+	unsigned char B[3]; //temporary read variable
 	char *InPtr, *InLimitPtr;
 	char *OutPtr;
 			
@@ -309,8 +309,8 @@ int cCoder::UU_encode(char *pSrc, unsigned int nSize, char *pDest)
 		while ((InPtr < InLimitPtr) && (Len < m_LineWidth))
 		{
 			lByteBufferSpace = (unsigned int) InLimitPtr - (unsigned int) InPtr;
-			if (lByteBufferSpace > 3) lByteBufferSpace = 3; //set步长
-			//取值
+			if (lByteBufferSpace > 3) lByteBufferSpace = 3; //set step size
+			//get value
 			for (unsigned int i = 0; i < lByteBufferSpace; i++ )
 			{
 				B[i] = *InPtr++;
@@ -320,7 +320,7 @@ int cCoder::UU_encode(char *pSrc, unsigned int nSize, char *pDest)
 				*OutPtr++ = 'M';
 				Len++;
 			}
-			//encoding运算
+			//encoding operation
 			OutPtr[0] = B[0] >> 2;
 			OutPtr[1] = (unsigned int) (B[0] << 4 & 0x30) + (unsigned int) (B[1] >> 4 & 0x0F);
 			OutPtr[2] = (unsigned int) (B[1] << 2 & 0x3C) + (unsigned int) (B[2] >> 6 & 0x03);
@@ -347,7 +347,7 @@ int cCoder::UU_encode(char *pSrc, unsigned int nSize, char *pDest)
 //UUCodedecoding
 int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 {
-	char C[4]; //temporary阅读variable
+	char C[4]; //temporary read variable
 	char Tmp;
 	int CurrIndex, Index;
 	char *InPtr, *InLimitPtr;
@@ -361,7 +361,7 @@ int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 	InLimitPtr= InPtr + nSize;
 	OutPtr = pDest;
 				
-	while (InPtr != InLimitPtr) //read4个character
+	while (InPtr != InLimitPtr) //read 4 characters
 	{
 		memset(C, 0, sizeof(C));
 		Index = 0;
@@ -370,7 +370,7 @@ int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 			Tmp = *InPtr++;
 			if (Tmp == 0x60) 
 			{
-				Tmp = 0x20;       //为了兼容OutLook Express
+				Tmp = 0x20;       //for compatibility with Outlook Express
 			}
 			else if (Tmp =='\r')  //first character not handled
 			{
@@ -387,7 +387,7 @@ int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 				}
 				else
 				{
-					C[Index] = Tmp;  // 向array中追加character
+					C[Index] = Tmp;  // append character to array
 					Index++;
 				}
 			}
@@ -397,7 +397,7 @@ int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 		OutPtr[0] = (char) ((C[0] << 2) + (C[1] >> 4));
 		OutPtr[1] = (char) ((C[1] << 4) + (C[2] >> 2));
 		OutPtr[2] = (char) ((C[2] << 6) + C[3]);
-		OutPtr+=3; //set起始position
+		OutPtr+=3; //set start position
 	}
 	return (unsigned int)OutPtr - (unsigned int)pDest;
 }
@@ -408,7 +408,7 @@ int cCoder::UU_decode(char *pSrc, unsigned int nSize, char *pDest)
 int cCoder::quoted_encode(char *pSrc, unsigned int nSize, char *pDest)
 {
 	unsigned int Len;
-	unsigned char B; //temporary阅读variable
+	unsigned char B; //temporary read variable
 	char *InPtr, *InLimitPtr;
 	char *OutPtr;
 			
@@ -456,34 +456,34 @@ int cCoder::quoted_decode(char *pSrc, unsigned int nSize, char *pDest)
 	if ((pSrc == NULL) || (pDest == NULL) || (nSize <= 0)) return 0;
 				
 	unsigned char nA, nB;
-	char C[2]; //temporary阅读variable
+	char C[2]; //temporary read variable
 				
 	char *InLimitPtr= pSrc + nSize;
 	char *pDestOrg = pDest;
 				
 	while (pSrc < InLimitPtr)
 	{
-		C[0] = *pSrc++; //先取firstcharacter
+		C[0] = *pSrc++; //first get the first character
 		if (C[0] == '=') //if the following is encoded
 		{
-			C[0] = *pSrc++;  //取出两个encodingcharacter
+			C[0] = *pSrc++;  //extract two encoding characters
 			C[1] = *pSrc++;
 
 			if (C[0] != '\r')
 			{
-				nA = HexToDec(C[0]); //decoding变换
+				nA = HexToDec(C[0]); //decoding transformation
 				nB = HexToDec(C[1]);
 				*pDest++ = (nA << 4) + nB;
 			}
 		}
-		else //otherwise直接output
+		else //otherwise output directly
 		{
 			*pDest++ = C[0];
 		}
 	}
 	return (unsigned int)(pDest - pDestOrg);
 }
-//url编decoding 将&amp; &lt; &gt; &quot; &mdash; 编decoding为 & < > " -
+//url encode/decode: convert &amp; &lt; &gt; &quot; &mdash; to & < > " -
 int cCoder::url_decode(const char *pSrc,int nSize,char *pDest)
 {
 	if(nSize<=0) nSize=(pSrc)?strlen(pSrc):0;
@@ -575,7 +575,7 @@ int cCoder::mime_encodeEx(const char *pSrc,unsigned int nSize,char *pDest)
 	pDest[pos]=0;
 	return pos;
 }
-//MIME encodingURL andmime_encodeEx相比仅仅notencoding/
+//MIME encoding URL, compared to mime_encodeEx it only does not encode /
 int cCoder::mime_encodeURL(const char *pSrc,unsigned int nSize,char *pDest)
 {
 	int pos=0;
@@ -647,13 +647,13 @@ int cCoder::utf8_encodeW(const unsigned short *buf,unsigned int nSize,char *pDes
 int cCoder::utf8_encode(const char *pSrc,unsigned int nSize,char *pDest)
 {
 	unsigned int i=0;
-	//check whether需要encoding
+	//check whether encoding is needed
 	for(i=0;i<nSize;i++)
 	{
 		if(((unsigned char)pSrc[i])>=0x80) break;
 	}
-	if(i==nSize){ strncpy(pDest,pSrc,nSize); pDest[nSize]=0; return nSize;} //无须encoding
-	//将单byteencodingconvert为unicode双byteencoding
+	if(i==nSize){ strncpy(pDest,pSrc,nSize); pDest[nSize]=0; return nSize;} //no encoding needed
+	//convert single-byte encoding to unicode double-byte encoding
 	unsigned short *buf=(unsigned short *)::malloc(nSize*sizeof(unsigned short));
 	if(buf==NULL) return 0;
 #ifdef WIN32
@@ -730,20 +730,20 @@ int cCoder::utf8_decodeW(const char *pSrc,unsigned int nSize,unsigned short *pDe
 int cCoder::utf8_decode(const char *pSrc,unsigned int nSize,char *pDest)
 {
 	unsigned int i=0;
-	//check whether需要encoding
+	//check whether encoding is needed
 	for(i=0;i<nSize;i++)
 	{
 		if(((unsigned char)pSrc[i])>=0x80) break;
 	}
-	if(i==nSize){ if(pSrc!=pDest) strncpy(pDest,pSrc,nSize); pDest[nSize]=0; return nSize;} //无须encoding
+	if(i==nSize){ if(pSrc!=pDest) strncpy(pDest,pSrc,nSize); pDest[nSize]=0; return nSize;} //no encoding needed
 	unsigned short *buf=(unsigned short *)::malloc((nSize+1)*sizeof(unsigned short));
 	if(buf==NULL) return 0;
 	int len=utf8_decodeW(pSrc,nSize,buf);
 	if(len>0)
-	{//将unicodeencoding转化为多byteencodingcharacter集
+	{//convert unicode encoding to multi-byte character set encoding
 #ifdef WIN32
 		len=WideCharToMultiByte(CP_ACP,WC_COMPOSITECHECK|WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR,(LPCWSTR)buf,-1,(char *)pDest,nSize,NULL,NULL);
-		if(len>0) len--;//WideCharToMultiBytereturn得lengthcontains结尾得null
+		if(len>0) len--;//WideCharToMultiByte returned length includes the terminating null
 #else
 		len=0;
 #endif
@@ -751,23 +751,23 @@ int cCoder::utf8_decode(const char *pSrc,unsigned int nSize,char *pDest)
 	::free(buf); return len;
 }
 //=?charset?encoding-type?data?= data format decoding
-//charsetspecifiesdatadata的character集，例如utf-8
-//encoding-type: BorQ， base64andQuoted-Printble
+//charset specifies the character set of the data, e.g. utf-8
+//encoding-type: B or Q, base64 and Quoted-Printable
 int cCoder::eml_decode(const char *pSrc,unsigned int nSize,char *pDest)
 {
 	if(pSrc[0]=='=' && pSrc[1]=='?' && pSrc[nSize-1]=='=' && pSrc[nSize-2]=='?')
-	{//check whether需要decoding
+	{//check whether decoding is needed
 		const char *ptr=strchr(pSrc+2,'?');
 		char cType=(ptr)?(*(ptr+1)):0;
 		if(cType=='B' || cType=='Q'){//recognizable encoding
 			char *buf=(char *)::malloc(nSize*sizeof(char));
 			if(buf==NULL) return 0;
-			::memcpy(buf,pSrc,nSize); buf[nSize-2]=0; //去掉last的?
+			::memcpy(buf,pSrc,nSize); buf[nSize-2]=0; //remove the trailing ?
 			int npos=(ptr-pSrc); buf[npos]=0;
 			char *lpCharset=buf+2;
 			char *lpData=buf+npos+3;
 			int iDataLen=strlen(lpData);
-			//start根据cType进行decoding
+			//start decoding according to cType
 			if(cType=='B') //base64 encoding
 				 iDataLen=cCoder::base64_decode(lpData,iDataLen,lpData);
 			else iDataLen=cCoder::quoted_decode(lpData,iDataLen,lpData);
@@ -778,10 +778,10 @@ int cCoder::eml_decode(const char *pSrc,unsigned int nSize,char *pDest)
 			::free(buf); return iDataLen;
 		}//?if(cType=='B' || cType=='Q')
 	}//?if(pSrc[0]=='=' && pSrc[1]=='?'
-	//otherwiseis notvalidor支持的encodingformat，无须decoding
+	//otherwise it is not a valid or supported encoding format, no decoding needed
 	if(pSrc!=pDest) strncpy(pDest,pSrc,nSize); pDest[nSize]=0; return nSize;
 }
-//totalyes进行utf-8andbase64 encoding
+//overall performs utf-8 and base64 encoding
 int cCoder::eml_encode(const char *pSrc,unsigned int nSize,char *pDest)
 {
 	strcpy(pDest,"=?utf-8?B?"); int npos=10;
@@ -800,7 +800,7 @@ int cCoder::EmlEncodeSize(int iSize)
 	return iSize+12;
 }
 
-//十进制-->十六进制
+//decimal --> hexadecimal
 inline unsigned char cCoder::DecToHex( unsigned char B)
 {
 	return B < 10 ? '0' + B:'A' + B - 10;
@@ -808,7 +808,7 @@ inline unsigned char cCoder::DecToHex( unsigned char B)
 
 //------------------------------------------------------------------------------
 
-//十六进制-->十进制
+//hexadecimal --> decimal
 inline unsigned char cCoder::HexToDec( unsigned char C )
 {
 	if(C<='9') return C-'0';
@@ -822,12 +822,12 @@ inline long power(long x,long z)
 	while(--z>=0) lret *=x;
 	return lret;
 }
-//将16进制string(大写)转为数值
+//convert hexadecimal string (uppercase) to numeric value
 unsigned long cCoder::hex_atol(const char *str)
 {
 	//firstremove leading spaces
 	while(*str==' ') str++;
-	//判断validcharacterlength
+	//determine valid character length
 	const char *ptr=str; int len=0;
 	while( (*ptr>='0' && *ptr<='9') || (*ptr>='A' && *ptr<='F') ){ ptr++; if(++len>=8) break; }
 	unsigned long ul=0; unsigned char c;
@@ -839,16 +839,16 @@ unsigned long cCoder::hex_atol(const char *str)
 }
 
 /*UTF-8 encoding principles: 
-因为一个字母还有一些键盘上的符号加起来只用二进制七bit就可以表示出来，而一个byte就yes八bit，所以UTF8就用一个byte来表式字母and一些键盘上的符号。然而when我们拿到被encoding后的一个byte后怎么知道它的组成？它有可能yes英文字母的一个byte，也有可能yes汉字的三个byte中的一个byte！所以，UTF8yes有flagbit的！ 
+Because a letter and some keyboard symbols together only need 7 binary bits to represent, and a byte is 8 bits, UTF-8 uses one byte to represent letters and some keyboard symbols. But how do we know the composition of an encoded byte? It could be one byte for an ASCII letter, or one of three bytes for a Chinese character! Therefore, UTF-8 uses flag bits! 
 
-when要表示的内容yes7bit的时候就用一个byte：0******* first个0为flagbit，剩下的space正好可以表示ASCII 0－127 的内容。 
+When the content to represent is 7 bits, use one byte: 0******* the first 0 is a flag bit, the remaining space can represent ASCII 0-127. 
 
-when要表示的内容at8到11bit的时候就用两个byte：110***** 10****** first个byte的110and第二个byte的10为flagbit。 
+When the content is 8 to 11 bits, use two bytes: 110***** 10****** the 110 of the first byte and the 10 of the second byte are flag bits. 
 
-when要表示的内容at12到16bit的时候就用三个byte：1110***** 10****** 10****** and上面一样，first个byte的1110and第二、三个byte的10都yesflagbit，剩下的space正好可以表示汉字。 
+When the content is 12 to 16 bits, use three bytes: 1110***** 10****** 10****** same as above, the 1110 of the first byte and the 10 of the second and third bytes are all flag bits, the remaining space is just enough to represent Chinese characters. 
 
-以此class推： 
-四个byte：11110**** 10****** 10****** 10****** 
-五个byte：111110*** 10****** 10****** 10****** 10****** 
-六个byte：1111110** 10****** 10****** 10****** 10****** 10****** 
+By analogy: 
+Four bytes: 11110**** 10****** 10****** 10****** 
+Five bytes: 111110*** 10****** 10****** 10****** 10****** 
+Six bytes: 1111110** 10****** 10****** 10****** 10****** 10****** 
 */

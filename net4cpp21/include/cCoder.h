@@ -98,7 +98,7 @@ namespace net4cpp21
 		*		pDest	output buffer
 		*		return	actual length after decoding
 		*
-		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
+		*	 note: no method is provided to calculate the decode length here; use the input buffer directly as the output buffer
 		*/
 		static int quoted_decode(char *pSrc, unsigned int nSize, char *pDest);
 		
@@ -114,30 +114,30 @@ namespace net4cpp21
 		*		pDest	output buffer
 		*		return	actual length after encoding
 		*
-		*	 注：此functionnot对汉字进行encoding
+		*	 note: this function does not encode Chinese characters
 		*/
 		static int mime_encode(const char *pSrc,unsigned int nSize,char *pDest);
-		//汉字也进行encoding
+		//also encodes Chinese characters
 		static int mime_encodeEx(const char *pSrc,unsigned int nSize,char *pDest);
 		static int mime_encodeURL(const char *pSrc,unsigned int nSize,char *pDest);
 		/*
-		*  对specified的string进行Mimedecoding
+		*  perform MIME decoding on the specified string
 		*
 		*	 	pSrc	inputstring
 		*		nSize	string length
 		*		pDest	output buffer
-		*		return	decoding码后的实际length
+		*		return	actual length after decoding
 		*
-		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
+		*	 note: no method is provided to calculate the decode length here; use the input buffer directly as the output buffer
 		*/
 		static int mime_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		
-		//UTF-8 - ASCII 兼容的多byte(1~3)byte Unicode encoding
-		//实际的utf8encoding的byte为1~6byte，但我们一般也就用双byte的character集，这样最多用到3byte
-		//因为0x00000800 - 0x0000FFFFcharacter转化为utf8才为3byte
+		//UTF-8 - ASCII-compatible multi-byte (1~3 bytes) Unicode encoding
+		//the actual UTF-8 encoding uses 1~6 bytes, but we generally use double-byte character sets, so at most 3 bytes are used
+		//because characters in range 0x00000800-0x0000FFFF are converted to 3 bytes in UTF-8
 		static int Utf8EncodeSize(int iSize){ return iSize *3;}
 		/*
-		*  对specified的Buffer进行utf8encoding
+		*  perform UTF-8 encoding on the specified buffer
 		*
 		*	 	pSrc	input buffer
 		*		nSize	Bufferlength
@@ -148,19 +148,19 @@ namespace net4cpp21
 		static int utf8_encode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int utf8_encodeW(const unsigned short *pSrc,unsigned int nSize,char *pDest);
 		/*
-		*  对specified的Buffer进行Utf8decoding
+		*  perform UTF-8 decoding on the specified buffer
 		*
 		*	 	pSrc	inputstring
 		*		nSize	string length
 		*		pDest	output buffer
-		*		return	decoding码后的实际length
+		*		return	actual length after decoding
 		*
-		*	 注：这里没有提供count算decodinglength的method 直接使用input buffer作outputBuffer就可以了
+		*	 note: no method is provided to calculate the decode length here; use the input buffer directly as the output buffer
 		*/
 		static int utf8_decode(const char *pSrc,unsigned int nSize,char *pDest);
 		static int utf8_decodeW(const char *pSrc,unsigned int nSize,unsigned short *pDest);
 
-		//将16进制string转为数值
+		//convert a hexadecimal string to a numeric value
 		static unsigned long hex_atol(const char *str);
 
 		//=?charset?encoding-type?data?= data format decoding

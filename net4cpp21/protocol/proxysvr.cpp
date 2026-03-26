@@ -108,7 +108,7 @@ bool cProxysvr::setCascade(const char *casHost,int casPort,int type,const char *
 			ptrBegin=ptrEnd+1;
 		}//?while
 	}//?if(casHost && casHost[0]!=0) 
-	m_bCascade=(m_vecCassvr.size()>0)?true:false; //if设了则支持secondary proxy
+	m_bCascade=(m_vecCassvr.size()>0)?true:false; //if set, supports cascaded secondary proxy
 /*	if(casHost==NULL || casHost[0]==0 || casPort<=0)
 	{//not supportedsecondary proxy
 		m_bCascade=false;
@@ -142,11 +142,11 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	std::string strPwd;
 	if(pwd) strPwd.assign(pwd);
 	if(proa.m_userpwd!="" && proa.m_userpwd!=strPwd)
-		return NULL; //passworderror //password设成null则无需password verification
+		return NULL; //password error //if password is empty, no password verification required
 	
 	if(proa.m_limitedTime>0 && time(NULL)>proa.m_limitedTime ){
 		if(perrCode) *perrCode=SOCKSERR_PROXY_EXPIRED;
-		return NULL; //account过期
+		return NULL; //account expired
 	}
 	if(!proa.m_ipRules.check(psock->getRemoteip(),psock->getRemotePort(),RULETYPE_TCP) ){
 		if(perrCode) *perrCode=SOCKSERR_PROXY_DENY;
@@ -158,7 +158,7 @@ PROXYACCOUNT * cProxysvr::ifAccess(socketTCP *psock,const char *user,const char 
 	}
 
 	if(perrCode) *perrCode=SOCKSERR_OK;
-	proa.m_loginusers++; //setdata通道的流量限制
+	proa.m_loginusers++; //set data channel bandwidth limit
 	psock->setSpeedRatio(proa.m_maxratio*1024,proa.m_maxratio*1024);
 	return &proa;
 }
@@ -171,18 +171,18 @@ void cProxysvr::onConnect(socketTCP *psock)
 	iret=psock->Peek(&ctype,1,PROXY_MAX_RESPTIMEOUT);
 	if(iret<=0) return;
 	
-	//判断proxy service的type
-	if(ctype==0x04) //可能收到socks4proxy request
+	//determine the proxy service type
+	if(ctype==0x04) //may have received a socks4 proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS4)==0) return; //本代理not supportedSOCKS4 proxy protocol
+		if((m_proxytype & PROXY_SOCKS4)==0) return; //this proxy does not support SOCKS4 proxy protocol
 		doSock4req(psock);
 	}
-	else if(ctype==0x05) //可能收到socks5proxy request
+	else if(ctype==0x05) //may have received a socks5 proxy request
 	{
-		if((m_proxytype & PROXY_SOCKS5)==0) return; //本代理not supportedsocks5代理protocol
+		if((m_proxytype & PROXY_SOCKS5)==0) return; //this proxy does not support socks5 proxy protocol
 		doSock5req(psock);
 	}
-	else if((m_proxytype & PROXY_HTTPS)!=0) //本代理支持HTTPS代理protocol
+	else if((m_proxytype & PROXY_HTTPS)!=0) //this proxy supports HTTPS proxy protocol
 		doHttpsreq(psock);
 	return;
 }
@@ -215,8 +215,8 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 		}
 	}//?if(m_bLogdatafile)
 
-	onData((char *)1,0,psock,peer); //用于分析handledata，start一个connect
-	if(sending_buf && sending_size>0)//pending send的data
+	onData((char *)1,0,psock,peer); //used to analyze/handle data, start a connection
+	if(sending_buf && sending_size>0)//data pending send
 	{
 		onData((char*)sending_buf,sending_size,psock,peer);
 		peer->Send(sending_size,sending_buf,-1);
@@ -255,7 +255,7 @@ void cProxysvr :: transData(socketTCP *psock,socketTCP *peer,const char *sending
 		}//?while
 		peer->Close(); //waitingforwardthread end
 		while(peer->parent()!=NULL) cUtils::usleep(SCHECKTIMEOUT);
-		onData(NULL,0,peer,psock); //用于notificationprotocol分析打印程序connect已经close，可release相关resource
+		onData(NULL,0,peer,psock); //notify protocol analyzer that connection has closed, release related resources
 	}else{//?if(onTransferTask
 		peer->Close(); peer->setParent(NULL);
 		RW_LOG_DEBUG(0,"Failed to create transfer-Thread\r\n");

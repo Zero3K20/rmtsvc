@@ -45,12 +45,12 @@ namespace net4cpp21
 	private:
 		std::map<std::string,mapInfo *> m_mapsets; //mapset
 		time_t m_lTimeout;//maximum wait timeout return in seconds
-		std::string m_strName; //本vidcc的name
+		std::string m_strName; //this vidcc's name
 		std::string m_strDesc;
 		VIDCSINFO m_vidcsinfo;
 		cThreadPool m_threadpool;//servicethread pool
 
-		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //save最近一次从vIDCs的commandreturn
+		char m_szLastResponse[VIDC_MAX_COMMAND_SIZE]; //saves the most recent command return from vIDCs
 	};
 	
 	class vidccSets
@@ -68,9 +68,9 @@ namespace net4cpp21
 		void str_list_vidcc(std::string &strini);
 	private:
 		cMutex m_mutex;
-		//eachvidcClient对应connect一个vIDCs
+		//each vidcClient corresponds to a connection to one vIDCs
 		std::map<std::string,vidcClient *> m_vidccs;
-		std::string m_strName; //vidcc的name
+		std::string m_strName; //vidcc's name
 		std::string m_strDesc;
 	};
 

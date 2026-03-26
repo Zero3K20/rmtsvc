@@ -198,7 +198,7 @@ cTime PASCAL cTime::GetCurrentTime()
 struct tm* cTime::CvtGmtTm()
 {
 	time_t t=mktime(&m_time);
-	t+=_timezone; //进行时区调整
+	t+=_timezone; //perform timezone adjustment
 	struct tm * ltime=localtime(&t);
 	if(ltime) m_time=*ltime;
 	return &m_time;
@@ -206,7 +206,7 @@ struct tm* cTime::CvtGmtTm()
 struct tm* cTime::CvtLocTm()
 {
 	time_t t=mktime(&m_time);
-	t-=_timezone; //进行时区调整
+	t-=_timezone; //perform timezone adjustment
 	struct tm * ltime=localtime(&t);
 	if(ltime) m_time=*ltime;
 	return &m_time;
@@ -395,31 +395,31 @@ bool ParseMonth(char* pszToken, int& nMonth)
   return bSuccess;
 }
 
-//parse如期timeformat，支持下列datetimeformat 例如RFC 1123, RFC 850 等
-//[Week,] Mmm DD YY/YYYY HH:mm:ss		例如: Sat, Sep 11 2006 12:58:20
-//[Week,] DD Mmm/MM YY/YYYY HH:mm:ss	例如: Sat, 14 Mar 98 23:13:43 +0800
-//YYYY MM DD HH:mm:ss					例如: 2009 09 18 12:01:01
+//parse date/time format, supports the following datetime formats e.g. RFC 1123, RFC 850 etc.
+//[Week,] Mmm DD YY/YYYY HH:mm:ss		e.g.: Sat, Sep 11 2006 12:58:20
+//[Week,] DD Mmm/MM YY/YYYY HH:mm:ss	e.g.: Sat, 14 Mar 98 23:13:43 +0800
+//YYYY MM DD HH:mm:ss					e.g.: 2009 09 18 12:01:01
 bool cTime::parseDate(const char *strDate)
 {
 	int lDateLen=(strDate)?strlen(strDate):0;
-	if( lDateLen<8 ) return false; //最少8bit例如 YY-MM-DD
+	if( lDateLen<8 ) return false; //at least 8 characters e.g. YY-MM-DD
 	char *szDatePtr,*szDate=new char[lDateLen+1];
 	if(szDate==NULL) return false;
-	strcpy(szDate,strDate); szDatePtr=szDate; //用于release
+	strcpy(szDate,strDate); szDatePtr=szDate; //used for release
 	SYSTEMTIME time; ::memset((void *)&time,0,sizeof(SYSTEMTIME));
 
-	//我们totalyesfalse定weekyes,分割的
+	//we assume week is separated by comma
 	char* pszToken=strchr(szDate,',');
 	if(pszToken){
 		*pszToken='\0'; int nWeekDay=0;
 		if(ParseWeekDay(szDate, nWeekDay)) time.wDayOfWeek = (WORD) nWeekDay;
 		szDate=pszToken+1;
 		while(*szDate==' ') szDate++; //delete leading spaces
-	}//?skipweek域
+	}//?skip week field
 	char seps[] = " :-"; bool bSuccess=false;
 	pszToken = strtok(szDate, seps);
 	while( pszToken ){
-	//handle年月日，只有可能为下面三种形式 1、YYYY MM DD 2、DD Mmm YY/YYYY 3、Mmm DD YY/YYYY
+	//handle year/month/day, only three possible forms: 1. YYYY MM DD  2. DD Mmm YY/YYYY  3. Mmm DD YY/YYYY
 	int iNum=atoi(pszToken);
 	if(iNum<=0){ //examples: Mmm DD YY/YYYY
 		bSuccess=ParseMonth(pszToken, iNum);
@@ -430,7 +430,7 @@ bool cTime::parseDate(const char *strDate)
 		time.wDay=(WORD)atoi(pszToken);
 		bSuccess= ((pszToken = strtok(NULL, seps))!=NULL);
 		if(!bSuccess) break;
-		time.wYear = (WORD)atoi(pszToken); //可能yesYYorYYYY
+		time.wYear = (WORD)atoi(pszToken); //could be YY or YYYY
 		if(time.wYear<50) time.wYear+=2000;
 		else if(time.wYear<100) time.wYear+=1900;
 	}else if(iNum>=1900){ //examples: YYYY MM DD
@@ -450,11 +450,11 @@ bool cTime::parseDate(const char *strDate)
 		time.wMonth =(WORD)iNum;
 		bSuccess= ((pszToken = strtok(NULL, seps))!=NULL);
 		if(!bSuccess) break;
-		time.wYear = (WORD)atoi(pszToken); //可能yesYYorYYYY
+		time.wYear = (WORD)atoi(pszToken); //could be YY or YYYY
 		if(time.wYear<50) time.wYear+=2000;
 		else if(time.wYear<100) time.wYear+=1900;
 	}
-	//handle时分秒 HH:mm:ss ,时分秒可以没有，default为 00:00:00
+	//handle hours/minutes/seconds HH:mm:ss, they may be absent, default is 00:00:00
 	pszToken = strtok(NULL, seps);
 	if(pszToken==NULL) break;
 	time.wHour = (WORD) atoi(pszToken);
@@ -464,8 +464,8 @@ bool cTime::parseDate(const char *strDate)
 	pszToken = strtok(NULL, seps);
 	if(pszToken==NULL) break;
 	time.wSecond = (WORD) atoi(pszToken);
-	//handle时区info  GMT UTC or+0800or-0700等 ...
-	break; //handleend，exit
+	//handle timezone info  GMT UTC or +0800 or -0700 etc. ...
+	break; //handle end, exit
 	}//?while( pszToken )
 	
 	if(bSuccess) { cTime timeT(time, -1); *this = timeT; }

@@ -42,7 +42,7 @@ namespace net4cpp21
 		std::string m_strPswd; //vIDCs authentication password
 		cMutex m_mutex;
 		//key - vidccID
-		std::map<long,vidccSession *> m_sessions; //current已connect的vIDCcclientset
+		std::map<long,vidccSession *> m_sessions; //set of currently connected vIDCc clients
 	};
 //***********************************************************************************	
 	class vidcServer : public socketSvr,public vidcsvr

@@ -29,11 +29,11 @@ cTelnet :: cTelnet()
 	m_cmd_prefix=0;
 }
 
-//set访问account,ifuser==NULL则此service无需authorization访问
-//otherwise需要authorization访问
+//set access account; if user==NULL this service requires no authorization
+//otherwise authorization is required
 void cTelnet::setTelAccount(const char *user,const char *pwd)
 {
-	//访问此代理无需authorization
+	//accessing this proxy requires no authorization
 	if(user==NULL){ m_bTelAuthentication=false; return; }
 	m_telUser.assign(user);
 	if(pwd) m_telPwd.assign(pwd);
@@ -56,12 +56,12 @@ void send_Clear(socketTCP *psock){
 	buf[0]=27; buf[1]='[';buf[2]='2'; buf[3]='J'; 
 	psock->Send(4,buf,-1);
 }
-//if没有error发生则returntrue
+//return true if no error occurred
 bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 {
 	bool bret=false; time_t t=time(NULL);
-	int bESC=0; //=0没有receive到ESC =1receive到ESC =2receive到ESC且紧跟着receive了一个[
-	int curpos=-1;//character的currentposition
+	int bESC=0; //=0 no ESC received  =1 ESC received  =2 ESC received and immediately followed by [
+	int curpos=-1;//current position of character
 	while(psock->status()==SOCKS_CONNECTED)
 	{
 		int iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
@@ -71,7 +71,7 @@ bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 		char buf[2]; buf[1]=0;
 		if( (iret=psock->Receive(buf,1,-1))<=0 ) break;
 // yyc add 2005-06-113 //parse ESC sequence
-		if(bESC){//parseESC序列 //27[ESC] 91[[] 67[D] 后退 27[ESC] 91[[] 67[C] 前进
+		if(bESC){//parse ESC sequence //27[ESC] 91[[] 67[D] back  27[ESC] 91[[] 67[C] forward
 			if(bESC==1) bESC=(buf[0]=='[')?2:0;
 			else if(bESC==2){
 				if(buf[0]=='D' && strRet.length()>0 ){ 
@@ -98,7 +98,7 @@ bool cTelnet::getInput(socketTCP *psock,string &strRet,int bEcho,int timeout)
 			else if(buf[0]=='\n'){ //received a newline character
 				bret=true; break;
 			}//?else if(buf[i]=='\r'){ //received a newline character
-			else if(buf[0]!='\r') { //if=='\r'则eat it，什么都not作
+			else if(buf[0]!='\r') { //if=='\r' then eat it, do nothing
 				if(buf[0]==27) bESC=1;
 				else if(curpos>=0 && curpos<(int)strRet.length())
 					strRet[curpos++]=buf[0];
@@ -129,7 +129,7 @@ void cmdoutThread(std::pair<cCmdShell *,socketTCP *> *pp)
 void cTelnet::onConnect(socketTCP *psock)
 {
 	if(m_bTelAuthentication && (psock->getFlag() & SOCKS_TCP_IN) ) 
-	{   Sleep(300);//要求authentication,但反向连出的无需authentication
+	{   Sleep(300);//authentication required, but outbound reverse connections need no authentication
 		for(int count=0;count<3;count++){
 			int iret=psock->Send(10,"\r\nloguser:",-1);
 			string strUser,strPwd;
@@ -148,12 +148,12 @@ void cTelnet::onConnect(socketTCP *psock)
 				psock->Send(48,"\r\nuser or password is wrong,please try again! \r\n",-1);
 			else{
 				psock->Send(34,"\r\nTry too much,to be disconnect.\r\n",-1); return; }
-		}//for(... 最多login三次
+		}//for(... at most three login attempts
 	}//?if(m_bAuthentication)
 	
 	RW_LOG_DEBUG(0,"[Telnet] one telnet-client is connnected.\r\n");
 	m_telClntnums++;  Sleep(300);
-	psock->Send(2,"\r\n",-1); //send欢迎提示message
+	psock->Send(2,"\r\n",-1); //send welcome prompt message
 	psock->Send(m_telHello.length(),m_telHello.c_str(),-1);
 	psock->Send("/////Support specific commands ://///////"
 				"\r\n cls       -- clear screen"
@@ -169,16 +169,16 @@ void cTelnet::onConnect(socketTCP *psock)
 		{
 			cmdShell.destroy(); delete pp;
 			m_telClntnums--; return;
-		}else Sleep(200); //暂时sleeping200ms，otherwisethread.status()returnstatus可能not对
+		}else Sleep(200); //sleep 200ms temporarily, otherwise thread.status() may return incorrect status
 	}//?if( onLogin() )
-	int bEcho=0; //defaultcloseecho，设为-1defaultopenecho 
+	int bEcho=0; //echo closed by default; set to -1 to open echo by default 
 	string strInput,strOutput;
 	socketBase *psvr=psock->parent();
 	while( psvr && psvr->status()!=SOCKS_CLOSED )
 	{
-		//if没有重定向到cmd shell则output提示符
+		//if not redirected to cmd shell, output the prompt
 		if(!thread.status()) psock->Send(m_telTip.length(),m_telTip.c_str(),-1);
-		strInput="";//getuser的input
+		strInput="";//get user input
 		if(!getInput(psock,strInput,bEcho,-1)) break;
 		if(strInput=="echo off"){
 			bEcho=0;strInput="";
@@ -189,29 +189,29 @@ void cTelnet::onConnect(socketTCP *psock)
 		else if(strInput=="cls"){
 			send_Clear(psock); strInput="";
 		}
-		else if(strInput[0]==0x3){//收到Ctrl+Ccommand
-			cmdShell.sendCtrlC(); //模拟Ctrl+C;
+		else if(strInput[0]==0x3){//received Ctrl+C command
+			cmdShell.sendCtrlC(); //simulate Ctrl+C
 			continue;
 		}
 
-		if(thread.status()) //重定向到cmd shell
+		if(thread.status()) //redirected to cmd shell
 		{
-			if(bEcho!=0 && strInput.length()>0){//deleteuserinput的回显
+			if(bEcho!=0 && strInput.length()>0){//delete echo of user input
 				string s; s.resize(strInput.length(),'\b');
 				psock->Send(s.length(),s.c_str(),-1);
 			}//?if(bEcho!=0 && (strInput.length()-2)>0){
-			if(m_cmd_prefix && m_cmd_prefix==strInput[0]) //扩展command
+			if(m_cmd_prefix && m_cmd_prefix==strInput[0]) //extended command
 			{
 				strOutput=strInput; strOutput.append("\r\n");
 				psock->Send(strOutput.length(),strOutput.c_str(),-1);
-				onCommand(strInput.c_str()+1,psock);//交给派生classhandleuserinput
+				onCommand(strInput.c_str()+1,psock);//pass user input to derived class handler
 				strInput.assign("\r\n");
 			}else strInput.append("\r\n");
 			if( cmdShell.Write(strInput.c_str(),strInput.length())< 0) break;
 		}else{
 			strOutput=strInput; strOutput.append("\r\n");
 			psock->Send(strOutput.length(),strOutput.c_str(),-1);
-			onCommand(strInput.c_str(),psock);//交给派生classhandleuserinput
+			onCommand(strInput.c_str(),psock);//pass user input to derived class handler
 		}
 	}//?while(...
 	RW_LOG_DEBUG(0,"[Telnet] one telnet-client is closing.\r\n");

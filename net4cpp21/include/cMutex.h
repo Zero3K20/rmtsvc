@@ -109,15 +109,15 @@ namespace net4cpp21
 	{
 	private:
 #ifdef WIN32
-		cMutexBase m_mutex; //false的mutexvariable，实际没有任何意义，因为windows下condition variableandmutex没有关系
+		cMutexBase m_mutex; //dummy mutex variable, has no real meaning because on Windows condition variables and mutexes are unrelated
 #else
-		cMutex m_mutex; //linux/unix下waiting需用到mutex，
-		//linux/unix下condition variable必须andmutex配合使用,以防止multiplethread同时requestpthread_cond_wait()（orpthread_cond_timedwait()，下同）的竞争
-		//at调用pthread_cond_wait()前必须由本threadlock,mutex保持lockstatus，并in thread挂起进入waiting前unlock。atcondition满足and thus leavepthread_cond_wait()之前，mutex将被重新lock，以与进入pthread_cond_wait()前的lock动作对应
+		cMutex m_mutex; //on Linux/Unix, waiting requires a mutex,
+		//on Linux/Unix, condition variables must be used together with a mutex to prevent multiple threads from simultaneously calling pthread_cond_wait() (or pthread_cond_timedwait(), same below) in a race condition
+		//before calling pthread_cond_wait(), the current thread must lock the mutex; the mutex remains locked, and is unlocked before the thread suspends into wait. Before the condition is met and pthread_cond_wait() returns, the mutex will be re-locked to correspond to the lock action before entering pthread_cond_wait()
 #endif
         pthread_cond_t m_cond;
-		int m_status; //0处于非waitingstatus，otherwise处于waitingstatus
-		unsigned long m_args;//user可传递额外parameter
+		int m_status; //0: not in waiting status, otherwise: in waiting status
+		unsigned long m_args;//user can pass extra parameters
 	public:
 		cCond()
 		{
@@ -130,12 +130,12 @@ namespace net4cpp21
 			if(m_status!=0) pthread_cond_signal(&m_cond);
             		pthread_cond_destroy(&m_cond);
 		}
-		bool wait(time_t seconds=-1) //returntrue--被激活，otherwisetimeout
+		bool wait(time_t seconds=-1) //returns true if activated, otherwise timeout
 		{
 			if(m_status!=0) return false;
-			m_status=1;//waiting激活status
+			m_status=1;//waiting activated status
 			m_mutex.lock();
-			if(seconds<0) //无限waiting，直到被激活
+			if(seconds<0) //wait indefinitely until activated
 			{
 				 pthread_cond_wait(&m_cond,m_mutex.address());
 			}
@@ -143,7 +143,7 @@ namespace net4cpp21
 			{
                 struct  timespec t;
 				t.tv_sec = (unsigned int)(time(NULL) + seconds);
-				t.tv_nsec = (long)seconds;//windows system下通过tv_nsec取得定时秒数!!!
+				t.tv_nsec = (long)seconds;//on Windows, the timeout seconds are retrieved via tv_nsec!!!
 				pthread_cond_timedwait(&m_cond,m_mutex.address(),&t);
 			}
             m_mutex.unlock();
@@ -166,7 +166,7 @@ namespace net4cpp21
 			return &m_cond;
 		}
 
-		bool status() //whether为waitingstatus
+		bool status() //whether in waiting status
 		{
 			return (m_status!=0)?true:false;
 		}

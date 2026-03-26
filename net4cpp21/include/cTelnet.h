@@ -28,13 +28,13 @@ namespace net4cpp21
 		std::string m_telTip;//command line prompt
 		char m_cmd_prefix; //extended command prefix
 
-		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//收到userinputcommand
-		virtual bool onLogin(){ return false; }//有一个usertelnetloginsuccess,returntrue则直接createcmd shell
+		virtual void onCommand(const char *strcmd,socketTCP *psock){ return ; }//received a user input command
+		virtual bool onLogin(){ return false; }//a user Telnet login succeeded; if returns true, directly create a cmd shell
 		void onConnect(socketTCP *psock);//a user has connected
 	public:
 		cTelnet();
 		virtual ~cTelnet(){}
-		//settelnet的访问account,ifuser==NULL则此无需authorization访问,otherwise需要authorization访问
+		//set the Telnet access account; if user==NULL, no authorization is required; otherwise authorization is required
 		void setTelAccount(const char *user,const char *pwd);
 		const char *getTelAccount() { return m_telUser.c_str(); }
 		const char *getTelPassword() { return m_telPwd.c_str(); }
@@ -49,7 +49,7 @@ namespace net4cpp21
 			return;
 		}
 	private:
-		//if没有error发生则returntrue
+		//returns true if no error occurred
 		bool getInput(socketTCP *psock,std::string &strRet,int bEcho,int timeout);
 	};
 	

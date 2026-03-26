@@ -53,7 +53,7 @@ namespace net4cpp21
 			if(n==1) p=&m_vecCassvr[0];
 			else if(n>1){
 				srand(clock());
-				p=&m_vecCassvr[rand()%n]; //随机get一个application service得info
+				p=&m_vecCassvr[rand()%n]; //randomly get info for one application service
 			}
 			return p; 
 		}
@@ -65,19 +65,19 @@ namespace net4cpp21
 		void transData(socketTCP *psock,socketTCP *peer,const char *sending_buf,long sending_size);
 		static void transThread(void *pthreadParam);
 	private:
-		int m_proxytype;//本proxy service支持的代理type
-		bool m_bProxyAuthentication;//本servicewhether需要authentication
-		//此proxy service的accountinfo
+		int m_proxytype;//proxy types supported by this proxy service
+		bool m_bProxyAuthentication;//whether this service requires authentication
+		//account info for this proxy service
 		std::map<std::string,PROXYACCOUNT> m_accounts;
 		//secondary proxy related parameters
-		bool m_bCascade; //whether支持secondary proxy,支持multiplesecondary proxy service器，随机选择
+		bool m_bCascade; //whether secondary proxy is supported; supports multiple secondary proxy servers, selected randomly
 		std::vector<std::pair<std::string,int> > m_vecCassvr;
 //		std::string m_casProxysvr; //secondary proxy service port
 //		int m_casProxyport; 
 		int m_casProxytype; //secondary proxy supported types
 		bool m_casProxyAuthentication; //whether secondary proxy requires authentication
 		std::pair<std::string,std::string> m_casAccessAuth;
-		bool m_bLogdatafile; //whether记录proxy serviceforward的data到logfile
+		bool m_bLogdatafile; //whether to log data forwarded by the proxy service to a log file
 	};
 
 	class proxyServer : public socketSvr,public cProxysvr

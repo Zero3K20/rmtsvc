@@ -118,11 +118,11 @@ void vidcsvr::onConnect(socketTCP *psock)
 	
 	RW_LOG_DEBUG("[vidcSvr] c--->s:\r\n\t%s\r\n",buf);
 	if(strncmp(buf,"HELO ",5)==0)
-	{//a certainclientconnect登陆
-		//create新的vidccSession并add到m_sessionsqueue中
+	{//a client connection login
+		//create a new vidccSession and add it to the m_sessions queue
 		vidccSession *pvidcc=docmd_helo(psock,buf+5);
-		if(pvidcc==NULL) return; //登陆failureclose connection
-		char buf[VIDC_MAX_COMMAND_SIZE]; int buflen=0;//进入commandhandle循环
+		if(pvidcc==NULL) return; //login failure, close connection
+		char buf[VIDC_MAX_COMMAND_SIZE]; int buflen=0;//enter command handling loop
 		time_t tLastReceived=time(NULL);
 		while(psocketsvr->status()==SOCKS_LISTEN && 
 			  psock->status()==SOCKS_CONNECTED )
@@ -135,46 +135,46 @@ void vidcsvr::onConnect(socketTCP *psock)
 			iret=psock->Receive(buf+buflen,VIDC_MAX_COMMAND_SIZE-buflen-1,-1);
 			if(iret<0) break; //==0 means received data exceeded the limit
 			if(iret==0){ cUtils::usleep(MAXRATIOTIMEOUT); continue; }
-			tLastReceived=time(NULL); //last一次receive到datatime
+			tLastReceived=time(NULL); //time of last received data
 			buflen+=iret; buf[buflen]=0; //parsevIDCcommand
 			const char *ptrCmd,*ptrBegin=buf;
 			while( (ptrCmd=strchr(ptrBegin,'\r')) )
 			{
 				*(char *)ptrCmd=0;//startparsecommand
-				if(ptrBegin[0]==0) goto NextCMD; //nothandlenull行data
-				if(strncmp(ptrBegin,"SSLC ",5)==0) //seta certainmapservice的clientauthenticationcertificateinfo
-				{//format: SSLC name=<XXX> certlen=<certificatebyte> keylen=<私钥byte> pwdlen=<passwordlength>\r\n后续byte\r\n
+				if(ptrBegin[0]==0) goto NextCMD; //do not handle empty line data
+				if(strncmp(ptrBegin,"SSLC ",5)==0) //set client authentication certificate info for a certain map service
+				{//format: SSLC name=<XXX> certlen=<certificate bytes> keylen=<private key bytes> pwdlen=<password length>\r\n followed by data bytes\r\n
 					const char *ptrData=ptrCmd+1;
 					if(*ptrData=='\r' || *ptrData=='\n') ptrData++; //skip \r\n
-					long dataLen=buflen-(ptrData-buf); //getreceivebuffer中还未分析handle的data
-					//docmd_sslcreturn从receivebuffer中取出handle的data个数
+					long dataLen=buflen-(ptrData-buf); //get unprocessed data remaining in the receive buffer
+					//docmd_sslc returns the number of bytes consumed from the receive buffer
 					dataLen=pvidcc->docmd_sslc(ptrBegin+5,ptrData,dataLen);
-					ptrBegin=ptrData+dataLen; continue; //continue下面的handle
+					ptrBegin=ptrData+dataLen; continue; //continue with the following handling
 				}else pvidcc->parseCommand(ptrBegin);
 
-NextCMD:		//移动ptrBegin到nextcommanddata起始
+NextCMD:		//advance ptrBegin to the start of the next command data
 				ptrBegin=ptrCmd+1; 
 				while(*ptrBegin=='\r' || *ptrBegin=='\n') ptrBegin++; //skip \r\n
 			}//?while( (ptrCmd=
-			//if有未receive完的command则移动
+			//if there is an incomplete command, move it
 			if((iret=(ptrBegin-buf))>0 && (buflen-iret)>0)
-			{//ifptrBegin-buf==0说明这is aerrorcommanddatapacket
+			{//if ptrBegin-buf==0, this is an error command data packet
 				buflen-=iret;
 				memmove((void *)buf,ptrBegin,buflen);
 			} else buflen=0;
 		}//?while...
-		//从m_sessionsqueue中deletevidccSession
+		//delete vidccSession from the m_sessions queue
 		m_mutex.lock();
 		std::map<long,vidccSession *>::iterator it=m_sessions.find((long)pvidcc);
 		if(it!=m_sessions.end()) m_sessions.erase(it);
 		m_mutex.unlock(); 
-		pvidcc->Destroy(); delete pvidcc; //Destroy会waitingall的管道end
+		pvidcc->Destroy(); delete pvidcc; //Destroy will wait for all pipes to finish
 	}//?if(strncmp(buf,"HELO ",5)==0)
 	else if(strncmp(buf,"PIPE ",5)==0)
-	{//此connectyesa certainvIDCc的管道connect
-		//create一个管道，这样atonConnectexit后releasepsockwill not影响到forwardthread
+	{//this connection is a pipe connection from a vIDCc
+		//create a pipe so that releasing psock after onConnect exits will not affect the forward thread
 		socketTCP *pipe=new socketTCP(*psock);
-		//setnull的父object，以便下面waiting管道绑定
+		//set parent object to null so we can wait for pipe binding below
 		if(pipe==NULL) return; else pipe->setParent(NULL);
 		long vidccID=atol(buf+5);
 		vidccSession *pvidcc=AddPipeFromVidcSession(pipe,vidccID);
@@ -182,37 +182,37 @@ NextCMD:		//移动ptrBegin到nextcommanddata起始
 		
 		time_t t=time(NULL);
 		while(psocketsvr->status()==SOCKS_LISTEN && 
-		//	  pvidcc->isConnected() && //也许pvidcc已经被releasedelete了
+		//	  pvidcc->isConnected() && //pvidcc may have already been released and deleted
 			  pipe->status()==SOCKS_CONNECTED )
-		{//if管道绑定success，则pipe的parentpointer to绑定的对端
-			if(pipe->parent()!=NULL) return; //已经绑定了forwardsocket
-			//specified的time内还没有被绑定则end
+		{//if pipe binding succeeds, pipe's parent pointer points to the bound peer
+			if(pipe->parent()!=NULL) return; //forward socket has already been bound
+			//if not bound within the specified time, end
 			else if((time(NULL)-t)>VIDC_PIPE_ALIVETIME) break; 
-			cUtils::usleep(200000); //延迟200ms
+			cUtils::usleep(200000); //delay 200ms
 		}//?while
 		if(DelPipeFromVidcSession(pipe,vidccID)) delete pipe;
-		//otherwise此管道已经被取走占用,notdelete
+		//otherwise this pipe has been taken and occupied, do not delete
 //		else{ pipe->Close(); pipe->setParent(NULL); }
 	}//?else if(strncmp(ptrBegin,"PIPE ",5)==0)
-	//yyc add 2007-08-21 support MakeHolecommand，用于TCP穿洞
+	//yyc add 2007-08-21 support MakeHole command, used for TCP hole punching
 	else if(strcmp(buf,"HOLE\r\n")==0)
 	{
 		//return the connect IP address and port
 		iret=sprintf(buf,"200 %s:%d\r\n",psock->getRemoteIP(),psock->getRemotePort());
 		iret=psock->Send(iret,buf,-1);
-		//循环waiting对方releaseconnect
+		//loop waiting for the other party to release the connection
 		while(psocketsvr->status()==SOCKS_LISTEN && 
 			  psock->status()==SOCKS_CONNECTED )
 		{
 			iret=psock->checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret<0) break;
 			if(iret==0) continue;
-			//if对方温andclose了connect则checkSocket检测==1,但读data::recv会return0
+			//if the other party gracefully closes the connection, checkSocket returns 1, but reading data via recv will return 0
 			iret=psock->Receive(buf,VIDC_MAX_COMMAND_SIZE-1,-1);
 			if(iret<0) break;
 		}//?while
 	}//?else if(strcmp(buf,"HOLE\r\n")==0)
-	//一个新的connect过来，起始只有可能sendHELOandPIPEcommand,对于其他request则close connection
+	//a new connection comes in; initially only HELO and PIPE commands can be sent, other requests will close the connection
 }
 //clientlogin authentication
 //	format:HELO <SP> <NAME:pswd> <SP> VER <SP> DESC
@@ -252,7 +252,7 @@ vidccSession * vidcsvr :: docmd_helo(socketTCP *psock,const char *param)
 	len=sprintf(buf,"200 %d %d command success.\r\n",(long)pvidcc,VIDCS_VERSION);
 	psock->Send(len,buf,-1); return pvidcc;
 }
-//vIDCclient新建立了一个管道
+//a vIDC client has newly established a pipe
 //	format:PIPE <SP> CLNTID <CRLF>
 vidccSession * vidcsvr :: AddPipeFromVidcSession(socketTCP *pipe,long vidccID)
 {

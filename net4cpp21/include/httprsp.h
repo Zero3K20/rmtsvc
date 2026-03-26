@@ -80,7 +80,7 @@ namespace net4cpp21
 		unsigned long save_resp(socketTCP *psock,const char *filename);
 		//--------------------encodingsend HTTP response---------------------------
 		void AddHeader(std::string &headName,std::string &headValue){ m_httprsp_HEADER[headName]=headValue;}
-		//setcatch控制头
+		//set cache control header
 		//"No-cache" - Do not cache this page at all, even if for use by the same client
 		//"No-store" - The response and the request that created it must not be stored on any cache, 
 		//				whether shared or private. The storage inferred here is non-volatile storage, 
@@ -89,9 +89,9 @@ namespace net4cpp21
 		void CacheControl(const char *str){ if(str) m_httprsp_HEADER["Cache-control"]=std::string(str);}
 		void NoCache(); //disable cache
 		
-		//send HTTP response头
+		//send HTTP response header
 		SOCKSRESULT send_rspH(socketTCP *psock,int respcode,const char *respDesc);
-		//sendfile，returns SOCKSERR_OK on success
+		//send file, returns SOCKSERR_OK on success
 		SOCKSRESULT sendfile(socketTCP *psock,const char *filename,
 			MIMETYPE_ENUM mt=MIMETYPE_UNKNOWED,long startPos=0,long endPos=-1);
 		SOCKSRESULT sendfile(socketTCP *psock,const char *filename,
@@ -99,7 +99,7 @@ namespace net4cpp21
 
 		static MIMETYPE_ENUM MimeType(const char *filename);
 	private:
-		//parse HTTP response头，returnresponse码
+		//parse HTTP response header, return response code
 		int ParseResponse(const char *httprspH);
 		void parse_SetCookie(const char *strParam);
 		void parseParam(char *strParam,char delm,
@@ -111,10 +111,10 @@ namespace net4cpp21
 		DWORD m_httprsp_dwVer; //httpprotocolversion
 		long m_httprsp_lContentlen;
 		std::map<std::string,std::string> m_httprsp_HEADER;
-		//httprspresponsereceive的新set的cookieinfo
+		//newly set cookie info received in the HTTP response
 		std::map<std::string,TNew_Cookie> m_httprsp_SETCOOKIE;
-		bool m_httprsp_bReceiveALL;//whether已经HTTP request完整receive
-		cBuffer m_httprsp_data; //savereceive的partial/全部responseBodydata
+		bool m_httprsp_bReceiveALL;//whether the complete HTTP response has been received
+		cBuffer m_httprsp_data; //saves the received partial or complete response body data
 	};
 
 }//?namespace net4cpp21

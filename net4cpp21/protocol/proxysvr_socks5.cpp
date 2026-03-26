@@ -39,15 +39,15 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 			if(recvlen<(psock5req->nMethods+2)) continue; //data not fully received yet
 			//fully received, start handling message
 			sock5ans ans; ans.Ver =5;
-			ans.Method=(m_bProxyAuthentication)?2:0;//2要求authentication,waitingpasswordauthenticationinfootherwisedo not求authentication
+			ans.Method=(m_bProxyAuthentication)?2:0;//2=authentication required, waiting for password authentication info; otherwise no authentication required
 			psock->Send(2 /*sizeof(sock5ans)*/,(const char *)&ans,-1);
-			istep=(m_bProxyAuthentication)?1:2; //步骤1waitingpassword verification
-			recvlen=0; continue; //clearreceive的data,continue
+			istep=(m_bProxyAuthentication)?1:2; //step 1: waiting for password verification
+			recvlen=0; continue; //clear received data, continue
 		}
-		else if(istep==1) //第二步socks5password verification
+		else if(istep==1) //step 2: socks5 password verification
 		{
 			authreq *pauthreq=(authreq *)buf;
-			if(pauthreq->Ver!=1) break; //error的protocoldata
+			if(pauthreq->Ver!=1) break; //malformed protocol data
 			if( recvlen<4 ) continue; //data not fully received yet
 			if(recvlen<(pauthreq->Ulen+3) ) continue; //data not fully received yet
 			unsigned char plen=*(unsigned char *)(buf+2+pauthreq->Ulen); //getpasswordlength
@@ -59,15 +59,15 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 //			pauthreq->Pass[pauthreq->PLen]=0; //error yyc modify 2007-01-10
 			authans auans;auans.Ver=1;
 			ptr_proa=ifAccess(psock,pauthreq->Name,strPass,NULL);
-			if(ptr_proa) //authentication通过
-				auans.Status=0;  //success //authentication通过
-			else auans.Status=1; //authenticationnot通过
+			if(ptr_proa) //authentication passed
+				auans.Status=0;  //success //authentication passed
+			else auans.Status=1; //authentication failed
 			psock->Send(2 /*sizeof(authans)*/,(const char *)&auans,-1);
 			if(auans.Status!=0) break;
-			istep=2; //步骤2
-			recvlen=0; continue; //clearreceive的data,continue
+			istep=2; //step 2
+			recvlen=0; continue; //clear received data, continue
 		}//?else if(istep==1)
-		else if(istep==2) //第三步handlecommandrequest
+		else if(istep==2) //step 3: handle command request
 		{
 			sock5req1 *psock5req1=(sock5req1 *)buf;
 			char *hostip; int hostport=0;
@@ -94,9 +94,9 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 				break; 
 			}
 			socketProxy peer; peer.setParent(psock);
-			if(m_bCascade){ //set了secondary proxy
+			if(m_bCascade){ //a secondary proxy has been set
 				PROXYTYPE ptype=PROXY_SOCKS5;
-				if((m_casProxytype & PROXY_SOCKS5)==0) //secondary proxynot supportedSOCKS5代理
+				if((m_casProxytype & PROXY_SOCKS5)==0) //secondary proxy does not support SOCKS5 proxy
 				{
 					if(m_casProxytype & PROXY_HTTPS)
 						ptype=PROXY_HTTPS;
@@ -110,8 +110,8 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 					peer.setProxy(ptype,p->first.c_str(),p->second,"","");
 			}//?if(m_bCascade)
 			if(psock5req1->Cmd ==1) //tcp connect
-			{//connectspecified的remote主机,if success则建立dataforward对
-				bool bAccessDest=true; //whetherallow access目的service
+			{//connect to the specified remote host; if successful, create a data forwarding pair
+				bool bAccessDest=true; //whether to allow access to the destination service
 				if(ptr_proa && ptr_proa->m_dstRules.rules()>0)
 				{
 					if(hostip) IPAddr=socketBase::Host2IP(hostip);
@@ -121,8 +121,8 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 				{
 //					RW_LOG_DEBUG("[ProxySvr] SOCKS5 - Connecting %s:%d ... \r\n",((hostip)?hostip:socketBase::IP2A(IPAddr)),hostport);
 
-					if(m_bCascade) //set了secondary proxy
-					{//通过secondary proxyconnectspecified的application service
+					if(m_bCascade) //a secondary proxy has been set
+					{//connect to the specified application service via secondary proxy
 						if(hostip==NULL){
 							strcpy(buf,socketBase::IP2A(IPAddr));
 							hostip=buf; }
@@ -141,8 +141,8 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 				}else ans1.Rep=5;
 			}//?if(psock5req1->Cmd ==1)
 			else if(psock5req1->Cmd ==2) //tcp bind
-			{//clientrequestatsocks server-side建立一个temporary侦听service，waitingspecifiedhostip的connect到来
-				if(m_bCascade) //set了secondary proxy
+			{//client requests the socks server to create a temporary listening service, waiting for connection from specified host IP
+				if(m_bCascade) //a secondary proxy has been set
 				{
 					std::string svrip; int svrport=hostport;
 					if(hostip) svrip.assign(hostip); 
@@ -153,10 +153,10 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 						ans1.IPAddr=peer.getRemoteip();//...//sendsuccessresponse 
 						psock->Send(10 /*sizeof(sock5ans1)*/,(const char *)&ans1,-1);
 						ans1.Port=0; ans1.IPAddr=0;
-						ans1.Rep=1; //waiting对方connect，并send第二个response
+						ans1.Rep=1; //waiting for peer to connect, send the second response
 						if(peer.WaitForBinded(PROXY_MAX_RESPTIMEOUT,false))
 						{
-							ans1.Port=htons(peer.getRemotePort()); //...可能should为实际的port/IP???
+							ans1.Port=htons(peer.getRemotePort()); //...should possibly be the actual port/IP???
 							ans1.IPAddr=peer.getRemoteip(); //...
 							ans1.Rep=0; //connected successfully
 						}
@@ -167,7 +167,7 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 					ans1.IPAddr=0; //psock->getLocalip();//sendsuccessresponse 
 					psock->Send(10 /*sizeof(sock5ans1)*/,(const char *)&ans1,-1);
 					ans1.Port=0; ans1.IPAddr=0;
-					ans1.Rep=1; //waiting对方connect，并send第二个response
+					ans1.Rep=1; //waiting for peer to connect, send the second response
 					if(peer.Accept(PROXY_MAX_RESPTIMEOUT,NULL)>0)
 					{
 						ans1.Port=htons(peer.getRemotePort());
@@ -176,44 +176,44 @@ void cProxysvr :: doSock5req(socketTCP *psock)
 					}
 				}else ans1.Rep=1; //general error
 			}//?else if(psock5req1->Cmd ==2)
-			else if(psock5req1->Cmd ==3) //udp代理
+			else if(psock5req1->Cmd ==3) //UDP proxy
 			{
-				socketUdp sockUdp; //open一个UDPport用来代理forward data
+				socketUdp sockUdp; //open a UDP port to proxy-forward data
 				SOCKSRESULT sr=sockUdp.Open(0,false,NULL);
 				if(sr>0){ //UDPportopensuccess
-					std::string svrip; int svrport=sr; //secondary proxyreturn的代理UDPportandIP
+					std::string svrip; int svrport=sr; //UDP proxy port and IP returned by the secondary proxy
 					if(!m_bCascade || peer.UdpAssociate(svrip,svrport,PROXY_MAX_RESPTIMEOUT)>0)
-					{//if没有setsecondary proxy，or者向secondary proxysendUDP代理commandsuccess
+					{//if no secondary proxy is set, or the UDP proxy command sent to secondary proxy succeeded
 						ans1.Rep=0; ans1.Port=htons(sr); //success
 						ans1.IPAddr=psock->getLocalip();
 						psock->Send(10 /*sizeof(sock5ans1)*/,(const char *)&ans1,-1);
-						//getUDP代理clientIPandport，即clntIP,clntPort
+						//get the UDP proxy client IP and port, i.e. clntIP, clntPort
 						if(hostip) IPAddr=socketBase::Host2IP(hostip);
 						if(IPAddr==INADDR_ANY || IPAddr==INADDR_NONE) IPAddr=psock->getRemoteip();
 						if(m_bCascade){
 							peer.setRemoteInfo(svrip.c_str(),svrport);
 							sockUdp.setParent(&peer);
 						}
-						transData_UDP(psock,sockUdp,IPAddr,hostport); //startUDPdata代理forward
+						transData_UDP(psock,sockUdp,IPAddr,hostport); //start UDP data proxy forwarding
 						break;
 					}//?if(!m_bCascade ||
 				}//?if(sr>0)
-				ans1.Rep=1; //常见的Socks故障 //ans1.Rep=7;//暂时先not supported
-			}//?else if(psock5req1->Cmd ==3) //udp代理
-			else ans1.Rep=7;//not supported的command
+				ans1.Rep=1; //common Socks failure //ans1.Rep=7;//temporarily not supported
+			}//?else if(psock5req1->Cmd ==3) //UDP proxy
+			else ans1.Rep=7;//unsupported command
 			psock->Send(10 /*sizeof(sock5ans1)*/,(const char *)&ans1,-1);
-			if(ans1.Rep==0) //SOCKS5commandsuccess,createforward对
+			if(ans1.Rep==0) //SOCKS5 command success, create forwarding pair
 				transData(psock,&peer,NULL,0);
 			else RW_LOG_PRINT(LOGLEVEL_WARN,"[ProxySvr] SOCKS5 failed - Cmd=%d, Atyp=%d, Rep=%d, host:port=%s:%d\r\n",
 					psock5req1->Cmd,psock5req1->Atyp,ans1.Rep,((hostip)?hostip:peer.getRemoteIP()),hostport);
-			break;//跳出循环,endhandle
+			break;//exit loop, end handling
 		}//?else if(istep==2)
-		else break; //error的步骤
+		else break; //error step
 	}//?while
 
 	if(ptr_proa) ptr_proa->m_loginusers--;
 }
-//yyc 2007-02-12 增加socks5 UDP代理的handle
+//yyc 2007-02-12 added socks5 UDP proxy handling
 //UDPdataforward
 #define UDPPACKAGESIZE 8192
 #define SOCKS5UDP_SIZE 10  //sizeof(sock5udp)==12
@@ -222,46 +222,46 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 	if(psock==NULL) return;
 	socketTCP *psvr=(socketTCP *)psock->parent();
 	if(psvr==NULL) return;
-	//whetherspecified了secondary proxy,peer为connectsecondary proxy的socket
+	//whether a secondary proxy is specified; peer is the socket connecting to the secondary proxy
 	socketProxy *peer=(socketProxy *)sockUdp.parent();
 	
 	char *buffer=new char[SOCKS5UDP_SIZE+UDPPACKAGESIZE];
 	if(buffer==NULL) return;
 	
-	//startUDPdata的代理forward
+	//start UDP data proxy forwarding
 	RW_LOG_DEBUG(0,"[ProxySvr] socks5-UDP has been started\r\n");
-	if(peer) //specified了secondary proxy
-	{   //getsecondary proxy开的UDP代理port
+	if(peer) //a secondary proxy has been specified
+	{   //get the UDP proxy port opened by the secondary proxy
 		int casUdpPort=peer->getRemotePort();
 		unsigned long casUdpIP=peer->getRemoteip();
 		RW_LOG_DEBUG("[ProxySvr] socks5-UDP : Cascade UDP %s:%d\r\n",socketBase::IP2A(casUdpIP),casUdpPort);
 		while(psvr->status()==SOCKS_LISTEN)
 		{
-			//checkSocket会判断connectsecondary proxy的connectwhether异常
+			//checkSocket will determine whether the connection to the secondary proxy is abnormal
 			int iret=sockUdp.checkSocket(SCHECKTIMEOUT,SOCKS_OP_READ);
 			if(iret==0){
 				if(psock->checkSocket(0,SOCKS_OP_READ)<0) break;
 				else if(peer->checkSocket(0,SOCKS_OP_READ)<0) break;
 				else continue;
 			}
-			if(iret<0) break; //发生error
+			if(iret<0) break; //error occurred
 			//read data sent by client
 			iret=sockUdp.Receive(buffer,UDPPACKAGESIZE,-1);
-			if(iret<=0){//抛弃error，仅仅打印errorinfo
+			if(iret<=0){//discard error, just print error info
 				RW_LOG_DEBUG("[ProxySvr] socks5-UDP : Failed to Receive,(%d - %d)\r\n",iret,sockUdp.getErrcode());
 				continue; 
 			}
-			//ifyes从代理client过来的UDPdata则forward给secondary proxy，
+			//if from the proxy client UDP data then forward to secondary proxy,
 			if(sockUdp.getRemoteip()==clntIP && sockUdp.getRemotePort()==clntPort)
 				sockUdp.SetRemoteInfo(casUdpIP,casUdpPort);
-			else //otherwiseforward给代理client
+			else //otherwise forward to proxy client
 				sockUdp.SetRemoteInfo(clntIP,clntPort);
 			iret=sockUdp.Send(iret,buffer,-1);
 
 //			RW_LOG_DEBUG("CasCade - len=%d data:\r\n:%s.\r\n",iret,buffer+sizeof(socks5udp));
 		}//?while
 	}
-	else //没有specifiedsecondary proxy
+	else //no secondary proxy specified
 	{
 		char *buf=buffer+SOCKS5UDP_SIZE;
 		socks5udp *pudp_pack=(socks5udp *)buffer;
@@ -276,21 +276,21 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 			}
 			if(iret<0){
 				RW_LOG_DEBUG("[ProxySvr] socks5-UDP : checkSocket() return %d\r\n",iret);
-				break; //发生error
+				break; //error occurred
 			}
 			//read data sent by client
 			iret=sockUdp.Receive(buf,UDPPACKAGESIZE,-1);
-			if(iret<=0){//抛弃error，仅仅打印errorinfo
+			if(iret<=0){//discard error, just print error info
 				RW_LOG_DEBUG("[ProxySvr] socks5-UDP : Failed to Receive,(%d - %d)\r\n",iret,sockUdp.getErrcode());
 				continue; 
 			}
-			//ifyes从代理client过来的UDPdata则forward给secondary proxy，
+			//if from the proxy client UDP data then forward to secondary proxy,
 			if(sockUdp.getRemoteip()==clntIP && sockUdp.getRemotePort()==clntPort)
-			{//从UDPdatapacket中parsed实际的IPaddressandport
+			{//parse the actual IP address and port from the UDP data packet
 				unsigned long IPAddr=INADDR_NONE; int hostport=0;
 				socks5udp *pudp=(socks5udp *)buf; long udppackLen;
-				if(pudp->Frag!=0) //非独立UDPpacket需进行碎片reassemble
-				{//暂时notimplementation碎片reassemble功能，抛弃此packet
+				if(pudp->Frag!=0) //non-standalone UDP packet needs fragment reassembly
+				{//fragment reassembly not yet implemented, discard this packet
 					RW_LOG_DEBUG(0,"[ProxySvr] socks5-UDP : Received UDP frag,discard it\r\n");
 					continue;
 				}
@@ -315,7 +315,7 @@ void transData_UDP(socketTCP *psock,socketUdp &sockUdp,unsigned long clntIP,int 
 				iret=sockUdp.Send(iret-udppackLen,buf+udppackLen,-1);
 //				RW_LOG_DEBUG("Client->UDP(%s:%d) - len=%d data:\r\n%s.\r\n",
 //					socketBase::IP2A(IPAddr),hostport,iret-udppackLen,buf+udppackLen);
-			}else{ //otherwise进行UDP封packetthenforward给代理client
+			}else{ //otherwise encapsulate UDP packet and forward to proxy client
 				pudp_pack->IPAddr=sockUdp.getRemoteip();
 				pudp_pack->Port=htons(sockUdp.getRemotePort());
 				sockUdp.SetRemoteInfo(clntIP,clntPort);

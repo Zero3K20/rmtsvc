@@ -136,7 +136,7 @@ bool vidcManager :: saveAsstring(std::string &strini)
 	return true;
 }
 
-//savecurrentvIDC的configuration到registry
+//save current vIDC configuration to registry
 bool vidcManager :: saveIni()
 {
 	std::string strini;
@@ -157,13 +157,13 @@ bool vidcManager :: saveIni()
 	}
 	return true;
 }
-//更改HTTP response header
+//modify HTTP response header
 //command format:
-//	mdhrsp vname=<XXX> name=<XXX> cond=<HTTP response代码> header=<response头name>
-//							  pattern=<匹配模式> replto=<替换string>
-//cond=<HTTP response代码> - 确定更改HTTPresponse代码为specified代码的头
-//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的string替换
-//replto=<替换string> - ifreplto为null则直接delete此头
+//	mdhrsp vname=<XXX> name=<XXX> cond=<HTTP response code> header=<response header name>
+//							  pattern=<match pattern> replto=<replacement string>
+//cond=<HTTP response code> - determines which HTTP response headers to modify for the specified code
+//pattern=<match pattern>  - if match pattern is null, directly replace with the string specified by replto
+//replto=<replacement string> - if replto is null, directly delete this header
 void vidcManager :: docmd_mdhrsp(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -191,13 +191,13 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 	else strReplto="";
 	if(mapname=="" || strHeader=="") return;
 	if(vname=="") //local port mapping
-	{//setlocal port mapping的HTTPresponse头modify规则
+	{//set HTTP response header modify rules for local port mapping
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		mportTCP *ptr_mtcp=(it1==m_tcpsets.end())?NULL:(*it1).second;
 		if(ptr_mtcp==NULL) return;	
 		ptr_mtcp->addRegCond(rspcode,strHeader.c_str(),strPattern.c_str(),strReplto.c_str());
 	}else //remote port mapping
-	{//setremote port mapping的HTTPresponse头modify规则
+	{//set HTTP response header modify rules for remote port mapping
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		mapInfo * pinfo=(pvidcc)?pvidcc->mapinfoGet(mapname.c_str(),false):NULL;
 		if(pvidcc==NULL || pinfo==NULL) return;
@@ -207,13 +207,13 @@ void vidcManager :: docmd_mdhrsp(const char *strParam)
 		pinfo->m_hrspRegCond.push_back(buf);	
 	}//remote port mapping
 }
-//更改HTTP request header
+//modify HTTP request header
 //command format:
-//	mdhreq vname=<XXX> name=<XXX> cond=<HTTP requesturl> header=<response头name>
-//							  pattern=<匹配模式> replto=<替换string>
-//cond=<HTTP requesturl>  - 更改符合condition的HTTPrequest头，request的Urlandspecified的condcontains匹配
-//pattern=<匹配模式>  - if匹配模式为null则直接用repltospecified的string替换
-//replto=<替换string> - ifreplto为null则直接delete此头
+//	mdhreq vname=<XXX> name=<XXX> cond=<HTTP request URL> header=<response header name>
+//							  pattern=<match pattern> replto=<replacement string>
+//cond=<HTTP request URL>  - modify HTTP request headers that match the condition; the request URL contains a match with the specified cond
+//pattern=<match pattern>  - if match pattern is null, directly replace with the string specified by replto
+//replto=<replacement string> - if replto is null, directly delete this header
 void vidcManager :: docmd_mdhreq(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -239,16 +239,16 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 	if( (it=maps.find("replto"))!=maps.end())
 		strReplto=(*it).second;
 	else strReplto="";
-	//yyc modify 2010-02-23 增加了URL rewrite功能，at this pointheader无意义
+	//yyc modify 2010-02-23 added URL rewrite functionality, at this point the header is meaningless
 	if(mapname=="") return; // || strHeader=="") return; 
 	if(vname=="") //local port mapping
-	{//setlocal port mapping的HTTPresponse头modify规则
+	{//set HTTP response header modify rules for local port mapping
 		std::map<std::string,mportTCP *>::iterator it1=m_tcpsets.find(mapname);
 		mportTCP *ptr_mtcp=(it1==m_tcpsets.end())?NULL:(*it1).second;		
 		if(ptr_mtcp==NULL) return;
 		ptr_mtcp->addRegCond(strUrl.c_str(),strHeader.c_str(),strPattern.c_str(),strReplto.c_str());
 	}else //remote port mapping
-	{//setremote port mapping的HTTPresponse头modify规则
+	{//set HTTP response header modify rules for remote port mapping
 		vidcClient *pvidcc=this->m_vidccSets.GetVidcClient(vname.c_str(),false);
 		mapInfo * pinfo=(pvidcc)?pvidcc->mapinfoGet(mapname.c_str(),false):NULL;
 		if(pvidcc==NULL || pinfo==NULL) return;
@@ -258,10 +258,10 @@ void vidcManager :: docmd_mdhreq(const char *strParam)
 		pinfo->m_hreqRegCond.push_back(buf);
 	}//remote port mapping
 }
-//setport mapping service的clientauthenticationcertificateinfo
-//仅仅对于那些－ssl的mapservicevalid
-//format: sslc vname=<XXX> name=<XXX> cert=<clientcertificate>,<certificate私钥>,<私钥password>
-//if没有specifiedvname则yeslocal port mapping，otherwise为remote port mapping
+//set client authentication certificate info for the port mapping service
+//only valid for those -ssl map services
+//format: sslc vname=<XXX> name=<XXX> cert=<client certificate>,<certificate private key>,<private key password>
+//if vname is not specified, it is local port mapping, otherwise it is remote port mapping
 bool vidcManager :: docmd_sslc(const char *strParam)
 {
 	if(strParam==NULL) return false;
@@ -317,7 +317,7 @@ bool vidcManager :: docmd_sslc(const char *strParam)
 }
 //local port mapping
 //command format: 
-//	mtcpl name=<XXX> appsvr=<要mapped application service> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<本service绑定的local machineIP>] [apptype=FTP|WWW|TCP|UNKNOW] [maxconn=<maximumconcurrentconnect数>] [maxratio=<>] [appdesc=<description>]
+//	mtcpl name=<XXX> appsvr=<application service to map> mport=<map port>[+|-ssl] [sslverify=0|1] [bindip=<local machine IP to bind for this service>] [apptype=FTP|WWW|TCP|UNKNOW] [maxconn=<maximum concurrent connections>] [maxratio=<>] [appdesc=<description>]
 bool vidcManager :: docmd_mtcpl(const char *strParam)
 {
 	if(strParam==NULL) return false;
@@ -328,7 +328,7 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	if( (it=maps.find("appsvr"))==maps.end() || (*it).second=="")
 		return false;
 
-	//生成一个temporary的mapservice name称
+	//generate a temporary map service name
 	char strMapname[32]; sprintf(strMapname,"mtcpl_%d",m_tcpsets.size());
 	const char *mapname=strMapname;
 	if( (it=maps.find("name"))!=maps.end() && (*it).second!="" )
@@ -396,7 +396,7 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 		if(mportEnd<0) mportEnd=0;	
 	}//?parseport mappingparameter
 
-	long ltmp; it=maps.find("maxratio"); //限制带宽
+	long ltmp; it=maps.find("maxratio"); //bandwidth limit
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	ptr_mtcp->setMaxRatio( ((ltmp<0)?0:ltmp) );
 	it=maps.find("maxconn"); //limit maximum connections
@@ -412,9 +412,9 @@ bool vidcManager :: docmd_mtcpl(const char *strParam)
 	return true;
 }
 
-//setip过滤规则andautostartflag
+//set IP filter rules and auto-start flag
 //command format:
-//	iprules type=[mtcpl|mupl|mtcpr] name=<mapservice name称>] [autorun=[1|0] [access=0|1] ipaddr="<IP>,<IP>,..."
+//	iprules type=[mtcpl|mupl|mtcpr] name=<map service name>] [autorun=[1|0] [access=0|1] ipaddr="<IP>,<IP>,..."
 //access=0|1     : whether to deny or allow IPs matching the following conditions
 void vidcManager :: docmd_iprules(const char *strParam)
 {
@@ -424,14 +424,14 @@ void vidcManager :: docmd_iprules(const char *strParam)
 	std::map<std::string,std::string>::iterator it;
 	if( (it=maps.find("type"))==maps.end()) return;
 	if((*it).second=="vidcs")
-	{//setproxy service IP filtering规则
+	{//set proxy service IP filtering rules
 		if( (it=maps.find("access"))!=maps.end())
 			m_vidcsvr.m_ipaccess=atoi((*it).second.c_str());
 		
 		if( (it=maps.find("ipaddr"))!=maps.end())
 			m_vidcsvr.m_ipRules=(*it).second;
 	}else if((*it).second=="mtcpl")
-	{//setlocal port mapping的IP filter rules
+	{//set IP filter rules for local port mapping
 		if( (it=maps.find("name"))==maps.end()) return;
 		std::string mapname=(*it).second;
 		::strlwr((char *)mapname.c_str()); //convert to lowercase
@@ -453,7 +453,7 @@ void vidcManager :: docmd_iprules(const char *strParam)
 			p->ipRules=(*it).second;
 	}//?else if((*it).second=="mtcpl")
 	else if((*it).second=="mtcpr")
-	{//setremote port mapping的IP filter rules
+	{//set IP filter rules for remote port mapping
 		std::string vname,mapname;
 		std::map<std::string,std::string>::iterator it;
 		if( (it=maps.find("vname"))!=maps.end()) vname=(*it).second;
@@ -499,9 +499,9 @@ void vidcManager :: docmd_vidcs(const char *strParam)
 	else m_vidcsvr.accessPswd()="";
 }
 
-//setvidccconnect的远端vidcsinfo
+//set the remote vIDCs info for the vidcc connection
 //command format:
-//	vidcc vname=<name> vhost=<host:port> vpswd=<访问password> autorun<0|1>"
+//	vidcc vname=<name> vhost=<host:port> vpswd=<access password> autorun<0|1>"
 void vidcManager :: docmd_vidcc(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -531,8 +531,8 @@ void vidcManager :: docmd_vidcc(const char *strParam)
 
 //setremote port mappinginfo
 //command format:
-//	mtcpr type=[TCP|UDP] vname=<vidccname> name=<mapname> appsvr=<application service> mport=<map port>[+-ssl] [sslverify=0|1] bindip=<绑定ip> apptype=<FTP|WWW|TCP|UNK> automap=<0|1> appdesc=<description>"
-//	mtcpr type=PROXY vname=<vidccname> name=<mapname> mport=<map port> bindip=<绑定ip> svrtype=<HTTPS|SOCKS4|SOCKS5> bauth=<0|1> account=<account:password> automap=<0|1> appdesc=<description>"
+//	mtcpr type=[TCP|UDP] vname=<vidccname> name=<mapname> appsvr=<application service> mport=<map port>[+-ssl] [sslverify=0|1] bindip=<bind ip> apptype=<FTP|WWW|TCP|UNK> automap=<0|1> appdesc=<description>"
+//	mtcpr type=PROXY vname=<vidccname> name=<mapname> mport=<map port> bindip=<bind ip> svrtype=<HTTPS|SOCKS4|SOCKS5> bauth=<0|1> account=<account:password> automap=<0|1> appdesc=<description>"
 void vidcManager :: docmd_mtcpr(const char *strParam)
 {
 	std::map<std::string,std::string> maps;
@@ -575,7 +575,7 @@ void vidcManager :: docmd_mtcpr(const char *strParam)
 		}
 	}
 
-	long ltmp; it=maps.find("maxratio"); //限制带宽
+	long ltmp; it=maps.find("maxratio"); //bandwidth limit
 	if(it!=maps.end()) ltmp=atol((*it).second.c_str()); else ltmp=0;
 	pinfo->m_maxratio=ltmp;
 	it=maps.find("maxconn"); //limit maximum connections

@@ -29,12 +29,12 @@ namespace net4cpp21
 		void setTimeout(time_t s){ if((m_lTimeout=s)<1) m_lTimeout=SMTP_MAX_RESPTIMEOUT; }
 		//set SMTP service authentication type and account
 		void setSMTPAuth(SMTPAUTH_TYPE authType,const char *strAccount,const char *strPwd);
-		// function功能：connect to SMTP server and send the specified email. Returns SOCKSERR_OK on success
+		// function: connect to SMTP server and send the specified email. Returns SOCKSERR_OK on success
 		SOCKSRESULT sendMail(mailMessage &mms,const char *smtpsvr,int smtpport);
 		SOCKSRESULT sendMail_MX(mailMessage &mms,const char *dnssvr,int dnsport);
 		//****************************************
-		// function功能：direct mail delivery. Returns SOCKSERR_OK on success
-		//emlfile: email format file, two types of format files. email body前!开头的为comment行
+		// function: direct mail delivery. Returns SOCKSERR_OK on success
+		//lines starting with ! before the email body are comment lines
 		//if first line is 'Email body is base64 encoded', it represents an email received by smtpsvr to be forwarded
 		//otherwise it is an email composed by user to send, format:
 		//FROM: <sender>\r\n
@@ -49,18 +49,18 @@ namespace net4cpp21
 		SOCKSRESULT sendMail_MX(const char *emlfile,const char *dnssvr,int dnsport);
 		std::vector<std::string> &errors() { return m_errors; }
 	private:
-		//connectspecified的smtpserver
+		//connect to the specified SMTP server
 		SOCKSRESULT ConnectSvr(const char *smtpsvr,int smtpport);
 		SOCKSRESULT Auth_LOGIN();
 		SOCKSRESULT _sendMail(mailMessage &mms,const char *toemail);
 		bool sendCommand(int response_expected,char *buf,int buflen,int maxbuflen);
 
 	private:
-		SMTPAUTH_TYPE m_authType;//smtpservicewhether需要authentication,目前仅仅支持LOGINauthentication方式
+		SMTPAUTH_TYPE m_authType;//whether the SMTP service requires authentication; currently only LOGIN authentication is supported
 		std::string m_strAccount;//account and password for LOGIN authentication
 		std::string m_strPwd;
 		time_t m_lTimeout;//maximum wait timeout return in seconds
-		std::vector<std::string> m_errors; //记录send时的error
+		std::vector<std::string> m_errors; //records errors during sending
 		std::string m_ehloName;
 	};
 }//?namespace net4cpp21

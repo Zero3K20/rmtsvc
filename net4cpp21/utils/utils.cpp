@@ -22,10 +22,10 @@ using namespace net4cpp21;
 
 #ifdef WIN32
 
-//returndelete directory的size KBytes
+//return the size in KBytes of the deleted directory
 unsigned long FILEIO::fileio_deleteDir(const char *spath)
 {
-	//要delete的directory必须yesnulldirectory,therefore必须先删nulldirectory下地东西
+	//the directory to delete must be an empty directory, so its contents must be deleted first
 	string Path(spath);
 	if(Path[Path.length()-1]!='\\') Path.append("\\");
 	unsigned long lsize=0;
@@ -57,8 +57,8 @@ unsigned long FILEIO::fileio_deleteDir(const char *spath)
 	return lsize;
 }
 
-//iffile does not exist则return-1
-//ifspecified的pathis adirectory则return-2
+//if file does not exist return -1
+//if the specified path is a directory return -2
 //otherwisereturnfile sizeBytes
 long FILEIO::fileio_exist(const char *spath)
 {
@@ -115,7 +115,7 @@ long FILEIO::fileio_filesize(const char *filename)
 	::fclose(fp); return filelen;
 }
 
-//判断a certaindirectoryorfilewhetherexists
+//determine whether a directory or file exists
 #include<io.h>
 bool FILEIO::fileio_exist(const char *spath)
 {

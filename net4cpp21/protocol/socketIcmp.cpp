@@ -33,7 +33,7 @@ inline void ConstructICMP(IcmpHeader &icmph)
 }
 
 //send ICMP Echo data packet
-//ipDest --- 要send的目的主机IP
+//ipDest --- destination host IP to send to
 SOCKSRESULT socketIcmp :: sendIcmp_echo(unsigned long ipDest)
 {
 	IcmpHeader icmph;

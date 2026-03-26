@@ -64,14 +64,14 @@ public:
 		//setIP filter rules
 		this->rules().addRules_new(RULETYPE_TCP,m_ipaccess,m_ipRules.c_str());
 		const char *ip=(m_bindip=="")?NULL:m_bindip.c_str();
-		BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//绑定了IP则允许port重用
+		BOOL bReuseAddr=(ip)?SO_REUSEADDR:FALSE;//if IP is bound, allow port reuse
 		return this->Listen(m_svrport,bReuseAddr,ip);
 	}
 	
 	int m_svrport;
 	std::string m_bindip;
 	bool m_autorun;
-	long m_ipaccess;   //访问本proxy service IP filtering规则
+	long m_ipaccess;   //IP filtering rules for accessing this proxy service
 	std::string m_ipRules;
 };
 

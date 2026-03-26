@@ -28,7 +28,7 @@ sniffer :: ~sniffer()
 
 void sniffer::Close()
 {
-	Set_Promisc(false); //先closepromiscuous mode
+	Set_Promisc(false); //close promiscuous mode first
 	socketRaw::Close();
 	return;
 }
@@ -75,7 +75,7 @@ bool sniffer :: openLogfile(const char *logfile)
 	return false;
 }
 
-//data has arrived,ifreturnfalse则stopsniff
+//data has arrived; if return false then stop sniffing
 void sniffer :: onData(char *dataptr)
 {
 	if( !RW_LOG_CHECK(LOGLEVEL_DEBUG) ) return;
@@ -148,11 +148,11 @@ void sniffer :: sniffThread(sniffer *psniffer)
 	while(psniffer->status()==SOCKS_OPENED)
 	{
 		ret=psniffer->checkSocket(SNIFF_CHECKTIMEOUT,SOCKS_OP_READ);
-		if(ret<0) break; //此socket发生error
+		if(ret<0) break; //error occurred on this socket
 		if(ret==0) continue;
 		//data has arrived
 		ret=psniffer->Receive(buf,IP_MAX_PACKAGE_SIZE,-1);
-		if(ret<0) break; //发生error
+		if(ret<0) break; //error occurred
 		if(ret==0) continue;
 		if( (dataptr=psniffer->decode_ipv4(buf,ret)) )
 		{

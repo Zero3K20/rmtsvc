@@ -32,33 +32,33 @@ namespace net4cpp21
 			socketTCP * m_pcmdsock;//command transfer socket
 			socketTCP m_datasock;//data transfer socket
 			time_t m_tmLogin;//login time
-			char m_dataMode;//datatransfer模式 S-stream C-compressed B-Block
-			char m_dataconnMode; //datatransfer模式 FTP_DATACONN_PORT/FTP_DATACONN_PASV
-			char m_dataType;//continuation datatransfer使用的datatype
-					// A--ascII，E-EBCDIC文本 I-IMAGE 一系列8bitbyte表示的原始二进制data
-					// L-LOCAL 使用可变bytesize的原始二进制data
+			char m_dataMode;//data transfer mode: S-stream, C-compressed, B-Block
+			char m_dataconnMode; //data transfer connection mode: FTP_DATACONN_PORT/FTP_DATACONN_PASV
+			char m_dataType;//data type used for the continuation data transfer
+					// A--ASCII, E-EBCDIC text, I-IMAGE binary data represented as a series of 8-bit bytes
+					// L-LOCAL: raw binary data using variable byte size
 			char m_sslMode;//SSL data transfer encryption mode: 'C' -- no encryption, 'P' -- encrypted data transfer
-			char m_opMode;//currentdata操作动作 
-						//L--LIST m_filenamepointer to要list的directory/file
-						//S--STORfile上载 m_filenamepointer to上载的filename
-						//R--RETRfile download m_filenamepointer tofile download的filename
-			std::string m_filename;//temporary存储current操作file/directory name
-			long m_startPoint;//startdownloador上载file的起始点
-							//对于LIST操作此parameterspecifies要listdirectory的permissions,if为0说明m_filename为虚directory
+			char m_opMode;//current data operation mode
+						//L--LIST: m_filename points to the directory/file to list
+						//S--STOR: file upload, m_filename points to the upload filename
+						//R--RETR: file download, m_filename points to the download filename
+			std::string m_filename;//temporarily stores the current operation file/directory name
+			long m_startPoint;//start download or upload file start point
+							//for LIST operations, this parameter specifies the directory listing permissions; if 0, m_filename is a virtual directory
 			
 			explicit cFtpSession(socketTCP *psock,cFtpsvr *psvr);
 			~cFtpSession(){}
 			cFtpsvr *pserver() const { return m_psvr; }
 			const char *getvpath() const {return m_relativePath.c_str();}
 
-			SOCKSRESULT setvpath(const char *vpath);//setcurrent虚directory
+			SOCKSRESULT setvpath(const char *vpath);//set the current virtual directory
 			SOCKSRESULT getRealPath(std::string &vpath);
-			SOCKSRESULT ifvpath(std::string &vpath);//whether为set的虚directory
+			SOCKSRESULT ifvpath(std::string &vpath);//whether it is a configured virtual directory
 			void list();//list sub-virtual directories
 		private:
-			std::string m_relativePath;//current虚directorypath,!!!last一个character为/
-			std::string m_realPath;//current虚directorypathcorrespondingtrue实path
-			long m_iAccess;//currentpathcorresponding操作permissions
+			std::string m_relativePath;//current virtual directory path; last character must be /
+			std::string m_realPath;//actual path corresponding to the current virtual directory path
+			long m_iAccess;//operation permissions corresponding to the current path
 
 			const char *cvtRelative2Absolute(std::string &vpath);
 			long cvtVPath2RPath(std::string &vpath);
@@ -71,10 +71,10 @@ namespace net4cpp21
 			if(strTip) m_helloTip.assign(strTip);
 			return;
 		}
-		//specifiedFTPservice的datatransferport的范围[startport,endport]
-		//if设为[0,0]则由systemauto随机分配port
-		//if设为[startport,0],则分配的port>=startport
-		//if设为[0,endport],则分配的port<=endport
+		//set the data transfer port range [startport, endport] for the FTP service
+		//if set to [0,0], the system auto-assigns a random port
+		//if set to [startport, 0], the assigned port >= startport
+		//if set to [0, endport], the assigned port <= endport
 		void setDataPort(int startport,int endport)
 		{
 			if( (m_dataport_start=startport)< 0) 
@@ -92,14 +92,14 @@ namespace net4cpp21
 		SOCKSRESULT delAccount(const char *struser);
 		//a new client connected to this service
 		void onConnect(socketTCP *psock,time_t tmOpened,unsigned long curConnection,unsigned long maxConnection);
-		//currentconnect数大于current设定的maximum connections
+		//currently connected clients exceeds the configured maximum connections
 		void onManyClient(socketTCP *psock);
 		
 		virtual bool onNewTask(THREAD_CALLBACK *pfunc,void *pargs)
 		{
 			return false;
 		}
-		//扩展commandhandle,ifreturntrue则yes可识别的扩展command，otherwise为not可识别的扩展command
+		//extended command handler; if returns true, the command is a recognized extended command; otherwise it is unrecognized
 		virtual bool onCommandEx(socketTCP *psock,const char *strCommand
 			,cFtpSession &clientSession)
 		{
@@ -147,9 +147,9 @@ namespace net4cpp21
 
 	private:
 		std::string m_helloTip;
-		int m_dataport_start; //specifiedFTPservice的datatransferport的范围
-		int m_dataport_end;	//if[0,0]则随机分配，otherwise按照specified的区间分配port
-		//此FTPservice的accountinfo
+		int m_dataport_start; //specified data transfer port range for the FTP service
+		int m_dataport_end;	//if [0,0], assign randomly; otherwise assign within the specified range
+		//account info for this FTP service
 		std::map<std::string,FTPACCOUNT> m_accounts;
 
 		static void dataTask(cFtpSession *psession);

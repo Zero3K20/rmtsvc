@@ -30,14 +30,14 @@
 #define SOCKSERR_SMTP_DNSMX SOCKSERR_SMTP_RESP-8 //MX domain name parse failure
 #define SOCKSERR_SMTP_4XX   SOCKSERR_SMTP_RESP-9
 
-typedef enum         //define支持的SMTPauthenticationtype
+typedef enum         //define supported SMTP authentication types
 {
 	SMTPAUTH_NONE=0,
-	SMTPAUTH_LOGIN=1, //等效于 PLAIN，只为了与 SMTP authentication的预标准implementation相兼容。缺省情况下，此机制仅可由 SMTP 使用
-	SMTPAUTH_CRAM_MD5=2, //一种询问/responseauthentication机制，class似于 APOP，但也适合与其他protocol配合使用。at RFC 2195 中已define
-	SMTPAUTH_DIGEST_MD5=4, //RFC 2831 中define的询问/responseauthentication机制
+	SMTPAUTH_LOGIN=1, //equivalent to PLAIN, only for compatibility with pre-standard SMTP authentication implementations. By default, this mechanism can only be used by SMTP
+	SMTPAUTH_CRAM_MD5=2, //a challenge/response authentication mechanism, similar to APOP, but also suitable for use with other protocols. Defined in RFC 2195
+	SMTPAUTH_DIGEST_MD5=4, //challenge/response authentication mechanism defined in RFC 2831
 	SMTPAUTH_8BITMIME=8,
-	SMTPAUTH_PLAIN=16 //PLAIN 此机制通过network传递user的纯文本口令，atnetwork上很容易窃听口令
+	SMTPAUTH_PLAIN=16 //PLAIN: this mechanism transmits the user's plaintext password over the network, making it easy to eavesdrop
 }SMTPAUTH_TYPE;
 
 
@@ -49,18 +49,18 @@ class mailMessage
 	int m_contentType; //"text/plain" "text/html"
 	std::string m_strSubject;
 	std::string m_strBody;
-	std::string m_strBodyCharset;//email body的encodingcharacter集，default为utf-8
-	std::vector<std::string> m_attachs;//要send的attachment
+	std::string m_strBodyCharset;//character set encoding for the email body; default is utf-8
+	std::vector<std::string> m_attachs;//attachments to send
 
-	std::string m_strName;//send者的name
-	std::string m_strFrom;//send者的mailbox
-	std::vector<std::pair<std::string,std::string> > m_vecTo; //send,first --recipientemail，second recipient昵称
-	std::vector<std::pair<std::string,std::string> > m_vecCc; //抄送,first --recipientemail，second recipient昵称
-	std::vector<std::pair<std::string,std::string> > m_vecBc; //暗送,first --recipientemail，second recipient昵称
+	std::string m_strName;//sender name
+	std::string m_strFrom;//sender mailbox
+	std::vector<std::pair<std::string,std::string> > m_vecTo; //recipients; first -- recipient email, second -- recipient nickname
+	std::vector<std::pair<std::string,std::string> > m_vecCc; //CC; first -- recipient email, second -- recipient nickname
+	std::vector<std::pair<std::string,std::string> > m_vecBc; //BCC; first -- recipient email, second -- recipient nickname
 	
-	std::string m_strMailFile;//生成的邮件体file pathname
-	long m_lMailFileStartPos;//邮件体file中邮件体正文的起始position
-	bool m_bDeleteFile;//objectrelease时whetherdeletem_strMailFilefile
+	std::string m_strMailFile;//generated mail body file pathname
+	long m_lMailFileStartPos;//starting position of the mail body in the mail body file
+	bool m_bDeleteFile;//whether to delete the m_strMailFile file when the object is released
 public:
 	enum RECIPIENT_TYPE { TO, CC, BCC };
 	enum EMAILBODY_TYPE { TEXT_BODY,HTML_BODY };
@@ -83,7 +83,7 @@ public:
 		if(name) m_strName.assign(name);
 	}
 	
-	//setemail subject，正文
+	//set email subject and body
 	void setBody(const char *strSubject,const char *strBody,EMAILBODY_TYPE bt=TEXT_BODY)
 	{
 		if(strSubject) m_strSubject.assign(strSubject);
@@ -94,8 +94,8 @@ public:
 	bool AddAtach(const char *filename,const char *filepath,const char *contentID);
 	//addrecipient
 	bool AddRecipient(const char *email,const char *nick,RECIPIENT_TYPE rt=TO);
-	//生成Base64 encoding的邮件体file
-	//bDelete -- 指示whenmailMessageobjectrelease时whetherdelete生成的file
+	//generate a Base64-encoded mail body file
+	//bDelete -- indicates whether to delete the generated file when the mailMessage object is released
 	const char * createMailFile(const char *file,bool bDelete);
 	long MailFileStartPos() const { return m_lMailFileStartPos; }
 	void setBody(const char *mailfile,long startPos)
@@ -180,26 +180,26 @@ yycmail=A3=AC=C4=FA=BA=C3=A3=A1
 .
 */
 /*
-211 systemstatusorsystem帮助response 
-　　　214 帮助info 
-　　　220 service就绪 
-　　　221 serviceclosetransfer信道 
-　　　250 要求的邮件操作complete 
-　　　251 user非local，将forward向 
-　　　354 start邮件input，以.end 
-　　　421 service未就绪，closetransfer信道（when必须close时，此应答可以作为对任何command的response） 
-　　　450 要求的邮件操作未complete，mailboxnot可用（例如，mailbox忙） 
-　　　451 放弃要求的操作；handle过程中出错 
-　　　452 system存储not足，要求的操作未执行 
-　　　500 format error，commandnot可识别（此error也packet括command行过长） 
-　　　501 parameterformat error 
-　　　502 commandnot可implementation 
-　　　503 error的command序列 
-　　　504 commandparameternot可implementation 
-　　　550 要求的邮件操作未complete，mailboxnot可用（例如，mailbox未found，ornot可访问） 
-　　　551 user非local，请尝试 
-　　　552 过量的存储分配，要求的操作未执行 
-　　　553 mailbox名not可用，要求的操作未执行（例如mailboxformat error） 
-　　　554 operation failed 
+211 system status or system help response 
+   214 help info 
+   220 service ready 
+   221 service closing transfer channel 
+   250 requested mail operation complete 
+   251 user not local, will forward 
+   354 start mail input, end with . 
+   421 service not ready, closing transfer channel (when it must close, this response can be a reply to any command) 
+   450 requested mail operation incomplete, mailbox unavailable (e.g., mailbox busy) 
+   451 requested action aborted; error in processing 
+   452 insufficient system storage, requested action not taken 
+   500 format error, command unrecognized (this error also includes command line too long) 
+   501 parameter format error 
+   502 command not implemented 
+   503 bad sequence of commands 
+   504 command parameter not implemented 
+   550 requested mail operation incomplete, mailbox unavailable (e.g., mailbox not found, or not accessible) 
+   551 user not local, please try 
+   552 exceeded storage allocation, requested action not taken 
+   553 mailbox name unavailable, requested action not taken (e.g., mailbox format error) 
+   554 operation failed 
 */
 

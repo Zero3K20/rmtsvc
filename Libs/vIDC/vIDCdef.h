@@ -22,7 +22,7 @@
 #define VIDC_MAX_COMMAND_SIZE 256 //maximum byte length of vIDC commands
 #define VIDC_MAX_CLIENT_TIMEOUT 180 //if no command or message is received from vIDC client for this long, consider it disconnected
 #define VIDC_NOP_INTERVAL 60  //interval in seconds for vIDCc to send heartbeat
-//defineVIDC的errorreturninfo
+//defines VIDC error return info
 #define SOCKSERR_VIDC_VER -301 //version mismatch
 #define SOCKSERR_VIDC_PSWD -302 //incorrect password
 #define SOCKSERR_VIDC_RESP -303 //timeout or response error
@@ -45,19 +45,19 @@ vidcc                              vidcs
 	------------------------------->
 		   200 ... OK
 	<-------------------------------
-	       <start其它command交互>
+	       <start other command interactions>
 	       .................
 		   <close>
 	<------------------------------->
 
 
-------------------vIDC Server handle流程-----------------------------------------
-1、start侦听
-2、when有一个connect进来，建立connect
-3、waitingreceivecommanddata，ifVIDC_MAX_RESPTIMEOUT内没有收到任何command则close此connect
-4、判断commandwhether为HELOorPIPE，ifis not则close connection
-5、ifyesHELOcommand，则进行clientconnectauthentication，ifnot通过则returnerror，close connection
-6、otherwise建立一个session回话，循环waitinghandlevIDCcommand，并return successmessage
-7、ifyesPIPEcommand，
-------------------vIDC Client handle流程-----------------------------------------
+------------------vIDC Server handling flow-----------------------------------------
+1. start listening
+2. when a connection comes in, establish connection
+3. waiting to receive command data, close this connection if no command is received within VIDC_MAX_RESPTIMEOUT
+4. check if command is HELO or PIPE, if not close connection
+5. if HELO command, perform client connection authentication, if it fails return error and close connection
+6. otherwise establish a session, loop waiting to handle vIDC commands, and return success message
+7. if PIPE command,
+------------------vIDC Client handling flow-----------------------------------------
 *****************************************************************************************/

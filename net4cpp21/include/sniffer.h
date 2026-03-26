@@ -39,14 +39,14 @@ namespace net4cpp21
 
 		//if bindip==NULL or =="", bind to the local machine's first IP by default
 		//otherwise bind to the specified IP and create a raw socket to start sniffing
-		//returns SOCKSERR_OK on success，(startsniff必须绑定IP，以便specifiedsetpromiscuous mode的网卡,otherwise报10022error)
+		//returns SOCKSERR_OK on success; sniffing must bind to an IP to specify the NIC for promiscuous mode, otherwise error 10022 is reported
 		SOCKSRESULT sniff(const char *bindip);
 	protected:
 		//data has arrived
 		virtual void onData(char *dataptr);
 	private:
 		std::string m_logfile; //IP packet log file
-		iprules m_rules;//过滤规则
+		iprules m_rules;//filtering rules
 		cThread m_thread;
 		static void sniffThread(sniffer *psniffer);
 		static void sniffThread_fromfile(sniffer *psniffer);

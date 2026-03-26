@@ -35,9 +35,9 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试detach访问accountandpassword
+	//first try to extract access account and password
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
-	if(ptr){//set了访问accountandpassword
+	if(ptr){//access account and password have been set
 		*(char *)ptr=0;
 		if( (ptr1=strchr(strurl+iOffset,':')) )
 		{
@@ -49,7 +49,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//detach出httpservice的address:portand实际的URL
+	//extract the http service address:port and the actual URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);
@@ -61,7 +61,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	if(struser!="") m_httpreq.set_Authorization(struser.c_str(),strpswd.c_str());
 	std::map<std::string,std::string> &header=m_httpreq.Header();
 	header["Host"]=webhost; //setHostinfo
-	//要进行socketconnect,connectspecified的web service
+	//perform socket connection to the specified web service
 	SOCKSRESULT sr=this->Connect(webhost.c_str(),webport,lTimeOut);
 	if(sr<=0)
 	{
@@ -70,7 +70,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	}
 #ifdef _SUPPORT_OPENSSL_
 	else if(strurl[4]!=':')
-	{ //访问的yeshttp SSLservice
+	{ //accessing an http SSL service
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient
 		if(!this->SSL_Associate()){ this->Close(); return SOCKSERR_SSLASSCIATE; }
 	}
@@ -79,7 +79,7 @@ SOCKSRESULT httpClient::send_httpreq_headX(const char *strurl,long lTimeOut,long
 	return (ptrURL==NULL)?m_httpreq.send_req(this,"/"):m_httpreq.send_req(this,ptrURL);
 }
 
-//returnHTTP response码，if发生errorreturn<0
+//return HTTP response code; return <0 if an error occurred
 SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long lendRange)
 {
 	SOCKSRESULT sr=send_httpreq_head(strurl,lstartRange,lendRange);
@@ -116,7 +116,7 @@ void httpClient::set_reqPostdata(const char *buf,long buflen)
 }
 
 /*
-//returnHTTP response码，if发生errorreturn<0
+//return HTTP response code; return <0 if an error occurred
 SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long lendRange)
 {
 	if(strurl==NULL) return SOCKSERR_PARAM;
@@ -128,9 +128,9 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	int iOffset=(strurl[4]==':')?7:8;
 	const char *ptrURL=strchr(strurl+iOffset,'/');
 	if(ptrURL) *(char *)ptrURL=0;
-	//先尝试detach访问accountandpassword
+	//first try to extract access account and password
 	const char *ptr1,*ptr=strchr(strurl+iOffset,'@');
-	if(ptr){//set了访问accountandpassword
+	if(ptr){//access account and password have been set
 		*(char *)ptr=0;
 		if( (ptr1=strchr(strurl+iOffset,':')) )
 		{
@@ -142,7 +142,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 		*(char *)ptr='@';
 		iOffset=ptr-strurl+1;
 	}//?if(ptr)
-	//detach出httpservice的address:portand实际的URL
+	//extract the http service address:port and the actual URL
 	if( (ptr=strchr(strurl+iOffset,':')) )
 	{ 
 		webport=atoi(ptr+1);
@@ -154,7 +154,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	if(struser!="") m_httpreq.set_Authorization(struser.c_str(),strpswd.c_str());
 	std::map<std::string,std::string> &header=m_httpreq.Header();
 	header["Host"]=webhost; //setHostinfo
-	//要进行socketconnect,connectspecified的web service
+	//perform socket connection to the specified web service
 	SOCKSRESULT sr=this->Connect(webhost.c_str(),webport);
 	if(sr<=0)
 	{
@@ -163,7 +163,7 @@ SOCKSRESULT httpClient::send_httpreq(const char *strurl,long lstartRange,long le
 	}
 #ifdef _SUPPORT_OPENSSL_
 	else if(strurl[4]!=':')
-	{ //访问的yeshttp SSLservice
+	{ //accessing an http SSL service
 		if(!this->ifSSL()) this->initSSL(false,NULL); //initializationSSLclient
 		if(!this->SSL_Associate()){ this->Close(); return SOCKSERR_SSLASSCIATE; }
 	}

@@ -136,7 +136,7 @@ void cThreadPool :: join(time_t timeout)
 //initialize number of worker threads
 //threadnum --- number of new threads to create
 //waittime --- new thread will auto-end if no task arrives within the specified sleep time
-//		if==-1则一直sleeping知道有specified的task要handle
+//		if ==-1 then keep sleeping until there is a specified task to handle
 //return current total number of worker threads
 long cThreadPool :: initWorkThreads(long threadnum,time_t waittime)
 {
@@ -326,23 +326,23 @@ MSVCRT.LIB Import library for MSVCRT.DLL, retail version
 such warnings!
 Thread support was added later!
 This also means many CRT functions must have special support in multithreaded situations; simply using CreateThread is not OK.
-大多的CRTfunction都可以atCreateThreadthread中使用，看资料说只有signal()functionnot可以，会导致process终止！
-但可以用并is not说没有问题！
+Most CRT functions can be used in CreateThread threads. References say only signal() cannot, as it would cause process termination!
+But it can be used without necessarily having issues!
 
-有些CRT的function象malloc(), fopen(), _open(), strtok(), ctime(), orlocaltime()等function需要专门
-的threadlocal存储的data块，这个data块通常需要atcreate thread的时候就建立，if使用CreateThread，
-这个data块就没有建立，then会怎样呢？at这样的thread中还yes可以使用这些function而且没有出错，
-实际上function发现这个data块的pointer为null时，会自己建立一个，then将其与thread联系at一起，这意味着
-if你用CreateThread来create thread，then使用这样的function，会有一块memoryatunknownnot觉中create，遗憾的
-yes，这些function并not将其delete，而CreateThreadandExitThread也无法知道这件事，于yes就会有
-Memory Leak，in thread频繁start的软件中(比如someserver软件)，迟早会让system的memoryresource耗尽！
+Some CRT functions like malloc(), fopen(), _open(), strtok(), ctime(), or localtime() need dedicated
+thread-local storage data blocks, which normally need to be created when the thread is created. If CreateThread is used,
+this data block is not created. What happens then? In such a thread, these functions can still be used without error,
+In practice, when a function finds this data block pointer is null, it creates one itself and associates it with the thread, which means
+if you use CreateThread to create a thread and then use such functions, a block of memory is created unknowingly. Unfortunately,
+these functions do not free it, and CreateThread and ExitThread cannot know about this, so there will be
+Memory Leak. In software that frequently starts threads (such as server software), it will eventually exhaust the system memory resources!
 
-_beginthreadex(内部也调用CreateThread)and_endthreadex就对这个memory块做了handle，所以没有问题！
-(will not有人故意用CreateThreadcreatethen用_endthreadex终止吧，而且thread的终止最好do not显式的调用
-终止function，自然exit最好！)
+_beginthreadex (internally also calls CreateThread) and _endthreadex handle this memory block properly, so there is no problem!
+(Nobody will intentionally use CreateThread to create and then _endthreadex to terminate, and it is best not to explicitly call
+termination functions; natural exit is best!)
 
-谈到Handle的问题，_beginthread的对应function_endthreadauto的调用了CloseHandle，而
-_beginthreadex的对应function_endthreadex则没有，所以CloseHandlein any case都yes要调用的not过
-_endthread可以帮你执行自己not necessary to写，其他两种就需要自己写！(Jeffrey Richter强烈推荐尽量
-not用显式的终止function，用自然exit的方式，自然exitwhen然就一定要自己写CloseHandle)
+Regarding handle issues, _beginthread's counterpart _endthread automatically calls CloseHandle, while
+_beginthreadex's counterpart _endthreadex does not, so CloseHandle must always be called; however
+_endthread can do it for you without needing to write it yourself, the other two require writing it yourself! (Jeffrey Richter strongly recommends
+not using explicit termination functions, using the natural exit approach; with natural exit you must write CloseHandle yourself)
 */

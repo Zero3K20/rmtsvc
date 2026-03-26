@@ -37,19 +37,19 @@ namespace net4cpp21
 		void setTimeout(time_t s);
 		//domain namequery domain name--->IP,returnDNS_RCODE_ERR_OK(0)success
 		SOCKSRESULT Query(const char *names,const char *dnssvr,int dnsport=DNS_SERVER_PORT);
-		//反向domain nameparse,returnDNS_RCODE_ERR_OK(0)success
+		//reverse DNS lookup; returns DNS_RCODE_ERR_OK (0) on success
 		SOCKSRESULT IQuery(const char *ip,const char *dnssvr,int dnsport=DNS_SERVER_PORT);
-		//邮件交换器query,returnDNS_RCODE_ERR_OK(0)success
-		//一个MX记录yes由一个2byte的指示该邮件交换器的优先级值及not定长的邮件交换器名组成的
+		//mail exchanger query; returns DNS_RCODE_ERR_OK (0) on success
+		//an MX record consists of a 2-byte priority value for the mail exchanger and a variable-length mail exchanger name
 		SOCKSRESULT Query_MX(const char *names,const char *dnssvr,int dnsport=DNS_SERVER_PORT);
-		//getqueryreturn的dns头info
+		//get the DNS header info returned by the query
 		PDNS_HEADER resp_dnsh() { return &m_dnsh; }
-		//getqueryreturn的dns 第index个queryinfo
+		//get the index-th DNS query info returned by the query
 		PDNS_QUERY resp_dnsq(unsigned short index=0);
 
-		//getqueryreturn的第index结果
+		//get the index-th result returned by the query
 		PDNS_RESPONSE resp_dnsr(unsigned short index=0);
-		//parseDNS_RESPONSE的rdata域的data
+		//parse the rdata field data of DNS_RESPONSE
 		unsigned long parse_rdata_Q(PDNS_RESPONSE pdnsr=NULL);
 		const char * parse_rdata_IQ(PDNS_RESPONSE pdnsr=NULL);
 		const char * parse_rdata_MX(PDNS_RDATA_MX pmx,PDNS_RESPONSE pdnsr=NULL);
@@ -58,7 +58,7 @@ namespace net4cpp21
 		unsigned short m_msgID; //message ID
 		time_t m_lTimeout;//maximum wait timeout return in seconds
 		
-		std::string m_strnames; //用来temporarysaveparse的names
+		std::string m_strnames; //used to temporarily save parsed names
 		char m_buffer[DNS_MAX_PACKAGE_SIZE];
 		DNS_HEADER m_dnsh;
 		DNS_QUERY m_dnsq;
