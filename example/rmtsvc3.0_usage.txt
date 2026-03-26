@@ -1,4 +1,4 @@
-rmtsvc2.5.x Usage Guide
+rmtsvc3.0 Usage Guide
 
 Program Overview:
 1. Remote host monitoring/surveillance

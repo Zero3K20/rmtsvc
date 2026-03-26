@@ -4,7 +4,7 @@ rmtsvc
 ![Environment](https://img.shields.io/badge/Windows-XP,%20Vista,%207,%208,%2010-yellow.svg)
 ![License](https://img.shields.io/github/license/hsluoyz/rmtsvc.svg)
 
-rmtsvc is the abbreviation for **ReMoTe SerViCe**. It is a web-based remote desktop &amp; control service for Windows. [yycnet](http://bbs.pediy.com/member.php?u=106711) open-sourced the 2.5.2 code of rmtsvc at http://bbs.pediy.com/showthread.php?t=184683.
+rmtsvc is the abbreviation for **ReMoTe SerViCe**. It is a web-based remote desktop &amp; control service for Windows. [yycnet](http://bbs.pediy.com/member.php?u=106711) open-sourced the 2.5.2 code of rmtsvc at http://bbs.pediy.com/showthread.php?t=184683. The current version is **v3.0**.
 
 rmtsvc supports **Windows XP and later (including Win7, Win8 and Win10)**. You can install rmtsvc service in a Windows machine, and then use your web browser to control it, including **remote desktop, command execution, process monitoring**, etc. 
 

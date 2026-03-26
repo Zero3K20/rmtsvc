@@ -5,7 +5,7 @@
    *******************************************************************/
 
 #include "rmtsvc.h"
-const char * MyService :: ServiceVers="2.5.2 (build110105)";
+const char * MyService :: ServiceVers="3.0";
 static const char * sServiceName="rmtsvc";
 static const char * sServiceDesc="Remote Control Service";
 

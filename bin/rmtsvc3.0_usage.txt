@@ -1,4 +1,4 @@
-rmtsvc2.5.x build101105 Usage Instructions
+rmtsvc3.0 build101105 Usage Instructions
 Program Introduction:
 	1. Remote host monitoring/surveillance
 	2. Remote file/service/registry/process/telnet management
