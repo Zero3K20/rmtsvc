@@ -314,26 +314,26 @@ const char *OTP::md5(const char *seed,const char *passphrase,int count)
 	if(passphrase) buflen+=sprintf(m_buffer+buflen,"%s",passphrase);
 	unsigned char digest[16];
 	if(!bcrypt_hash(BCRYPT_MD5_ALGORITHM, m_buffer, buflen, digest, 16)) return NULL;
-	int i; unsigned short summer=0; //summer校验and
+	int i; unsigned short summer=0; //summer checksum
 	for (i = 0; i < 8; i++) digest[i] ^= digest[i+8];
 	for(i=0;i<32;i++) summer+=( (digest[i/4]>>(6-2*(i%4))) & 0x03);
-	//getfirst个词
+	//get first word
 	unsigned short is=(unsigned short)digest[0]<<3 | digest[1]>>5;
 	buflen=sprintf(m_buffer,"%s ",sixword[is]);
-	//get第二个词
+	//get second word
 	is= ((unsigned short)digest[1] & 0x1f)<<6 | digest[2]>>2 ;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第三个词
+	//get third word
 	is=((unsigned short)digest[2] & 0x03)<<9 
 		| (unsigned short)digest[3]<<1 | digest[4]>>7;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第四个词
+	//get fourth word
 	is=((unsigned short)digest[4] & 0x7f)<<4 | digest[5]>>4 ;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第五个词
+	//get fifth word
 	is=((unsigned short)digest[5] & 0x0f)<<7 | digest[6]>>1;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第六个词
+	//get sixth word
 	is=((unsigned short)digest[6] & 0x01)<<10 | (unsigned short)digest[7]<<2 | (summer & 0x03);
 	buflen+=sprintf(m_buffer+buflen,"%s",sixword[is]);
 	m_buffer[buflen]=0; 
@@ -347,26 +347,26 @@ const char *OTP::md4(const char *seed,const char *passphrase,int count)
 	if(passphrase) buflen+=sprintf(m_buffer+buflen,"%s",passphrase);
 	unsigned char digest[16];
 	if(!bcrypt_hash(BCRYPT_MD4_ALGORITHM, m_buffer, buflen, digest, 16)) return NULL;
-		int i; unsigned short summer=0; //summer校验and
+		int i; unsigned short summer=0; //summer checksum
 	for (i = 0; i < 8; i++) digest[i] ^= digest[i+8];
 	for(i=0;i<32;i++) summer+=( (digest[i/4]>>(6-2*(i%4))) & 0x03);
-	//getfirst个词
+	//get first word
 	unsigned short is=(unsigned short)digest[0]<<3 | digest[1]>>5;
 	buflen=sprintf(m_buffer,"%s ",sixword[is]);
-	//get第二个词
+	//get second word
 	is= ((unsigned short)digest[1] & 0x1f)<<6 | digest[2]>>2 ;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第三个词
+	//get third word
 	is=((unsigned short)digest[2] & 0x03)<<9 
 		| (unsigned short)digest[3]<<1 | digest[4]>>7;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第四个词
+	//get fourth word
 	is=((unsigned short)digest[4] & 0x7f)<<4 | digest[5]>>4 ;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第五个词
+	//get fifth word
 	is=((unsigned short)digest[5] & 0x0f)<<7 | digest[6]>>1;
 	buflen+=sprintf(m_buffer+buflen,"%s ",sixword[is]);
-	//get第六个词
+	//get sixth word
 	is=((unsigned short)digest[6] & 0x01)<<10 | (unsigned short)digest[7]<<2 | (summer & 0x03);
 	buflen+=sprintf(m_buffer+buflen,"%s",sixword[is]);
 	m_buffer[buflen]=0;

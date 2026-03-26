@@ -23,22 +23,22 @@ namespace net4cpp21
 		{
 			Sleep(us/1000);
 		}
-		//create一个process //return0success
+		//create a process //return 0 on success
 		static int execp(const char *pathfile,const char *args);
 #else
 		static void usleep(unsigned int us)
 		{
 			struct timeval to;
 			//to.tv_sec = 0;
-			//引该加保护，us必须>=0且小于1000000
-			//为了提高效率，此保护由调用者提供
+			//should add protection, us must be >=0 and less than 1000000
+			//for efficiency, this protection is provided by the caller
 			//to.tv_usec = us;
 			to.tv_sec =us/1000000L;
 			to.tv_usec =us%1000000L;
 			select(0, NULL, NULL, NULL, &to);
 		}
 #endif
-		//剔除string的前导spaces，以及尾部spaces
+		//remove leading and trailing spaces from string
 		static const char *strTrimLeft(const char *str)
 		{
 			if(str) for(;*str==' ';str++) NULL;
@@ -63,7 +63,7 @@ namespace net4cpp21
 			return str;
 		}
 
-		//return替换character的个数
+		//return the number of characters replaced
 		static int Replace(char *str,char findC,char replaceC)
 		{
 			int count=0;
@@ -92,8 +92,8 @@ namespace net4cpp21
 		}
 		static unsigned long fileio_deleteDir(const char *spath);
 		
-		//iffile does not exist则return-1
-		//ifspecified的pathis adirectory则return-2
+		//if file does not exist return -1
+		//if the specified path is a directory return -2
 		//otherwisereturnfile sizeBytes
 		static long fileio_exist(const char *spath);
 		static bool fileio_exec(char *filename,bool ifHide);
@@ -105,9 +105,9 @@ namespace net4cpp21
 
 
 /*
-//二分法从一个有序array中查找specified的值
-	//returnarray下标,return-1未found
-	//uiSize -- arraysize, ifUp -- specifieswhether为升序排列
+//binary search to find a specified value in a sorted array
+	//return array index, return -1 if not found
+	//uiSize -- array size, ifUp -- specifies whether sorted in ascending order
 	template<class X> 
 	int findit(const X iArray[],size_t uiSize,const X& xfind,bool ifUp)
 	{
@@ -138,7 +138,7 @@ namespace net4cpp21
 		return -1;
 	}
 
-	//如何判断一个数yes2的指数倍
+	//how to determine if a number is a power of 2
 	bool if2(long num)
 	{
 		return ((num-1) & num)==0);
@@ -147,11 +147,11 @@ namespace net4cpp21
   //bubble sort
 //最简单的排序methodyes冒泡排序method。这种method的基本思想yes，将待排序的元素看作yes竖着排列的“气泡”，
 //较小的元素比较轻，从而要往上浮。at冒泡排序算法中我们要对这个“气泡”序列handle若干遍。
-//所谓一遍handle，就yes自底向上check一遍这个序列，并时刻注意两个相邻的元素的顺序whether正确。
+//One pass means checking the sequence from bottom to top, paying attention to whether two adjacent elements are in the correct order.
 //if发现两个相邻元素的顺序not对，即“轻”的元素at下面，就交换它们的position。显然，handle
 //一遍after，“最轻”的元素就浮到了最高position；handle二遍after，“次轻”的元素就浮到了次高position。
 //at作第二遍handle时，由于最高position上的元素已yes“最轻”元素，所以not necessary tocheck。一般地，第i遍handle时，
-//not necessary tocheck第i高position以上的元素，因为经过前面i-1遍的handle，它们已正确地排好序	
+//no need to check elements above the i-th highest position, because after i-1 passes they are already correctly sorted	
 template <class X>
 void Sort(X iArray[],size_t lbound,size_t ubound)
 {
@@ -175,13 +175,13 @@ void Sort(X iArray[],size_t lbound,size_t ubound)
 	return;
 }
 
-//快速排序算法的基本思想：
-//快速排序的基本思想yes基于分治策略的。对于input的子序列ap..ar，if规模足够小则直接进行排序，otherwise分三步handle：
+//The basic idea of the quick sort algorithm:
+//Quick sort is based on divide-and-conquer strategy. For an input subsequence ap..ar, if small enough sort directly, otherwise handle in three steps:
 //
-//分解(Divide)：将input的序列ap..ar划分成两个非null子序列ap..aqandaq+1..ar，使ap..aq中任一元素的值not大于aq+1..ar中任一元素的值。
-//递归求解(Conquer)：通过递归调用快速排序算法分别对ap..aqandaq+1..ar进行排序。
-//合并(Merge)：由于对分解出的两个子序列的排序yes就地进行的，所以atap..aqandaq+1..ar都排好序后not需要执行任何count算ap..ar就已排好序。
-//这个解决流程yes符合分治法的基本步骤的。therefore，快速排序法yes分治法的经典应用实例之一。
+//Divide: Partition input sequence ap..ar into two non-empty subsequences ap..aq and aq+1..ar such that any element in ap..aq is not greater than any element in aq+1..ar.
+//Conquer: Recursively call quick sort on ap..aq and aq+1..ar separately.
+//Merge: Since sorting of the two subsequences is done in-place, once ap..aq and aq+1..ar are sorted, no further computation is needed and ap..ar is already sorted.
+//This solution flow conforms to the basic steps of divide-and-conquer. Therefore, quick sort is one of the classic applications of divide-and-conquer.
 template <class X>
 void quickSort(X v[],int n)
 {

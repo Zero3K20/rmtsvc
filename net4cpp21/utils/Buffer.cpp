@@ -57,7 +57,7 @@ bool cLoopBuffer::Write(const char *s,size_t l)
 	return true;
 }
 
-//从buffer中readspecified的byte
+//read specified bytes from the buffer
 bool cLoopBuffer::Read(char *s,size_t l)
 {
 	if (l > m_q)
@@ -136,7 +136,7 @@ cBuffer::cBuffer(cBuffer &buf){
 	buf.m_max=0;
 	buf.m_len=0;
 }
-//赋值
+//assignment
 cBuffer & cBuffer::operator = (cBuffer &buf)
 {
 	delete[] m_buf;
@@ -150,7 +150,7 @@ cBuffer & cBuffer::operator = (cBuffer &buf)
 }
 char & cBuffer::operator [] (size_t pos)
 {
-	static char c=0; //越界保护character
+	static char c=0; //out-of-bounds protection character
 	if(pos<0 || pos>=m_max) return c;
 	return m_buf[pos];
 }

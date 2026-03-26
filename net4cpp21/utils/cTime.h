@@ -38,8 +38,8 @@ namespace net4cpp21
 		const cTime& operator=(const cTime& timeSrc);
 		const cTime& operator=(tm t);
 
-		struct tm* CvtGmtTm(); //localtimeconvert为GMTtime
-		struct tm* CvtLocTm(); //GMTtimeconvert为localtime
+		struct tm* CvtGmtTm(); //convert local time to GMT time
+		struct tm* CvtLocTm(); //convert GMT time to local time
 		tm GetTime() const;
 		int GetYear() const;
 		int GetMonth() const;       // month of year (1 = Jan)

@@ -14,7 +14,7 @@
 #include "../utils/utils.h"
 
 using namespace net4cpp21;
-//setdefault的cmdcommand解释程序andpath，有些网管会deletesystem32下的cmd.exeor改名
+//set default cmd interpreter and path, some administrators delete or rename cmd.exe under system32
 std::string cCmdShell::staCmdPath="cmd.exe";
 cCmdShell::cCmdShell()
 {
@@ -69,7 +69,7 @@ bool cCmdShell::create()
 		saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
 		saAttr.bInheritHandle = true;
 		saAttr.lpSecurityDescriptor = NULL;
-		//save标准outputhandle
+		//save standard output handle
 		hSaveStdout = ::GetStdHandle(STD_OUTPUT_HANDLE);
 		// Create a pipe for the child's STDOUT.
 		if (! ::CreatePipe(&m_hChildStdoutRd, &m_hChildStdoutWr, &saAttr, 0)) break;
@@ -96,7 +96,7 @@ bool cCmdShell::create()
 		   ) break;
 		::CloseHandle(m_hChildStdinWr); m_hChildStdinWr=hChildStdDup; 
 
-		//startcreate要进行重定向的子process
+		//start creating the child process to redirect
 		m_siStartInfo.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
 		m_siStartInfo.hStdInput = m_hChildStdinRd;
 		m_siStartInfo.hStdOutput = m_hChildStdoutWr;
@@ -126,7 +126,7 @@ bool cCmdShell::create()
 }
 
 /*
-//往shell的output buffer中write，可通过read读出
+//write to the shell output buffer, readable via read
 long cCmdShell::Fill(void *buf,long buflen)
 {
 	if(buf==NULL || buflen<=0) return 0;
@@ -176,7 +176,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 {
 	if(pshell==NULL) return;
 	if(pshell->m_hChildStdoutRd==NULL) return;
-	//为m_buffer分配bufferspace
+	//allocate buffer space for m_buffer
 	pshell->m_buffer=new char[recvBufferLen];
 	if(pshell->m_buffer==NULL) return;
 	pshell->m_buflen=0; //initializationdatalength
@@ -189,7 +189,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 			if(len<0) break;
 			if(len==0) continue;
 			buf[len]=0;
-		}//?iflen>0说明上次read的还未写进buffer
+		}//?if len>0, the previous read data has not yet been written to the buffer
 
 		pshell->m_mutex.lock();
 		if( (len+pshell->m_buflen)<recvBufferLen )
@@ -198,7 +198,7 @@ void cCmdShellAsyn::readThread(cCmdShellAsyn *pshell)
 			pshell->m_buflen+=len; len=0;
 		}
 		pshell->m_mutex.unlock();
-		if(len>0) cUtils::usleep(200000) ;//sleeping200ms，waitingbuffer被read
+		if(len>0) cUtils::usleep(200000) ;//sleep 200ms, waiting for buffer to be read
 	}//?while(pshell->m_hChildStdoutRd)
 
 	pshell->cCmdShell::destroy(); 
