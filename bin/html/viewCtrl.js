@@ -361,7 +361,7 @@ kxhr.send("vkey="+param);
 }
 else
 {
-console.log("[viewCtrl] keyEvent: could not create XHR object");
+console.log("[viewCtrl] keyEvent: Could not create XHR object");
 }
 }
 }
@@ -418,7 +418,7 @@ if(modBit && (heldModifiers & modBit))
 // Held modifier release: signal server to inject VK-up only.
 kevent=0x0800|kc;
 heldModifiers=heldModifiers & ~modBit;
-console.log("[viewCtrl] keyUp (held modifier release): keyCode="+kc+" kevent=0x"+kevent.toString(16));
+console.log("[viewCtrl] keyUp (Held modifier release): keyCode="+kc+" kevent=0x"+kevent.toString(16));
 }
 else
 {
@@ -428,7 +428,7 @@ if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
 kevent=altk*256+kc;
-console.log("[viewCtrl] keyUp (bare modifier tap): keyCode="+kc+" altk="+altk+" kevent="+kevent);
+console.log("[viewCtrl] keyUp (Bare modifier tap): keyCode="+kc+" altk="+altk+" kevent="+kevent);
 }
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
