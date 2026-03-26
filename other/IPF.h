@@ -72,7 +72,7 @@ public:
 	//			if==NULL, only return the space size needed for image data
 	//quality --- reserved, not used
 	//lprc --- specifies the capture area of the window; ==NULL means the entire window area
-	//failurereturn0，otherwisereturnimagedatasize
+	//failurereturn0, otherwisereturnimagedatasize
 	//ifCapCursorwhethercapture mouse cursor
 	static IPFRESULT capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor);
 

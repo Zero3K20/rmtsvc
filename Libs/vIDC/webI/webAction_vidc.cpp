@@ -146,17 +146,17 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 			SOCKSRESULT sr=pvidcc->ConnectSvr();
 			if(sr<=0){
 				if(sr==SOCKSERR_VIDC_VER)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,version mismatch</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connect vIDCs failure, version mismatch</retmsg>");
 				else if(sr==SOCKSERR_VIDC_PSWD)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,access password error</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connect vIDCs failure, access password error</retmsg>");
 				else if(sr==SOCKSERR_VIDC_RESP)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,responsetimeout</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connect vIDCs failure, response timeout</retmsg>");
 				else if(sr==SOCKSERR_THREAD)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>create threadfailure</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>create thread failure</retmsg>");
 				else if(sr==SOCKSERR_CONN)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,vIDCs address is incorrect</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connect vIDCs failure, vIDCs address is incorrect</retmsg>");
 				else if(sr==SOCKSERR_TIMEOUT)
-					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,connecttimeout</retmsg>");
+					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connect vIDCs failure, connect timeout</retmsg>");
 				else
 					buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>connectvIDCsfailure,err=%d</retmsg>",sr);
 			}
@@ -301,7 +301,7 @@ bool webServer::httprsp_mportr(socketTCP *psock,httpRequest &httpreq,httpRespons
 					else if(sr==SOCKSERR_VIDC_MAP)
 						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>mapping failed, make sure the map port is not occupied</retmsg>");
 					else
-						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>server-sideresponsetimeout</retmsg>");
+						buffer.len()+=sprintf(buffer.str()+buffer.len(),"<retmsg>server-side response timeout</retmsg>");
 				}
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<mapinfo>");
 				buffer.len()+=sprintf(buffer.str()+buffer.len(),"<mapname>%s</mapname>",ptr_req);

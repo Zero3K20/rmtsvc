@@ -108,7 +108,7 @@ IPFRESULT cImageF :: IPF_SaveBMPFile(const char *filename,LPBITMAPINFO lpbi,LPBY
 //lpbih --- returns image info
 //lpBits --- save image data
 //			if==NULL, only return the space size needed for image data
-//failurereturn0，otherwisereturnimagedatasize
+//failurereturn0, otherwisereturnimagedatasize
 //ifCapCursorwhethercapture mouse cursor
 IPFRESULT cImageF::capWindow(HWND hWnd,LPBITMAPINFOHEADER lpbih,LPBYTE lpBits,int quality,bool ifCapCursor)
 {

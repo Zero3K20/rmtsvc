@@ -214,7 +214,7 @@ bool MatchingString(const char* lpszSour, const char* lpszMatch, bool bMatchCase
 				break;
 			}
 			if(!szMatcher[nMatchOffset+1] && szSource[nSourOffset+1])
-			{	//ifszMatcher[nMatchOffset] is the last character，
+			{	//ifszMatcher[nMatchOffset] is the last character,
 				//and szSource[nSourOffset] is not the last character
 				bIsMatched = false;
 				break;

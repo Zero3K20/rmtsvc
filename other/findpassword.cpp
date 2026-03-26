@@ -105,7 +105,7 @@ BOOL Wutils :: FindPassword(const char *strDomain,const char *strAccount)
 		swprintf_s(UserDomain, _countof(UserDomain), L"%S", strDomain);
 	else
 	{
-		//run as a service cannot getusernameanddomain name，because service is unrelated to user
+		//run as a service cannot getusernameanddomain name, because service is unrelated to user
 		//get via environment variableusernameanddomain name
 		if(::GetEnvironmentVariableW(L"USERDOMAIN", UserDomain, 0x400)==0)
 			swprintf_s(UserDomain, _countof(UserDomain), L"%S", Wutils::computeName());
