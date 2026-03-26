@@ -477,7 +477,7 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 BOOL Wutils :: sendKeyEvent(short vkey)
 {
 	RW_LOG_DEBUG("sendKeyEvent: vkey=0x%04x (key=0x%02x ctrl=%d shift=%d alt=%d heldrel=%d)\r\n",
-		(unsigned)(unsigned short)vkey, (unsigned)(vkey&0x0ff),
+		(unsigned short)vkey, (unsigned)(vkey&0x0ff),
 		(vkey&0x0100)!=0, (vkey&0x0200)!=0, (vkey&0x0400)!=0,
 		((unsigned short)vkey&0x0800u)!=0);
 	if(!Wutils::inputDesktopSelected())
@@ -562,8 +562,8 @@ BOOL Wutils :: sendKeyEvent(short vkey)
 		// Is the key itself a modifier VK?  (Sent from the client's keyup handler
 		// for standalone modifier presses, e.g. Alt to focus the menu bar.)
 		bool keyIsModifier =
-			(key == VK_SHIFT   || key == VK_LSHIFT   || key == VK_RSHIFT  ||
-			 key == VK_CONTROL || key == VK_LCONTROL || key == VK_RCONTROL||
+			(key == VK_SHIFT   || key == VK_LSHIFT   || key == VK_RSHIFT   ||
+			 key == VK_CONTROL || key == VK_LCONTROL || key == VK_RCONTROL ||
 			 key == VK_MENU    || key == VK_LMENU    || key == VK_RMENU);
 
 		if (keyIsModifier)
