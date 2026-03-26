@@ -72,8 +72,8 @@ namespace net4cpp21
 		void resp_unknowed(socketTCP *psock);
 		void resp_OK(socketTCP *psock);
 	private:
-		SMTPAUTH_TYPE m_authType;//SMTPservicewhether要求authentication
-		std::string m_receivedpath;//receive邮件存放path，以\结尾
+		SMTPAUTH_TYPE m_authType;//whether the SMTP service requires authentication
+		std::string m_receivedpath;//path to store received emails, ending with \
 		std::string m_helloTip;
 	};
 }//?namespace net4cpp21

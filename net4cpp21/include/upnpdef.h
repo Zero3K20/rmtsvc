@@ -27,19 +27,19 @@ typedef struct _TUPnPInfo
 	bool budp; //whether it is UDP type
 	int mapport;
 	int appport;
-	bool bsuccess; //mapyesnosuccess
+	bool bsuccess; //whether the mapping was successful
 	std::string appsvr;
 	std::string appdesc;
-	std::string retmsg;  //ifnotsuccessreturn的errormessage
+	std::string retmsg;  //error message returned on failure
 
 }UPnPInfo,*PUPnPInfo;
 
 #endif
 /* what is the range of multicast addresses?
-组播的addressyes保留的Dclassaddress从224.0.0.0—239.255.255.255，而且一些address有特定的用处如，
-224.0.0.0—244.0.0.255只能用于局域网中路由器whethert会forward的，并且224.0.0.1yesall主机的address，
-224.0.0.2all路由器的address，224.0.0.5allospf路由器的address，224.0.13事PIMv2路由器的address；
-239.0.0.0—239.255.255.255yes私有address（如192.168.x..x）；224.0.1.0—238.255.255.255可以用与Internet上的。
+Multicast addresses are the reserved Class D address range from 224.0.0.0 to 239.255.255.255, and some addresses have specific uses:
+224.0.0.0-244.0.0.255 can only be used within a LAN; routers will not forward them. 224.0.0.1 is the address for all hosts,
+224.0.0.2 is the address for all routers, 224.0.0.5 is the address for all OSPF routers, 224.0.13 is the address for PIMv2 routers;
+239.0.0.0-239.255.255.255 are private addresses (like 192.168.x.x); 224.0.1.0-238.255.255.255 can be used on the Internet.
 */
 /*
 [UPnP] Sended Search Packet(len=132), return 132

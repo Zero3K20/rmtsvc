@@ -23,21 +23,21 @@
 
 //----------------constants here define the meaning of DNS_HEADER.flags bit masks for LITTLE-ENDIAN systems-----
 #define DNS_FLAGS_QR 0x80 //bit 7 of the first network byte
-		//0代表query，1代表DNS回复
+		//0 represents a query, 1 represents a DNS reply
 #define DNS_FLAGS_OPCODE 0x78 //bits 6,5,4,3 of the first network byte
-		//指示query种class：0:standard query；1:reverse query；2:serverstatusquery；3-15:未使用。
+		//indicates query kind/class: 0: standard query; 1: reverse query; 2: server status query; 3-15: unused.
 #define DNS_FLAGS_AA 0x04 //bit 2 of the first network byte
-		//whether权威回复
+		//whether this is an authoritative reply
 #define DNS_FLAGS_TC 0x02 //bit 1 of the first network byte
-		//因为一个UDP报文为512byte，所以该bit指示whether截掉超过的partial
+		//since a UDP packet is 512 bytes, this bit indicates whether the message is truncated
 #define DNS_FLAGS_RD 0x01 //bit 0 of the first network byte
-		//此bitatquery中specified，回复时相同。set为1指示server进行递归query
+		//this bit is specified in the query and echoed in the reply. Set to 1 to instruct the server to perform a recursive query
 #define DNS_FLAGS_RA 0x8000 //bit 7 of the second network byte
-		//由DNS回复returnspecified，说明DNSserverwhether支持递归query
+		//returned in the DNS reply, indicates whether the DNS server supports recursive queries
 #define DNS_FLAGS_Z 0x7000 //bits 6,5,4 of the second network byte
-		//保留字段，必须set为0
+		//reserved field, must be set to 0
 #define DNS_FLAGS_RCODE 0x0f00 //bits 3,2,1,0 of the second network byte
-		//由回复时specified的return码：0:no error；1:format error；2:DNS error；3:domain name does not exist；4:DNS does not support this type of query；5:DNS rejected query；6-15:保留字段
+		//return code specified in the reply: 0: no error; 1: format error; 2: DNS error; 3: domain name does not exist; 4: DNS does not support this type of query; 5: DNS rejected query; 6-15: reserved
 
 #define DNS_OPCODE_QUERY 0x0 //standard query
 #define DNS_OPCODE_IQUERY 0x08 //reverse query
@@ -79,7 +79,7 @@
 #define T_MD		3		/* mail destination (obsolete, use MX instead)*/
 #define T_MF		4		/* mail forwarder (obsolete, use MX instead)*/
 #define T_CNAME		5		/* canonical name (for aliases)*/
-#define T_SOA		6		/* start of authority zone specified用于 DNS 区域的“起始authorization机构”*/
+#define T_SOA		6		/* start of authority zone, used for the "Start of Authority" of a DNS zone*/
 #define T_MB		7		/* mailbox domain name*/
 #define T_MG		8		/* mail group member*/
 #define T_MR		9		/* mail rename domain name*/
@@ -127,62 +127,62 @@
 #define C_CSNET		2		/* specifies CSNET class. (obsolete)*/
 #define C_CHAOS		3		/* for chaos net (MIT) specifies Chaos class*/
 #define C_HS		4		/* for Hesiod name server (MIT) (XXX) specifies MIT Athena Hesiod class*/
-	/* Query class values which do not appear in resource records specified任何以前列出的通配符*/
+	/* Query class values which do not appear in resource records; wildcard for all previously listed types*/
 #define C_ANY		255		/* wildcard match */
 
-//Q_type中的T_A,T_MX,T_CNAME为常用，Q_class中的C_IN为常用
+//T_A, T_MX, T_CNAME in Q_type are the most commonly used; C_IN in Q_class is the most commonly used
 
-typedef struct dns_protocol_header //DNSdata报头
+typedef struct dns_protocol_header //DNS data header
 {
 	unsigned short id;
-	//identifier，通过它client可以将DNS的request与应答相匹配
+	//identifier, used by the client to match DNS requests with responses
 	unsigned short flags;
-	//flag：[QR | opcode | AA| TC| RD| RA | zero | rcode ]
+	//flags: [QR | opcode | AA | TC | RD | RA | zero | rcode]
 	unsigned short quests;
-	//问题数目
+	//number of questions
 	unsigned short answers;
-	//resource记录数目
+	//number of resource records
 	unsigned short author;
-	//authorizationresource记录数目
+	//number of authority resource records
 	unsigned short addition;
-	//额外resource记录数目
+	//number of additional resource records
 }DNS_HEADER,*PDNS_HEADER;
-typedef struct dns_protocol_query //DNS querydata报
+typedef struct dns_protocol_query //DNS query data record
 {
 	const char *name;
-	//query的domain name,这is asizeat0到63之间的string
+	//queried domain name, a string with length between 0 and 63
 	unsigned short type;
-	//querytype，见Q_type_arraydefine
+	//query type, see Q_type array definition
 	unsigned short classes;
-	//queryclass,见Q_class_array 通常yesAclass既queryIPaddress
+	//query class, see Q_class array; typically class A for querying IP addresses
 
 }DNS_QUERY,*PDNS_QUERY;
-typedef struct dns_protocol_response //DNSresponsedata报
+typedef struct dns_protocol_response //DNS response data record
 {
-	const char *name; //回复query的domain name，not定长
-	//query的domain name
-	unsigned short type; //回复的type。2byte，与query同义。指示RDATA中的resource记录type
+	const char *name; //domain name in the reply, variable length
+	//queried domain name
+	unsigned short type; //reply type. 2 bytes, same meaning as in query. Indicates the resource record type in RDATA
 	//querytype
-	unsigned short classes; //回复的class。2byte，与query同义。指示RDATA中的resource记录class
-	//type码
-	unsigned long	ttl; //生存time。4byte，指示RDATA中的resource记录atcache的生存time
-	//生存time
-	unsigned short length; //length。2byte，指示RDATA块的length(notpacket括本字段的两byte)
+	unsigned short classes; //reply class. 2 bytes, same meaning as in query. Indicates the resource record class in RDATA
+	//type code
+	unsigned long	ttl; //time to live. 4 bytes, indicates the TTL of the resource record in RDATA cache
+	//time to live
+	unsigned short length; //length. 2 bytes, indicates the length of the RDATA block (not including these 2 bytes)
 	//resourcedatalength
-	unsigned char *	rdata; //resource记录。notdefine，依TYPE的not同，此记录的格示not同，
-						  //通常一个MX记录yes由一个2byte的指示该邮件交换器的优先级值及not定长的邮件交换器名组成的
+	unsigned char *	rdata; //resource record. Variable format, differs based on TYPE,
+						  //typically an MX record consists of a 2-byte priority value and a variable-length mail exchanger name
 	//resourcedata
 }DNS_RESPONSE,*PDNS_RESPONSE;
 
 #endif
 
 /*************************
-name的组合形式。name由multipleidentifier序列组成，每一个identifier序列的首byte说明该identifier符的length，
-接着用yesASCII码表示character，multiple序列after由byte0表示名字end。
-其中某一个identifier序列的首character的length若yes0xC0的话，表示下一byte指示is notidentifier符序列，
-而yes指示接下partialat本receivepacket内的偏移positionat this pointnot已byte0表示名字end。 
-　　比如　bbs.zzsy.com　以.分开bbs、zzsy、com三个partial。eachpartial的length为3、4、3 
-　　atDNS报文中的形式就如 3 b b s 4 z z s y 3 c o m 0 
-　　false如atpacket内的第12个bytepositionexists有 4 z z s y 3 c o m 0 这样的name了。 
-　　那at this point有可能为：3 b b s 4 z z s y 0xC0 0x0C 这样的形式。
+The name format. A name consists of multiple label sequences; the first byte of each label indicates
+its length, followed by ASCII characters. After multiple sequences, a byte of 0 indicates the end of the name.
+If the first byte of a label sequence has a length of 0xC0, the next byte indicates an offset pointer
+within the received packet, not an ASCII label sequence, and does not end with byte 0.
+   For example, bbs.zzsy.com is split by "." into three parts: bbs, zzsy, com. The length of each part is 3, 4, 3.
+   In a DNS packet it would appear as: 3 b b s 4 z z s y 3 c o m 0.
+   Suppose the name "4 z z s y 3 c o m 0" already appears at byte offset 12 in the packet.
+   Then the representation could be: 3 b b s 4 z z s y 0xC0 0x0C.
 **************************/

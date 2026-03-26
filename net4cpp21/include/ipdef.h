@@ -320,9 +320,9 @@ typedef struct _IpV4Header //IP message header defined according to the IPv4 pro
 	unsigned short TotalLength;//16-bit total length (bytes)
 	unsigned short Identification;//identifier
 	unsigned short Frag_and_flags;//unsigned short FragmentOffset:13,Flags:3;
-	unsigned char  TimeToLive;//生存time TTL
+	unsigned char  TimeToLive;//time to live TTL
 	unsigned char  Protocol;
-	unsigned short HeaderChecksum;//IP首部校验and
+	unsigned short HeaderChecksum;//IP header checksum
 	unsigned long   SourceAddress;
 	unsigned long   DestinationAddress;
 	
@@ -361,7 +361,7 @@ typedef struct _IpV4Header //IP message header defined according to the IPv4 pro
 	}
 }IpV4Header,*LPIpV4Header;
 
-//TCPdatapacket的structure
+//TCP data packet structure
 /*
     0                   1                   2                   3   
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
@@ -386,61 +386,62 @@ typedef struct _IpV4Header //IP message header defined according to the IPv4 pro
                             TCP Header Format
 */ 
 /*
-一个TCPdatapacketpacket括一个TCP头，后面yesoptionanddata。一个TCP头contains6个flagbit。它们的意义分别为：
+A TCP data packet includes a TCP header, followed by options and data. A TCP header contains 6 flag bits. Their meanings are:
 
-　　SYN: flagbit用来建立connect，让connect双方synchronize序列号。ifSYN＝1而ACK=0，则表示该datapacket为connectrequest，ifSYN=1而ACK=1则表示acceptconnect。
+   SYN: flag bit used to establish a connection, letting both sides synchronize sequence numbers. If SYN=1 and ACK=0, the packet is a connection request; if SYN=1 and ACK=1, it means the connection is accepted.
 
-　　FIN: 表示send端已经no data要求transfer了，希望releaseconnect。
+   FIN: indicates that the sender has no more data to transfer and wishes to release the connection.
 
-　　RST: 用来复bit一个connect。RSTflag置bit的datapacket称为复bitpacket.一般情况下，ifTCP收到的一个fragment明显is not属于该主机上的任何一个connect，则向远端send一个复bitpacket.
+   RST: used to reset a connection. A packet with the RST flag set is called a reset packet. Generally, if TCP receives a fragment that clearly does not belong to any connection on this host, it sends a reset packet to the remote end.
 
-　　URG: 为紧急dataflag。if它为1，表示本datapacket中contains紧急data。at this point紧急datapointervalid。
+   URG: urgent data flag. If set to 1, the packet contains urgent data, and the urgent data pointer is valid.
 
-　　ACK: 为confirmflagbit。if为1，表示packet中的confirm号时valid的。otherwise，packet中的confirm号invalid。
+   ACK: confirmation flag bit. If set to 1, the acknowledgment number in the packet is valid; otherwise, the acknowledgment number is invalid.
 
-　　PSH: if置bit，receive端应尽快把data传送给应用层。
-TCPconnect的建立
+   PSH: if set, the receiver should pass the data to the application layer as soon as possible.
 
-　　TCPis a面向connect的可靠transferprotocol。面向connect表示两个应用端at利用TCP传送data前必须先establish TCP connection。 TCP的可靠性通过校验and，定时器，data序号and应答来提供。通过给eachsend的byte分配一个序号，receive端receive到data后send应答，TCPprotocol保证了data的可靠transfer。data序号用来保证data的顺序，剔除重复的data。at一个TCP会话中，有两个data流（eachconnect端从另外一端receivedata，同时向对方senddata），thereforeat建立connect时，必须要为每一个data流分配ISN（初始序号）。为了了解implementation过程，我们ifclientC希望跟server端S建立connect，then分析connect建立的过程（通常称作三阶段握手）：
+TCP connection establishment
 
-　　1： C –SYN XX -> S
+   TCP is a connection-oriented reliable transfer protocol. Connection-oriented means that two application endpoints must establish a TCP connection before using TCP to transfer data. TCP's reliability is provided through checksums, timers, data sequence numbers, and acknowledgments. By assigning a sequence number to each sent byte and having the receiver send an acknowledgment after receiving data, TCP guarantees reliable data transfer. Sequence numbers are used to ensure data ordering and eliminate duplicate data. In a TCP session, there are two data streams (each connection endpoint receives data from and sends data to the other), so when establishing a connection, an ISN (Initial Sequence Number) must be allocated for each data stream. To understand the implementation process, assuming client C wants to establish a connection with server S, we analyze the connection establishment process (commonly called the three-way handshake):
 
-　　2： C <- SYN YY/ACK XX+1 —- S
+   1: C --SYN XX --> S
 
-　　3： C —-ACK YY+1 --> S
+   2: C <-- SYN YY/ACK XX+1 --- S
 
-　　1：Csend一个TCPpacket（SYN request）给S，其中标记SYN（synchronize序号）要open。SYNrequestspecifies了client希望connect的server端port号andclient的ISN（XXis a例子）。
+   3: C ---ACK YY+1 --> S
 
-　　2：server端发回应答，contains自己的SYNinfoISN（YY）and对C的SYN应答，应答时returnnext希望get的byte序号（YY+1）。
+   1: C sends a TCP packet (SYN request) to S, with the SYN (synchronize sequence number) flag set. The SYN request specifies the server port number the client wants to connect to and the client's ISN (XX is an example).
 
-　　3：C 对从S 来的SYN进行应答，datasendstart。
+   2: The server sends back a response containing its own SYN info ISN (YY) and an acknowledgment of C's SYN, returning the next expected byte sequence number (YY+1).
 
-　　一些implementation细节
+   3: C acknowledges the SYN from S; data transfer begins.
 
-　　大partialTCP/IPimplementation遵循以下原则：
+   Implementation details
 
-　　1：when一个SYNor者FINdatapacket到达一个close的port，TCP丢弃datapacket同时send一个RSTdatapacket.
+   Most TCP/IP implementations follow these principles:
 
-　　2：when一个RSTdatapacket到达一个监听port，RST被丢弃。
+   1: when a SYN or FIN packet arrives at a closed port, TCP discards the packet and sends a RST packet.
 
-　　3：when一个RSTdatapacket到达一个close的port，RST被丢弃。
+   2: when a RST packet arrives at a listening port, the RST is discarded.
 
-　　4：when一个containsACK的datapacket到达一个监听port时，datapacket被丢弃，同时send一个RSTdatapacket.
+   3: when a RST packet arrives at a closed port, the RST is discarded.
 
-　　5：when一个SYNbitclose的datapacket到达一个监听port时，datapacket被丢弃。
+   4: when a packet containing ACK arrives at a listening port, the packet is discarded and a RST packet is sent.
 
-　　6：when一个SYNdatapacket到达一个监听port时，正常的三阶段握手continue，回答一个SYN　ACKdatapacket.
+   5: when a packet with SYN bit cleared arrives at a listening port, the packet is discarded.
 
-　　7：when一个FINdatapacket到达一个监听port时，datapacket被丢弃。”FIN行为”（close得portreturnRST，监听port丢弃packet），atURGandPSHflagpositionbit时同样要发生。all的URG，PSHandFIN，or者没有任何标记的TCPdatapacket都会引起”FIN行为”。 　　
+   6: when a SYN packet arrives at a listening port, the normal three-way handshake continues; a SYN ACK packet is sent in reply.
+
+   7: when a FIN packet arrives at a listening port, the packet is discarded. "FIN behavior" (closed port returns RST, listening port discards the packet) also occurs when URG and PSH flag bits are set. All TCP packets with URG, PSH, FIN flags, or with no flags at all, will trigger "FIN behavior".
 
 */
 const int Tcp_Min_Header_Length = 20;
 typedef struct _TcpHeader 
 {
-	unsigned short SourcePort;//源port
-	unsigned short DestinationPort;//目的port
-	unsigned long   SequenceNumber;//32bit序列号
-	unsigned long   AcknowledgementNumber;//32bitconfirm号
+	unsigned short SourcePort;//source port
+	unsigned short DestinationPort;//destination port
+	unsigned long   SequenceNumber;//32-bit sequence number
+	unsigned long   AcknowledgementNumber;//32-bit acknowledgment number
 	//unsigned short FIN:1,SYN:1,RST:1,PSH:1,ACK:1,URG:1,Reserved:6,DataOffset:4;
 	unsigned short th_flag_res_offset;
 	unsigned short Window;
@@ -505,7 +506,7 @@ typedef struct _TcpHeader
 	}
 }TcpHeader,*LPTcpHeader; 
 
-//UDPdatapacket的structure
+//UDP data packet structure
 /*               0      7 8     15 16    23 24    31  
                  +--------+--------+--------+--------+ 
                  |     Source      |   Destination   | 

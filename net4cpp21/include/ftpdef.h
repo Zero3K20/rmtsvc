@@ -52,7 +52,7 @@
 #define FTP_LOGEVENT_RMD 32
 #define FTP_LOGEVENT_SITE 64
 
-//password verificationencryption方式
+//bits 0~1: password verification mode
 #define OTP_NONE 0
 #define OTP_MD4 1
 #define OTP_MD5 2
@@ -66,22 +66,22 @@ typedef struct _ftpaccount //ftpaccountinfo
 {
 	std::string m_username;//account name, case-insensitive (converted to lowercase)
 	std::string m_userpwd;//password; if password=="", no password verification is required
-	std::string m_username_root;//此account隶属的ROOTpermissionsuser，if此值not null说明此accountyesROOTuserdynamiccreate的
+	std::string m_username_root;//the ROOT permission user this account belongs to; if not null, this account was dynamically created by a ROOT user
 	unsigned long m_maxupratio;//max upload rate K/s, 0 means unlimited
 	unsigned long m_maxdwratio;//max download rate K/s, 0 means unlimited
 	unsigned long m_maxupfilesize;//max upload file size in KBytes, 0 means unlimited
 	unsigned long m_maxdisksize;//maximum disk space limit in KBytes, 0 means unlimited
 	unsigned long m_curdisksize;//current used disk space in KBytes.
 	std::map<std::string,std::pair<std::string,long> > m_dirAccess;//directory access permissions; directory names are case-sensitive
-			//first --- string : ftp的虚directorypath，last以/end。例如/ or /aa/，
-			//second --- pair : 此ftp虚directorycorresponding实际directoryanddirectory的访问permissions，实际directory必须为\结尾(winplatform)
+			//first --- string : FTP virtual directory path, ending with /. For example: / or /aa/,
+			//second --- pair : the actual directory and access permissions corresponding to this FTP virtual directory; the actual directory must end with \ (Windows platform)
 	net4cpp21::iprules m_ipRules;//IP access rules
-	long m_loginusers;//current以此accountloginftpservice的user个数,只有没用userconnect时才能delete此account
+	long m_loginusers;//current number of users logged in to this FTP service with this account; the account can only be deleted when no users are connected
 	long m_maxLoginusers;//limit the maximum simultaneous logged-in users for this account; <=0 means unlimited 
 	time_t m_limitedTime;//limit this account to be valid only before a certain date; ==0 means unlimited
-	long m_bitQX; //0~1bit password verification方式
-				  //2~3bit defineaccounttype
-				  //4bit whether显示隐藏file
+	long m_bitQX; //bits 0~1: password verification mode
+				  //bits 2~3: define account type
+				  //bit 4: whether to show hidden files
 
 	bool bDsphidefiles() { return ((m_bitQX & 0x10)!=0); }
 	void bDsphidefiles(bool b)
@@ -191,8 +191,8 @@ The following are the FTP commands:
 */
 
 /*
->>3.3 ssl FTP扩展
-atRFC 2228中，ftpprotocol扩展了如下指令:
+>>3.3 SSL FTP extension
+In RFC 2228, the FTP protocol extended the following commands:
 AUTH (Authentication/Security Mechanism),
 ADAT (Authentication/Security Data),
 PROT (Data Channel Protection Level),
@@ -202,10 +202,10 @@ MIC (Integrity Protected Command),
 CONF (Confidentiality Protected Command), and
 ENC (Privacy Protected Command).
 
-其中andSSL扩展related主要指令有以下几条:
-AUTH (negotiate扩展authentication): specified扩展authenticationmethod,SSLorTLS；
-PBSZ (negotiate保护buffer): 制定保护buffer,SSL/TLS模式中必须为0；
-PROT (切换保护级别): 切换保护级别，可以为"C"无保护，or"P"保护级别；
+The main commands related to SSL extension are:
+AUTH (negotiate extended authentication): specifies the extended authentication method, SSL or TLS;
+PBSZ (negotiate protection buffer): specifies the protection buffer; must be 0 in SSL/TLS mode;
+PROT (switch protection level): switches protection level; can be "C" (no protection) or "P" (protected);
 */
 
 /*

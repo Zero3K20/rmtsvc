@@ -39,14 +39,14 @@
 #elif defined MAC //temporarily not supported
 	//....
 #else  //unix/linux platform
-	//为了保证可移植，此处的多thread function用的yesPOSIX的multithreading库，therefore编译时应specifiedconnect -lpthread库。if用sunsystem本身的多thread function则应制定connect-lthread库。
-	//关于STL的multithreading安全
-	//atsun的system下编写multithreading程序时，if用了c++的STL库，则要小心，因为你会发现atsun下有可能会发生core dump，而同样的程序atlinux下缺始终没有问题。
-	//用gdb定bitcore dumpposition，发现可能会at你程序的任何地方，但totalatSTL库的stl_alloc.h的memory allocation处发生问题，a certainaddress值被modify为一个非法的address导致出
-	//问题，when然这也有可能yes由于你的memory非法操作的问题，如release了a certainmemoryspace却还atreference此address。查查stl_alloc.hfile你会发现原来STL的memory allocationdefault为
-	//single_pthread模式，你必须definea certain宏才会支持multithreading模式，packet括POSIXmultithreading、win32multithreading，Solarismultithreading等。
-	//thereforesunsystem下编写POSIX标准的multithreading程序，if用到了STL库，则at编译时一定要specified-D__STL_PTHREADS宏parameter，
-	//linux下可能defaultis viamultithreading安全方式编译的，thereforewill not出问题。其他的multithreading宏define你可看看stl_alloc.h头file。
+	//to ensure portability, the multi-thread functions here use the POSIX threading library; therefore specify -lpthread when linking. If using the Sun system's own thread functions, specify -lthread instead.
+	//regarding STL thread safety
+	//when writing multi-threaded programs on Sun systems, be careful if using the C++ STL library, because on Sun systems a core dump may occur, while the same program on Linux has no issues.
+	//using GDB to pinpoint the core dump location, it may occur anywhere in your program, but always at the memory allocation in stl_alloc.h of the STL library; a certain address value is modified to an illegal address causing the problem,
+	//which could also be due to illegal memory operations, such as freeing a memory space but still referencing that address. Check stl_alloc.h and you'll find that the STL memory allocation defaults to
+	//single-threaded mode; you must define a certain macro to enable multithreading support, including POSIX multithreading, Win32 multithreading, Solaris multithreading, etc.
+	//therefore when writing POSIX-standard multi-threaded programs on Sun systems using the STL library, you must specify the -D__STL_PTHREADS macro at compile time,
+	//Linux may compile with thread-safe mode by default, so no issues occur. For other threading macros, see stl_alloc.h.
 	//multithreading
 	extern "C"
 	{ //multi-thread function, mutex
@@ -66,8 +66,8 @@ namespace net4cpp21
 	{
 		pthread_t m_thrid;//thread IDorthread handle(windows)
 		THREAD_CALLBACK *m_threadfunc;
-		void *m_pArgs;//传递给thread function的parameter
-		bool m_bStarted;//threadwhetherin progress运行
+		void *m_pArgs;//parameter passed to the thread function
+		bool m_bStarted;//whether the thread is currently running
 	private:
 #ifdef WIN32 //Windows system platform
     	static unsigned int __stdcall threadfunc(void* param);
@@ -78,19 +78,19 @@ namespace net4cpp21
 		cThread();
 		~cThread();
 		bool start(THREAD_CALLBACK *pfunc,void *pargs);
-		void join(time_t timeout=-1);//stop the thread and wait for it to end before returning,timeout :swaitingend的秒
-		bool status(){return m_bStarted;} //returncurrent threadwhether运行
+		void join(time_t timeout=-1);//stop the thread and wait for it to end before returning; timeout: seconds to wait
+		bool status(){return m_bStarted;} //return whether the current thread is running
 	};
 	
 	//*******************************************************************************
 	//thread poolclass************************************************************************
-	//可dynamiccreatemultiplethread进入thread pool，thread pool的thread end一个task后auto取tasklist中的task进行执行
+	//can dynamically create multiple threads to enter the thread pool; after completing a task, a thread automatically takes the next task from the task list
 	#define TASKID unsigned long
 	typedef struct _TASKPARAM //taskparameterstructure
 	{
-		TASKID m_taskid;//唯一identifier本task的taskID
-		THREAD_CALLBACK *m_pFunc;//taskfunction入口pointer
-		void *m_pArgs;//传递给task的parameter
+		TASKID m_taskid;//unique identifier for this task
+		THREAD_CALLBACK *m_pFunc;//task function entry pointer
+		void *m_pArgs;//parameter passed to the task
 	}TASKPARAM;
 	typedef struct _THREADPARAM //threadparameterstructure
 	{
@@ -100,7 +100,7 @@ namespace net4cpp21
 	}THREADPARAM;
 	class cThreadPool
 	{
-		TASKID m_taskid;//task的唯一identifier
+		TASKID m_taskid;//unique identifier for the task
 		cMutex m_mutex;//mutex
 		std::deque<TASKPARAM> m_tasklist;//tasklist
 		std::map<pthread_t,THREADPARAM> m_thrmaps;//threadqueue
@@ -111,7 +111,7 @@ namespace net4cpp21
 		//initialize number of worker threads
 		//threadnum --- number of new threads to create
 		//waittime --- new thread will auto-end if no task arrives within the specified sleep time
-		//		if==-1则一直sleeping知道有specified的task要handle
+		//		if==-1, sleep indefinitely until there is a specified task to handle
 		//return current total number of worker threads
 		long initWorkThreads(long threadnum,time_t waittime=-1);
 		//add a task to the task queue
@@ -127,9 +127,9 @@ namespace net4cpp21
 		bool delTask(TASKID taskid,bool bRemove=true);
 		//clear all pending tasks
 		void clearTasks();
-		//returncurrentpending execution的task数
+		//return current number of pending tasks
 		long numTasks(){ long lret=0; m_mutex.lock(); lret=m_tasklist.size();m_mutex.unlock();return lret;}
-		//returncurrent的worker thread个数
+		//return current number of worker threads
 		long numThreads(){ long lret=0; m_mutex.lock(); lret=m_thrmaps.size();m_mutex.unlock();return lret;}
 	private:
 		//create a worker thread; returns thread ID on success, otherwise 0
