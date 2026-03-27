@@ -35,6 +35,9 @@ var lastDownAltk = 0;
 // (sends 0x0800|kc so the server injects only a VK-up) from "bare modifier tap"
 // (e.g. Alt to focus the menu bar, sends the normal altk*256+kc encoding).
 var heldModifiers = 0;
+// True when running on Firefox, which doesn't fire 'beforeinstallprompt' natively.
+// PWAsForFirefox (https://github.com/filips423/PWAsForFirefox) adds that support once installed.
+var _isFirefox = /Firefox\//.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent);
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -219,15 +222,22 @@ var btn = document.getElementById("btnInstall");
 if(btn) btn.style.display = 'none';
 console.log("[viewCtrl] App installed");
 });
+// On Firefox, beforeinstallprompt never fires unless PWAsForFirefox is installed.
+// Show the button immediately so users can follow the link to install the extension.
+if(_isFirefox) {
+var btn = document.getElementById("btnInstall");
+if(btn) btn.style.display = '';
+}
 }
 
 // Stored deferred BeforeInstallPromptEvent, set by the 'beforeinstallprompt' listener.
 var _installPrompt = null;
 
 // Show the browser's "Add to Home Screen / Install app" prompt.
+// On Firefox without PWAsForFirefox installed, opens the extension's page instead.
 function installAsApp()
 {
-if(!_installPrompt) return;
+if(_installPrompt) {
 _installPrompt.prompt();
 _installPrompt.userChoice.then(function(result) {
 console.log("[viewCtrl] Install prompt result: " + result.outcome);
@@ -235,6 +245,9 @@ _installPrompt = null;
 var btn = document.getElementById("btnInstall");
 if(btn) btn.style.display = 'none';
 });
+} else if(_isFirefox) {
+window.open('https://addons.mozilla.org/firefox/addon/pwas-for-firefox/', '_blank');
+}
 }
 
 function processRequest() 
