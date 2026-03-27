@@ -307,7 +307,9 @@ Cleanup:
 #define MSEVENT_BUTTON_NONE 0
 #define MSEVENT_BUTTON_LEFT 0x01
 #define MSEVENT_BUTTON_RIGHT 0x02
-#define MSEVENT_BUTTON_MIDDLE 0x04		
+#define MSEVENT_BUTTON_MIDDLE 0x04
+#define MSEVENT_BUTTON_ALL (MSEVENT_BUTTON_LEFT | MSEVENT_BUTTON_RIGHT | MSEVENT_BUTTON_MIDDLE)
+#define MSEVENT_BUTTON_MASK 0x0f
 #define MSEVENT_EVENT_NONE 0
 #define MSEVENT_EVENT_CLICK 0x10
 #define MSEVENT_EVENT_DBLCLICK 0x20
@@ -402,7 +404,7 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		// Sync button state: if the client reports no button held but we previously
 		// injected a button-down (e.g. from a session that ended without button-up),
 		// release it now so the remote does not continue dragging.
-		short clientBtns = (flags & 0x0f);
+		short clientBtns = (flags & MSEVENT_BUTTON_MASK);
 		short stuckBtns  = s_injectedMouseButtons & ~clientBtns;
 		if (stuckBtns)
 		{
@@ -417,7 +419,7 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 	}
 
 	int evType   = (flags & MSEVENT_EVENT_ALL);
-	int btnFlags = (flags & 0x0f);
+	int btnFlags = (flags & MSEVENT_BUTTON_MASK);
 
 	// --- 3. Mouse button / wheel event ---
 	// Modifier state is already correct (set in step 2 above); the cursor
@@ -433,14 +435,14 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTDOWN);   count++; }
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTDOWN);  count++; }
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEDOWN); count++; }
-		s_injectedMouseButtons |= (short)(btnFlags & (MSEVENT_BUTTON_LEFT | MSEVENT_BUTTON_RIGHT | MSEVENT_BUTTON_MIDDLE));
+		s_injectedMouseButtons |= (short)(btnFlags & MSEVENT_BUTTON_ALL);
 	}
 	else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
 	{
 		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++; }
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);  count++; }
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP); count++; }
-		s_injectedMouseButtons &= ~(short)(btnFlags & (MSEVENT_BUTTON_LEFT | MSEVENT_BUTTON_RIGHT | MSEVENT_BUTTON_MIDDLE));
+		s_injectedMouseButtons &= ~(short)(btnFlags & MSEVENT_BUTTON_ALL);
 	}
 	else // click or double-click
 	{
