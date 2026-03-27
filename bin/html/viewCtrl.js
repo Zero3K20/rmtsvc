@@ -171,6 +171,19 @@ if (parent && parent.frmLeft && typeof parent.frmLeft.tryResumeAudio === 'functi
 parent.frmLeft.tryResumeAudio();
 } catch(e) {}
 }, false);
+// If the browser window loses focus while the left button is held (e.g. user
+// Alt-Tabs or clicks outside the browser), we will never receive the mouseup.
+// Send a button-up immediately so the remote host does not keep dragging.
+window.addEventListener('blur', function() {
+if(!isLeftDown) return;
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
+isLeftDown=false;
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=1&act=6");
+}, false);
 }
 
 function processRequest() 
@@ -227,7 +240,26 @@ function msdblclick(e)
 // mouse movement and button-release are tracked even after the cursor leaves the canvas.
 // Without these, a drag that moves outside the canvas would stop sending move events
 // and the remote host would never receive the button-up, leaving its left button stuck.
-function _dragMove(e) { msmove(e); }
+function _dragMove(e)
+{
+// If the browser missed the mouseup (e.g. button released outside the window),
+// e.buttons will be 0 even though isLeftDown is still true.  Detect this and
+// synthesize a button-up so the remote host doesn't keep dragging.
+if(isLeftDown && e.buttons !== undefined && !(e.buttons & 1))
+{
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
+isLeftDown=false;
+msPosition(e);
+var altk2=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0);
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk2+"&button=1&act=6");
+return;
+}
+msmove(e);
+}
 function _dragUp(e)
 {
 if(!isLeftButton(e.button)) return;
