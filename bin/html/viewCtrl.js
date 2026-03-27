@@ -12,6 +12,11 @@ var isDblClickSecond=false;
 // Unused since button events are now forwarded immediately in msdown/msup;
 // kept to avoid reference errors in any stale timer callbacks.
 var wasDrag=false;
+// Tracks whether the left mouse button is currently held down.  Set in msdown,
+// cleared in msup / _dragUp.  Used to attach document-level mousemove/mouseup
+// listeners that continue tracking the cursor even after it leaves the canvas,
+// preventing lost drag movement and stuck-button-down on the remote host.
+var isLeftDown=false;
 // Position of the most recent left-button mousedown, used to decide whether a
 // subsequent mousedown within the double-click time window is at the same spot
 // (a true double-click) or at a different location (two separate single clicks,
@@ -166,6 +171,19 @@ if (parent && parent.frmLeft && typeof parent.frmLeft.tryResumeAudio === 'functi
 parent.frmLeft.tryResumeAudio();
 } catch(e) {}
 }, false);
+// If the browser window loses focus while the left button is held (e.g. user
+// Alt-Tabs or clicks outside the browser), we will never receive the mouseup.
+// Send a button-up immediately so the remote host does not keep dragging.
+window.addEventListener('blur', function() {
+if(!isLeftDown) return;
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
+isLeftDown=false;
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=1&act=6");
+}, false);
 }
 
 function processRequest() 
@@ -194,13 +212,19 @@ var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=0";
+// Capture position and modifier state now (they are current at mousemove time),
+// but evaluate isLeftDown lazily inside the timer callback so that if the
+// button is released before the 50 ms debounce fires the server receives
+// button=0.  This lets the server-side stuck-button sync (s_injectedMouseButtons)
+// detect and release any LEFTDOWN that was injected out-of-order and heal the
+// phantom-drag state within the same session — no page reload required.
+var paramBase="x="+ptX+"&y="+ptY+"&altk="+altk+"&act=0";
 if(timerID_move!=0)
 {
 window.clearTimeout(timerID_move);
 timerID_move=0;
 }
-timerID_move=window.setTimeout(function(){ sendEvent("/msevent",param); },50);
+timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+(isLeftDown?1:0)); },50);
 }
 
 function msclick(e)
@@ -216,6 +240,46 @@ function msdblclick(e)
 // button-down/button-up sequences within its double-click time window.
 // Both sequences are already sent via msdown/msup, so nothing extra is
 // needed here.
+}
+
+// Document-level handlers added when the left button goes down on the canvas so that
+// mouse movement and button-release are tracked even after the cursor leaves the canvas.
+// Without these, a drag that moves outside the canvas would stop sending move events
+// and the remote host would never receive the button-up, leaving its left button stuck.
+function _dragMove(e)
+{
+// If the browser missed the mouseup (e.g. button released outside the window),
+// e.buttons will be 0 even though isLeftDown is still true.  Detect this and
+// synthesize a button-up so the remote host doesn't keep dragging.
+if(isLeftDown && e.buttons !== undefined && !(e.buttons & 1))
+{
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
+isLeftDown=false;
+msPosition(e);
+var altk2=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0);
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk2+"&button=1&act=6");
+return;
+}
+msmove(e);
+}
+function _dragUp(e)
+{
+if(!isLeftButton(e.button)) return;
+// Always remove the document listeners regardless of isLeftDown state to ensure clean-up.
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
+if(!isLeftDown) return; // defensive guard: listeners are removed on first call so this is unreachable in normal usage
+isLeftDown=false;
+msPosition(e);
+var altk=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0);
+if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
+if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
+pendingClickParam=null;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=6");
 }
 
 // Get mouse down event, record drag start point. Prevents browser native drag/text-selection.
@@ -271,6 +335,11 @@ lastMousedownTime=now;
 // Button-up is sent from msup; msclick/msdblclick no longer send click
 // events for the left button.
 sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+lastDownAltk+"&button=1&act=3");
+// Promote mousemove and mouseup to document-level capture so that drag and
+// button-release are tracked even after the cursor leaves the canvas element.
+isLeftDown=true;
+document.addEventListener('mousemove', _dragMove, true);
+document.addEventListener('mouseup', _dragUp, true);
 if(e.preventDefault) e.preventDefault();
 }
 else
@@ -307,9 +376,17 @@ if(e.altKey) altk=altk | 4;
 if(timerID_move!=0){window.clearTimeout(timerID_move);timerID_move=0;}
 if(isLeftButton(b))
 {
+// Remove document-level drag listeners; _dragUp may have already removed them
+// (no-op if already gone) to ensure clean-up regardless of where mouseup fired.
+document.removeEventListener('mousemove', _dragMove, true);
+document.removeEventListener('mouseup', _dragUp, true);
 // Cancel any pending click timer left over from earlier code paths.
 if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
 pendingClickParam=null;
+// Guard: _dragUp (document capture phase, fires first) may have already sent
+// the button-up and cleared isLeftDown; only send if we are still the first handler.
+if(!isLeftDown) return;
+isLeftDown=false;
 // Send button-up; button-down was already sent from msdown.
 sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button=1&act=6");
 return;

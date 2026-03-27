@@ -307,7 +307,9 @@ Cleanup:
 #define MSEVENT_BUTTON_NONE 0
 #define MSEVENT_BUTTON_LEFT 0x01
 #define MSEVENT_BUTTON_RIGHT 0x02
-#define MSEVENT_BUTTON_MIDDLE 0x04		
+#define MSEVENT_BUTTON_MIDDLE 0x04
+#define MSEVENT_BUTTON_ALL (MSEVENT_BUTTON_LEFT | MSEVENT_BUTTON_RIGHT | MSEVENT_BUTTON_MIDDLE)
+#define MSEVENT_BUTTON_MASK 0x0f
 #define MSEVENT_EVENT_NONE 0
 #define MSEVENT_EVENT_CLICK 0x10
 #define MSEVENT_EVENT_DBLCLICK 0x20
@@ -326,6 +328,13 @@ Cleanup:
 // being press-released around every individual event.  sendKeyEvent resets
 // this to 0 because it always releases any modifiers it injected.
 static short s_injectedModifiers = 0;
+// Tracks which mouse buttons (LEFT/RIGHT/MIDDLE bit flags) are currently held
+// down in the injected input stream.  Set on MSEVENT_EVENT_DRAG (button-down)
+// events; cleared on MSEVENT_EVENT_BUTTONUP/MSEVENT_EVENT_DROP (button-up)
+// events.  Used by the MOVE handler to detect and release buttons that the
+// client no longer holds (e.g. after an out-of-order XHR delivery leaves a
+// LEFTDOWN without a matching LEFTUP), preventing phantom drag on the remote.
+static short s_injectedMouseButtons = 0;
 
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
 BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
@@ -393,12 +402,25 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 
 	if((flags & MSEVENT_EVENT_ALL) == MSEVENT_EVENT_NONE)
 	{
+		// Sync button state: if the client reports no button held but we previously
+		// injected a button-down (e.g. from a session that ended without button-up),
+		// release it now so the remote does not continue dragging.
+		short clientBtns = (flags & MSEVENT_BUTTON_MASK);
+		short stuckBtns  = s_injectedMouseButtons & ~clientBtns;
+		if (stuckBtns)
+		{
+			if (stuckBtns & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++; }
+			if (stuckBtns & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);  count++; }
+			if (stuckBtns & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP); count++; }
+			s_injectedMouseButtons &= ~stuckBtns;
+			RW_LOG_DEBUG("sendMouseEvent: released stuck buttons 0x%02x\r\n", (unsigned short)stuckBtns);
+		}
 		SendInput((UINT)count, inputs, sizeof(INPUT));
 		return TRUE; // cursor-move only
 	}
 
 	int evType   = (flags & MSEVENT_EVENT_ALL);
-	int btnFlags = (flags & 0x0f);
+	int btnFlags = (flags & MSEVENT_BUTTON_MASK);
 
 	// --- 3. Mouse button / wheel event ---
 	// Modifier state is already correct (set in step 2 above); the cursor
@@ -414,12 +436,14 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTDOWN);   count++; }
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTDOWN);  count++; }
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEDOWN); count++; }
+		s_injectedMouseButtons |= (short)(btnFlags & MSEVENT_BUTTON_ALL);
 	}
 	else if (evType == MSEVENT_EVENT_DROP || evType == MSEVENT_EVENT_BUTTONUP)
 	{
 		if (btnFlags & MSEVENT_BUTTON_LEFT)   { AppendMouseInput(inputs[count], MOUSEEVENTF_LEFTUP);   count++; }
 		if (btnFlags & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);  count++; }
 		if (btnFlags & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP); count++; }
+		s_injectedMouseButtons &= ~(short)(btnFlags & MSEVENT_BUTTON_ALL);
 	}
 	else // click or double-click
 	{
