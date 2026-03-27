@@ -204,60 +204,37 @@ if(timerID_click!=0){window.clearTimeout(timerID_click);timerID_click=0;}
 pendingClickParam=null;
 sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=1&act=6");
 }, false);
-// Listen for fullscreen changes to engage / disengage keyboard lock.
-document.addEventListener('fullscreenchange', onFullscreenChange);
-document.addEventListener('webkitfullscreenchange', onFullscreenChange);
-}
-
-// Toggle the page into or out of fullscreen mode.  When the page enters
-// fullscreen, onFullscreenChange() calls navigator.keyboard.lock() so that
-// browser shortcuts like Ctrl+T and Ctrl+W are forwarded to the remote host
-// instead of being consumed by the browser.
-function toggleFullscreen()
-{
-var inFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
-if(!inFS)
-{
-var el=document.getElementById("divScreen")||document.documentElement;
-var req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-if(req) req.call(el);
-}
-else
-{
-var exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
-if(exit) exit.call(document);
-}
-}
-
-// Called whenever the fullscreen state changes.  Engages keyboard lock on
-// fullscreen entry so that all key combinations (Ctrl+T, Ctrl+W, Alt+F4, …)
-// are forwarded to the remote host rather than handled by the local browser.
-// On fullscreen exit the lock is released so normal browser shortcuts resume.
-function onFullscreenChange()
-{
-var inFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
-var btn=document.getElementById("btnFullscreen");
-if(inFS)
-{
-if(btn) btn.title="Exit Fullscreen";
-// navigator.keyboard.lock() with no arguments requests capture of all keys.
-// The browser always keeps a reserved path to exit fullscreen (e.g. Escape).
-if(navigator.keyboard && navigator.keyboard.lock)
-{
-navigator.keyboard.lock().then(function(){
-console.log("[viewCtrl] Keyboard locked (all shortcuts forwarded to remote)");
-}).catch(function(e){
-console.log("[viewCtrl] Keyboard lock failed: "+e);
+// Listen for the browser's PWA install prompt so the Install button can be shown.
+window.addEventListener('beforeinstallprompt', function(e) {
+e.preventDefault();
+_installPrompt = e;
+var btn = document.getElementById("btnInstall");
+if(btn) btn.style.display = '';
+console.log("[viewCtrl] Install prompt available");
+});
+// Hide the Install button once the app has been installed.
+window.addEventListener('appinstalled', function() {
+_installPrompt = null;
+var btn = document.getElementById("btnInstall");
+if(btn) btn.style.display = 'none';
+console.log("[viewCtrl] App installed");
 });
 }
-}
-else
+
+// Stored deferred BeforeInstallPromptEvent, set by the 'beforeinstallprompt' listener.
+var _installPrompt = null;
+
+// Show the browser's "Add to Home Screen / Install app" prompt.
+function installAsApp()
 {
-if(btn) btn.title="Fullscreen – captures all keyboard shortcuts";
-if(navigator.keyboard && navigator.keyboard.unlock)
-navigator.keyboard.unlock();
-console.log("[viewCtrl] Keyboard unlocked (fullscreen exited)");
-}
+if(!_installPrompt) return;
+_installPrompt.prompt();
+_installPrompt.userChoice.then(function(result) {
+console.log("[viewCtrl] Install prompt result: " + result.outcome);
+_installPrompt = null;
+var btn = document.getElementById("btnInstall");
+if(btn) btn.style.display = 'none';
+});
 }
 
 function processRequest() 
