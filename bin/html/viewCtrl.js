@@ -212,7 +212,9 @@ var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button=0&act=0";
+// Include the left-button state so the server can detect and release a
+// stuck LEFTDOWN from a previous session (e.g. after page reload or disconnect).
+var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+(isLeftDown?1:0)+"&act=0";
 if(timerID_move!=0)
 {
 window.clearTimeout(timerID_move);
