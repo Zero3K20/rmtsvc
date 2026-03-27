@@ -48,18 +48,38 @@ else if(window.ActiveXObject) xmlHttpKey = new ActiveXObject("Microsoft.XMLHTTP"
 return xmlHttpKey;
 }
 
-// Create a fresh XHR for each button event (down or up) so that rapid button
-// events — in particular the two down/up pairs of a double-click — are never
-// silently aborted by a subsequent event reusing the same XHR object.
-function sendButtonEvent(param)
+// Serial queue for button events (down/up).
+// Using a separate fresh XHR per event was the original approach to avoid one
+// event aborting another, but it allows out-of-order delivery: if act=3
+// (button-down) travels on a new TCP connection that needs a handshake while
+// act=6 (button-up) reuses a warm connection, act=6 arrives first.  The server
+// then processes button-up on an un-pressed button (no-op) and button-down
+// second, leaving the remote host with a stuck LEFTDOWN — unintended dragging.
+// The queue serialises sends so each XHR completes before the next is started,
+// guaranteeing the arrival order matches the dispatch order, while still using a
+// fresh XHR object per event so no event is ever silently dropped.
+var _buttonQueue = [];
+var _buttonSending = false;
+function _sendNextButtonEvent()
 {
+if(_buttonSending || _buttonQueue.length === 0) return;
+_buttonSending = true;
+var param = _buttonQueue.shift();
 var xhr;
 if(window.XMLHttpRequest) xhr = new XMLHttpRequest();
 else if(window.ActiveXObject) xhr = new ActiveXObject("Microsoft.XMLHTTP");
-if(!xhr) return;
+if(!xhr) { _buttonSending = false; return; }
 xhr.open("POST", "/msevent", true);
 xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+xhr.onreadystatechange = function() {
+if(xhr.readyState === 4) { _buttonSending = false; _sendNextButtonEvent(); }
+};
 xhr.send(param);
+}
+function sendButtonEvent(param)
+{
+_buttonQueue.push(param);
+_sendNextButtonEvent();
 }
 
 // Detect Internet Explorer (pre-Edge) which uses different button/event conventions
