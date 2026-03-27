@@ -329,10 +329,11 @@ Cleanup:
 // this to 0 because it always releases any modifiers it injected.
 static short s_injectedModifiers = 0;
 // Tracks which mouse buttons (LEFT/RIGHT/MIDDLE bit flags) are currently held
-// down in the injected input stream.  Updated on DRAG (button-down) and
-// BUTTONUP/DROP (button-up) events.  Used by the MOVE handler to detect and
-// release buttons that the client no longer holds (e.g. after a page reload or
-// disconnect while a button was held), preventing phantom drag on the remote.
+// down in the injected input stream.  Set on MSEVENT_EVENT_DRAG (button-down)
+// events; cleared on MSEVENT_EVENT_BUTTONUP/MSEVENT_EVENT_DROP (button-up)
+// events.  Used by the MOVE handler to detect and release buttons that the
+// client no longer holds (e.g. after an out-of-order XHR delivery leaves a
+// LEFTDOWN without a matching LEFTUP), preventing phantom drag on the remote.
 static short s_injectedMouseButtons = 0;
 
 //dwData - wheel movement, only meaningful for MSEVENT_EVENT_WHEEL
@@ -412,7 +413,7 @@ BOOL Wutils :: sendMouseEvent(int x,int y,short flags,DWORD dwData)
 			if (stuckBtns & MSEVENT_BUTTON_RIGHT)  { AppendMouseInput(inputs[count], MOUSEEVENTF_RIGHTUP);  count++; }
 			if (stuckBtns & MSEVENT_BUTTON_MIDDLE) { AppendMouseInput(inputs[count], MOUSEEVENTF_MIDDLEUP); count++; }
 			s_injectedMouseButtons &= ~stuckBtns;
-			RW_LOG_DEBUG("sendMouseEvent: released stuck buttons 0x%02x\r\n", (unsigned)stuckBtns);
+			RW_LOG_DEBUG("sendMouseEvent: released stuck buttons 0x%02x\r\n", (unsigned short)stuckBtns);
 		}
 		SendInput((UINT)count, inputs, sizeof(INPUT));
 		return TRUE; // cursor-move only

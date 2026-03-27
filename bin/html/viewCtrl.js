@@ -212,15 +212,19 @@ var altk=0;
 if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
-// Include the left-button state so the server can detect and release a
-// stuck LEFTDOWN from a previous session (e.g. after page reload or disconnect).
-var param="x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+(isLeftDown?1:0)+"&act=0";
+// Capture position and modifier state now (they are current at mousemove time),
+// but evaluate isLeftDown lazily inside the timer callback so that if the
+// button is released before the 50 ms debounce fires the server receives
+// button=0.  This lets the server-side stuck-button sync (s_injectedMouseButtons)
+// detect and release any LEFTDOWN that was injected out-of-order and heal the
+// phantom-drag state within the same session — no page reload required.
+var paramBase="x="+ptX+"&y="+ptY+"&altk="+altk+"&act=0";
 if(timerID_move!=0)
 {
 window.clearTimeout(timerID_move);
 timerID_move=0;
 }
-timerID_move=window.setTimeout(function(){ sendEvent("/msevent",param); },50);
+timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+(isLeftDown?1:0)); },50);
 }
 
 function msclick(e)
