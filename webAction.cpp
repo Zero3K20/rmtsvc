@@ -704,6 +704,9 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 	WORD prevW = 0, prevH = 0;
 
+	// Target inter-frame interval in milliseconds (~30 fps).
+	const DWORD FRAME_INTERVAL_MS = 33;
+
 	while (psock->checkSocket(0, SOCKS_OP_WRITE) >= 0)
 	{
 		ULONGLONG tFrameStart = GetTickCount64();
@@ -723,7 +726,7 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 		if (rawSize == 0)
 		{
-			Sleep(33);
+			Sleep(FRAME_INTERVAL_MS);
 			continue;
 		}
 
@@ -731,6 +734,12 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 
 		// Build the data to compress: full frame or XOR diff
 		LPBYTE lpToCompress = lpRgbCurr;
+		// bChanged: true when this frame must be sent (full frame, or at least one
+		// pixel differed from the previous frame).  Unchanged frames are skipped
+		// entirely so the browser's JavaScript pixel-loop and putImageData never
+		// run for them, which is the dominant source of high CPU usage when the
+		// remote screen is idle.
+		bool bChanged = bFull;
 		if (!bFull)
 		{
 			// Grow diff buffer if needed
@@ -738,14 +747,44 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 			{
 				LPBYTE lpNew = (LPBYTE)::realloc(lpDiffBuf, rawSize);
 				if (lpNew) { lpDiffBuf = lpNew; szDiffBuf = rawSize; }
-				else       { bFull = true; } // fall back to full frame on alloc failure
+				else       { bFull = true; bChanged = true; } // fall back to full frame on alloc failure
 			}
 			if (!bFull)
 			{
-				for (DWORD i = 0; i < rawSize; i++)
-					lpDiffBuf[i] = lpRgbCurr[i] ^ lpRgbPrev[i];
+				// XOR diff with simultaneous change detection.
+				// Processing DWORD-sized chunks gives ~4x throughput vs byte-by-byte;
+				// anyDiff is non-zero iff at least one pixel changed since the last frame.
+				DWORD anyDiff = 0;
+				DWORD count4  = rawSize / 4;
+				DWORD rem4    = rawSize % 4;
+				const DWORD *pCurr4 = (const DWORD *)lpRgbCurr;
+				const DWORD *pPrev4 = (const DWORD *)lpRgbPrev;
+				      DWORD *pDiff4 = (      DWORD *)lpDiffBuf;
+				for (DWORD i = 0; i < count4; i++)
+				{
+					DWORD d = pCurr4[i] ^ pPrev4[i];
+					pDiff4[i] = d;
+					anyDiff  |= d;
+				}
+				for (DWORD i = rawSize - rem4; i < rawSize; i++)
+				{
+					BYTE d = lpRgbCurr[i] ^ lpRgbPrev[i];
+					lpDiffBuf[i] = d;
+					anyDiff |= d;
+				}
 				lpToCompress = lpDiffBuf;
+				bChanged = (anyDiff != 0);
 			}
+		}
+
+		// Screen has not changed: skip this frame.  The client's ReadableStream
+		// reader.read() call simply remains pending (zero CPU) rather than
+		// processing an all-zero diff frame.
+		if (!bChanged)
+		{
+			ULONGLONG elapsed = GetTickCount64() - tFrameStart;
+			if (elapsed < FRAME_INTERVAL_MS) Sleep(FRAME_INTERVAL_MS - (DWORD)elapsed);
+			continue;
 		}
 
 		// Attempt RLE compression.
@@ -795,8 +834,8 @@ bool webServer::httprsp_capStream(socketTCP *psock,httpResponse &httprsp,httpSes
 		// Frame-time compensation: sleep only the remaining time to target ~30 fps.
 		// This accounts for the time spent capturing, compressing, and sending.
 		ULONGLONG elapsed = GetTickCount64() - tFrameStart;
-		if (elapsed < 33)
-			Sleep((DWORD)(33 - elapsed));
+		if (elapsed < FRAME_INTERVAL_MS)
+			Sleep(FRAME_INTERVAL_MS - (DWORD)elapsed);
 	}
 
 	if (lpDibBuf)  ::free(lpDibBuf);
