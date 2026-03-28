@@ -74,8 +74,17 @@ else if(window.ActiveXObject) xhr = new ActiveXObject("Microsoft.XMLHTTP");
 if(!xhr) { _buttonSending = false; return; }
 xhr.open("POST", "/msevent", true);
 xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+// Safety timeout: if the browser abandons the XHR (e.g. the PWA is
+// backgrounded and the connection is suspended), readyState 4 may never
+// fire.  After 5 s we treat the request as done and drain the queue so
+// subsequent button events are not permanently blocked.
+var _btnSafetyTO = setTimeout(function() {
+try { xhr.abort(); } catch(e) {}
+_buttonSending = false;
+_sendNextButtonEvent();
+}, 5000);
 xhr.onreadystatechange = function() {
-if(xhr.readyState === 4) { _buttonSending = false; _sendNextButtonEvent(); }
+if(xhr.readyState === 4) { clearTimeout(_btnSafetyTO); _buttonSending = false; _sendNextButtonEvent(); }
 };
 xhr.send(param);
 }
@@ -228,6 +237,28 @@ if(_isFirefox) {
 var btn = document.getElementById("btnInstall");
 if(btn) btn.style.display = '';
 }
+// When a PWA (or any browser) comes back to the foreground after being
+// backgrounded, in-flight XHRs may have been silently abandoned by the
+// browser without ever reaching readyState 4.  This leaves _buttonSending
+// permanently true, blocking all subsequent button events (the "hang").
+// On visibility restore we reset the button-queue state so input becomes
+// responsive again.  The screen stream is reconnected by the listener in
+// common.js startScreenStream().
+document.addEventListener('visibilitychange', function() {
+if(document.visibilityState === 'visible') {
+_buttonSending = false;
+_buttonQueue = [];
+}
+}, false);
+// Chrome's Page Lifecycle API: when Chrome freezes the page (standby/idle
+// mode triggered by its "this page is slowing down the browser" warning),
+// any in-flight button XHR will be abandoned.  Reset the queue state on
+// freeze so that when the page resumes, input is immediately responsive
+// without waiting for the 5 s safety timeout to expire.
+document.addEventListener('freeze', function() {
+_buttonSending = false;
+_buttonQueue = [];
+}, false);
 }
 
 // Stored deferred BeforeInstallPromptEvent, set by the 'beforeinstallprompt' listener.
