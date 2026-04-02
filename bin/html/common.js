@@ -116,6 +116,10 @@ var _diffCanvasH      = 0;     // last rendered canvas content height
 var _diffCanvas       = null;  // cached canvas element (avoids repeated getElementById)
 var _diffCtx2d        = null;  // cached 2D context (avoids repeated getContext)
 var _diffImageData    = null;  // cached ImageData — eliminates getImageData GPU→CPU readback on every XOR diff frame
+// Timestamp of the last successfully rendered frame, used by the watchdog.
+var _lastFrameTime    = 0;
+// Interval handle for the stream watchdog timer.
+var _streamWatchdog   = 0;
 
 // RLE (PackBits-style) decompressor.
 // Control byte encoding:
@@ -279,6 +283,9 @@ function _diffRenderFrame(isDiff, width, height, rgb)
 		}
 		ctx.putImageData(_diffImageData, 0, 0);
 	}
+	// Record the time of the last successfully rendered frame so the watchdog
+	// can detect when the stream has silently stalled.
+	_lastFrameTime = Date.now ? Date.now() : new Date().getTime();
 }
 
 // Start the binary diff stream using fetch + ReadableStream
@@ -289,6 +296,23 @@ function _startDiffStream()
 	_diffBuf       = null;
 	_diffPos       = 0;
 	_diffImageData = null; // invalidate cached ImageData on reconnect
+	// Reset the watchdog timestamp and (re)start the interval.  If the stream
+	// is throttled or silently stalled by Chrome (e.g. the page is consuming
+	// too many resources and Chrome issues a standby warning), reader.read()
+	// may simply stop delivering chunks without ever rejecting.  The watchdog
+	// detects this by checking whether a frame has arrived within the last 10 s
+	// and forces a reconnect when the threshold is exceeded.
+	_lastFrameTime = Date.now ? Date.now() : new Date().getTime();
+	if (_streamWatchdog) { clearInterval(_streamWatchdog); _streamWatchdog = 0; }
+	_streamWatchdog = setInterval(function() {
+		if (document.visibilityState === 'hidden') return; // page not visible; skip
+		var now = Date.now ? Date.now() : new Date().getTime();
+		if (now - _lastFrameTime > 10000) {
+			clearInterval(_streamWatchdog);
+			_streamWatchdog = 0;
+			_scheduleReconnect();
+		}
+	}, 5000);
 
 	var opts = _diffCtrl ? {signal: _diffCtrl.signal} : {};
 	fetch("/capStream", opts)
@@ -372,9 +396,31 @@ function startScreenStream()
 	    typeof Uint8Array !== "undefined")
 	{
 		_startDiffStream();
+		if (document.addEventListener)
+		{
+			// When a PWA returns to the foreground the fetch stream may have been
+			// suspended or silently dropped by the browser while the page was hidden.
+			// Force a fresh connection so the screen does not stay frozen.
+			document.addEventListener('visibilitychange', function() {
+				if (document.visibilityState === 'visible') _startDiffStream();
+			}, false);
+			// Chrome's Page Lifecycle API: the browser may freeze the page when it
+			// decides the page is slowing it down (standby/idle mode).  On freeze,
+			// tear down the stream and watchdog so they don't consume resources while
+			// suspended.  On resume, restart the stream immediately.
+			document.addEventListener('freeze', function() {
+				if (_streamWatchdog) { clearInterval(_streamWatchdog); _streamWatchdog = 0; }
+				if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = 0; }
+				if (_diffCtrl) { try { _diffCtrl.abort(); } catch(e){} _diffCtrl = null; }
+			}, false);
+			document.addEventListener('resume', function() {
+				_startDiffStream();
+			}, false);
+		}
 	}
 	else
 	{
 		_startBmpPoll();
 	}
 }
+ 
