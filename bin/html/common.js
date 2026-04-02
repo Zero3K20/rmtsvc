@@ -113,6 +113,9 @@ var _diffPos          = 0;     // read position within _diffBuf
 var _diffCtrl         = null;  // AbortController for current fetch
 var _diffCanvasW      = 0;     // last rendered canvas content width
 var _diffCanvasH      = 0;     // last rendered canvas content height
+var _diffCanvas       = null;  // cached canvas element (avoids repeated getElementById)
+var _diffCtx2d        = null;  // cached 2D context (avoids repeated getContext)
+var _diffImageData    = null;  // cached ImageData — eliminates getImageData GPU→CPU readback on every XOR diff frame
 // Timestamp of the last successfully rendered frame, used by the watchdog.
 var _lastFrameTime    = 0;
 // Interval handle for the stream watchdog timer.
@@ -211,7 +214,8 @@ function _diffParseFrames()
 // (height:100% through table cells) doesn't resolve correctly in the browser.
 function _fitCanvasToContainer()
 {
-	var canvas = document.getElementById("screenimage");
+	if (!_diffCanvas) _diffCanvas = document.getElementById("screenimage");
+	var canvas = _diffCanvas;
 	if (!canvas) return;
 	var nw = parseInt(canvas.getAttribute("data-nw") || "0") || canvas.width;
 	var nh = parseInt(canvas.getAttribute("data-nh") || "0") || canvas.height;
@@ -227,9 +231,11 @@ function _fitCanvasToContainer()
 // Render one frame onto the canvas with id="screenimage"
 function _diffRenderFrame(isDiff, width, height, rgb)
 {
-	var canvas = document.getElementById("screenimage");
+	if (!_diffCanvas) _diffCanvas = document.getElementById("screenimage");
+	var canvas = _diffCanvas;
 	if (!canvas || !canvas.getContext) return;
-	var ctx = canvas.getContext("2d");
+	if (!_diffCtx2d) _diffCtx2d = canvas.getContext("2d");
+	var ctx = _diffCtx2d;
 
 	if (canvas.width !== width || canvas.height !== height)
 	{
@@ -239,35 +245,43 @@ function _diffRenderFrame(isDiff, width, height, rgb)
 		canvas.setAttribute("data-nh", height);
 		_diffCanvasW = width;
 		_diffCanvasH = height;
+		_diffImageData = null; // invalidate cached ImageData on dimension change
 		_fitCanvasToContainer();
 	}
 
+	// Lazily create the cached ImageData.  Re-using the same object across frames
+	// avoids both the createImageData allocation cost and — for XOR diff frames —
+	// the expensive getImageData GPU→CPU readback that was previously required to
+	// read back the current canvas pixels before XOR-ing the diff on top.
+	if (_diffImageData === null)
+		_diffImageData = ctx.createImageData(width, height);
+
+	var d = _diffImageData.data;
+
 	if (!isDiff)
 	{
-		// Full frame: top-down RGB -> canvas RGBA
-		var imgData = ctx.createImageData(width, height);
-		var d = imgData.data;
-		for (var i = 0, j = 0; j + 2 < rgb.length; i += 4, j += 3)
+		// Full frame: top-down RGB → cached RGBA ImageData
+		var len = rgb.length - 2;
+		for (var i = 0, j = 0; j < len; i += 4, j += 3)
 		{
 			d[i]   = rgb[j];
 			d[i+1] = rgb[j+1];
 			d[i+2] = rgb[j+2];
 			d[i+3] = 255;
 		}
-		ctx.putImageData(imgData, 0, 0);
+		ctx.putImageData(_diffImageData, 0, 0);
 	}
 	else
 	{
-		// XOR diff: apply to current canvas pixels
-		var imgData = ctx.getImageData(0, 0, width, height);
-		var d = imgData.data;
-		for (var i = 0, j = 0; j + 2 < rgb.length; i += 4, j += 3)
+		// XOR diff: apply directly to cached ImageData — no getImageData needed
+		var len = rgb.length - 2;
+		for (var i = 0, j = 0; j < len; i += 4, j += 3)
 		{
 			d[i]   ^= rgb[j];
 			d[i+1] ^= rgb[j+1];
 			d[i+2] ^= rgb[j+2];
 		}
-		ctx.putImageData(imgData, 0, 0);
+		ctx.putImageData(_diffImageData, 0, 0);
 	}
 	// Record the time of the last successfully rendered frame so the watchdog
 	// can detect when the stream has silently stalled.
@@ -279,8 +293,9 @@ function _startDiffStream()
 {
 	if (_diffCtrl) { try { _diffCtrl.abort(); } catch(e){} }
 	_diffCtrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-	_diffBuf  = null;
-	_diffPos  = 0;
+	_diffBuf       = null;
+	_diffPos       = 0;
+	_diffImageData = null; // invalidate cached ImageData on reconnect
 	// Reset the watchdog timestamp and (re)start the interval.  If the stream
 	// is throttled or silently stalled by Chrome (e.g. the page is consuming
 	// too many resources and Chrome issues a standby warning), reader.read()
@@ -305,17 +320,24 @@ function _startDiffStream()
 		{
 			if (!resp.ok || !resp.body) { _scheduleReconnect(); return; }
 			var reader = resp.body.getReader();
+			// pump() deliberately does NOT return the inner promise so that
+			// each iteration creates an independent, short-lived promise chain
+			// that the GC can collect immediately after it resolves.  Returning
+			// the inner promise (the original approach) causes every iteration to
+			// retain a reference to all prior promises, forming an ever-growing
+			// chain that cannot be collected for the lifetime of the connection
+			// and leads to steadily increasing memory consumption.
 			function pump()
 			{
-				return reader.read().then(function(result)
+				reader.read().then(function(result)
 				{
 					if (result.done) { _scheduleReconnect(); return; }
 					_diffAppend(result.value);
 					_diffParseFrames();
-					return pump();
+					pump();
 				}).catch(function() { _scheduleReconnect(); });
 			}
-			return pump();
+			pump();
 		})
 		.catch(function() { _scheduleReconnect(); });
 }

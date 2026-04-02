@@ -292,7 +292,6 @@ if(timerID_move!=0)
 window.clearTimeout(timerID_move);
 timerID_move=0;
 }
-console.log("[viewCtrl] sendEvent: "+strurl+" "+param);
 xmlHttp.open("POST", strurl, true);
 xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
 xmlHttp.onreadystatechange = processRequest;
@@ -520,7 +519,6 @@ else
 var kxhr=getKeyXHR();
 if(kxhr)
 {
-console.log("[viewCtrl] keyEvent: vkey="+param);
 kxhr.open("POST", "/keyevent", true);
 kxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
 kxhr.onreadystatechange=function(){
@@ -557,7 +555,6 @@ if(e.ctrlKey) { altk=altk | 1; heldModifiers=heldModifiers | 1; }
 if(e.shiftKey) { altk=altk | 2; heldModifiers=heldModifiers | 2; }
 if(e.altKey) { altk=altk | 4; heldModifiers=heldModifiers | 4; }
 var kevent=altk*256+kc;
-console.log("[viewCtrl] keyDown: keyCode="+kc+" altk="+altk+" kevent="+kevent);
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
 timerID_key=window.setInterval(Kevent,50);
@@ -588,7 +585,6 @@ if(modBit && (heldModifiers & modBit))
 // Held modifier release: signal server to inject VK-up only.
 kevent=0x0800|kc;
 heldModifiers=heldModifiers & ~modBit;
-console.log("[viewCtrl] keyUp (Held modifier release): keyCode="+kc+" kevent=0x"+kevent.toString(16));
 }
 else
 {
@@ -598,7 +594,6 @@ if(e.ctrlKey) altk=altk | 1;
 if(e.shiftKey) altk=altk | 2;
 if(e.altKey) altk=altk | 4;
 kevent=altk*256+kc;
-console.log("[viewCtrl] keyUp (Bare modifier tap): keyCode="+kc+" altk="+altk+" kevent="+kevent);
 }
 txtKeyEvent=txtKeyEvent+kevent+",";
 if(timerID_key==0)
