@@ -296,6 +296,10 @@ function _startDiffStream()
 	_diffBuf       = null;
 	_diffPos       = 0;
 	_diffImageData = null; // invalidate cached ImageData on reconnect
+	// Cancel any pending reconnect timer — the new fetch supersedes it.
+	// Without this, a timer scheduled by a previous failure would fire and
+	// immediately abort the fresh stream we are about to start.
+	if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = 0; }
 	// Reset the watchdog timestamp and (re)start the interval.  If the stream
 	// is throttled or silently stalled by Chrome (e.g. the page is consuming
 	// too many resources and Chrome issues a standby warning), reader.read()
@@ -335,11 +339,26 @@ function _startDiffStream()
 					_diffAppend(result.value);
 					_diffParseFrames();
 					pump();
-				}).catch(function() { _scheduleReconnect(); });
+				}).catch(function(e)
+				{
+					// AbortError means _startDiffStream intentionally tore down this
+					// fetch to start a new one (e.g. on visibilitychange or resume).
+					// The replacement fetch is already running; scheduling another
+					// reconnect here would abort the new fetch after 100 ms, causing
+					// an infinite abort-reconnect loop that keeps the stream broken.
+					if (e && e.name === 'AbortError') return;
+					_scheduleReconnect();
+				});
 			}
 			pump();
 		})
-		.catch(function() { _scheduleReconnect(); });
+		.catch(function(e)
+		{
+			// Same guard: if the fetch itself was aborted by _startDiffStream the
+			// replacement is already running — do not schedule a redundant reconnect.
+			if (e && e.name === 'AbortError') return;
+			_scheduleReconnect();
+		});
 }
 
 // Fallback for browsers without ReadableStream: poll /capDesktop (BMP) repeatedly

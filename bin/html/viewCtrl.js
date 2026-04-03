@@ -139,6 +139,8 @@ return {x:x, y:y};
 // Only one request is allowed in-flight at a time: if the previous poll has not
 // yet completed the new one is skipped, ensuring fetchCursor never holds more
 // than one browser HTTP connection slot.
+// A 3 s safety timeout prevents _cursorPending from getting permanently stuck
+// when the browser abandons the XHR during sleep without firing readyState 4.
 var _cursorPending = false;
 function fetchCursor()
 {
@@ -148,10 +150,15 @@ if(window.XMLHttpRequest) xhr=new XMLHttpRequest();
 else if(window.ActiveXObject) xhr=new ActiveXObject("Microsoft.XMLHTTP");
 if(!xhr) return;
 _cursorPending = true;
+var _cursorTO = setTimeout(function() {
+try { xhr.abort(); } catch(e) {}
+_cursorPending = false;
+}, 3000);
 xhr.open("GET","/getCursor",true);
 xhr.onreadystatechange=function(){
 if(xhr.readyState===4)
 {
+clearTimeout(_cursorTO);
 _cursorPending = false;
 if(xhr.status===200)
 {
@@ -244,10 +251,13 @@ if(btn) btn.style.display = '';
 // On visibility restore we reset the button-queue state so input becomes
 // responsive again.  The screen stream is reconnected by the listener in
 // common.js startScreenStream().
+// _cursorPending is also reset so the cursor polling interval can resume
+// immediately rather than waiting for the 3 s safety timeout to expire.
 document.addEventListener('visibilitychange', function() {
 if(document.visibilityState === 'visible') {
 _buttonSending = false;
 _buttonQueue = [];
+_cursorPending = false;
 }
 }, false);
 // Chrome's Page Lifecycle API: when Chrome freezes the page (standby/idle
@@ -258,6 +268,7 @@ _buttonQueue = [];
 document.addEventListener('freeze', function() {
 _buttonSending = false;
 _buttonQueue = [];
+_cursorPending = false;
 }, false);
 }
 
