@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downpour</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <span class="logo">&#9928; Downpour</span>
+  <div class="toolbar">
+    <button id="btnAddMagnet" onclick="openMagnetDialog()">&#x1F517; Add Magnet</button>
+    <label class="btn" id="btnAddFile">
+      &#x1F4C4; Add .torrent
+      <input type="file" id="fileInput" accept=".torrent" style="display:none"
+             onchange="uploadTorrentFile(this)">
+    </label>
+    <span id="statusMsg"></span>
+  </div>
+</header>
+
+<!-- Magnet dialog -->
+<div id="magnetOverlay" class="overlay" style="display:none">
+  <div class="dialog">
+    <h3>Add Magnet Link</h3>
+    <input type="text" id="magnetInput" placeholder="magnet:?xt=urn:btih:..." style="width:100%;box-sizing:border-box">
+    <div class="dialog-buttons">
+      <button onclick="submitMagnet()">Add</button>
+      <button onclick="closeMagnetDialog()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove confirmation dialog -->
+<div id="removeOverlay" class="overlay" style="display:none">
+  <div class="dialog">
+    <h3>Remove Torrent</h3>
+    <p id="removeName"></p>
+    <label><input type="checkbox" id="deleteFilesChk"> Also delete downloaded files</label>
+    <div class="dialog-buttons">
+      <button id="confirmRemoveBtn">Remove</button>
+      <button onclick="closeRemoveDialog()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <table id="torrentTable">
+    <thead>
+      <tr>
+        <th class="col-name">Name</th>
+        <th class="col-size">Size</th>
+        <th class="col-progress">Progress</th>
+        <th class="col-dl">&#x2193; Speed</th>
+        <th class="col-ul">&#x2191; Speed</th>
+        <th class="col-peers">Peers</th>
+        <th class="col-state">State</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="torrentBody">
+      <tr id="emptyRow">
+        <td colspan="8" style="text-align:center;color:#888;padding:32px">
+          No torrents. Add a magnet link or upload a .torrent file above.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</main>
+
+<script src="downpour.js"></script>
+</body>
+</html>
