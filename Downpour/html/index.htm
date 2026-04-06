@@ -17,6 +17,7 @@
       <input type="file" id="fileInput" accept=".torrent" style="display:none"
              onchange="uploadTorrentFile(this)">
     </label>
+    <button onclick="openSettingsDialog()">&#x2699; Settings</button>
     <span id="statusMsg"></span>
   </div>
 </header>
@@ -46,6 +47,21 @@
   </div>
 </div>
 
+<!-- Settings dialog -->
+<div id="settingsOverlay" class="overlay" style="display:none">
+  <div class="dialog">
+    <h3>&#x2699; Speed Limits</h3>
+    <label>Max Download Speed (KB/s, 0 = unlimited)</label>
+    <input type="number" id="settingsDlSpeed" min="0" value="0" style="width:100%;box-sizing:border-box;margin-bottom:12px">
+    <label>Max Upload Speed (KB/s, 0 = unlimited)</label>
+    <input type="number" id="settingsUlSpeed" min="0" value="0" style="width:100%;box-sizing:border-box;margin-bottom:16px">
+    <div class="dialog-buttons">
+      <button onclick="saveSettings()">Save</button>
+      <button onclick="closeSettingsDialog()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <main>
   <table id="torrentTable">
     <thead>
@@ -56,13 +72,15 @@
         <th class="col-dl">&#x2193; Speed</th>
         <th class="col-ul">&#x2191; Speed</th>
         <th class="col-peers">Peers</th>
+        <th class="col-eta">ETA</th>
+        <th class="col-ratio">Ratio</th>
         <th class="col-state">State</th>
         <th class="col-actions">Actions</th>
       </tr>
     </thead>
     <tbody id="torrentBody">
       <tr id="emptyRow">
-        <td colspan="8" style="text-align:center;color:#888;padding:32px">
+        <td colspan="10" style="text-align:center;color:#888;padding:32px">
           No torrents. Add a magnet link or upload a .torrent file above.
         </td>
       </tr>

@@ -127,6 +127,18 @@ void DownpourService::parseConfig(const char* strCommand)
         cfg.files.defaultDirectory = strCommand + 13;
         mtt::config::setValues(cfg.files);
     }
+    else if (strncasecmp(strCommand, "max_download_speed ", 19) == 0)
+    {
+        auto cfg = mtt::config::getExternal();
+        cfg.transfer.maxDownloadSpeed = (uint32_t)atol(strCommand + 19);
+        mtt::config::setValues(cfg.transfer);
+    }
+    else if (strncasecmp(strCommand, "max_upload_speed ", 17) == 0)
+    {
+        auto cfg = mtt::config::getExternal();
+        cfg.transfer.maxUploadSpeed = (uint32_t)atol(strCommand + 17);
+        mtt::config::setValues(cfg.transfer);
+    }
 }
 
 // ---------------------------------------------------------------------------

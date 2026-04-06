@@ -99,6 +99,11 @@ private:
     bool httprsp_torrent_remove(socketTCP* psock, httpRequest& httpreq,
                                  httpResponse& httprsp);
 
+    // Settings API handlers
+    bool httprsp_settings_get(socketTCP* psock, httpResponse& httprsp);
+    bool httprsp_settings_set(socketTCP* psock, httpRequest& httpreq,
+                               httpResponse& httprsp);
+
     // Small helpers
     void sendJson(socketTCP* psock, httpResponse& httprsp,
                   const std::string& json, int code = 200);

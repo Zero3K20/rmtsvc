@@ -9,6 +9,8 @@
  *    POST /api/start         – start / resume a torrent
  *    POST /api/stop          – stop / pause a torrent
  *    POST /api/remove        – remove a torrent (optionally delete files)
+ *    GET  /api/settings      – get current speed-limit settings
+ *    POST /api/settings      – update speed-limit settings
  *
  *  All remote-desktop, registry, process, file-manager, FTP, proxy,
  *  telnet and vIDC endpoints from rmtsvc have been intentionally omitted.
@@ -297,6 +299,20 @@ bool DownpourServer::httprsp_torrent_list(socketTCP* psock,
             for (const auto& f : t->getFilesInfo())
                 totalSize += f.size;
 
+        // upload ratio: uploaded / downloaded (−1 when no data downloaded yet)
+        uint64_t dl = xfer.downloaded();
+        uint64_t ul = xfer.uploaded();
+        double ratio = (dl > 0) ? (double)ul / (double)dl : -1.0;
+
+        // ETA in seconds (−1 = unknown / not applicable)
+        int64_t eta = -1;
+        uint32_t dlSpeed = xfer.downloadSpeed();
+        if (dlSpeed > 0 && totalSize > 0 && !t->finished())
+        {
+            uint64_t remaining = totalSize > dl ? totalSize - dl : 0;
+            eta = (int64_t)(remaining / dlSpeed);
+        }
+
         char obj[1024];
         snprintf(obj, sizeof(obj),
             "{"
@@ -310,19 +326,23 @@ bool DownpourServer::httprsp_torrent_list(socketTCP* psock,
             "\"uploaded\":%llu,"
             "\"totalSize\":%llu,"
             "\"peers\":%u,"
-            "\"seeds\":%u"
+            "\"seeds\":%u,"
+            "\"ratio\":%.4f,"
+            "\"eta\":%lld"
             "}",
             hashToHex(t->hash()).c_str(),
             jsonEscape(t->name()).c_str(),
             stateStr,
             (double)t->progress(),
-            xfer.downloadSpeed(),
+            dlSpeed,
             xfer.uploadSpeed(),
-            (unsigned long long)xfer.downloaded(),
-            (unsigned long long)xfer.uploaded(),
+            (unsigned long long)dl,
+            (unsigned long long)ul,
             (unsigned long long)totalSize,
             peers.connectedCount(),
-            peers.receivedCount()
+            peers.receivedCount(),
+            ratio,
+            (long long)eta
         );
         json += obj;
     }
@@ -526,6 +546,45 @@ bool DownpourServer::httprsp_torrent_remove(socketTCP* psock,
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/settings
+// Returns current speed-limit settings as JSON.
+// ---------------------------------------------------------------------------
+bool DownpourServer::httprsp_settings_get(socketTCP* psock,
+                                           httpResponse& httprsp)
+{
+    auto cfg = mtt::config::getExternal();
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"maxDownloadSpeed\":%u,\"maxUploadSpeed\":%u}",
+             cfg.transfer.maxDownloadSpeed,
+             cfg.transfer.maxUploadSpeed);
+    sendJson(psock, httprsp, buf);
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/settings
+// body: max_download_speed=<bytes/s> [&max_upload_speed=<bytes/s>]
+// Zero means unlimited.
+// ---------------------------------------------------------------------------
+bool DownpourServer::httprsp_settings_set(socketTCP* psock,
+                                           httpRequest& httpreq,
+                                           httpResponse& httprsp)
+{
+    auto cfg = mtt::config::getExternal();
+
+    const char* dlParam = httpreq.Request("max_download_speed");
+    const char* ulParam = httpreq.Request("max_upload_speed");
+
+    if (dlParam) cfg.transfer.maxDownloadSpeed = (uint32_t)atol(dlParam);
+    if (ulParam) cfg.transfer.maxUploadSpeed   = (uint32_t)atol(ulParam);
+
+    mtt::config::setValues(cfg.transfer);
+    sendJson(psock, httprsp, "{\"ok\":true}");
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 // Authentication helpers (same pattern as rmtsvc)
 // ---------------------------------------------------------------------------
 bool DownpourServer::httprsp_checkcode(socketTCP* psock,
@@ -715,6 +774,13 @@ bool DownpourServer::onHttpReq(socketTCP* psock,
 
     if (strcasecmp(url.c_str(), "/api/remove") == 0)
         return httprsp_torrent_remove(psock, httpreq, httprsp);
+
+    if (strcasecmp(url.c_str(), "/api/settings") == 0)
+    {
+        if (httpreq.get_reqType() == HTTP_REQ_POST)
+            return httprsp_settings_set(psock, httpreq, httprsp);
+        return httprsp_settings_get(psock, httprsp);
+    }
 
     // Fall through to static file serving (index.htm, style.css, etc.)
     return false;
