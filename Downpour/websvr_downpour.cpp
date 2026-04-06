@@ -304,12 +304,13 @@ bool DownpourServer::httprsp_torrent_list(socketTCP* psock,
         uint64_t ul = xfer.uploaded();
         double ratio = (dl > 0) ? (double)ul / (double)dl : -1.0;
 
-        // ETA in seconds (−1 = unknown / not applicable)
+        // ETA in seconds using verified finished bytes for accuracy (−1 = unknown)
         int64_t eta = -1;
         uint32_t dlSpeed = xfer.downloadSpeed();
         if (dlSpeed > 0 && totalSize > 0 && !t->finished())
         {
-            uint64_t remaining = totalSize > dl ? totalSize - dl : 0;
+            uint64_t finished = t->finishedBytes();
+            uint64_t remaining = totalSize > finished ? totalSize - finished : 0;
             eta = (int64_t)(remaining / dlSpeed);
         }
 
@@ -576,8 +577,16 @@ bool DownpourServer::httprsp_settings_set(socketTCP* psock,
     const char* dlParam = httpreq.Request("max_download_speed");
     const char* ulParam = httpreq.Request("max_upload_speed");
 
-    if (dlParam) cfg.transfer.maxDownloadSpeed = (uint32_t)atol(dlParam);
-    if (ulParam) cfg.transfer.maxUploadSpeed   = (uint32_t)atol(ulParam);
+    if (dlParam)
+    {
+        long v = atol(dlParam);
+        if (v >= 0) cfg.transfer.maxDownloadSpeed = (uint32_t)v;
+    }
+    if (ulParam)
+    {
+        long v = atol(ulParam);
+        if (v >= 0) cfg.transfer.maxUploadSpeed = (uint32_t)v;
+    }
 
     mtt::config::setValues(cfg.transfer);
     sendJson(psock, httprsp, "{\"ok\":true}");

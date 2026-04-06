@@ -230,15 +230,17 @@ async function confirmRemove() {
 }
 
 // ── Settings dialog ───────────────────────────────────────────────────────────
+const BYTES_PER_KB = 1024;
+
 async function openSettingsDialog() {
     try {
         const res  = await fetch('/api/settings');
         const cfg  = await res.json();
         // Convert bytes/s → KB/s for display (0 stays 0)
         document.getElementById('settingsDlSpeed').value =
-            cfg.maxDownloadSpeed ? Math.round(cfg.maxDownloadSpeed / 1024) : 0;
+            cfg.maxDownloadSpeed ? Math.round(cfg.maxDownloadSpeed / BYTES_PER_KB) : 0;
         document.getElementById('settingsUlSpeed').value =
-            cfg.maxUploadSpeed   ? Math.round(cfg.maxUploadSpeed   / 1024) : 0;
+            cfg.maxUploadSpeed   ? Math.round(cfg.maxUploadSpeed   / BYTES_PER_KB) : 0;
     } catch (e) {
         document.getElementById('settingsDlSpeed').value = 0;
         document.getElementById('settingsUlSpeed').value = 0;
@@ -256,8 +258,8 @@ async function saveSettings() {
     closeSettingsDialog();
     try {
         const data = await apiPost('/api/settings', {
-            max_download_speed: dlKB * 1024,
-            max_upload_speed:   ulKB * 1024
+            max_download_speed: dlKB * BYTES_PER_KB,
+            max_upload_speed:   ulKB * BYTES_PER_KB
         });
         setStatus(data.ok ? 'Speed limits updated.' : 'Error: ' + data.error, !data.ok);
     } catch (e) {
