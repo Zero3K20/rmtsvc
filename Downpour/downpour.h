@@ -35,6 +35,7 @@
 #include "mtTorrent/Api/Files.h"
 #include "mtTorrent/Api/MetadataDownload.h"
 #include "mtTorrent/Public/Alerts.h"
+#include "mtTorrent/Public/Status.h"
 
 #include <memory>
 #include <string>
@@ -103,6 +104,10 @@ private:
                   const std::string& json, int code = 200);
     void sendText(socketTCP* psock, httpResponse& httprsp,
                   const std::string& text, int code = 200);
+
+    // User account store: username(lower) → {password, lAccess}
+    // (same pattern as rmtsvc's webServer::m_mapUsers)
+    std::map<std::string, std::pair<std::string, long>> m_mapUsers;
 
     // Remember-me token storage (same pattern as rmtsvc)
     struct RememberEntry { std::string user; long lAccess; time_t expires; };

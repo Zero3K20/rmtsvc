@@ -19,6 +19,8 @@
 #include <cstring>
 #include <ctime>
 #include <sstream>
+#include <wincrypt.h>
+#pragma comment(lib, "crypt32.lib")
 
 // ---------------------------------------------------------------------------
 // DownpourServer constructor / Start / Stop
@@ -167,21 +169,20 @@ void DownpourServer::docmd_user(const char* strParam)
     auto itAccs = maps.find("access");
     if (itAcct == maps.end()) return;
 
-    long lAccess = DOWNPOUR_ACCESS_ALL;
-    if (itAccs != maps.end() && itAccs->second == "ACCESS_NONE")
-        lAccess = DOWNPOUR_ACCESS_NONE;
+    long lAccess = DOWNPOUR_ACCESS_NONE;
+    if (itAccs != maps.end())
+    {
+        const char* ptr = itAccs->second.c_str();
+        if (strstr(ptr, "ACCESS_ALL")) lAccess = DOWNPOUR_ACCESS_ALL;
+        else if (strstr(ptr, "ACCESS_TORRENT")) lAccess = DOWNPOUR_ACCESS_TORRENT;
+    }
+    if (lAccess == DOWNPOUR_ACCESS_NONE) return;
 
     std::string user = itAcct->second;
+    ::_strlwr((char*)user.c_str());
     std::string pswd = (itPswd != maps.end()) ? itPswd->second : "";
-
-    // Store as virtual-path user entry via base-class mechanism
-    // (re-using the same AddUser interface net4cpp21 exposes)
-    char buf[512];
-    snprintf(buf, sizeof(buf), "%s %s %ld", user.c_str(), pswd.c_str(), lAccess);
-    AddUser(buf);  // net4cpp21 httpServer::AddUser
-
-    if (lAccess != DOWNPOUR_ACCESS_NONE)
-        m_bAnonymous = false;
+    m_mapUsers[user] = { pswd, lAccess };
+    m_bAnonymous = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -552,62 +553,77 @@ bool DownpourServer::httprsp_login(socketTCP* psock,
                                     httpResponse& httprsp,
                                     httpSession& session)
 {
-    const char* user   = httpreq.Request("user");
-    const char* pswd   = httpreq.Request("pswd");
-    const char* chk    = httpreq.Request("chkcode");
-    const char* remPtr = httpreq.Request("remember");
-    bool remember = (remPtr && atoi(remPtr) != 0);
+    session["user"] = "";
+    session["lAccess"] = "";
 
-    if (!user || !pswd) return false;
+    const char* ptr_user  = httpreq.Request("user");
+    const char* ptr_pswd  = httpreq.Request("pswd");
+    const char* ptr_chk   = httpreq.Request("chkcode");
+    const char* ptr_rem   = httpreq.Request("remember");
 
-    // Verify check code
-    if (!m_bAnonymous)
-    {
-        const char* storedCode = session["checkcode"].c_str();
-        if (!chk || strcmp(chk, storedCode) != 0)
-        {
-            httprsp_Redirect(psock, httprsp, "/login.htm");
-            return true;
-        }
-    }
+    if (!ptr_user || !ptr_pswd || !ptr_chk) return false;
 
-    // Authenticate via base-class user list
-    long lAccess = CheckUser(user, pswd);
-    if (lAccess == 0 && !m_bAnonymous)
-    {
-        httprsp_Redirect(psock, httprsp, "/login.htm");
-        return true;
-    }
+    // Verify check code (case-insensitive, same as rmtsvc)
+    if (session["checkcode"] == "" ||
+        strcasecmp(session["checkcode"].c_str(), ptr_chk) != 0)
+        return false;
 
-    // Store access in session
+    // Look up user in our map
+    std::string userLower = ptr_user;
+    ::_strlwr((char*)userLower.c_str());
+    auto it = m_mapUsers.find(userLower);
+    if (it == m_mapUsers.end()) return false;
+    if (it->second.first != std::string(ptr_pswd)) return false;
+
+    // Authentication succeeded
     char tmp[32];
-    snprintf(tmp, sizeof(tmp), "%ld", (long)DOWNPOUR_ACCESS_ALL);
-    session["user"]    = user;
+    snprintf(tmp, sizeof(tmp), "%ld", it->second.second);
+    session["user"]    = it->first;
     session["lAccess"] = tmp;
 
-    if (remember)
+    // Issue remember-me token (30 days) using CryptGenRandom for randomness
+    if (ptr_rem && strcmp(ptr_rem, "1") == 0)
     {
-        // Issue a simple token valid for 30 days
-        char token[64];
-        snprintf(token, sizeof(token), "%08lx%08lx%08lx",
-                 (long)rand(), (long)rand(), (long)time(NULL));
-        RememberEntry e;
-        e.user = user; e.lAccess = DOWNPOUR_ACCESS_ALL;
-        e.expires = time(NULL) + 30 * 24 * 3600;
+        static const char chars[] =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        char token[33]; token[32] = 0;
+        BYTE randBytes[32] = {0};
+        HCRYPTPROV hProv = 0;
+        if (CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL,
+                                CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
+        {
+            CryptGenRandom(hProv, 32, randBytes);
+            CryptReleaseContext(hProv, 0);
+        }
+        else
+        {
+            srand((unsigned)time(NULL));
+            for (int i = 0; i < 32; i++) randBytes[i] = (BYTE)rand();
+        }
+        for (int i = 0; i < 32; i++) token[i] = chars[randBytes[i] % 62];
+
+        time_t tExpires = time(NULL) + 30 * 24 * 60 * 60;
+        RememberEntry entry;
+        entry.user = it->first;
+        entry.lAccess = it->second.second;
+        entry.expires = tExpires;
         {
             std::lock_guard<cMutex> lk(m_rememberMutex);
-            m_rememberTokens[token] = e;
+            m_rememberTokens[token] = entry;
         }
         saveRememberTokens();
-        TNew_Cookie* ck = httprsp.SetCookie("downpour_remember",
-                                             token, "/");
-        if (ck)
+
+        struct tm* gmt = gmtime(&tExpires);
+        char strExpires[64];
+        strftime(strExpires, sizeof(strExpires),
+                 "%a, %d-%b-%Y %H:%M:%S GMT", gmt);
+
+        httprsp.SetCookie("downpour_remember", token, "/");
+        TNew_Cookie* pCk = httprsp.SetCookie("downpour_remember");
+        if (pCk)
         {
-            char expBuf[64];
-            struct tm* gmt = gmtime(&e.expires);
-            strftime(expBuf, sizeof(expBuf), "%a, %d %b %Y %H:%M:%S GMT", gmt);
-            ck->cookie_expires = expBuf;
-            ck->cookie_httponly = true;
+            pCk->cookie_expires = strExpires;
+            pCk->cookie_httponly = true;
         }
     }
 
