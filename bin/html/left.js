@@ -101,6 +101,8 @@ function setButtonStatus()
     		o.href="/command?cmd=Lock";
     		o=document.getElementById("fAudio");
     		o.disabled=false;
+    		o=document.getElementById("fAVStats");
+    		o.disabled=false;
     		o=document.getElementById("fProc")
     		o.disabled=false;
     		o.href="viewProcess.htm";
@@ -219,6 +221,7 @@ function window_onload()
 	xmlHttp.open("GET", "/capSetting", true);
 	xmlHttp.onreadystatechange = processRequest;
     	xmlHttp.send(null);
+	_setDetailedAVStatsEnabled(localStorage.getItem("detailedAVStats") === "1");
 	// Resume audio on any user gesture in this frame.  Browsers with
 	// autoplay restrictions (Chrome, Safari, Firefox) suspend AudioContext
 	// when it is created without a prior user interaction.  Calling resume()
@@ -427,6 +430,18 @@ var nextAudioTime = 0;
 var audioChainRunning = false;
 var audioRestored = false;
 var onScreenViewPage = false;
+var detailedAVStatsEnabled = false;
+var detailedAVStatsTimer = 0;
+var audioStats = {
+	requests: 0,
+	success: 0,
+	errors: 0,
+	decodeErrors: 0,
+	bytes: 0,
+	lastBytes: 0,
+	lastStatus: "",
+	startAt: 0
+};
 
 // Magic for the AudioFrameHeader envelope added by the server ('AUDF' LE).
 var AUDIO_FRAME_MAGIC = 0x46445541;
@@ -660,6 +675,83 @@ function tryResumeAudio()
 	}
 }
 
+function _fmt1(v)
+{
+	return Math.round(v * 10) / 10;
+}
+
+function _setDetailedAVStatsEnabled(enabled)
+{
+	detailedAVStatsEnabled = !!enabled;
+	localStorage.setItem("detailedAVStats", detailedAVStatsEnabled ? "1" : "0");
+	var o = document.getElementById("fAVStats");
+	var panel = document.getElementById("avStatsPanel");
+	if (o) o.innerText = detailedAVStatsEnabled ? "Detailed AV Stats: ON" : "Detailed AV Stats: OFF";
+	if (panel) panel.style.display = detailedAVStatsEnabled ? "" : "none";
+	if (detailedAVStatsEnabled)
+	{
+		updateDetailedAVStats();
+		if (!detailedAVStatsTimer)
+			detailedAVStatsTimer = window.setInterval(updateDetailedAVStats, 1000);
+	}
+	else if (detailedAVStatsTimer)
+	{
+		window.clearInterval(detailedAVStatsTimer);
+		detailedAVStatsTimer = 0;
+	}
+}
+
+function toggleDetailedAVStats()
+{
+	_setDetailedAVStatsEnabled(!detailedAVStatsEnabled);
+}
+
+function updateDetailedAVStats()
+{
+	var text = document.getElementById("avStatsText");
+	if (!text) return;
+	var lines = [];
+
+	var v = null;
+	try
+	{
+		if (parent && parent.frmView && typeof parent.frmView.getVideoStreamStats === "function")
+			v = parent.frmView.getVideoStreamStats();
+	}
+	catch(e) {}
+
+	if (v && v.frames > 0)
+	{
+		lines.push("Video:");
+		lines.push("  " + v.width + "x" + v.height);
+		lines.push("  " + _fmt1(v.fps) + " fps");
+		lines.push("  " + _fmt1(v.kbps) + " kbps");
+		lines.push("  Last: " + _fmt1(v.lastFrameBytes / 1024.0) + " KB");
+		lines.push("  Full/Diff: " + v.fullFrames + "/" + v.diffFrames);
+		lines.push("  Raw/RLE: " + v.rawFrames + "/" + v.rleFrames);
+		lines.push("  Reconnects: " + v.reconnects);
+	}
+	else
+	{
+		lines.push("Video: no active stream");
+	}
+
+	var now = Date.now ? Date.now() : new Date().getTime();
+	var elapsed = (audioStats.startAt > 0) ? ((now - audioStats.startAt) / 1000.0) : 0;
+	var akbps = (elapsed > 0) ? ((audioStats.bytes * 8.0) / elapsed / 1000.0) : 0;
+	lines.push("");
+	lines.push("Audio:");
+	lines.push("  State: " + (audioEnabled ? "on" : "off") + (audioCtx ? (" (" + audioCtx.state + ")") : ""));
+	lines.push("  Requests: " + audioStats.requests + " ok " + audioStats.success + " err " + audioStats.errors);
+	lines.push("  Bitrate: " + _fmt1(akbps) + " kbps");
+	lines.push("  Last chunk: " + _fmt1(audioStats.lastBytes / 1024.0) + " KB");
+	lines.push("  Queue: " + ((audioCtx && nextAudioTime > 0) ? _fmt1(Math.max(0, nextAudioTime - audioCtx.currentTime)) : 0) + " s");
+	if (audioStats.decodeErrors > 0) lines.push("  Decode errors: " + audioStats.decodeErrors);
+	if (audioStats.lastStatus) lines.push("  Last status: " + audioStats.lastStatus);
+
+	text.innerText = lines.join("\n");
+}
+
 function toggleAudio()
 {
 	audioEnabled = !audioEnabled;
@@ -730,6 +822,7 @@ function notifyViewUrl(url)
 {
 	var wasOnScreenPage = onScreenViewPage;
 	onScreenViewPage = /viewScreen\.htm/i.test(url) || /viewCtrl\.htm/i.test(url);
+	if (detailedAVStatsEnabled) updateDetailedAVStats();
 	if (audioEnabled)
 	{
 		if (onScreenViewPage && !wasOnScreenPage)
@@ -764,7 +857,9 @@ function notifyViewUrl(url)
 function fetchAudioChunk()
 {
 	if (!audioEnabled || !onScreenViewPage) { audioChainRunning = false; return; }
+	if (!audioStats.startAt) audioStats.startAt = Date.now ? Date.now() : new Date().getTime();
 	audioChainRunning = true;
+	audioStats.requests++;
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", "/capAudio", true);
 	xhr.responseType = "arraybuffer";
@@ -789,8 +884,12 @@ function fetchAudioChunk()
 		clearTimeout(prefetchTimer);
 		if (xhr.status === 200 && xhr.response && xhr.response.byteLength > 44)
 		{
+			audioStats.success++;
+			audioStats.lastStatus = "ok";
 			startNext(); // start next fetch before decoding (no-op if timer fired)
 			var wavData = unwrapAudioFrame(new Uint8Array(xhr.response));
+			audioStats.bytes += wavData.byteLength;
+			audioStats.lastBytes = wavData.byteLength;
 			audioCtx.decodeAudioData(
 				wavData.buffer,
 				function(buffer)
@@ -805,12 +904,16 @@ function fetchAudioChunk()
 				},
 				function()
 				{
+					audioStats.decodeErrors++;
+					audioStats.lastStatus = "decode_error";
 					// decode failed; next fetch was already started above
 				}
 			);
 		}
 		else
 		{
+			audioStats.errors++;
+			audioStats.lastStatus = "http_" + xhr.status;
 			// Only retry if the prefetch chain has not already been started.
 			// Without this guard, a slow/failed server response (which takes
 			// longer than the 200 ms prefetch timer) causes both the timer
@@ -837,6 +940,8 @@ function fetchAudioChunk()
 	xhr.onerror = function()
 	{
 		clearTimeout(prefetchTimer);
+		audioStats.errors++;
+		audioStats.lastStatus = "network_error";
 		if (!nextStarted)
 		{
 			if (audioCtx && nextAudioTime > audioCtx.currentTime + 1.0)
@@ -846,5 +951,3 @@ function fetchAudioChunk()
 	};
 	xhr.send();
 }
-
-
