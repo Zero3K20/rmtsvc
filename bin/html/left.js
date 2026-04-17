@@ -777,12 +777,12 @@ function fetchAudioChunk()
 		fetchAudioChunk();
 	}
 
-	// Fire the next request exactly 100 ms after this one starts.  The server-side
-	// ring buffer fills one 100 ms sequential chunk per request, so 100 ms
+	// Fire the next request exactly 200 ms after this one starts.  The server-side
+	// ring buffer fills one 200 ms sequential chunk per request, so 200 ms
 	// matches the server's capture window precisely and eliminates cumulative
 	// drift that would otherwise push each successive request further behind
 	// the ring's write position until the 600-ms wait timeout is exceeded.
-	var prefetchTimer = setTimeout(startNext, 100);
+	var prefetchTimer = setTimeout(startNext, 200);
 
 	xhr.onload = function()
 	{
@@ -813,7 +813,7 @@ function fetchAudioChunk()
 		{
 			// Only retry if the prefetch chain has not already been started.
 			// Without this guard, a slow/failed server response (which takes
-			// longer than the 100 ms prefetch timer) causes both the timer
+			// longer than the 200 ms prefetch timer) causes both the timer
 			// and this else-branch to call fetchAudioChunk(), doubling the
 			// number of concurrent request chains on every failure.  After a
 			// few failures the chains multiply exponentially, exhaust the
@@ -830,7 +830,7 @@ function fetchAudioChunk()
 				// creating a perceived gap even though audio data is available.
 				if (audioCtx && nextAudioTime > audioCtx.currentTime + 1.0)
 					nextAudioTime = audioCtx.currentTime;
-				setTimeout(fetchAudioChunk, 100);
+				setTimeout(fetchAudioChunk, 200);
 			}
 		}
 	};
@@ -841,7 +841,7 @@ function fetchAudioChunk()
 		{
 			if (audioCtx && nextAudioTime > audioCtx.currentTime + 1.0)
 				nextAudioTime = audioCtx.currentTime;
-			setTimeout(fetchAudioChunk, 100);
+			setTimeout(fetchAudioChunk, 200);
 		}
 	};
 	xhr.send();
