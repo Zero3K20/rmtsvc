@@ -120,6 +120,59 @@ var _diffImageData    = null;  // cached ImageData — eliminates getImageData G
 var _lastFrameTime    = 0;
 // Interval handle for the stream watchdog timer.
 var _streamWatchdog   = 0;
+var _videoStats = {
+	frames: 0,
+	fullFrames: 0,
+	diffFrames: 0,
+	rleFrames: 0,
+	rawFrames: 0,
+	bytes: 0,
+	lastFrameBytes: 0,
+	width: 0,
+	height: 0,
+	startAt: 0,
+	lastFrameAt: 0,
+	reconnects: 0
+};
+
+function _resetVideoStats()
+{
+	_videoStats.frames = 0;
+	_videoStats.fullFrames = 0;
+	_videoStats.diffFrames = 0;
+	_videoStats.rleFrames = 0;
+	_videoStats.rawFrames = 0;
+	_videoStats.bytes = 0;
+	_videoStats.lastFrameBytes = 0;
+	_videoStats.width = 0;
+	_videoStats.height = 0;
+	_videoStats.startAt = Date.now ? Date.now() : new Date().getTime();
+	_videoStats.lastFrameAt = 0;
+}
+
+function getVideoStreamStats()
+{
+	var now = Date.now ? Date.now() : new Date().getTime();
+	var elapsed = (_videoStats.startAt > 0) ? ((now - _videoStats.startAt) / 1000.0) : 0;
+	var fps = (elapsed > 0) ? (_videoStats.frames / elapsed) : 0;
+	var kbps = (elapsed > 0) ? ((_videoStats.bytes * 8.0) / elapsed / 1000.0) : 0;
+	return {
+		frames: _videoStats.frames,
+		fullFrames: _videoStats.fullFrames,
+		diffFrames: _videoStats.diffFrames,
+		rleFrames: _videoStats.rleFrames,
+		rawFrames: _videoStats.rawFrames,
+		bytes: _videoStats.bytes,
+		lastFrameBytes: _videoStats.lastFrameBytes,
+		width: _videoStats.width,
+		height: _videoStats.height,
+		startAt: _videoStats.startAt,
+		lastFrameAt: _videoStats.lastFrameAt,
+		reconnects: _videoStats.reconnects,
+		fps: fps,
+		kbps: kbps
+	};
+}
 
 // RLE (PackBits-style) decompressor.
 // Control byte encoding:
@@ -203,6 +256,14 @@ function _diffParseFrames()
 		var isRle    = (flags & 2) !== 0;
 		var raw      = isRle ? rleDecompress(payload, rawSize) : payload;
 
+		_videoStats.frames++;
+		if (isDiff) _videoStats.diffFrames++; else _videoStats.fullFrames++;
+		if (isRle) _videoStats.rleFrames++; else _videoStats.rawFrames++;
+		_videoStats.bytes += compSize;
+		_videoStats.lastFrameBytes = compSize;
+		_videoStats.width = width;
+		_videoStats.height = height;
+		_videoStats.lastFrameAt = Date.now ? Date.now() : new Date().getTime();
 		_diffRenderFrame(isDiff, width, height, raw);
 		_diffPos = p + DIFF_HEADER_SIZE + compSize;
 	}
@@ -292,6 +353,8 @@ function _diffRenderFrame(isDiff, width, height, rgb)
 function _startDiffStream()
 {
 	if (_diffCtrl) { try { _diffCtrl.abort(); } catch(e){} }
+	if (_videoStats.startAt === 0) _resetVideoStats();
+	else _videoStats.reconnects++;
 	_diffCtrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
 	_diffBuf       = null;
 	_diffPos       = 0;
