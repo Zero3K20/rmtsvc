@@ -593,7 +593,8 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 				if(wlen>0)
 				{
 					wideText.resize(wlen);
-					MultiByteToWideChar(CP_UTF8,0,&utf8buf[0],-1,&wideText[0],wlen);
+					if(MultiByteToWideChar(CP_UTF8,0,&utf8buf[0],-1,&wideText[0],wlen)<=0)
+						wideText.clear();
 				}
 			}
 		}
@@ -604,7 +605,8 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 		if(wlen>0)
 		{
 			wideText.resize(wlen);
-			MultiByteToWideChar(CP_ACP,0,strval,-1,&wideText[0],wlen);
+			if(MultiByteToWideChar(CP_ACP,0,strval,-1,&wideText[0],wlen)<=0)
+				wideText.clear();
 		}
 	}
 
@@ -633,8 +635,8 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 					LPSTR lpMemA=(LPSTR)::GlobalLock(hMemA);
 					if(lpMemA)
 					{
-						WideCharToMultiByte(CP_ACP,0,&wideText[0],-1,lpMemA,alen,NULL,NULL);
-						::SetClipboardData(CF_TEXT,hMemA);
+						if(WideCharToMultiByte(CP_ACP,0,&wideText[0],-1,lpMemA,alen,NULL,NULL)>0)
+							::SetClipboardData(CF_TEXT,hMemA);
 					}
 					::GlobalUnlock(hMemA);
 				}
