@@ -38,6 +38,11 @@ var heldModifiers = 0;
 // True when running on Firefox, which doesn't fire 'beforeinstallprompt' natively.
 // PWAsForFirefox (https://github.com/filips423/PWAsForFirefox) adds that support once installed.
 var _isFirefox = /Firefox\//.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent);
+// True on ChromeOS/Chromebook.  Search/Launcher (Meta) combinations are reserved
+// for local OS shortcuts (including screenshot capture) and should not be sent
+// to the remote Windows host, otherwise they can trigger unintended Win-key
+// behavior such as opening Explorer.
+var _isChromeOS = /\bCrOS\b/.test(navigator.userAgent);
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -550,6 +555,7 @@ function keydown(e)
 {
 e=e||window.event;
 var kc=e.keyCode||e.which;
+if(_isChromeOS && e.metaKey) return false;
 // Do not call preventDefault() for standalone modifier-key presses
 // (Shift=16, Ctrl=17, Alt=18, Meta/Search=91/92/93).  On Chrome on ChromeOS,
 // doing so suppresses the browser's own modifier-state tracking so that
@@ -583,6 +589,7 @@ var kc=e.keyCode||e.which;
 // the Windows menu bar) continue to work correctly.
 if(kc===16||kc===17||kc===18||kc===91||kc===92||kc===93)
 {
+if(_isChromeOS && (kc===91||kc===92||kc===93)) return false;
 // Determine whether this modifier was actually held as part of key
 // combinations during this press (tracked in heldModifiers).  If so,
 // send the special 0x0800 flag so the server injects only a VK key-up
