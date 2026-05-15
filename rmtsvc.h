@@ -81,7 +81,7 @@ private:
 	bool httprsp_capWindow(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_getpswdfromwnd(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_GetClipBoard(socketTCP *psock,httpResponse &httprsp);
-	bool httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,const char *strval);
+	bool httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,const char *strval,const char *strvalb64);
 	bool httprsp_msevent(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp,httpSession &session);
 	bool httprsp_keyevent(socketTCP *psock,httpRequest &httpreq,httpResponse &httprsp);
 	bool httprsp_command(socketTCP *psock,httpResponse &httprsp,const char *ptrCmd);

@@ -327,6 +327,20 @@ function SetClipBoard()
 		_removeClipboardOverlay
 	);
 
+	function _toBase64Utf8(str)
+	{
+		try
+		{
+			return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1){
+				return String.fromCharCode(parseInt(p1, 16));
+			}));
+		}
+		catch (e)
+		{
+			return null;
+		}
+	}
+
 	_clipOverlayPasteHandler = function(e)
 	{
 		var text = '';
@@ -337,7 +351,12 @@ function SetClipBoard()
 		_removeClipboardOverlay();
 		if (text)
 		{
-			var strEncode = "val=" + encodeURIComponent(text);
+			var strEncode;
+			var b64 = _toBase64Utf8(text);
+			if (b64)
+				strEncode = "valb64=" + encodeURIComponent(b64);
+			else
+				strEncode = "val=" + encodeURIComponent(text);
 			xmlHttp.open("POST", "/SetClipBoard", true);
 			xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
 			xmlHttp.onreadystatechange = null;

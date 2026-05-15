@@ -383,7 +383,8 @@ bool webServer :: onHttpReq(socketTCP *psock,httpRequest &httpreq,httpSession &s
 			else if(strcasecmp(httpreq.url().c_str(),"/setclipboard")==0)
 			{
 				const char *ptr_val=httpreq.Request("val");
-				httprsp_SetClipBoard(psock,httprsp,ptr_val);
+				const char *ptr_valb64=httpreq.Request("valb64");
+				httprsp_SetClipBoard(psock,httprsp,ptr_val,ptr_valb64);
 				return true;
 			}
 			else if(strcasecmp(httpreq.url().c_str(),"/msevent")==0)
@@ -811,4 +812,3 @@ bool webServer :: setLastModify(socketTCP *psock,httpRequest &httpreq,httpRespon
 	httprsp.Header()["Date"]=string(buf);
 	return true;
 }
-

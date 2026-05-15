@@ -515,49 +515,130 @@ bool webServer :: httprsp_GetClipBoard(socketTCP *psock,httpResponse &httprsp)
 {
 	std::string strContent;
 	Wutils::selectDesktop();
-	if(IsClipboardFormatAvailable(CF_TEXT))
+	if(OpenClipboard(NULL))
 	{
-		if(OpenClipboard(NULL))
+		if(IsClipboardFormatAvailable(CF_UNICODETEXT))
+		{
+			HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT);
+			if (hglb != NULL)
+			{
+				LPCWSTR lpwstr=(LPCWSTR)GlobalLock(hglb);
+				if(lpwstr!=NULL)
+				{
+					int utf8len=WideCharToMultiByte(CP_UTF8,0,lpwstr,-1,NULL,0,NULL,NULL);
+					if(utf8len>0)
+					{
+						std::vector<char> utf8buf(utf8len);
+						if(WideCharToMultiByte(CP_UTF8,0,lpwstr,-1,&utf8buf[0],utf8len,NULL,NULL)>0)
+							strContent.assign(&utf8buf[0]);
+					}
+				}
+				GlobalUnlock(hglb);
+			}
+		}
+		else if(IsClipboardFormatAvailable(CF_TEXT))
 		{
 			HGLOBAL hglb = GetClipboardData(CF_TEXT);
 			if (hglb != NULL)
 			{
-				LPTSTR lptstr=(LPTSTR)GlobalLock(hglb);
-				if(lptstr!=NULL) strContent.assign(lptstr);
+				LPCSTR lpstr=(LPCSTR)GlobalLock(hglb);
+				if(lpstr!=NULL)
+				{
+					int wlen=MultiByteToWideChar(CP_ACP,0,lpstr,-1,NULL,0);
+					if(wlen>0)
+					{
+						std::vector<wchar_t> wbuf(wlen);
+						if(MultiByteToWideChar(CP_ACP,0,lpstr,-1,&wbuf[0],wlen)>0)
+						{
+							int utf8len=WideCharToMultiByte(CP_UTF8,0,&wbuf[0],-1,NULL,0,NULL,NULL);
+							if(utf8len>0)
+							{
+								std::vector<char> utf8buf(utf8len);
+								if(WideCharToMultiByte(CP_UTF8,0,&wbuf[0],-1,&utf8buf[0],utf8len,NULL,NULL)>0)
+									strContent.assign(&utf8buf[0]);
+							}
+						}
+					}
+				}
 				GlobalUnlock(hglb);
 			}
-			CloseClipboard();
 		}
-	}//?if(IsClipboardForma...
+		CloseClipboard();
+	}//?if(OpenClipboard...
 	httprsp.NoCache();//CacheControl("No-cache");
 	//set MIME type, default is HTML
 	httprsp.set_mimetype(MIMETYPE_TEXT);
+	httprsp.Header()["Content-Type"]="text/plain; charset=utf-8";
 	//set response content length
 	httprsp.lContentLength(strContent.length()); 
 	httprsp.send_rspH(psock,200,"OK");
 	if(strContent!="") psock->Send(strContent.length(),strContent.c_str(),-1);
 	return true;
 }
-bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,const char *strval)
+bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,const char *strval,const char *strvalb64)
 {
-	std::string strContent;
+	std::vector<wchar_t> wideText;
+	if(strvalb64 && strvalb64[0]!=0)
+	{
+		std::string b64str(strvalb64);
+		int utf8max=cCoder::Base64DecodeSize((int)b64str.length());
+		if(utf8max>0)
+		{
+			std::vector<char> utf8buf(utf8max+1);
+			int utf8len=cCoder::base64_decode(&b64str[0],(unsigned int)b64str.length(),&utf8buf[0]);
+			if(utf8len>=0)
+			{
+				utf8buf[utf8len]=0;
+				int wlen=MultiByteToWideChar(CP_UTF8,0,&utf8buf[0],-1,NULL,0);
+				if(wlen>0)
+				{
+					wideText.resize(wlen);
+					MultiByteToWideChar(CP_UTF8,0,&utf8buf[0],-1,&wideText[0],wlen);
+				}
+			}
+		}
+	}
+	if(wideText.empty() && strval)
+	{
+		int wlen=MultiByteToWideChar(CP_ACP,0,strval,-1,NULL,0);
+		if(wlen>0)
+		{
+			wideText.resize(wlen);
+			MultiByteToWideChar(CP_ACP,0,strval,-1,&wideText[0],wlen);
+		}
+	}
+
 	Wutils::selectDesktop();
-	if(strval && OpenClipboard(NULL))
+	if(!wideText.empty() && OpenClipboard(NULL))
 	{
 		if (::EmptyClipboard())// clear clipboard
-		{	
-			size_t len=strlen(strval);// allocate memory block
-			HANDLE hMem= ::GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, len+1);
-			if (hMem)
+		{
+			HANDLE hMemW=::GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE,wideText.size()*sizeof(wchar_t));
+			if(hMemW)
 			{
-				LPSTR lpMem = (LPSTR)::GlobalLock(hMem);
-				if (lpMem)
+				LPWSTR lpMemW=(LPWSTR)::GlobalLock(hMemW);
+				if(lpMemW)
 				{
-					::memcpy((void*)lpMem, (const void*)strval, len+1);
-					::SetClipboardData(CF_TEXT,hMem);	
-				}//?if (lpMem)
-				::GlobalUnlock(hMem);
-			}//?hMem
+					::memcpy((void*)lpMemW,(const void*)&wideText[0],wideText.size()*sizeof(wchar_t));
+					::SetClipboardData(CF_UNICODETEXT,hMemW);
+				}
+				::GlobalUnlock(hMemW);
+			}
+			int alen=WideCharToMultiByte(CP_ACP,0,&wideText[0],-1,NULL,0,NULL,NULL);
+			if(alen>0)
+			{
+				HANDLE hMemA=::GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE,alen);
+				if(hMemA)
+				{
+					LPSTR lpMemA=(LPSTR)::GlobalLock(hMemA);
+					if(lpMemA)
+					{
+						WideCharToMultiByte(CP_ACP,0,&wideText[0],-1,lpMemA,alen,NULL,NULL);
+						::SetClipboardData(CF_TEXT,hMemA);
+					}
+					::GlobalUnlock(hMemA);
+				}
+			}
 		}
 		CloseClipboard();
 	}//?if(OpenClipboard(NULL))
