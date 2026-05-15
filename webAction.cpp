@@ -586,7 +586,7 @@ bool webServer :: httprsp_SetClipBoard(socketTCP *psock,httpResponse &httprsp,co
 		{
 			std::vector<char> utf8buf(utf8max+1);
 			int utf8len=cCoder::base64_decode(&b64str[0],(unsigned int)b64str.length(),&utf8buf[0]);
-			if(utf8len>=0)
+			if(utf8len>=0 && utf8len<=utf8max)
 			{
 				utf8buf[utf8len]=0;
 				int wlen=MultiByteToWideChar(CP_UTF8,0,&utf8buf[0],-1,NULL,0);
