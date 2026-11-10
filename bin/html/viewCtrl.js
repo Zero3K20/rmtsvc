@@ -48,6 +48,7 @@ var _touchButton = 1;
 var _touchLongPressTimer = 0;
 var _touchStartX = 0;
 var _touchStartY = 0;
+var _mobileModifiers = 0;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -206,6 +207,9 @@ function window_onload()
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("txtHide").focus();
 var screenCanvas=document.getElementById("screenimage");
+var mobileText=document.getElementById("mobileText");
+if(mobileText)
+mobileText.addEventListener("input", mobileTextInput, false);
 if(screenCanvas && screenCanvas.addEventListener)
 {
 screenCanvas.style.touchAction="none";
@@ -534,6 +538,88 @@ if(list[i].identifier===id) return list[i];
 return null;
 }
 
+function toggleMobileMenu()
+{
+try
+{
+var frames=parent.myFrames;
+if(frames.cols.indexOf("180")===0) frames.cols="0,12,0,*";
+else frames.cols="180,12,0,*";
+setTimeout(function(){try{parent.frmView._fitCanvasToContainer();}catch(e){}},150);
+}
+catch(e){}
+}
+
+function toggleMobileKeyboard()
+{
+var panel=document.getElementById("mobileKeyboard");
+var input=document.getElementById("mobileText");
+if(!panel || !input) return;
+var opening=panel.style.display==="none";
+panel.style.display=opening?"block":"none";
+if(opening) input.focus();
+else input.blur();
+}
+
+function toggleMobileModifier(bit, button)
+{
+_mobileModifiers^=bit;
+if(button) button.className=(_mobileModifiers&bit)?"active":"";
+}
+
+function queueMobileKey(code, modifiers)
+{
+txtKeyEvent+=((modifiers||0)*256+code)+",";
+if(timerID_key===0) timerID_key=window.setInterval(Kevent,50);
+}
+
+function sendMobileSpecialKey(code, e)
+{
+e=e||window.event;
+var modifiers=_mobileModifiers;
+if(e)
+{
+if(e.ctrlKey) modifiers|=1;
+if(e.shiftKey) modifiers|=2;
+if(e.altKey) modifiers|=4;
+}
+queueMobileKey(code,modifiers);
+}
+
+function sendMobileText(text)
+{
+var keys={
+' ':'32','-':'189','_':'189','=':'187','+':'187',
+'[':'219','{':'219',']':'221','}':'221',
+';':'186',':':'186',"'":'222','"':'222',
+',':'188','<':'188','.':'190','>':'190',
+'/':'191','?':'191','`':'192','~':'192',
+'\\':'220','|':'220','!':'49','@':'50','#':'51',
+'$':'52','%':'53','^':'54','&':'55','*':'56',
+'(':'57',')':'48'
+};
+for(var i=0;i<text.length;i++)
+{
+var ch=text.charAt(i), code=0, modifiers=_mobileModifiers;
+if(ch>='a'&&ch<='z') code=ch.toUpperCase().charCodeAt(0);
+else if(ch>='A'&&ch<='Z') {code=ch.charCodeAt(0);modifiers|=2;}
+else if(ch>='0'&&ch<='9') code=ch.charCodeAt(0);
+else if(keys[ch]) code=parseInt(keys[ch],10);
+if(!code) continue;
+if("~!@#$%^&*()_+{}|:\"<>?".indexOf(ch)!==-1) modifiers|=2;
+queueMobileKey(code,modifiers);
+}
+}
+
+function mobileTextInput(e)
+{
+if(e.isComposing) return;
+var input=e.target||document.getElementById("mobileText");
+var text=(e.data!==undefined&&e.data!==null)?e.data:input.value;
+input.value="";
+if(text) sendMobileText(text);
+}
+
 function touchMouseEvent(touch, button, buttons, originalEvent)
 {
 return {
@@ -655,6 +741,24 @@ function keydown(e)
 {
 e=e||window.event;
 var kc=e.keyCode||e.which;
+var target=e.target||e.srcElement;
+if(target && target.id==="mobileText")
+{
+if(kc===8||kc===9||kc===13||kc===27||kc===35||kc===36||
+   kc===37||kc===38||kc===39||kc===40||kc===46)
+{
+if(e.preventDefault) e.preventDefault();
+sendMobileSpecialKey(kc,e);
+return false;
+}
+if(e.ctrlKey||e.altKey||e.metaKey)
+{
+if(e.preventDefault) e.preventDefault();
+sendMobileSpecialKey(kc,e);
+return false;
+}
+return true;
+}
 if(_isChromeOS && e.metaKey) return false;
 // Do not call preventDefault() for standalone modifier-key presses
 // (Shift=16, Ctrl=17, Alt=18, Meta/Search=91/92/93).  On Chrome on ChromeOS,
@@ -682,6 +786,8 @@ return false;
 function keyup(e)
 {
 e=e||window.event;
+var target=e.target||e.srcElement;
+if(target && target.id==="mobileText") return true;
 var kc=e.keyCode||e.which;
 // Non-modifier keys are sent on keydown (above) to support auto-repeat.
 // Only standalone modifier-key events are forwarded here so that
