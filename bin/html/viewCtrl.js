@@ -43,6 +43,11 @@ var _isFirefox = /Firefox\//.test(navigator.userAgent) && !/Chrome\//.test(navig
 // to the remote Windows host, otherwise they can trigger unintended Win-key
 // behavior such as opening Explorer.
 var _isChromeOS = /\bCrOS\b/.test(navigator.userAgent);
+var _touchId = null;
+var _touchButton = 1;
+var _touchLongPressTimer = 0;
+var _touchStartX = 0;
+var _touchStartY = 0;
 
 // Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
 var xmlHttpKey = false;
@@ -200,6 +205,15 @@ function window_onload()
 {
 if(!xmlHttp) createXMLHttpRequest();
 document.getElementById("txtHide").focus();
+var screenCanvas=document.getElementById("screenimage");
+if(screenCanvas && screenCanvas.addEventListener)
+{
+screenCanvas.style.touchAction="none";
+screenCanvas.addEventListener("touchstart", touchStart, {passive:false});
+screenCanvas.addEventListener("touchmove", touchMove, {passive:false});
+screenCanvas.addEventListener("touchend", touchEnd, {passive:false});
+screenCanvas.addEventListener("touchcancel", touchEnd, {passive:false});
+}
 // Start the binary diff stream (falls back to BMP polling on older browsers)
 startScreenStream();
 // Poll server cursor shape every 200 ms so the client cursor stays in sync
@@ -219,6 +233,13 @@ parent.frmLeft.tryResumeAudio();
 // Alt-Tabs or clicks outside the browser), we will never receive the mouseup.
 // Send a button-up immediately so the remote host does not keep dragging.
 window.addEventListener('blur', function() {
+if(_touchId!==null)
+{
+if(_touchLongPressTimer){window.clearTimeout(_touchLongPressTimer);_touchLongPressTimer=0;}
+if(_touchButton===2) sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=2&act=6");
+_touchId=null;
+_touchButton=1;
+}
 if(!isLeftDown) return;
 document.removeEventListener('mousemove', _dragMove, true);
 document.removeEventListener('mouseup', _dragUp, true);
@@ -334,7 +355,8 @@ if(timerID_move!=0)
 window.clearTimeout(timerID_move);
 timerID_move=0;
 }
-timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+(isLeftDown?1:0)); },50);
+var heldButton=(_touchId!==null && _touchButton===2)?2:(isLeftDown?1:0);
+timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+heldButton); },50);
 }
 
 function msclick(e)
@@ -503,6 +525,84 @@ return;
 }
 var serverBtn=normalizeButton(b);
 sendButtonEvent("x="+ptX+"&y="+ptY+"&altk="+altk+"&button="+serverBtn+"&act=6");
+}
+
+function touchById(list, id)
+{
+for(var i=0;i<list.length;i++)
+if(list[i].identifier===id) return list[i];
+return null;
+}
+
+function touchMouseEvent(touch, button, buttons, originalEvent)
+{
+return {
+clientX:touch.clientX,
+clientY:touch.clientY,
+button:button,
+buttons:buttons,
+ctrlKey:false,
+shiftKey:false,
+altKey:false,
+preventDefault:function(){originalEvent.preventDefault();}
+};
+}
+
+function touchStart(e)
+{
+e.preventDefault();
+if(_touchId!==null || e.touches.length!==1) return;
+var touch=e.touches[0];
+_touchId=touch.identifier;
+_touchButton=1;
+_touchStartX=touch.clientX;
+_touchStartY=touch.clientY;
+msdown(touchMouseEvent(touch,0,1,e));
+_touchLongPressTimer=window.setTimeout(function() {
+if(_touchId===null || _touchButton!==1) return;
+_touchLongPressTimer=0;
+var point={clientX:_touchStartX,clientY:_touchStartY};
+msup(touchMouseEvent(point,0,0,e));
+_touchButton=2;
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=2&act=3");
+},500);
+}
+
+function touchMove(e)
+{
+e.preventDefault();
+if(_touchId===null) return;
+var touch=touchById(e.touches,_touchId);
+if(!touch) return;
+var dx=touch.clientX-_touchStartX, dy=touch.clientY-_touchStartY;
+if(_touchLongPressTimer && dx*dx+dy*dy>100)
+{
+window.clearTimeout(_touchLongPressTimer);
+_touchLongPressTimer=0;
+}
+msmove(touchMouseEvent(touch,0,1,e));
+}
+
+function touchEnd(e)
+{
+e.preventDefault();
+if(_touchId===null) return;
+var touch=touchById(e.changedTouches,_touchId);
+if(!touch) return;
+if(_touchLongPressTimer)
+{
+window.clearTimeout(_touchLongPressTimer);
+_touchLongPressTimer=0;
+}
+if(_touchButton===1)
+msup(touchMouseEvent(touch,0,0,e));
+else
+{
+msPosition(touchMouseEvent(touch,2,0,e));
+sendButtonEvent("x="+ptX+"&y="+ptY+"&altk=0&button=2&act=6");
+}
+_touchId=null;
+_touchButton=1;
 }
 
 function mswheel(e)
