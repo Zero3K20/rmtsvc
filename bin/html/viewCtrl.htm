@@ -10,9 +10,36 @@
 <tr><td valign=top style="height:100%;">
 <div id=divScreen style="height:100%;width:100%;overflow:hidden;position:relative;">
    <canvas id=screenimage style="max-width:100%;max-height:100%;display:block;" draggable="false"></canvas>
+   <button id="btnMobileMenu" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation"
+    style="display:none;position:absolute;top:8px;left:8px;z-index:101;">&#9776; Menu</button>
    <button id="btnInstall" onclick="installAsApp()" title="Install as App"
     style="position:absolute;top:4px;right:4px;z-index:100;opacity:0.45;font-size:14px;cursor:pointer;background:#222;color:#fff;border:1px solid #666;padding:2px 6px;line-height:1.2;display:none;"
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.45'">&#x2B07; Install</button>
+   <div id="mobileControls" style="display:none;">
+    <button id="btnMobileKeyboard" type="button" onclick="toggleMobileKeyboard()">Keyboard</button>
+    <div id="mobileKeyboard" style="display:none;">
+     <input id="mobileText" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+      placeholder="Tap here to type on the PC" aria-label="Type on the remote PC">
+     <div class="mobileKeyRow">
+      <button type="button" onclick="sendMobileSpecialKey(27)">Esc</button>
+      <button type="button" onclick="sendMobileSpecialKey(9)">Tab</button>
+      <button type="button" data-modifier="1" onclick="toggleMobileModifier(1,this)">Ctrl</button>
+      <button type="button" data-modifier="4" onclick="toggleMobileModifier(4,this)">Alt</button>
+      <button type="button" data-modifier="2" onclick="toggleMobileModifier(2,this)">Shift</button>
+      <button type="button" onclick="sendMobileSpecialKey(8)">⌫</button>
+      <button type="button" onclick="sendMobileSpecialKey(13)">Enter</button>
+     </div>
+     <div class="mobileKeyRow">
+      <button type="button" onclick="sendMobileSpecialKey(37)">←</button>
+      <button type="button" onclick="sendMobileSpecialKey(38)">↑</button>
+      <button type="button" onclick="sendMobileSpecialKey(40)">↓</button>
+      <button type="button" onclick="sendMobileSpecialKey(39)">→</button>
+      <button type="button" onclick="sendMobileSpecialKey(36)">Home</button>
+      <button type="button" onclick="sendMobileSpecialKey(35)">End</button>
+      <button type="button" onclick="sendMobileSpecialKey(46)">Del</button>
+     </div>
+    </div>
+   </div>
 </div>
 <input type=text style="position:absolute;height:0px;width:0px;border:0;outline:0;padding:0;margin:0;overflow:hidden;" value="" id=txtHide name=txtHide>
 </td></tr>
@@ -39,5 +66,78 @@ _img.onmousewheel = mswheel;
 document.addEventListener('keydown', keydown, true);
 document.addEventListener('keyup', keyup, true);
 </SCRIPT>
+<style>
+@media (max-width: 768px) {
+ #btnMobileMenu {
+  display:block !important;
+  min-height:40px;
+  padding:6px 10px;
+  color:#fff;
+  background:rgba(25,35,48,.9);
+  border:1px solid #9ca3af;
+  border-radius:6px;
+  font-size:14px;
+ }
+ #mobileControls {
+  display:block !important;
+  position:absolute;
+  z-index:101;
+  left:8px;
+  right:8px;
+  bottom:8px;
+  font:16px Arial,sans-serif;
+ }
+ #btnMobileKeyboard {
+  width:100%;
+  min-height:44px;
+  color:#fff;
+  background:rgba(25,35,48,.94);
+  border:1px solid #9ca3af;
+  border-radius:8px;
+  font-size:16px;
+  touch-action:manipulation;
+ }
+ #mobileKeyboard {
+  margin-bottom:6px;
+  padding:8px;
+  background:rgba(25,35,48,.96);
+  border:1px solid #9ca3af;
+  border-radius:8px;
+ }
+ #mobileText {
+  box-sizing:border-box;
+  width:100%;
+  min-height:44px;
+  margin-bottom:6px;
+  padding:8px;
+  border:1px solid #9ca3af;
+  border-radius:6px;
+  font-size:16px;
+  user-select:text;
+  -webkit-user-select:text;
+ }
+ .mobileKeyRow {
+  display:flex;
+  gap:4px;
+  margin-top:4px;
+ }
+ .mobileKeyRow button {
+  flex:1;
+  min-width:0;
+  min-height:42px;
+  padding:4px 2px;
+  color:#fff;
+  background:#354255;
+  border:1px solid #718096;
+  border-radius:5px;
+  font-size:14px;
+  touch-action:manipulation;
+ }
+ .mobileKeyRow button.active {
+  background:#1769aa;
+  border-color:#9bd1ff;
+ }
+}
+</style>
 </BODY>
 </HTML>
