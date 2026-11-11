@@ -50,59 +50,61 @@ var _touchStartX = 0;
 var _touchStartY = 0;
 var _mobileModifiers = 0;
 
-// Dedicated XHR for keyboard events so they don't conflict with pending mouse requests
-var xmlHttpKey = false;
-function getKeyXHR()
+// Serialize input requests through one queue so mouse and keyboard events are
+// applied in the order they were generated, even when the network is slow.
+// Pending cursor moves are replaceable by newer positions; button, wheel, and
+// keyboard events remain queued and are never displaced by a move.
+var _inputQueue = [];
+var _inputSending = false;
+var _activeInputFinish = null;
+function _sendNextInputEvent()
 {
-if(!xmlHttpKey)
-{
-if(window.XMLHttpRequest) xmlHttpKey = new XMLHttpRequest();
-else if(window.ActiveXObject) xmlHttpKey = new ActiveXObject("Microsoft.XMLHTTP");
-}
-return xmlHttpKey;
-}
-
-// Serial queue for button events (down/up).
-// Using a separate fresh XHR per event was the original approach to avoid one
-// event aborting another, but it allows out-of-order delivery: if act=3
-// (button-down) travels on a new TCP connection that needs a handshake while
-// act=6 (button-up) reuses a warm connection, act=6 arrives first.  The server
-// then processes button-up on an un-pressed button (no-op) and button-down
-// second, leaving the remote host with a stuck LEFTDOWN — unintended dragging.
-// The queue serialises sends so each XHR completes before the next is started,
-// guaranteeing the arrival order matches the dispatch order, while still using a
-// fresh XHR object per event so no event is ever silently dropped.
-var _buttonQueue = [];
-var _buttonSending = false;
-function _sendNextButtonEvent()
-{
-if(_buttonSending || _buttonQueue.length === 0) return;
-_buttonSending = true;
-var param = _buttonQueue.shift();
+if(_inputSending || _inputQueue.length === 0) return;
 var xhr;
 if(window.XMLHttpRequest) xhr = new XMLHttpRequest();
 else if(window.ActiveXObject) xhr = new ActiveXObject("Microsoft.XMLHTTP");
-if(!xhr) { _buttonSending = false; return; }
-xhr.open("POST", "/msevent", true);
-xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-// Safety timeout: if the browser abandons the XHR (e.g. the PWA is
-// backgrounded and the connection is suspended), readyState 4 may never
-// fire.  After 5 s we treat the request as done and drain the queue so
-// subsequent button events are not permanently blocked.
-var _btnSafetyTO = setTimeout(function() {
-try { xhr.abort(); } catch(e) {}
-_buttonSending = false;
-_sendNextButtonEvent();
-}, 5000);
+if(!xhr) return;
+_inputSending = true;
+var event = _inputQueue.shift();
+var completed = false;
+function finishInputEvent()
+{
+if(completed) return;
+completed = true;
+_inputSending = false;
+_activeInputFinish = null;
+_sendNextInputEvent();
+}
+_activeInputFinish = finishInputEvent;
 xhr.onreadystatechange = function() {
-if(xhr.readyState === 4) { clearTimeout(_btnSafetyTO); _buttonSending = false; _sendNextButtonEvent(); }
+if(xhr.readyState === 4) finishInputEvent();
 };
-xhr.send(param);
+xhr.onerror = finishInputEvent;
+xhr.onabort = finishInputEvent;
+xhr.ontimeout = finishInputEvent;
+try
+{
+xhr.open("POST", event.url, true);
+xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+xhr.send(event.param);
+}
+catch(e)
+{
+finishInputEvent();
+}
+}
+function sendInputEvent(url,param,coalesceMove)
+{
+var last = _inputQueue.length ? _inputQueue[_inputQueue.length-1] : null;
+if(coalesceMove && last && last.coalesceMove && last.url === url)
+last.param = param;
+else
+_inputQueue.push({url:url,param:param,coalesceMove:!!coalesceMove});
+_sendNextInputEvent();
 }
 function sendButtonEvent(param)
 {
-_buttonQueue.push(param);
-_sendNextButtonEvent();
+sendInputEvent("/msevent",param,false);
 }
 
 // Detect Internet Explorer (pre-Edge) which uses different button/event conventions
@@ -275,29 +277,21 @@ var btn = document.getElementById("btnInstall");
 if(btn) btn.style.display = '';
 }
 // When a PWA (or any browser) comes back to the foreground after being
-// backgrounded, in-flight XHRs may have been silently abandoned by the
-// browser without ever reaching readyState 4.  This leaves _buttonSending
-// permanently true, blocking all subsequent button events (the "hang").
-// On visibility restore we reset the button-queue state so input becomes
-// responsive again.  The screen stream is reconnected by the listener in
-// common.js startScreenStream().
+// backgrounded, an in-flight XHR may have been abandoned without reaching
+// readyState 4.  Resume the queue but retain pending events.
+// The screen stream is reconnected by the listener in common.js startScreenStream().
 // _cursorPending is also reset so the cursor polling interval can resume
-// immediately rather than waiting for the 3 s safety timeout to expire.
+// immediately rather than waiting for its safety timeout to expire.
 document.addEventListener('visibilitychange', function() {
 if(document.visibilityState === 'visible') {
-_buttonSending = false;
-_buttonQueue = [];
+if(_activeInputFinish) _activeInputFinish();
 _cursorPending = false;
 }
 }, false);
 // Chrome's Page Lifecycle API: when Chrome freezes the page (standby/idle
 // mode triggered by its "this page is slowing down the browser" warning),
-// any in-flight button XHR will be abandoned.  Reset the queue state on
-// freeze so that when the page resumes, input is immediately responsive
-// without waiting for the 5 s safety timeout to expire.
+// queued input is retained and resumed by the visibility listener above.
 document.addEventListener('freeze', function() {
-_buttonSending = false;
-_buttonQueue = [];
 _cursorPending = false;
 }, false);
 }
@@ -326,17 +320,9 @@ function processRequest()
 {
 // Event sent; the binary diff stream updates the display automatically
 }
-function sendEvent(strurl,param)
+function sendEvent(strurl,param,coalesceMove)
 {
-if(timerID_move!=0)
-{
-window.clearTimeout(timerID_move);
-timerID_move=0;
-}
-xmlHttp.open("POST", strurl, true);
-xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-xmlHttp.onreadystatechange = processRequest;
-xmlHttp.send(param);
+sendInputEvent(strurl,param,coalesceMove);
 }
 
 function msmove(e)
@@ -360,7 +346,7 @@ window.clearTimeout(timerID_move);
 timerID_move=0;
 }
 var heldButton=(_touchId!==null && _touchButton===2)?2:(isLeftDown?1:0);
-timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+heldButton); },50);
+timerID_move=window.setTimeout(function(){ sendEvent("/msevent",paramBase+"&button="+heldButton,true); },50);
 }
 
 function msclick(e)
@@ -718,21 +704,7 @@ timerID_key=0;
 }
 else
 {
-var kxhr=getKeyXHR();
-if(kxhr)
-{
-kxhr.open("POST", "/keyevent", true);
-kxhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-kxhr.onreadystatechange=function(){
-if(kxhr.readyState===4 && kxhr.status!==200)
-console.log("[viewCtrl] keyEvent XHR error: status="+kxhr.status);
-};
-kxhr.send("vkey="+param);
-}
-else
-{
-console.log("[viewCtrl] keyEvent: Could not create XHR object");
-}
+sendInputEvent("/keyevent","vkey="+param,false);
 }
 }
 
